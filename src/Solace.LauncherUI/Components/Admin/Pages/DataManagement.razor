@@ -11,6 +11,8 @@
 @attribute [Authorize(Policy = Permissions.ViewData)]
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
+@inject ServerManager ServerManager
+@inject IJSRuntime JS
 
 <PageTitle>Data - Solace</PageTitle>
 
@@ -342,8 +344,14 @@
         }
     }
 
-    private void InitiateImport()
+    private async Task InitiateImport()
     {
+        if (ServerManager.AnyOnline)
+        {
+            await JS.InvokeVoidAsync("alert", "The server needs to be offline to import data.");
+            return;
+        }
+
         if (_selectedFile is null)
         {
             return;
@@ -395,6 +403,12 @@
 
     private async Task InitiateDelete()
     {
+        if (ServerManager.AnyOnline)
+        {
+            await JS.InvokeVoidAsync("alert", "The server needs to be offline to delete data.");
+            return;
+        }
+
         _isConfirmingDelete = true;
         _canConfirmDelete = false;
         _countdown = 5;
@@ -524,7 +538,7 @@
 
         var importDb = EarthDB.Open(importDbPath);
 
-        
+
 
         File.Delete(importDbPath);
     }
