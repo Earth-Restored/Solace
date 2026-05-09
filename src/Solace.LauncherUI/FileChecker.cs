@@ -103,8 +103,7 @@ internal static class FileChecker
 
             error = true;
         }
-
-        if (resourcePack.Length < 100_000_000)
+        else if (resourcePack.Length < 100_000_000)
         {
             logger.Error($"Resourcepack file '{resourcePack.FullName}' is invalid, expected size: 131885348B, actual size: {resourcePack.Length}B");
             logger.Information("Download it from https://cdn.mceserv.net/availableresourcepack/resourcepacks/dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35 (using internet archive)");
