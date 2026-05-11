@@ -11,7 +11,7 @@ using Solace.DB.Models.Player;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 using Solace.StaticData;
-using Buildplates = Solace.DB.Models.Player.Buildplates;
+using LegacyBuildplates = Solace.DB.Models.Player.LegacyBuildplates;
 using CICIBIEType = Solace.StaticData.Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.TypeE;
 
 namespace Solace.ApiServer.Utils;
@@ -216,11 +216,11 @@ public sealed class BuildplateInstanceRequestHandler
     private async Task<BuildplateLoadResponse?> HandleLoad(string playerId, string buildplateId)
     {
         EarthDB.Results results = await new EarthDB.Query(false)
-            .Get("buildplates", playerId, typeof(Buildplates))
+            .Get("buildplates", playerId, typeof(LegacyBuildplates))
             .ExecuteAsync(_earthDB);
-        Buildplates buildplates = results.Get<Buildplates>("buildplates");
+        LegacyBuildplates buildplates = results.Get<LegacyBuildplates>("buildplates");
 
-        Buildplates.Buildplate? buildplate = buildplates.GetBuildplate(buildplateId);
+        LegacyBuildplates.Buildplate? buildplate = buildplates.GetBuildplate(buildplateId);
         if (buildplate is null)
         {
             return null;
@@ -241,11 +241,11 @@ public sealed class BuildplateInstanceRequestHandler
     private async Task<BuildplateLoadResponse?> HandleLoadShared(string sharedBuildplateId)
     {
         EarthDB.Results results = await new EarthDB.Query(false)
-            .Get("sharedBuildplates", "", typeof(SharedBuildplates))
+            .Get("sharedBuildplates", "", typeof(LegacySharedBuildplates))
             .ExecuteAsync(_earthDB);
-        SharedBuildplates sharedBuildplates = results.Get<SharedBuildplates>("sharedBuildplates");
+        LegacySharedBuildplates sharedBuildplates = results.Get<LegacySharedBuildplates>("sharedBuildplates");
 
-        SharedBuildplates.SharedBuildplate? sharedBuildplate = sharedBuildplates.GetSharedBuildplate(sharedBuildplateId);
+        LegacySharedBuildplates.SharedBuildplate? sharedBuildplate = sharedBuildplates.GetSharedBuildplate(sharedBuildplateId);
         if (sharedBuildplate is null)
         {
             return null;
@@ -266,11 +266,11 @@ public sealed class BuildplateInstanceRequestHandler
     private async Task<BuildplateLoadResponse?> HandleLoadEncounter(string encounterBuildplateId)
     {
         EarthDB.Results results = await new EarthDB.Query(false)
-            .Get("encounterBuildplates", "", typeof(EncounterBuildplates))
+            .Get("encounterBuildplates", "", typeof(LegacyEncounterBuildplates))
             .ExecuteAsync(_earthDB);
-        EncounterBuildplates encounterBuildplates = results.Get<EncounterBuildplates>("encounterBuildplates");
+        LegacyEncounterBuildplates encounterBuildplates = results.Get<LegacyEncounterBuildplates>("encounterBuildplates");
 
-        EncounterBuildplates.EncounterBuildplate? encounterBuildplate = encounterBuildplates.GetEncounterBuildplate(encounterBuildplateId);
+        LegacyEncounterBuildplates.EncounterBuildplate? encounterBuildplate = encounterBuildplates.GetEncounterBuildplate(encounterBuildplateId);
         if (encounterBuildplate is null)
         {
             return null;
@@ -317,9 +317,9 @@ public sealed class BuildplateInstanceRequestHandler
         }
 
         EarthDB.Results results = await new EarthDB.Query(false)
-            .Get("buildplates", playerId, typeof(Buildplates))
+            .Get("buildplates", playerId, typeof(LegacyBuildplates))
             .ExecuteAsync(_earthDB);
-        Buildplates.Buildplate? buildplateUnsafeForPreviewGenerator = results.Get<Buildplates>("buildplates").GetBuildplate(buildplateId);
+        LegacyBuildplates.Buildplate? buildplateUnsafeForPreviewGenerator = results.Get<LegacyBuildplates>("buildplates").GetBuildplate(buildplateId);
         if (buildplateUnsafeForPreviewGenerator is null)
         {
             return false;
@@ -355,11 +355,11 @@ public sealed class BuildplateInstanceRequestHandler
         try
         {
             EarthDB.Results results1 = await new EarthDB.Query(true)
-                .Get("buildplates", playerId, typeof(Buildplates))
+                .Get("buildplates", playerId, typeof(LegacyBuildplates))
                 .Then(results2 =>
                 {
-                    Buildplates buildplates = results2.Get<Buildplates>("buildplates");
-                    Buildplates.Buildplate? buildplate = buildplates.GetBuildplate(buildplateId);
+                    LegacyBuildplates buildplates = results2.Get<LegacyBuildplates>("buildplates");
+                    LegacyBuildplates.Buildplate? buildplate = buildplates.GetBuildplate(buildplateId);
                     if (buildplate is not null)
                     {
                         string oldServerDataObjectId = buildplate.ServerDataObjectId;
@@ -480,10 +480,10 @@ public sealed class BuildplateInstanceRequestHandler
 
                 {
                     EarthDB.Results results = await new EarthDB.Query(false)
-                        .Get("sharedBuildplates", "", typeof(SharedBuildplates))
+                        .Get("sharedBuildplates", "", typeof(LegacySharedBuildplates))
                         .ExecuteAsync(_earthDB);
-                    SharedBuildplates sharedBuildplates = results.Get<SharedBuildplates>("sharedBuildplates");
-                    SharedBuildplates.SharedBuildplate? sharedBuildplate = sharedBuildplates.GetSharedBuildplate(instanceInfo.BuildplateId);
+                    LegacySharedBuildplates sharedBuildplates = results.Get<LegacySharedBuildplates>("sharedBuildplates");
+                    LegacySharedBuildplates.SharedBuildplate? sharedBuildplate = sharedBuildplates.GetSharedBuildplate(instanceInfo.BuildplateId);
                     if (sharedBuildplate is null)
                     {
                         return null;

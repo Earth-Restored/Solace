@@ -542,7 +542,7 @@
         {
             // todo: sharedBuildplates SharedBuildplates id: "", encounterBuildplates EncounterBuildplates id: ""
             // reset preference after each one?
-            await ImportTypeSame<Solace.DB.Models.Player.Profile>("profile", async (userId, current, import, query) =>
+            await ImportTypeSame<Solace.DB.Models.Player.ProfileEF.Legacy>("profile", async (userId, current, import, query) =>
             {
                 current.Health = await AutoMergeNumber(current.Health, import.Health, nameof(current.Health), userId);
                 current.Experience = await AutoMergeNumber(current.Experience, import.Experience, nameof(current.Experience), userId);
@@ -553,7 +553,7 @@
                 query.Update("profile", userId, current);
             });
 
-            await ImportTypeSame<Solace.DB.Models.Player.Journal>("journal", async (userId, current, import, query) =>
+            await ImportTypeSame<Solace.DB.Models.Player.JournalEF.Legacy>("journal", async (userId, current, import, query) =>
             {
                 foreach (var item in import.Items)
                 {
@@ -576,7 +576,7 @@
                 query.Update("journal", userId, current);
             });
 
-            await ImportTypeSame<Solace.DB.Models.Player.Hotbar>("hotbar", async (userId, current, import, query) =>
+            await ImportTypeSame<Solace.DB.Models.Player.HotbarEF.Legacy>("hotbar", async (userId, current, import, query) =>
             {
                 for (var i = 0; i < current.Items.Length; i++)
                 {
@@ -586,26 +586,26 @@
                 query.Update("hotbar", userId, current);
             });
 
-            await ImportTypeSame<Solace.DB.Models.Player.Inventory>("inventory", async (userId, current, import, query) =>
+            await ImportTypeSame<Solace.DB.Models.Player.InventoryEF.Legacy>("inventory", async (userId, current, import, query) =>
             {
                 foreach (var item in import.StackableItems)
                 {
-                    if (!current._stackableItems.TryGetValue(item.Id, out var currentValue))
+                    if (!current.StackableItems.TryGetValue(item.Key, out var currentValue))
                     {
-                        current._stackableItems.Add(item.Id, item.Count);
+                        current.StackableItems.Add(item.Key, item.Value);
                     }
                     else
                     {
                         // todo: resolve name
-                        current._stackableItems[item.Id] = await AutoMergeNumber(currentValue ?? 0, item.Count ?? 0, $"Inventory item '{item.Id}'", userId);
+                        current.StackableItems[item.Key] = await AutoMergeNumber(currentValue ?? 0, item.Value ?? 0, $"Inventory item '{item.Key}'", userId);
                     }
                 }
 
-                foreach (var item in import._nonStackableItems)
+                foreach (var item in import.NonStackableItems)
                 {
-                    if (!current._nonStackableItems.TryGetValue(item.Key, out var currentValue))
+                    if (!current.NonStackableItems.TryGetValue(item.Key, out var currentValue))
                     {
-                        current._nonStackableItems.Add(item.Key, item.Value);
+                        current.NonStackableItems.Add(item.Key, item.Value);
                     }
                     else
                     {
@@ -619,17 +619,17 @@
                 query.Update("inventory", userId, current);
             });
         
-            await ImportTypeSame<Solace.DB.Models.Player.Tokens>("tokens", async (userId, current, import, query) =>
+            await ImportTypeSame<Solace.DB.Models.Player.TokensEF.Legacy>("tokens", async (userId, current, import, query) =>
             {
-                foreach (var item in import._tokens)
+                foreach (var item in import.Tokens)
                 {
-                    current._tokens[item.Key] = item.Value;
+                    current.Tokens[item.Key] = item.Value;
                 }
 
                 query.Update("tokens", userId, current);
             });
 
-            await ImportTypeSame<Solace.DB.Models.Player.Workshop.CraftingSlots>("crafting", async (userId, current, import, query) =>
+            await ImportTypeSame<Solace.DB.Models.Player.Workshop.CraftingSlotsEF.Legacy>("crafting", async (userId, current, import, query) =>
             {
                 for (var i = 0; i < import.Slots.Length; i++)
                 {
@@ -651,7 +651,7 @@
                 query.Update("crafting", userId, current);
             });
 
-            await ImportTypeSame<Solace.DB.Models.Player.Workshop.SmeltingSlots>("smelting", async (userId, current, import, query) =>
+            await ImportTypeSame<Solace.DB.Models.Player.Workshop.SmeltingSlotsEF.Legacy>("smelting", async (userId, current, import, query) =>
             {
                 for (var i = 0; i < import.Slots.Length; i++)
                 {
@@ -673,24 +673,24 @@
                 query.Update("smelting", userId, current);
             });
 
-            await ImportTypeSame<Solace.DB.Models.Player.RedeemedTappables>("redeemedTappables", async (userId, current, import, query) =>
+            await ImportTypeSame<Solace.DB.Models.Player.RedeemedTappablesEF.Legacy>("redeemedTappables", async (userId, current, import, query) =>
             {
-                foreach (var item in import._tappables)
+                foreach (var item in import.Tappables)
                 {
-                    if (!current._tappables.TryGetValue(item.Key, out var currentValue))
+                    if (!current.Tappables.TryGetValue(item.Key, out var currentValue))
                     {
-                        current._tappables.Add(item.Key, item.Value);
+                        current.Tappables.Add(item.Key, item.Value);
                     }
                     else
                     {
-                        current._tappables[item.Key] = long.Max(currentValue, item.Value);
+                        current.Tappables[item.Key] = long.Max(currentValue, item.Value);
                     }
                 }
 
                 query.Update("redeemedTappables", userId, current);
             });
 
-            await ImportTypeSame<Solace.DB.Models.Player.Boosts>("boosts", async (userId, current, import, query) =>
+            await ImportTypeSame<Solace.DB.Models.Player.BoostsEF.Legacy>("boosts", async (userId, current, import, query) =>
             {
                 for (var i = 0; i < import.ActiveBoosts.Length; i++)
                 {
@@ -707,32 +707,32 @@
                 query.Update("boosts", userId, current);
             });
 
-            await ImportTypeSame<Solace.DB.Models.Player.ActivityLog>("activityLog", async (userId, current, import, query) =>
+            await ImportTypeSame<Solace.DB.Models.Player.ActivityLogEF.Legacy>("activityLog", async (userId, current, import, query) =>
             {
                 current = await AutoMerge(current, import, "Activity log", userId, null);
 
                 query.Update("activityLog", userId, current);
             });
 
-            await ImportType<Solace.DB.Models.Player.Buildplates, Solace.DB.Models.Player.Buildplates.Vienna>("buildplates",
+            await ImportType<Solace.DB.Models.Player.LegacyBuildplates, Solace.DB.Models.Player.LegacyBuildplates.Vienna>("buildplates",
             buildplates =>
             {
-                var result = new DB.Models.Player.Buildplates();
+                var result = new DB.Models.Player.LegacyBuildplates();
 
-                result._buildplates.EnsureCapacity(buildplates._buildplates.Count);
+                result.Buildplates.EnsureCapacity(buildplates._buildplates.Count);
 
                 foreach (var item in buildplates._buildplates)
                 {
-                    result._buildplates.Add(item.Key, new(null, "Imported buildplate", item.Value.Size, item.Value.Offset, item.Value.Scale, item.Value.Night, item.Value.LastModified, item.Value.ServerDataObjectId, item.Value.PreviewObjectId));
+                    result.Buildplates.Add(item.Key, new(null, "Imported buildplate", item.Value.Size, item.Value.Offset, item.Value.Scale, item.Value.Night, item.Value.LastModified, item.Value.ServerDataObjectId, item.Value.PreviewObjectId));
                 }
 
                 return result;
             },
             async (userId, current, import, query) =>
             {
-                foreach (var item in import._buildplates)
+                foreach (var item in import.Buildplates)
                 {
-                    current._buildplates[item.Key] = item.Value;
+                    current.Buildplates[item.Key] = item.Value;
                 }
 
                 query.Update("buildplates", userId, current);

@@ -421,15 +421,15 @@ _playerPageSize));
     {
         _errorMessage = null; // Clear previous errors
 
-        DB.Models.Player.Buildplates buildplatesModel;
+        DB.Models.Player.LegacyBuildplates buildplatesModel;
         try
         {
             using var earthDB = EarthDB.Open(Settings.Instance.EarthDatabaseConnectionString ?? "");
 
             EarthDB.Results results = await new EarthDB.Query(false)
-                .Get("buildplates", PlayerId, typeof(DB.Models.Player.Buildplates))
+                .Get("buildplates", PlayerId, typeof(DB.Models.Player.LegacyBuildplates))
                 .ExecuteAsync(earthDB, default);
-            buildplatesModel = results.Get<DB.Models.Player.Buildplates>("buildplates");
+            buildplatesModel = results.Get<DB.Models.Player.LegacyBuildplates>("buildplates");
         }
         catch (Exception ex)
         {
@@ -439,8 +439,8 @@ _playerPageSize));
             return;
         }
 
-        _playerBuildplates = new(buildplatesModel._buildplates.Count);
-        foreach (var (buildplateId, buildplate) in buildplatesModel._buildplates)
+        _playerBuildplates = new(buildplatesModel.Buildplates.Count);
+        foreach (var (buildplateId, buildplate) in buildplatesModel.Buildplates)
         {
             var bp = new PlayerBuildplate()
             {
@@ -573,9 +573,9 @@ BuildplateLauncher.ExeName))
             }
 
             var buildplates = (await new EarthDB.Query(true)
-                .Get("buildplates", PlayerId, typeof(DB.Models.Player.Buildplates))
+                .Get("buildplates", PlayerId, typeof(DB.Models.Player.LegacyBuildplates))
                 .ExecuteAsync(importer.EarthDB))
-                .Get<DB.Models.Player.Buildplates>("buildplates");
+                .Get<DB.Models.Player.LegacyBuildplates>("buildplates");
 
             var dbBuildplate = buildplates.GetBuildplate(buildplateId)!;
 
@@ -705,11 +705,11 @@ BuildplateLauncher.ExeName))
             using var earthDB = EarthDB.Open(Settings.Instance.EarthDatabaseConnectionString ?? "");
 
             var results = await new EarthDB.Query(false)
-                .Get("buildplates", PlayerId, typeof(DB.Models.Player.Buildplates))
+                .Get("buildplates", PlayerId, typeof(DB.Models.Player.LegacyBuildplates))
                 .ExecuteAsync(earthDB, default);
-            var playerBuildplates = results.Get<DB.Models.Player.Buildplates>("buildplates");
+            var playerBuildplates = results.Get<DB.Models.Player.LegacyBuildplates>("buildplates");
 
-            if (playerBuildplates._buildplates.TryGetValue(bp.Id, out var dbBuildplate))
+            if (playerBuildplates.Buildplates.TryGetValue(bp.Id, out var dbBuildplate))
             {
                 dbBuildplate = dbBuildplate with { Name = bp.Name, Scale = bp.BlocksPerMeter, };
                 playerBuildplates.AddBuildplate(bp.Id, dbBuildplate);
@@ -768,9 +768,9 @@ BuildplateLauncher.ExeName))
             }
 
             var buildplates = (await new EarthDB.Query(true)
-                .Get("buildplates", PlayerId, typeof(DB.Models.Player.Buildplates))
+                .Get("buildplates", PlayerId, typeof(DB.Models.Player.LegacyBuildplates))
                 .ExecuteAsync(importer.EarthDB))
-                .Get<DB.Models.Player.Buildplates>("buildplates");
+                .Get<DB.Models.Player.LegacyBuildplates>("buildplates");
 
             var buildplate = buildplates.GetBuildplate(bp.Id)!;
 

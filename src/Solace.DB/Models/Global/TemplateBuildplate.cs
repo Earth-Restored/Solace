@@ -1,15 +1,5 @@
 ﻿namespace Solace.DB.Models.Global;
 
-public sealed record TemplateBuildplate(
-    string Name,
-    int Size,
-    int Offset,
-    int Scale, // blocks per meter
-    bool Night,
-    string ServerDataObjectId,
-    string PreviewObjectId
-);
-
 public sealed class TemplateBuildplateEF : IVersionedEntity
 {
     public Guid Id { get; set; }
@@ -29,4 +19,14 @@ public sealed class TemplateBuildplateEF : IVersionedEntity
     public required string ServerDataObjectId { get; set; }
 
     public required string PreviewObjectId { get; set; }
+
+    public sealed record Legacy(
+        string Name,
+        int Size,
+        int Offset,
+        int Scale, // blocks per meter
+        bool Night,
+        string ServerDataObjectId,
+        string PreviewObjectId
+    );
 }

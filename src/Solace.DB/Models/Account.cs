@@ -49,7 +49,7 @@ public sealed class Account
 
     public ICollection<SharedBuildplateEF> SharedBuildplates { get; set; } = [];
 
-    public sealed class Old
+    public sealed class Legacy
     {
         public required string Id { get; set; }
 

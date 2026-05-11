@@ -10,5 +10,5 @@ public class LiveDbContext : DbContext
     {
     }
 
-    public DbSet<Account.Old> Accounts { get; set; }
+    public DbSet<Account.Legacy> Accounts { get; set; }
 }

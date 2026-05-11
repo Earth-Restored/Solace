@@ -271,14 +271,14 @@ public sealed class Importer : IAsyncDisposable
 
     public async Task<bool> RegeneratePlayerBuildplatePreviewAsync(string playerId, string buildplateId, CancellationToken cancellationToken = default)
     {
-        Buildplates playerBuildplates;
+        LegacyBuildplates playerBuildplates;
 
         try
         {
             playerBuildplates = (await new EarthDB.Query(true)
-                .Get("buildplates", playerId, typeof(Buildplates))
+                .Get("buildplates", playerId, typeof(LegacyBuildplates))
                 .ExecuteAsync(EarthDB, cancellationToken))
-                .Get<Buildplates>("buildplates");
+                .Get<LegacyBuildplates>("buildplates");
 
         }
         catch (EarthDB.DatabaseException ex)
@@ -369,10 +369,10 @@ public sealed class Importer : IAsyncDisposable
         try
         {
             await new EarthDB.Query(true)
-                .Get("buildplates", playerId, typeof(Buildplates))
+                .Get("buildplates", playerId, typeof(LegacyBuildplates))
                 .Then(results =>
                 {
-                    Buildplates buildplates = results.Get<Buildplates>("buildplates");
+                    LegacyBuildplates buildplates = results.Get<LegacyBuildplates>("buildplates");
 
                     var buildplate = buildplates.GetBuildplate(buildplateId);
                     if (buildplate == null)
@@ -588,14 +588,14 @@ public sealed class Importer : IAsyncDisposable
         try
         {
             EarthDB.Results results = await new EarthDB.Query(true)
-                .Get("buildplates", playerId, typeof(Buildplates))
+                .Get("buildplates", playerId, typeof(LegacyBuildplates))
                 .Then(results1 =>
                 {
-                    Buildplates buildplates = results1.Get<Buildplates>("buildplates");
+                    LegacyBuildplates buildplates = results1.Get<LegacyBuildplates>("buildplates");
 
                     long lastModified = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-                    var buildplate = new Buildplates.Buildplate(templateId, template.Name, template.Size, template.Offset, template.Scale, template.Night, lastModified, serverDataObjectId, previewObjectId);
+                    var buildplate = new LegacyBuildplates.Buildplate(templateId, template.Name, template.Size, template.Offset, template.Scale, template.Night, lastModified, serverDataObjectId, previewObjectId);
 
                     buildplates.AddBuildplate(buildplateId, buildplate);
 

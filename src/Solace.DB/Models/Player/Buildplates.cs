@@ -3,45 +3,28 @@ using Solace.Common.Utils;
 
 namespace Solace.DB.Models.Player;
 
-public sealed class Buildplates : IEquatable<Buildplates>
+public sealed class LegacyBuildplates : IEquatable<LegacyBuildplates>
 {
     [JsonInclude, JsonPropertyName("buildplates")]
-    public Dictionary<string, Buildplate> _buildplates = [];
+    public Dictionary<string, Buildplate> Buildplates = [];
 
-    public Buildplates()
+    public LegacyBuildplates()
     {
         // empty
     }
 
-    public void AddBuildplate(string id, Buildplate buildplate)
-        => _buildplates[id] = buildplate;
-
-    public Buildplate? GetBuildplate(string id)
-        => _buildplates.GetOrDefault(id, null);
-
-    public bool RemoveBuildplate(string id)
-        => _buildplates.Remove(id);
-
-    public sealed record BuildplateEntry(
-        string Id,
-        Buildplate Buildplate
-    );
-
-    public IEnumerable<BuildplateEntry> GetBuildplates()
-        => _buildplates.Select(entry => new BuildplateEntry(entry.Key, entry.Value));
-
-    public bool Equals(Buildplates? other)
+    public bool Equals(LegacyBuildplates? other)
         => other is not null &&
-        _buildplates.OrderBy(static item => item.Key, StringComparer.Ordinal).Select(item => (Key: item.Key, Value: item.Value)).SequenceEqual(other._buildplates.OrderBy(static item => item.Key, StringComparer.Ordinal).Select(item => (Key: item.Key, Value: item.Value)));
+        Buildplates.OrderBy(static item => item.Key, StringComparer.Ordinal).Select(item => (Key: item.Key, Value: item.Value)).SequenceEqual(other.Buildplates.OrderBy(static item => item.Key, StringComparer.Ordinal).Select(item => (Key: item.Key, Value: item.Value)));
 
     public override bool Equals(object? obj)
-        => Equals(obj as Buildplates);
+        => Equals(obj as LegacyBuildplates);
 
     public override int GetHashCode()
     {
         var hash = new HashCode();
 
-        foreach (var item in _buildplates.OrderBy(static item => item.Key, StringComparer.Ordinal))
+        foreach (var item in Buildplates.OrderBy(static item => item.Key, StringComparer.Ordinal))
         {
             hash.Add(item.Key);
             hash.Add(item.Value);

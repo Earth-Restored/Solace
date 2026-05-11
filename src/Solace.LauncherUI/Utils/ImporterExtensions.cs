@@ -138,14 +138,14 @@ public static class ImporterExtensions
                 }
             }
 
-            Buildplates playerBuildplates;
+            LegacyBuildplates playerBuildplates;
 
             try
             {
                 playerBuildplates = (await new EarthDB.Query(false)
-                    .Get("buildplates", playerId, typeof(Buildplates))
+                    .Get("buildplates", playerId, typeof(LegacyBuildplates))
                     .ExecuteAsync(importer.EarthDB, cancellationToken))
-                    .Get<Buildplates>("buildplates");
+                    .Get<LegacyBuildplates>("buildplates");
 
             }
             catch (EarthDB.DatabaseException ex)

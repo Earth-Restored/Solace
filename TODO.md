@@ -1,7 +1,8 @@
 # TODO
 
 - Use EFCore for earth DB, migrations are way easier that way, but also need to write an initial migration from the current schema
-- Make it easier to update, deleting data/staticdata is kinda bad UX
+- Logging - Inject Microsoft.Extensions.Logging.ILogger`T via constructors, use Serilog as the backend engine, replace string interpolation with structured templates
+- Make sure only 1 instance of the launcher can run at a time (with migrations and stuff it could screw up the db) - lock a file, if fail, log and exit
 - Launcher buildplate preview - liquid rendering
 - Shop management
 - Player items management

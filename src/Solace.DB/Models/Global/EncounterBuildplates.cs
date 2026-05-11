@@ -5,17 +5,14 @@ using Solace.Common.Utils;
 namespace Solace.DB.Models.Global;
 #pragma warning restore CA1716
 
-public sealed class EncounterBuildplates
+public sealed class LegacyEncounterBuildplates
 {
     [JsonInclude, JsonPropertyName("encounterBuildplates")]
-    public Dictionary<string, EncounterBuildplate> _encounterBuildplates = [];
+    public Dictionary<string, EncounterBuildplate> EncounterBuildplates = [];
 
-    public EncounterBuildplates()
+    public LegacyEncounterBuildplates()
     {
     }
-
-    public EncounterBuildplate? GetEncounterBuildplate(string id)
-        => _encounterBuildplates.GetOrDefault(id);
 
     public sealed class EncounterBuildplate
     {

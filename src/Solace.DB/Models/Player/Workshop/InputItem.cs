@@ -13,4 +13,10 @@ public sealed record InputItem(
           : this(default!, default!, default!)
      {
      }
+
+     public sealed record Legacy(
+          string Id,
+          int Count,
+          NonStackableItemInstance.Legacy[] Instances
+     );
 }

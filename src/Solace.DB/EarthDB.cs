@@ -470,7 +470,7 @@ public sealed class EarthDB : IDisposable
         }
 
         // null to remove
-        public ObjectQuery UpdateBuildplate(string id, Models.Global.TemplateBuildplate? buildplate)
+        public ObjectQuery UpdateBuildplate(string id, Models.Global.TemplateBuildplateEF.Legacy? buildplate)
         {
             if (!_write)
             {
@@ -839,12 +839,12 @@ public sealed class EarthDB : IDisposable
             ? null
             : objectId;
 
-        public Models.Global.TemplateBuildplate? GetBuildplate(string id)
+        public Models.Global.TemplateBuildplateEF.Legacy? GetBuildplate(string id)
             => !getValues.TryGetValue((BuildplatesTable, id), out string? buildplateJson)
             ? null
-            : buildplateJson is null ? null : FromJson<Models.Global.TemplateBuildplate>(buildplateJson);
+            : buildplateJson is null ? null : FromJson<Models.Global.TemplateBuildplateEF.Legacy>(buildplateJson);
 
-        public (IEnumerable<(string Id, Models.Global.TemplateBuildplate? Buildplate)> Buildplates, int Count, int? TotalCount) GetBuildplates(ObjectQuery.SearchArguments arguments)
+        public (IEnumerable<(string Id, Models.Global.TemplateBuildplateEF.Legacy? Buildplate)> Buildplates, int Count, int? TotalCount) GetBuildplates(ObjectQuery.SearchArguments arguments)
         {
             if (!searchResults.TryGetValue((BuildplatesTable, arguments), out var item))
             {
@@ -853,7 +853,7 @@ public sealed class EarthDB : IDisposable
 
             var (results, totalCount) = item;
 
-            return (results.Select(result => (result.Id, result.Value is null ? null : FromJson<Models.Global.TemplateBuildplate>(result.Value))), results.Count, totalCount);
+            return (results.Select(result => (result.Id, result.Value is null ? null : FromJson<Models.Global.TemplateBuildplateEF.Legacy>(result.Value))), results.Count, totalCount);
         }
 
         public object GetExtra(string name)

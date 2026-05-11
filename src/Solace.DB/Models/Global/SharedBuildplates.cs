@@ -3,16 +3,10 @@ using Solace.Common.Utils;
 
 namespace Solace.DB.Models.Global;
 
-public sealed class SharedBuildplates
+public sealed class LegacySharedBuildplates
 {
     [JsonInclude, JsonPropertyName("sharedBuildplates")]
-    public Dictionary<string, SharedBuildplate> _sharedBuildplates = [];
-
-    public void AddSharedBuildplate(string id, SharedBuildplate buildplate)
-        => _sharedBuildplates[id] = buildplate;
-
-    public SharedBuildplate? GetSharedBuildplate(string id)
-        => _sharedBuildplates.GetOrDefault(id);
+    public Dictionary<string, SharedBuildplate> SharedBuildplates = [];
 
     public sealed class SharedBuildplate
     {

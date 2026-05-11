@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -13,6 +14,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
+using Solace.Common;
+using Solace.Common.Utils;
 using Solace.DB;
 using Solace.LauncherUI.Components;
 using Solace.LauncherUI.Components.Account;
@@ -57,10 +60,14 @@ public partial class Program
 
         Log.Logger = log;
 
-        bool isLegacyDb = await IsLegacyEarthDb("Data Source=" + Settings.Instance.EarthDatabaseConnectionString!);
+        bool isLegacyDb = await IsLegacyEarthDbAsync(Settings.Instance.EarthDatabaseConnectionString!);
+        string legacyDbPath = "";
         if (isLegacyDb)
         {
-            
+            Log.Information("Detected legacy db format, backing up db");
+            legacyDbPath = Path.GetUniqueFilePath(Path.GetFullPath(Path.Combine(DataDirRelative, "earth.db.old")));
+            File.Move(Settings.Instance.EarthDatabaseConnectionString!, legacyDbPath);
+            Log.Debug($"Moved legacy db to '{legacyDbPath}'");
         }
 
         builder.Services.AddSingleton<ServerManager>();
@@ -181,6 +188,16 @@ public partial class Program
 
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
             await EnsureBuiltInRolesAsync(roleManager);
+
+            if (isLegacyDb)
+            {
+                var optionsBuilder = new DbContextOptionsBuilder<LiveDbContext>();
+                optionsBuilder.UseSqlite("Data Source=" + Settings.Instance.LiveDatabaseConnectionString!);
+
+                using var liveDbContext = new LiveDbContext(optionsBuilder.Options);
+
+                await MigrateLegacyDataAsync(earthDbContext, liveDbContext, legacyDbPath);
+            }
         }
 
         // extract buildplates from db/objectstore
@@ -252,9 +269,14 @@ public partial class Program
         }
     }
 
-    private static async Task<bool> IsLegacyEarthDb(string connectionString)
+    private static async Task<bool> IsLegacyEarthDbAsync(string filePath)
     {
-        using var connection = new SqliteConnection(connectionString);
+        if (!File.Exists(filePath))
+        {
+            return false;
+        }
+
+        using var connection = new SqliteConnection("Data Source=" + filePath);
         await connection.OpenAsync();
 
         using (var command = connection.CreateCommand())
@@ -267,6 +289,20 @@ public partial class Program
                 return !reader.HasRows;
             }
         }
+    }
+
+    private static async Task MigrateLegacyDataAsync(EarthDbContext earthDb, LiveDbContext liveDb, string legacyDbPath)
+    {
+        using var legacyEarthDb = new SqliteConnection("Data Source=" + legacyDbPath);
+        await legacyEarthDb.OpenAsync();
+
+        var migrator = new DatabaseMigrator(earthDb, legacyEarthDb, liveDb);
+
+        Log.Information($"Begining database migration from '{legacyDbPath}' to '{Path.GetFullPath(Settings.Instance.EarthDatabaseConnectionString!)}'");
+
+        await migrator.MigrateAsync();
+
+        Log.Information("Database migrated");
     }
 
     private sealed class PermissionPolicyProvider(IOptions<AuthorizationOptions> options)

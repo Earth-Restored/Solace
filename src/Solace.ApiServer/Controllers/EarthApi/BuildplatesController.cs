@@ -18,7 +18,7 @@ using Solace.DB.Models.Global;
 using Solace.DB.Models.Player;
 using Solace.ObjectStore.Client;
 using Solace.StaticData;
-using Buildplates = Solace.DB.Models.Player.Buildplates;
+using LegacyBuildplates = Solace.DB.Models.Player.LegacyBuildplates;
 
 namespace Solace.ApiServer.Controllers.EarthApi;
 
@@ -41,13 +41,13 @@ internal sealed class BuildplatesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        Buildplates buildplatesModel;
+        LegacyBuildplates buildplatesModel;
         try
         {
             EarthDB.Results results = await new EarthDB.Query(false)
-                .Get("buildplates", playerId, typeof(Buildplates))
+                .Get("buildplates", playerId, typeof(LegacyBuildplates))
                 .ExecuteAsync(earthDB, cancellationToken);
-            buildplatesModel = results.Get<Buildplates>("buildplates");
+            buildplatesModel = results.Get<LegacyBuildplates>("buildplates");
         }
         catch (EarthDB.DatabaseException ex)
         {
@@ -123,18 +123,18 @@ internal sealed class BuildplatesController : SolaceControllerBase
 
         DB.Models.Player.Inventory inventory;
         Hotbar hotbar;
-        Buildplates.Buildplate? buildplate;
+        LegacyBuildplates.Buildplate? buildplate;
         try
         {
             EarthDB.Results results = await new EarthDB.Query(false)
                 .Get("inventory", playerId, typeof(DB.Models.Player.Inventory))
                 .Get("hotbar", playerId, typeof(Hotbar))
-                .Get("buildplates", playerId, typeof(Buildplates))
+                .Get("buildplates", playerId, typeof(LegacyBuildplates))
                 .ExecuteAsync(earthDB, cancellationToken);
 
             inventory = results.Get<DB.Models.Player.Inventory>("inventory");
             hotbar = results.Get<Hotbar>("hotbar");
-            buildplate = results.Get<Buildplates>("buildplates").GetBuildplate(buildplateId);
+            buildplate = results.Get<LegacyBuildplates>("buildplates").GetBuildplate(buildplateId);
         }
         catch (EarthDB.DatabaseException exception)
         {
@@ -163,7 +163,7 @@ internal sealed class BuildplatesController : SolaceControllerBase
         }
 
         string sharedBuildplateId = U.RandomUuid().ToString();
-        var sharedBuildplate = new SharedBuildplates.SharedBuildplate(
+        var sharedBuildplate = new LegacySharedBuildplates.SharedBuildplate(
             playerId,
             buildplate.Size,
             buildplate.Offset,
@@ -177,18 +177,18 @@ internal sealed class BuildplatesController : SolaceControllerBase
         for (int index = 0; index < 7; index++)
         {
             Hotbar.Item? item = hotbar.Items[index];
-            SharedBuildplates.SharedBuildplate.HotbarItem? sharedBuildplateHotbarItem;
+            LegacySharedBuildplates.SharedBuildplate.HotbarItem? sharedBuildplateHotbarItem;
             if (item is null)
             {
                 sharedBuildplateHotbarItem = null;
             }
             else if (item.InstanceId is null)
             {
-                sharedBuildplateHotbarItem = new SharedBuildplates.SharedBuildplate.HotbarItem(item.Uuid, item.Count, null, 0);
+                sharedBuildplateHotbarItem = new LegacySharedBuildplates.SharedBuildplate.HotbarItem(item.Uuid, item.Count, null, 0);
             }
             else
             {
-                sharedBuildplateHotbarItem = new SharedBuildplates.SharedBuildplate.HotbarItem(item.Uuid, 1, item.InstanceId, inventory.GetItemInstance(item.Uuid, item.InstanceId)?.Wear ?? 0);
+                sharedBuildplateHotbarItem = new LegacySharedBuildplates.SharedBuildplate.HotbarItem(item.Uuid, 1, item.InstanceId, inventory.GetItemInstance(item.Uuid, item.InstanceId)?.Wear ?? 0);
             }
 
             sharedBuildplate.Hotbar[index] = sharedBuildplateHotbarItem;
@@ -197,10 +197,10 @@ internal sealed class BuildplatesController : SolaceControllerBase
         try
         {
             EarthDB.Results results = await new EarthDB.Query(true)
-                .Get("sharedBuildplates", "", typeof(SharedBuildplates))
+                .Get("sharedBuildplates", "", typeof(LegacySharedBuildplates))
                 .Then(results1 =>
                 {
-                    SharedBuildplates sharedBuildplates = results1.Get<SharedBuildplates>("sharedBuildplates");
+                    LegacySharedBuildplates sharedBuildplates = results1.Get<LegacySharedBuildplates>("sharedBuildplates");
 
                     sharedBuildplates.AddSharedBuildplate(sharedBuildplateId, sharedBuildplate);
 
@@ -227,13 +227,13 @@ internal sealed class BuildplatesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        SharedBuildplates.SharedBuildplate? sharedBuildplate;
+        LegacySharedBuildplates.SharedBuildplate? sharedBuildplate;
         try
         {
             EarthDB.Results results = await new EarthDB.Query(false)
-                    .Get("sharedBuildplates", "", typeof(SharedBuildplates))
+                    .Get("sharedBuildplates", "", typeof(LegacySharedBuildplates))
                         .ExecuteAsync(earthDB, cancellationToken);
-            SharedBuildplates sharedBuildplates = results.Get<SharedBuildplates>("sharedBuildplates");
+            LegacySharedBuildplates sharedBuildplates = results.Get<LegacySharedBuildplates>("sharedBuildplates");
             sharedBuildplate = sharedBuildplates.GetSharedBuildplate(sharedBuildplateId);
         }
         catch (EarthDB.DatabaseException exception)
@@ -363,13 +363,13 @@ internal sealed class BuildplatesController : SolaceControllerBase
             return TypedResults.NotFound();
         }
 
-        Buildplates.Buildplate? buildplate;
+        LegacyBuildplates.Buildplate? buildplate;
         try
         {
             EarthDB.Results results = await new EarthDB.Query(false)
-                    .Get("buildplates", playerId, typeof(Buildplates))
+                    .Get("buildplates", playerId, typeof(LegacyBuildplates))
                     .ExecuteAsync(earthDB, cancellationToken);
-            buildplate = results.Get<Buildplates>("buildplates").GetBuildplate(instanceInfo.BuildplateId);
+            buildplate = results.Get<LegacyBuildplates>("buildplates").GetBuildplate(instanceInfo.BuildplateId);
         }
         catch (EarthDB.DatabaseException ex)
         {
@@ -415,15 +415,15 @@ internal sealed class BuildplatesController : SolaceControllerBase
 
     private static async Task<Results<ContentHttpResult, InternalServerError, NotFound, BadRequest>> GetNewBuildplateInstanceResponse(string playerId, string buildplateId, BuildplateInstancesManager.InstanceType type, CancellationToken cancellationToken)
     {
-        Buildplates.Buildplate? buildplate;
+        LegacyBuildplates.Buildplate? buildplate;
         
         try
         {
             EarthDB.Results results = await new EarthDB.Query(false)
-                .Get("buildplates", playerId, typeof(Buildplates))
+                .Get("buildplates", playerId, typeof(LegacyBuildplates))
                 .ExecuteAsync(earthDB, cancellationToken);
 
-            buildplate = results.Get<Buildplates>("buildplates").GetBuildplate(buildplateId);
+            buildplate = results.Get<LegacyBuildplates>("buildplates").GetBuildplate(buildplateId);
         }
         catch (EarthDB.DatabaseException exception)
         {
@@ -459,13 +459,13 @@ internal sealed class BuildplatesController : SolaceControllerBase
 
     private static async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> GetNewSharedBuildplateInstanceResponse(string playerId, string sharedBuildplateId, BuildplateInstancesManager.InstanceType type, CancellationToken cancellationToken)
     {
-        SharedBuildplates.SharedBuildplate? sharedBuildplate;
+        LegacySharedBuildplates.SharedBuildplate? sharedBuildplate;
         try
         {
             EarthDB.Results results = await new EarthDB.Query(false)
-                .Get("sharedBuildplates", "", typeof(SharedBuildplates))
+                .Get("sharedBuildplates", "", typeof(LegacySharedBuildplates))
                 .ExecuteAsync(earthDB, cancellationToken);
-            sharedBuildplate = results.Get<SharedBuildplates>("sharedBuildplates").GetSharedBuildplate(sharedBuildplateId);
+            sharedBuildplate = results.Get<LegacySharedBuildplates>("sharedBuildplates").GetSharedBuildplate(sharedBuildplateId);
         }
         catch (EarthDB.DatabaseException exception)
         {
@@ -557,13 +557,13 @@ internal sealed class BuildplatesController : SolaceControllerBase
                 {
                     Debug.Assert(instanceInfo.PlayerId is not null);
 
-                    Buildplates.Buildplate? buildplate;
+                    LegacyBuildplates.Buildplate? buildplate;
                     try
                     {
                         EarthDB.Results results = await new EarthDB.Query(false)
-                            .Get("buildplates", instanceInfo.PlayerId, typeof(Buildplates))
+                            .Get("buildplates", instanceInfo.PlayerId, typeof(LegacyBuildplates))
                             .ExecuteAsync(earthDB, cancellationToken);
-                        buildplate = results.Get<Buildplates>("buildplates").GetBuildplate(instanceInfo.BuildplateId);
+                        buildplate = results.Get<LegacyBuildplates>("buildplates").GetBuildplate(instanceInfo.BuildplateId);
                     }
                     catch (EarthDB.DatabaseException exception)
                     {
@@ -583,13 +583,13 @@ internal sealed class BuildplatesController : SolaceControllerBase
                 break;
             case Source.SHARED:
                 {
-                    SharedBuildplates.SharedBuildplate? sharedBuildplate;
+                    LegacySharedBuildplates.SharedBuildplate? sharedBuildplate;
                     try
                     {
                         EarthDB.Results results = await new EarthDB.Query(false)
-                            .Get("sharedBuildplates", "", typeof(SharedBuildplates))
+                            .Get("sharedBuildplates", "", typeof(LegacySharedBuildplates))
                             .ExecuteAsync(earthDB, cancellationToken);
-                        sharedBuildplate = results.Get<SharedBuildplates>("sharedBuildplates").GetSharedBuildplate(instanceInfo.BuildplateId);
+                        sharedBuildplate = results.Get<LegacySharedBuildplates>("sharedBuildplates").GetSharedBuildplate(instanceInfo.BuildplateId);
                     }
                     catch (EarthDB.DatabaseException exception)
                     {
@@ -609,14 +609,14 @@ internal sealed class BuildplatesController : SolaceControllerBase
                 break;
             case Source.ENCOUNTER:
                 {
-                    EncounterBuildplates.EncounterBuildplate? encounterBuildplate;
+                    LegacyEncounterBuildplates.EncounterBuildplate? encounterBuildplate;
 
                     try
                     {
                         EarthDB.Results results = await new EarthDB.Query(false)
-                            .Get("encounterBuildplates", "", typeof(EncounterBuildplates))
+                            .Get("encounterBuildplates", "", typeof(LegacyEncounterBuildplates))
                             .ExecuteAsync(earthDB, cancellationToken);
-                        encounterBuildplate = results.Get<EncounterBuildplates>("encounterBuildplates").GetEncounterBuildplate(instanceInfo.BuildplateId);
+                        encounterBuildplate = results.Get<LegacyEncounterBuildplates>("encounterBuildplates").GetEncounterBuildplate(instanceInfo.BuildplateId);
                     }
                     catch (EarthDB.DatabaseException exception)
                     {

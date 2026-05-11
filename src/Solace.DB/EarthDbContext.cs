@@ -45,7 +45,7 @@ public sealed class EarthDbContext : DbContext
     public DbSet<SharedBuildplateEF> SharedBuildplates { get; set; }
 
     public DbSet<TemplateBuildplateEF> TemplateBuildplates { get; set; }
-    
+
     public DbSet<Tile> Tiles { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -67,19 +67,22 @@ public sealed class EarthDbContext : DbContext
             .HasOne(a => a.Profile)
             .WithOne(p => p.Account)
             .HasForeignKey<ProfileEF>(p => p.Id)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
 
         modelBuilder.Entity<Account>()
             .HasOne(a => a.ActivityLog)
             .WithOne(a => a.Account)
             .HasForeignKey<ActivityLogEF>(a => a.Id)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
 
         modelBuilder.Entity<Account>()
             .HasOne(a => a.Boosts)
             .WithOne(b => b.Account)
             .HasForeignKey<BoostsEF>(a => a.Id)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
 
         modelBuilder.Entity<Account>()
             .HasMany(a => a.Buildplates)
@@ -91,43 +94,50 @@ public sealed class EarthDbContext : DbContext
             .HasOne(a => a.Hotbar)
             .WithOne(h => h.Account)
             .HasForeignKey<HotbarEF>(h => h.Id)
-            .OnDelete(DeleteBehavior.Cascade);
-            
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
+
         modelBuilder.Entity<Account>()
             .HasOne(a => a.Inventory)
             .WithOne(i => i.Account)
             .HasForeignKey<InventoryEF>(i => i.Id)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
 
         modelBuilder.Entity<Account>()
             .HasOne(a => a.Journal)
             .WithOne(j => j.Account)
             .HasForeignKey<JournalEF>(j => j.Id)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
 
         modelBuilder.Entity<Account>()
             .HasOne(a => a.RedeemedTappables)
             .WithOne(r => r.Account)
             .HasForeignKey<RedeemedTappablesEF>(r => r.Id)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
 
         modelBuilder.Entity<Account>()
             .HasOne(a => a.Tokens)
             .WithOne(t => t.Account)
             .HasForeignKey<TokensEF>(t => t.Id)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
 
         modelBuilder.Entity<Account>()
             .HasOne(a => a.CraftingSlots)
             .WithOne(c => c.Account)
             .HasForeignKey<CraftingSlotsEF>(c => c.Id)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
 
         modelBuilder.Entity<Account>()
             .HasOne(a => a.SmeltingSlots)
             .WithOne(s => s.Account)
             .HasForeignKey<SmeltingSlotsEF>(s => s.Id)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
 
         modelBuilder.Entity<Account>()
             .HasMany(a => a.SharedBuildplates)
@@ -144,7 +154,7 @@ public sealed class EarthDbContext : DbContext
             .Property(x => x.Entries)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<List<ActivityLogEF.Entry>>(v, (JsonSerializerOptions)null!) 
+                v => JsonSerializer.Deserialize<List<ActivityLogEF.Entry>>(v, (JsonSerializerOptions)null!)
                     ?? new List<ActivityLogEF.Entry>()
             )
             .HasColumnType("nvarchar(max)")
@@ -165,7 +175,7 @@ public sealed class EarthDbContext : DbContext
             .Property(x => x.StackableItemsData)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<Dictionary<string, int?>>(v, (JsonSerializerOptions)null!) 
+                v => JsonSerializer.Deserialize<Dictionary<string, int?>>(v, (JsonSerializerOptions)null!)
                     ?? new Dictionary<string, int?>()
             )
             .HasColumnType("nvarchar(max)")
@@ -175,7 +185,7 @@ public sealed class EarthDbContext : DbContext
             .Property(x => x.NonStackableItemsData)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, NonStackableItemInstance>>>(v, (JsonSerializerOptions)null!) 
+                v => JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, NonStackableItemInstance>>>(v, (JsonSerializerOptions)null!)
                     ?? new Dictionary<string, Dictionary<string, NonStackableItemInstance>>()
             )
             .HasColumnType("nvarchar(max)")
@@ -186,7 +196,7 @@ public sealed class EarthDbContext : DbContext
             .Property(x => x.Items)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<Dictionary<string, JournalEF.ItemJournalEntry>>(v, (JsonSerializerOptions)null!) 
+                v => JsonSerializer.Deserialize<Dictionary<string, JournalEF.ItemJournalEntry>>(v, (JsonSerializerOptions)null!)
                     ?? new Dictionary<string, JournalEF.ItemJournalEntry>()
             )
             .HasColumnType("nvarchar(max)")
@@ -201,7 +211,7 @@ public sealed class EarthDbContext : DbContext
             .Property(x => x.Tokens)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<Dictionary<string, TokensEF.Token>>(v, (JsonSerializerOptions)null!) 
+                v => JsonSerializer.Deserialize<Dictionary<string, TokensEF.Token>>(v, (JsonSerializerOptions)null!)
                     ?? new Dictionary<string, TokensEF.Token>()
             )
             .HasColumnType("nvarchar(max)")
@@ -216,7 +226,7 @@ public sealed class EarthDbContext : DbContext
         // smelting slots
         modelBuilder.Ignore<SmeltingSlot.ActiveJobR>();
         modelBuilder.Ignore<SmeltingSlot.BurningR>();
-        modelBuilder.Ignore<SmeltingSlot.Fuel >();
+        modelBuilder.Ignore<SmeltingSlot.Fuel>();
 
         modelBuilder.Entity<SmeltingSlotsEF>()
             .OwnsMany(x => x.Slots, builder => builder.ToJson());
@@ -244,6 +254,34 @@ public sealed class EarthDbContext : DbContext
         }
 
         return base.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task EnsureAccountExists(Guid id)
+    {
+        if (await Accounts.AnyAsync(account => account.Id == id))
+        {
+            return;
+        }
+
+        await InitAccountAndAddToDb(id);
+    }
+
+    public async Task<Account> GetOrCreateAccount(Guid id, Func<IQueryable<Account>, IQueryable<Account>> queryFunc)
+    {
+        var account = await queryFunc(Accounts)
+            .FirstOrDefaultAsync(account => account.Id == id);
+
+        if (account is not null)
+        {
+            return account;
+        }
+
+        return await InitAccountAndAddToDb(id);
+    }
+
+    private async Task<Account> InitAccountAndAddToDb(Guid id)
+    {
+
     }
 }
 

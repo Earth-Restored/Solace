@@ -1,33 +1,5 @@
 ﻿namespace Solace.DB.Models.Player.Workshop;
 
-public sealed class CraftingSlots : IEquatable<CraftingSlots>
-{
-    public CraftingSlot[] Slots { get; init; }
-
-    public CraftingSlots()
-    {
-        Slots = [new CraftingSlot(), new CraftingSlot(), new CraftingSlot()];
-    }
-
-    public bool Equals(CraftingSlots? other)
-        => other is not null && Slots.SequenceEqual(other.Slots);
-
-    public override bool Equals(object? obj)
-        => Equals(obj as CraftingSlots);
-
-    public override int GetHashCode()
-    {
-        var hash = new HashCode();
-
-        foreach (var item in Slots)
-        {
-            hash.Add(item);
-        }
-
-        return hash.ToHashCode();
-    }
-}
-
 public sealed class CraftingSlotsEF : IVersionedEntity
 {
     public Guid Id { get; set; }
@@ -37,4 +9,32 @@ public sealed class CraftingSlotsEF : IVersionedEntity
     public Account Account { get; set; } = null!;
 
     public CraftingSlotEF[] Slots { get; set; } = [new CraftingSlotEF(), new CraftingSlotEF(), new CraftingSlotEF()];
+
+    public sealed class Legacy : IEquatable<Legacy>
+    {
+        public CraftingSlotEF.Legacy[] Slots { get; init; }
+
+        public Legacy()
+        {
+            Slots = [new CraftingSlotEF.Legacy(), new CraftingSlotEF.Legacy(), new CraftingSlotEF.Legacy()];
+        }
+
+        public bool Equals(Legacy? other)
+            => other is not null && Slots.SequenceEqual(other.Slots);
+
+        public override bool Equals(object? obj)
+            => Equals(obj as Legacy);
+
+        public override int GetHashCode()
+        {
+            var hash = new HashCode();
+
+            foreach (var item in Slots)
+            {
+                hash.Add(item);
+            }
+
+            return hash.ToHashCode();
+        }
+    }
 }

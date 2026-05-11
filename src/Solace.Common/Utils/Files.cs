@@ -8,7 +8,10 @@ public static class Files
     {
         public static FileStream OpenWriteNew(string path)
             => File.Open(path, FileMode.Create, FileAccess.Write, FileShare.Read);
+    }
 
+    extension(Path)
+    {
         public static string GetUniqueFilePath(string filePath)
         {
             if (!File.Exists(filePath))
