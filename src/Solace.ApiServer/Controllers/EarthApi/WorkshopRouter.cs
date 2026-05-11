@@ -13,27 +13,28 @@ using Solace.DB.Models.Player;
 using Solace.StaticData;
 using BurnRate = Solace.ApiServer.Types.Common.BurnRate;
 using CraftingCalculator = Solace.ApiServer.Utils.CraftingCalculator;
-using CraftingSlot = Solace.DB.Models.Player.Workshop.CraftingSlot;
-using CraftingSlots = Solace.DB.Models.Player.Workshop.CraftingSlots;
+using CraftingSlot = Solace.DB.Models.Player.Workshop.CraftingSlotEF;
+using CraftingSlots = Solace.DB.Models.Player.Workshop.CraftingSlotsEF;
 using EarthApiResponse = Solace.ApiServer.Utils.EarthApiResponse;
-using EarthDB = Solace.DB.EarthDB;
 using ExpectedPurchasePriceR = Solace.ApiServer.Types.Common.ExpectedPurchasePriceR;
 using FinishPrice = Solace.ApiServer.Types.Workshop.FinishPrice;
-using Hotbar = Solace.DB.Models.Player.Hotbar;
+using Hotbar = Solace.DB.Models.Player.HotbarEF;
 using InputItem = Solace.DB.Models.Player.Workshop.InputItem;
-using Inventory = Solace.DB.Models.Player.Inventory;
-using Journal = Solace.DB.Models.Player.Journal;
+using Inventory = Solace.DB.Models.Player.InventoryEF;
+using Journal = Solace.DB.Models.Player.JournalEF;
 using NonStackableItemInstance = Solace.DB.Models.Common.NonStackableItemInstance;
 using OutputItem = Solace.ApiServer.Types.Workshop.OutputItem;
-using Profile = Solace.DB.Models.Player.Profile;
+using Profile = Solace.DB.Models.Player.ProfileEF;
 using Rewards = Solace.ApiServer.Utils.Rewards;
 using SmeltingCalculator = Solace.ApiServer.Utils.SmeltingCalculator;
 using SmeltingSlot = Solace.DB.Models.Player.Workshop.SmeltingSlot;
-using SmeltingSlots = Solace.DB.Models.Player.Workshop.SmeltingSlots;
+using SmeltingSlots = Solace.DB.Models.Player.Workshop.SmeltingSlotsEF;
 using SplitRubies = Solace.ApiServer.Types.Profile.SplitRubies;
 using State = Solace.ApiServer.Types.Workshop.State;
 using TimeFormatter = Solace.ApiServer.Utils.TimeFormatter;
 using UnlockPrice = Solace.ApiServer.Types.Workshop.UnlockPrice;
+using Solace.DB;
+using Microsoft.EntityFrameworkCore;
 
 namespace Solace.ApiServer.Controllers.EarthApi;
 
@@ -42,14 +43,18 @@ namespace Solace.ApiServer.Controllers.EarthApi;
 [Route("1/api/v{version:apiVersion}")]
 internal sealed class WorkshopRouter : SolaceControllerBase
 {
-    private static EarthDB earthDB => Program.DB;
     private static StaticData.StaticData staticData => Program.staticData;
+    private readonly EarthDbContext earthDB;
+
+    public WorkshopRouter(EarthDbContext earthDb)
+    {
+        earthDB = earthDb;
+    }
 
     [HttpGet("player/utilityBlocks")]
     public async Task<Results<ContentHttpResult, BadRequest>> GetUtilityBlocks(CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId))
+        if (!TryGetAccountId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -57,35 +62,27 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         // request.timestamp
         long requestStartedOn = HttpContext.GetTimestamp();
 
-        EarthDB.Results.Result<CraftingSlots> craftingSlotsResult;
-        EarthDB.Results.Result<SmeltingSlots> smeltingSlotsResult;
-        try
-        {
-            EarthDB.Results results = await new EarthDB.Query(false)
-                .Get("crafting", playerId, typeof(CraftingSlots))
-                .Get("smelting", playerId, typeof(SmeltingSlots))
-                .ExecuteAsync(earthDB, cancellationToken);
-            craftingSlotsResult = results.GetResult<CraftingSlots>("crafting");
-            smeltingSlotsResult = results.GetResult<SmeltingSlots>("smelting");
-        }
-        catch (EarthDB.DatabaseException ex)
-        {
-            throw new ServerErrorException(ex);
-        }
+        var craftingSlots = await earthDB.CraftingSlots
+            .AsNoTracking()
+            .FirstAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken);
+
+        var smeltingSlots = await earthDB.SmeltingSlots
+            .AsNoTracking()
+            .FirstAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken);
 
         Dictionary<string, object> workshop = new()
         {
             ["crafting"] = new Dictionary<string, object>()
             {
-                ["1"] = CraftingSlotModelToResponseIncludingLocked(craftingSlotsResult.Value.Slots[0], requestStartedOn, craftingSlotsResult.Version, 1),
-                ["2"] = CraftingSlotModelToResponseIncludingLocked(craftingSlotsResult.Value.Slots[1], requestStartedOn, craftingSlotsResult.Version, 2),
-                ["3"] = CraftingSlotModelToResponseIncludingLocked(craftingSlotsResult.Value.Slots[2], requestStartedOn, craftingSlotsResult.Version, 3),
+                ["1"] = CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[0], requestStartedOn, craftingSlots.Version, 1),
+                ["2"] = CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[1], requestStartedOn, craftingSlots.Version, 2),
+                ["3"] = CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[2], requestStartedOn, craftingSlots.Version, 3),
             },
             ["smelting"] = new Dictionary<string, object>()
             {
-                ["1"] = SmeltingSlotModelToResponseIncludingLocked(smeltingSlotsResult.Value.Slots[0], requestStartedOn, smeltingSlotsResult.Version, 1),
-                ["2"] = SmeltingSlotModelToResponseIncludingLocked(smeltingSlotsResult.Value.Slots[1], requestStartedOn, smeltingSlotsResult.Version, 2),
-                ["3"] = SmeltingSlotModelToResponseIncludingLocked(smeltingSlotsResult.Value.Slots[2], requestStartedOn, smeltingSlotsResult.Version, 3),
+                ["1"] = SmeltingSlotModelToResponseIncludingLocked(smeltingSlots.Slots[0], requestStartedOn, smeltingSlots.Version, 1),
+                ["2"] = SmeltingSlotModelToResponseIncludingLocked(smeltingSlots.Slots[1], requestStartedOn, smeltingSlots.Version, 2),
+                ["3"] = SmeltingSlotModelToResponseIncludingLocked(smeltingSlots.Slots[2], requestStartedOn, smeltingSlots.Version, 3),
             },
         };
 
@@ -95,8 +92,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
     [HttpGet("crafting/{slotIndex}")]
     public async Task<Results<ContentHttpResult, BadRequest>> GetCraftingStatus(int slotIndex, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -104,26 +100,17 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         // request.timestamp
         long requestStartedOn = HttpContext.GetTimestamp();
 
-        try
-        {
-            EarthDB.Results results = await new EarthDB.Query(false)
-                .Get("crafting", playerId, typeof(CraftingSlots))
-                .ExecuteAsync(earthDB, cancellationToken);
-            EarthDB.Results.Result<CraftingSlots> craftingSlotsResult = results.GetResult<CraftingSlots>("crafting");
+        var craftingSlots = await earthDB.CraftingSlots
+            .AsNoTracking()
+            .FirstAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken);
 
-            return EarthJson(CraftingSlotModelToResponseIncludingLocked(craftingSlotsResult.Value.Slots[slotIndex - 1], requestStartedOn, craftingSlotsResult.Version, slotIndex));
-        }
-        catch (EarthDB.DatabaseException ex)
-        {
-            throw new ServerErrorException(ex);
-        }
+        return EarthJson(CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[slotIndex - 1], requestStartedOn, craftingSlots.Version, slotIndex));
     }
 
     [HttpGet("smelting/{slotIndex}")]
     public async Task<Results<ContentHttpResult, BadRequest>> GetSmeltingStatus(int slotIndex, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -131,26 +118,17 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         // request.timestamp
         long requestStartedOn = HttpContext.GetTimestamp();
 
-        try
-        {
-            EarthDB.Results results = await new EarthDB.Query(false)
-                .Get("smelting", playerId, typeof(SmeltingSlots))
-                .ExecuteAsync(earthDB, cancellationToken);
-            EarthDB.Results.Result<SmeltingSlots> smeltingSlotsResult = results.GetResult<SmeltingSlots>("smelting");
+        var smeltingSlots = await earthDB.SmeltingSlots
+            .AsNoTracking()
+            .FirstAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken);
 
-            return EarthJson(SmeltingSlotModelToResponseIncludingLocked(smeltingSlotsResult.Value.Slots[slotIndex - 1], requestStartedOn, smeltingSlotsResult.Version, slotIndex));
-        }
-        catch (EarthDB.DatabaseException ex)
-        {
-            throw new ServerErrorException(ex);
-        }
+        return EarthJson(SmeltingSlotModelToResponseIncludingLocked(smeltingSlots.Slots[slotIndex - 1], requestStartedOn, smeltingSlots.Version, slotIndex));
     }
 
     [HttpPost("crafting/{slotIndex}/start")]
     public async Task<Results<ContentHttpResult, BadRequest>> StartCrafting(int slotIndex, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -301,7 +279,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
                         return query;
                     }
 
-                    craftingSlot.ActiveJob = new CraftingSlot.ActiveJobR(startRequest.SessionId, recipe.Id, requestStartedOn, [.. inputItems.Select(inputItems1 => inputItems1.ToArray())], startRequest.Multiplier, 0, false);
+                    craftingSlot.ActiveJob = new CraftingSlot.ActiveJobR(startRequest.SessionId, recipe.Id, requestStartedOn, [.. inputItems.Select(inputItems1 => new CraftingSlot.InputRow([.. inputItems1]))], startRequest.Multiplier, 0, false);
 
                     query.Update("crafting", playerId, craftingSlots).Update("inventory", playerId, inventory).Update("hotbar", playerId, hotbar);
 
@@ -320,8 +298,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
     [HttpPost("smelting/{slotIndex}/start")]
     public async Task<Results<ContentHttpResult, BadRequest>> StartSmelting(int slotIndex, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -493,8 +470,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
     [HttpPost("crafting/{slotIndex}/collectItems")]
     public async Task<Results<ContentHttpResult, BadRequest>> CollectCraftingItems(int slotIndex, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -535,7 +511,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
                     return new EarthDB.Query(true)
                         .Update("crafting", playerId, craftingSlots)
-                        .Then(ActivityLogUtils.AddEntry(playerId, new ActivityLog.CraftingCompletedEntry(requestStartedOn, rewards.ToDBRewardsModel())))
+                        .Then(ActivityLogUtils.AddEntry(playerId, new ActivityLogEF.CraftingCompletedEntry(requestStartedOn, rewards.ToDBRewardsModel())))
                         .Then(rewards.ToRedeemQuery(playerId, requestStartedOn, staticData));
                 })
                 .ExecuteAsync(earthDB, cancellationToken);
@@ -554,8 +530,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
     [HttpPost("smelting/{slotIndex}/collectItems")]
     public async Task<Results<ContentHttpResult, BadRequest>> CollectSmeltingItems(int slotIndex, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -626,8 +601,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
     [HttpPost("crafting/{slotIndex}/stop")]
     public async Task<Results<ContentHttpResult, BadRequest>> StopCraftingJob(int slotIndex, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -702,8 +676,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
     [HttpPost("smelting/{slotIndex}/stop")]
     public async Task<Results<ContentHttpResult, BadRequest>> StopSmeltingJob(int slotIndex, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -797,8 +770,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
     [HttpPost("crafting/{slotIndex}/finish")]
     public async Task<Results<ContentHttpResult, BadRequest>> FinishCrafting(int slotIndex, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -876,8 +848,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
     [HttpPost("smelting/{slotIndex}/finish")]
     public async Task<Results<ContentHttpResult, BadRequest>> FinishSmelting(int slotIndex, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -956,7 +927,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
     [HttpGet("crafting/finish/price")]
     public Results<ContentHttpResult, BadRequest> GetCraftingPrice()
     {
-        if (!Request.Query.TryGetValue("remainingTime", out StringValues _remainingTime))
+        if (!Request.Query.TryGetValue("remainingTime", out StringValues remainingTimeString))
         {
             return TypedResults.BadRequest();
         }
@@ -964,7 +935,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         int remainingTime;
         try
         {
-            remainingTime = (int)TimeFormatter.ParseDuration(_remainingTime.ToString());
+            remainingTime = (int)TimeFormatter.ParseDuration(remainingTimeString.ToString());
             if (remainingTime < 0)
             {
                 return TypedResults.BadRequest();
@@ -983,7 +954,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
     [HttpGet("smelting/finish/price")]
     public Results<ContentHttpResult, BadRequest> GetSmeltingPrice()
     {
-        if (!Request.Query.TryGetValue("remainingTime", out StringValues _remainingTime))
+        if (!Request.Query.TryGetValue("remainingTime", out StringValues remainingTimeString))
         {
             return TypedResults.BadRequest();
         }
@@ -991,7 +962,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         int remainingTime;
         try
         {
-            remainingTime = (int)TimeFormatter.ParseDuration(_remainingTime.ToString());
+            remainingTime = (int)TimeFormatter.ParseDuration(remainingTimeString.ToString());
             if (remainingTime < 0)
             {
                 return TypedResults.BadRequest();
@@ -1010,8 +981,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
     [HttpPost("crafting/{slotIndex}/unlock")]
     public async Task<Results<ContentHttpResult, BadRequest>> UnlockCraftingSlot(int slotIndex, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -1071,8 +1041,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
     [HttpPost("smelting/{slotIndex}/unlock")]
     public async Task<Results<ContentHttpResult, BadRequest>> UnlockSmeltingSlot(int slotIndex, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
         {
             return TypedResults.BadRequest();
         }

@@ -98,7 +98,7 @@ public sealed class BuildplateEF : IVersionedEntity
 
     public Account Account { get; set; } = null!;
 
-    public string? TemplateId { get; set; }
+    public Guid? TemplateId { get; set; }
 
     public required string Name { get; set; }
 

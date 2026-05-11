@@ -398,7 +398,7 @@ internal sealed class DatabaseMigrator
                         {
                             Id = Guid.Parse(buildplateId),
                             AccountId = id,
-                            TemplateId = buildplate.TemplateId,
+                            TemplateId = buildplate.TemplateId is null ? null : Guid.Parse(buildplate.TemplateId),
                             Name = buildplate.Name,
                             Size = buildplate.Size,
                             Offset = buildplate.Offset,

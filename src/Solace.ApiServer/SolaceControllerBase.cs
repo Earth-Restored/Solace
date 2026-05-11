@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using Solace.ApiServer.Models;
 using Solace.ApiServer.Utils;
+using System.Security.Claims;
 
 namespace Solace.ApiServer;
 
@@ -23,6 +24,18 @@ internal abstract class SolaceControllerBase : ControllerBase
 
     protected static ContentHttpResult JsonPascalCase(object value)
         => TypedResults.Content(JsonSerializer.Serialize(value), "application/json");
+
+    protected bool TryGetAccountId(out Guid accountId)
+    {
+        string? playerIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(playerIdString))
+        {
+            accountId = default;
+            return false;
+        }
+
+        return Guid.TryParse(playerIdString, out accountId);
+    }
 
     protected Union<Tokens.Xbox.XapiToken, Results<UnauthorizedHttpResult, BadRequest>> XboxLiveAuth()
     {
