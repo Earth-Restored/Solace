@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -236,7 +237,19 @@ public sealed class EarthDbContext : DbContext
             .OwnsMany(x => x.Hotbar, builder => builder.ToJson());
     }
 
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        ApplyVersioning();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        ApplyVersioning();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void ApplyVersioning()
     {
         var entries = ChangeTracker.Entries<IVersionedEntity>();
 
@@ -252,10 +265,7 @@ public sealed class EarthDbContext : DbContext
                     break;
             }
         }
-
-        return base.SaveChangesAsync(cancellationToken);
     }
-
     public async Task EnsureAccountExists(Guid id)
     {
         if (await Accounts.AnyAsync(account => account.Id == id))
@@ -308,6 +318,44 @@ public sealed class EarthDbContext : DbContext
         await SaveChangesAsync();
 
         return account;
+    }
+
+    public sealed class Results
+    {
+        [SetsRequiredMembers]
+        public Results(EarthDbContext earthDb)
+        {
+            EarthDb = earthDb;
+        }
+
+        public required EarthDbContext EarthDb { get; init; }
+
+        [DisallowNull]
+        public int? Profile { get; set; }
+
+        [DisallowNull]
+        public int? Inventory { get; set; }
+
+        [DisallowNull]
+        public int? Crafting { get; set; }
+
+        [DisallowNull]
+        public int? Smelting { get; set; }
+
+        [DisallowNull]
+        public int? Boosts { get; set; }
+
+        [DisallowNull]
+        public int? Buildplates { get; set; }
+
+        [DisallowNull]
+        public int? Journal { get; set; }
+
+        [DisallowNull]
+        public int? Challenges { get; set; }
+
+        [DisallowNull]
+        public int? Tokens { get; set; }
     }
 }
 

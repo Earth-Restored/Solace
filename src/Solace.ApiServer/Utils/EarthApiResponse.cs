@@ -30,23 +30,26 @@ public class EarthApiResponse
     {
         public Dictionary<string, int?> Map = [];
 
-        public UpdatesResponse(EarthDB.Results results)
+        public UpdatesResponse(EarthDbContext.Results results)
+            : this(results.Profile, results.Inventory, results.Crafting, results.Smelting, results.Boosts, results.Buildplates, results.Journal, results.Challenges, results.Tokens)
         {
-            Dictionary<string, int?> updates = results.GetUpdates();
-            set(updates, "profile", "characterProfile");
-            set(updates, "inventory", "inventory");
-            set(updates, "crafting", "crafting");
-            set(updates, "smelting", "smelting");
-            set(updates, "boosts", "boosts");
-            set(updates, "buildplates", "buildplates");
-            set(updates, "journal", "playerJournal");
-            set(updates, "challenges", "challenges");
-            set(updates, "tokens", "tokens");
         }
 
-        private void set(Dictionary<string, int?> updates, string name, string @as)
+        public UpdatesResponse(int? profile = null, int? inventory = null, int? crafting = null, int? smelting = null, int? boosts = null, int? buildplates = null, int? journal = null, int? challenges = null, int? tokens = null)
         {
-            int? version = updates.GetOrDefault(name, null);
+            Set(profile, "characterProfile");
+            Set(inventory, "inventory");
+            Set(crafting, "crafting");
+            Set(smelting, "smelting");
+            Set(boosts, "boosts");
+            Set(buildplates, "buildplates");
+            Set(journal, "playerJournal");
+            Set(challenges, "challenges");
+            Set(tokens, "tokens");
+        }
+
+        private void Set(int? version, string @as)
+        {
             if (version is not null)
             {
                 Map[@as] = version;

@@ -10,12 +10,13 @@ namespace Solace.ApiServer;
 [ApiController]
 internal abstract class SolaceControllerBase : ControllerBase
 {
-    private static Config config => Program.config;
+    private static Config Config => Program.config;
 
-    // TODO: make these generic, might change output
+    // todo: JsonHttpResult<EarthApiResponse>
     protected static ContentHttpResult EarthJson(object results)
         => JsonCamelCase(new EarthApiResponse(results));
 
+    // todo: JsonHttpResult<EarthApiResponse>
     protected static ContentHttpResult EarthJson(object? results, EarthApiResponse.UpdatesResponse? updates)
         => JsonCamelCase(new EarthApiResponse(results, updates));
 
@@ -46,7 +47,7 @@ internal abstract class SolaceControllerBase : ControllerBase
             return (Results<UnauthorizedHttpResult, BadRequest>)TypedResults.BadRequest();
         }
 
-        var token = JwtUtils.Verify<Tokens.Xbox.XapiToken>(authValue.TokenString, config.XboxLive.XapiTokenSecretBytes)?.Data;
+        var token = JwtUtils.Verify<Tokens.Xbox.XapiToken>(authValue.TokenString, Config.XboxLive.XapiTokenSecretBytes)?.Data;
 
         if (token is null || token.UserId != authValue.UserId)
         {
@@ -63,7 +64,7 @@ internal abstract class SolaceControllerBase : ControllerBase
             return (Results<ForbidHttpResult, BadRequest>)TypedResults.BadRequest();
         }
 
-        var token = JwtUtils.Verify<Tokens.Playfab.EntityToken>(tokenString[0] ?? "", config.PlayfabApi.EntityTokenSecretBytes)?.Data;
+        var token = JwtUtils.Verify<Tokens.Playfab.EntityToken>(tokenString[0] ?? "", Config.PlayfabApi.EntityTokenSecretBytes)?.Data;
         if (token is null)
         {
             return (Results<ForbidHttpResult, BadRequest>)TypedResults.Forbid();

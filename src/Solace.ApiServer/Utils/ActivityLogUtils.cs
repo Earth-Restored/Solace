@@ -1,23 +1,21 @@
-﻿using Solace.DB;
+﻿using Microsoft.EntityFrameworkCore;
+using Solace.DB;
 using Solace.DB.Models.Player;
+using Solace.DB.Utils;
 
 namespace Solace.ApiServer.Utils;
 
 public static class ActivityLogUtils
 {
-    public static EarthDB.Query AddEntry(string playerId, ActivityLog.Entry entry)
+    public static async Task AddEntryAsync(EarthDbContext.Results results, Guid accountId, ActivityLogEF.Entry entry)
     {
-        var getQuery = new EarthDB.Query(true);
-        getQuery.Get("activityLog", playerId, typeof(ActivityLog));
-        getQuery.Then(results =>
-        {
-            ActivityLog activityLog = results.Get<ActivityLog>("activityLog");
-            activityLog.AddEntry(entry);
-            activityLog.Prune();
-            var updateQuery = new EarthDB.Query(true);
-            updateQuery.Update("activityLog", playerId, activityLog);
-            return updateQuery;
-        });
-        return getQuery;
+        var activityLog = await results.EarthDb.ActivityLogs
+            .AsTracking()
+            .FirstOrNewAsync(activityLog => activityLog.Id == accountId);
+
+        activityLog.AddEntry(entry);
+        activityLog.Prune();
+
+        await results.EarthDb.SaveChangesAsync();
     }
 }

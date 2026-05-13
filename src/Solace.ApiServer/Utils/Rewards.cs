@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 using Solace.Common.Utils;
 using Solace.DB;
 using Solace.DB.Models.Common;
 using Solace.DB.Models.Player;
+using Solace.DB.Utils;
 using Solace.StaticData;
 
 namespace Solace.ApiServer.Utils;
@@ -58,18 +60,27 @@ public sealed class Rewards
         return this;
     }
 
-    public EarthDB.Query ToRedeemQuery(string playerId, long currentTime, StaticData.StaticData staticData)
+    public async Task ToRedeemQueryAsync(EarthDbContext.Results results, Guid accountId, long currentTime, StaticData.StaticData staticData)
     {
-        var getQuery = new EarthDB.Query(true);
+        ProfileEF? profile = null;
         if (_rubies > 0 || _experiencePoints > 0)
         {
-            getQuery.Get("profile", playerId, typeof(Profile));
+            profile = await results.EarthDb.Profiles
+                .AsTracking()
+                .FirstOrNewAsync(profile => profile.Id == accountId);
         }
 
+        InventoryEF? inventory = null;
+        JournalEF? journal = null;
         if (!_items.IsEmpty())
         {
-            getQuery.Get("inventory", playerId, typeof(Inventory));
-            getQuery.Get("journal", playerId, typeof(Journal));
+            inventory = await results.EarthDb.Inventories
+                .AsTracking()
+                .FirstOrNewAsync(inventory => inventory.Id == accountId);
+
+            journal = await results.EarthDb.Journals
+                .AsTracking()
+                .FirstOrNewAsync(journal => journal.Id == accountId);
         }
 
         if (!_buildplates.IsEmpty())
@@ -82,87 +93,84 @@ public sealed class Rewards
             // TODO
         }
 
-        var updateQuery = new EarthDB.Query(true);
-        getQuery.Then(results =>
+        bool checkLevelUp = false;
+        if (_rubies > 0 || _experiencePoints > 0)
         {
-            bool checkLevelUp = false;
-            if (_rubies > 0 || _experiencePoints > 0)
+            Debug.Assert(profile is not null);
+
+            if (_rubies > 0)
             {
-                Profile profile = results.Get<Profile>("profile");
-                if (_rubies > 0)
-                {
-                    profile.Rubies.Earned += _rubies;
-                }
-
-                if (_experiencePoints > 0)
-                {
-                    profile.Experience += _experiencePoints;
-                }
-
-                updateQuery.Update("profile", playerId, profile);
-
-                if (_experiencePoints > 0)
-                {
-                    checkLevelUp = true;
-                }
+                profile.Rubies.Earned += _rubies;
             }
 
-            if (!_items.IsEmpty())
+            if (_experiencePoints > 0)
             {
-                Inventory inventory = results.Get<Inventory>("inventory");
-                Journal journal = results.Get<Journal>("journal");
-                foreach (var entry in _items)
+                profile.Experience += _experiencePoints;
+            }
+
+            if (_experiencePoints > 0)
+            {
+                checkLevelUp = true;
+            }
+
+            await results.EarthDb.SaveChangesAsync();
+
+            results.Profile = profile.Version;
+        }
+
+        if (!_items.IsEmpty())
+        {
+            Debug.Assert(inventory is not null);
+            Debug.Assert(journal is not null);
+
+            foreach (var entry in _items)
+            {
+                string id = entry.Key;
+                int quantity = entry.Value ?? 0; // idk, no null checks here, so I added ?? 0
+                if (quantity > 0)
                 {
-                    string id = entry.Key;
-                    int quantity = entry.Value ?? 0; // idk, no null checks here, so I added ?? 0
-                    if (quantity > 0)
+                    Catalog.ItemsCatalogR.Item? item = staticData.Catalog.ItemsCatalog.GetItem(id);
+                    Debug.Assert(item is not null);
+
+                    if (item.Stackable)
                     {
-                        Catalog.ItemsCatalogR.Item? item = staticData.Catalog.ItemsCatalog.GetItem(id);
-                        Debug.Assert(item is not null);
+                        inventory.AddItems(id, quantity);
+                    }
+                    else
+                    {
+                        inventory.AddItems(id, [.. Enumerable.Range(0, quantity).Select(index => new NonStackableItemInstance(U.RandomUuid().ToString(), 0))]);
+                    }
 
-                        if (item.Stackable)
+                    if (journal.AddCollectedItem(id, currentTime, quantity) == 0)
+                    {
+                        if (item.JournalEntry is not null)
                         {
-                            inventory.AddItems(id, quantity);
-                        }
-                        else
-                        {
-                            inventory.AddItems(id, [.. Enumerable.Range(0, quantity).Select(index => new NonStackableItemInstance(U.RandomUuid().ToString(), 0))]);
-                        }
-
-                        if (journal.AddCollectedItem(id, currentTime, quantity) == 0)
-                        {
-                            if (item.JournalEntry is not null)
-                            {
-                                updateQuery.Then(TokenUtils.AddToken(playerId, new Tokens.JournalItemUnlockedToken(id)));
-                            }
+                            await TokenUtils.AddTokenAsync(results, accountId, new TokensEF.JournalItemUnlockedToken(id));
                         }
                     }
                 }
-
-                updateQuery.Update("inventory", playerId, inventory);
-                updateQuery.Update("journal", playerId, journal);
             }
 
-            if (!_buildplates.IsEmpty())
-            {
-                // TODO
-            }
+            await results.EarthDb.SaveChangesAsync();
 
-            if (!_challenges.IsEmpty())
-            {
-                // TODO
-            }
+            results.Inventory = inventory.Version;
+            results.Journal = journal.Version;
+        }
 
-            if (checkLevelUp)
-            {
-                updateQuery.Then(LevelUtils.CheckAndHandlePlayerLevelUp(playerId, currentTime, staticData));
-            }
+        if (!_buildplates.IsEmpty())
+        {
+            // TODO
+        }
 
-            return updateQuery;
-        }, false);
-        getQuery.Extra("rewards", this);
+        if (!_challenges.IsEmpty())
+        {
+            // TODO
+        }
 
-        return getQuery;
+        if (checkLevelUp)
+        {
+            await LevelUtils.CheckAndHandlePlayerLevelUpAsync(results, accountId, currentTime, staticData);
+        }
     }
 
     public Types.Common.Rewards ToApiResponse()
