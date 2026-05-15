@@ -3,6 +3,7 @@ using Solace.DB.Models;
 
 namespace Solace.DB;
 
+[Obsolete("Use EarthDbContext instead.")]
 public class LiveDbContext : DbContext
 {
     public LiveDbContext(DbContextOptions<LiveDbContext> options)

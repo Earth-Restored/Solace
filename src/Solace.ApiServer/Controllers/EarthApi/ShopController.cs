@@ -15,6 +15,9 @@ using Solace.DB;
 using Solace.DB.Models.Player;
 using Solace.ObjectStore.Client;
 using Solace.StaticData;
+using Solace.EventBus.Client;
+using Microsoft.EntityFrameworkCore;
+using Solace.DB.Utils;
 
 namespace Solace.ApiServer.Controllers.EarthApi;
 
@@ -23,9 +26,18 @@ namespace Solace.ApiServer.Controllers.EarthApi;
 [Route("1/api/v{version:apiVersion}/commerce")]
 internal sealed class ShopController : SolaceControllerBase
 {
-    private static StaticData.StaticData staticData => Program.staticData;
-    private static EarthDB earthDB => Program.DB;
-    private static Importer importer => Program.importer;
+    private readonly StaticData.StaticData _staticData;
+    private readonly EarthDbContext _earthDB;
+    private readonly EventBusClient _eventBus;
+    private readonly ObjectStoreClient _objectStore;
+
+    public ShopController(StaticData.StaticData staticData, EarthDbContext earthDB, EventBusClient eventBus, ObjectStoreClient objectStore)
+    {
+        _staticData = staticData;
+        _earthDB = earthDB;
+        _eventBus = eventBus;
+        _objectStore = objectStore;
+    }
 
     private sealed record StoreItemInfoRequest(string Id, string StoreItemType, uint StreamVersion);
 
@@ -41,27 +53,18 @@ internal sealed class ShopController : SolaceControllerBase
 
         List<StoreItemInfo> result = new(request.Length);
 
-        EarthDB.ObjectResults buildplateResults;
-        try
-        {
-            buildplateResults = await new EarthDB.ObjectQuery(false)
-                .GetBuildplates(request.Where(item => item.StoreItemType == "Buildplates").Select(item => item.Id))
-                .ExecuteAsync(earthDB, cancellationToken);
-        }
-        catch (EarthDB.DatabaseException exception)
-        {
-            throw new ServerErrorException(exception);
-        }
-
         foreach (var item in request)
         {
             switch (item.StoreItemType)
             {
                 case "Buildplates":
                     {
-                        var buildplate = buildplateResults.GetBuildplate(item.Id);
-
                         var itemId = Guid.Parse(item.Id);
+
+                        var buildplate = await _earthDB.TemplateBuildplates
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(template => template.Id == itemId, cancellationToken);
+
                         StoreItemInfo.StoreItemTypeE storeItemType = Enum.Parse<StoreItemInfo.StoreItemTypeE>(item.StoreItemType);
 
                         if (buildplate is null)
@@ -71,9 +74,7 @@ internal sealed class ShopController : SolaceControllerBase
                             break;
                         }
 
-                        await using var objectStoreClient = await Program.GetObjectStoreClient();
-
-                        byte[]? previewData = await objectStoreClient.GetAsync(buildplate.PreviewObjectId);
+                        byte[]? previewData = await _objectStore.GetAsync(buildplate.PreviewObjectId);
 
                         if (previewData is null)
                         {
@@ -113,8 +114,7 @@ internal sealed class ShopController : SolaceControllerBase
     [HttpPost("purchase")]
     public async Task<Results<ContentHttpResult, BadRequest>> Purchase(CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId))
+        if (!TryGetAccountId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -126,7 +126,7 @@ internal sealed class ShopController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var rubies = await ProcessPurchase(playerId, request.ItemId, request.ExpectedPurchasePrice, cancellationToken);
+        var rubies = await ProcessPurchase(accountId, request.ItemId, request.ExpectedPurchasePrice, cancellationToken);
 
         if (rubies is not { } rubiesVal)
         {
@@ -139,8 +139,7 @@ internal sealed class ShopController : SolaceControllerBase
     [HttpPost("purchaseV2")]
     public async Task<Results<ContentHttpResult, BadRequest>> PurchaseV2(CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId))
+        if (!TryGetAccountId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -152,7 +151,7 @@ internal sealed class ShopController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var rubies = await ProcessPurchase(playerId, request.ItemId, request.ExpectedPurchasePrice, cancellationToken);
+        var rubies = await ProcessPurchase(accountId, request.ItemId, request.ExpectedPurchasePrice, cancellationToken);
 
         if (rubies is not { } rubiesVal)
         {
@@ -162,11 +161,11 @@ internal sealed class ShopController : SolaceControllerBase
         return EarthJson(new Types.Profile.SplitRubies(rubiesVal.Purchased, rubiesVal.Earned));
     }
 
-    private static async Task<(int Purchased, int Earned)?> ProcessPurchase(string playerId, Guid itemId, int expectedPurchasePrice, CancellationToken cancellationToken)
+    private async Task<(int Purchased, int Earned)?> ProcessPurchase(Guid accountId, Guid itemId, int expectedPurchasePrice, CancellationToken cancellationToken)
     {
-        if (!staticData.Playfab.Items.TryGetValue(itemId, out var itemToPurchase))
+        if (!_staticData.Playfab.Items.TryGetValue(itemId, out var itemToPurchase))
         {
-            Log.Debug($"Player {playerId} tried to purchase unknown item '{itemId}' (playfab)");
+            Log.Debug($"Player {accountId} tried to purchase unknown item '{itemId}' (playfab)");
             return null;
         }
 
@@ -188,101 +187,108 @@ internal sealed class ShopController : SolaceControllerBase
             return null;
         }
 
-        try
+        var importer = new Importer(_earthDB, _eventBus, _objectStore, Log.Logger);
+
+        Rubies? rubies = null;
+
+        switch (itemToPurchase.Data)
         {
-            Rubies? rubies = null;
-            switch (itemToPurchase.Data)
-            {
-                case Playfab.Item.BuildplateData data:
+            case Playfab.Item.BuildplateData data:
+                {
+                    using var transaction = await _earthDB.Database.BeginTransactionAsync(cancellationToken);
+
+                    try
                     {
-                        // TODO: the amount of rubies could change between the 2 db calls, if multiple people were using the same account at the same time, but that's unlikely and AddBuidplateToPlayer cannot be inside a rw query as it also writes and there can only be 1 rw connection for a file database at a time
-                        var profile = (await new EarthDB.Query(false)
-                           .Get("profile", playerId, typeof(Profile))
-                           .ExecuteAsync(earthDB, cancellationToken))
-                           .Get<Profile>("profile");
+                        var profile = await _earthDB.Profiles
+                            .AsTracking()
+                            .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
                         if (profile.Rubies.Total < expectedPurchasePrice)
                         {
-                            Log.Debug($"Player {playerId} tried to purchase item '{itemId}' but does not have enough rubies");
+                            Log.Debug($"Player {accountId} tried to purchase item '{itemId}' but does not have enough rubies");
                             break;
                         }
 
-                        string? buidplateId = await importer.AddBuidplateToPlayer(data.Id.ToString(), playerId, cancellationToken);
+                        var buidplateId = await importer.AddBuidplateToPlayer(data.Id, accountId, cancellationToken);
 
-                        if (string.IsNullOrEmpty(buidplateId))
+                        if (buidplateId is null)
                         {
-                            Log.Warning($"Failed to add buildplate {data.Id} to player {playerId}");
+                            Log.Warning($"Failed to add buildplate {data.Id} to player {accountId}");
                             break;
                         }
 
                         bool spent = profile.Rubies.Spend(expectedPurchasePrice);
                         Debug.Assert(spent);
 
-                        await new EarthDB.Query(true)
-                           .Update("profile", playerId, profile)
-                           .ExecuteAsync(earthDB, cancellationToken);
+                        await _earthDB.SaveChangesAsync(cancellationToken);
+                        await transaction.CommitAsync(cancellationToken);
 
                         rubies = profile.Rubies;
                     }
-
-                    break;
-                case Playfab.Item.InventoryItemData data:
+                    catch (Exception ex)
                     {
-                        var results = await new EarthDB.Query(true)
-                           .Get("profile", playerId, typeof(Profile))
-                           .Get("journal", playerId, typeof(Journal))
-                           .Get("inventory", playerId, typeof(Inventory))
-                           .Then(results =>
-                           {
-                               var profile = results.Get<Profile>("profile");
-                               var journal = results.Get<Journal>("journal");
-                               var inventory = results.Get<Inventory>("inventory");
-
-                               if (profile.Rubies.Total < expectedPurchasePrice)
-                               {
-                                   Log.Debug($"Player {playerId} tried to purchase item '{itemId}' but does not have enough rubies");
-                                   return EarthDB.Query.Empty;
-                               }
-
-                               var query = new EarthDB.Query(true);
-
-                               inventory.AddItems(data.Id.ToString(), data.Amount);
-                               journal.AddCollectedItem(data.Id.ToString(), U.CurrentTimeMillis(), data.Amount);
-
-                               query.Update("inventory", playerId, inventory);
-                               query.Update("journal", playerId, journal);
-                               // TODO: add to activity log?
-
-                               bool spent = profile.Rubies.Spend(expectedPurchasePrice);
-                               Debug.Assert(spent);
-
-                               query.Update("profile", playerId, profile);
-                               query.Extra("rubies", profile.Rubies);
-
-                               return query;
-                           })
-                           .ExecuteAsync(earthDB, cancellationToken);
-
-                        rubies = results.GetExtra("rubies") as Rubies;
+                        Log.Error(ex, "Buildplate Purchase failed.");
+                        await transaction.RollbackAsync(cancellationToken);
                     }
+                }
 
-                    break;
+                break;
+            case Playfab.Item.InventoryItemData data:
+                {
+                    using var transaction = await _earthDB.Database.BeginTransactionAsync(cancellationToken);
 
-                default:
-                    Log.Warning($"Shop item '{itemId}' has unknown {nameof(Playfab.Item.ItemData)}");
-                    break;
-            }
+                    try
+                    {
+                        var profile = await _earthDB.Profiles
+                            .AsTracking()
+                            .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
-            if (rubies is null)
-            {
-                return null;
-            }
+                        var journal = await _earthDB.Journals
+                            .AsTracking()
+                            .FirstOrNewAsync(journal => journal.Id == accountId, cancellationToken: cancellationToken);
 
-            return (rubies.Purchased, rubies.Earned);
+                        var inventory = await _earthDB.Inventories
+                            .AsTracking()
+                            .FirstOrNewAsync(inventory => inventory.Id == accountId, cancellationToken: cancellationToken);
+
+                        if (profile.Rubies.Total < expectedPurchasePrice)
+                        {
+                            Log.Debug($"Player {accountId} tried to purchase item '{itemId}' but does not have enough rubies");
+                            break;
+                        }
+
+                        inventory.AddItems(data.Id.ToString(), data.Amount);
+                        journal.AddCollectedItem(data.Id.ToString(), U.CurrentTimeMillis(), data.Amount);
+
+                        // TODO: add to activity log?
+
+                        bool spent = profile.Rubies.Spend(expectedPurchasePrice);
+                        Debug.Assert(spent);
+
+                        await _earthDB.SaveChangesAsync(cancellationToken);
+                        await transaction.CommitAsync(cancellationToken);
+
+                        rubies = profile.Rubies;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "Buildplate Purchase failed.");
+                        await transaction.RollbackAsync(cancellationToken);
+                    }
+                }
+
+                break;
+
+            default:
+                Log.Warning($"Shop item '{itemId}' has unknown {nameof(Playfab.Item.ItemData)}");
+                break;
         }
-        catch (EarthDB.DatabaseException ex)
+
+        if (rubies is null)
         {
-            throw new ServerErrorException(ex);
+            return null;
         }
+
+        return (rubies.Purchased, rubies.Earned);
     }
 }

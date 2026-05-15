@@ -22,9 +22,13 @@ internal sealed class DatabaseMigrator
 
     private readonly EarthDbContext _earthDb;
     private readonly SqliteConnection _legacyEarthDb;
+#pragma warning disable CS0618 // Type or member is obsolete - needed for migration
     private readonly LiveDbContext _liveDb;
+#pragma warning restore CS0618 // Type or member is obsolete
 
+#pragma warning disable CS0618 // Type or member is obsolete - needed for migration
     public DatabaseMigrator(EarthDbContext earthDb, SqliteConnection legacyEarthDb, LiveDbContext liveDb)
+#pragma warning restore CS0618 // Type or member is obsolete
     {
         _earthDb = earthDb;
         _legacyEarthDb = legacyEarthDb;
