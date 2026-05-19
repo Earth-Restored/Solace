@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Solace.DB;
 
@@ -10,9 +11,11 @@ using Solace.DB;
 namespace Solace.DB.Migrations
 {
     [DbContext(typeof(EarthDbContext))]
-    partial class EarthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260519063431_ChangeDataTypes")]
+    partial class ChangeDataTypes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.7");

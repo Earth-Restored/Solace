@@ -71,15 +71,22 @@ public partial class Program
         // }
         bool isLegacyDb = true;
         string legacyDbPath = Path.GetFullPath(Path.Combine(DataDirRelative, "earth.db.old"));
-        Log.Information("Detected legacy db format, backing up db");
-        if (File.Exists(legacyDbPath))
+        if (EF.IsDesignTime)
         {
-            File.Delete(Settings.Instance.EarthDatabaseConnectionString!);
+            isLegacyDb = false;
         }
         else
         {
-            File.Move(Settings.Instance.EarthDatabaseConnectionString!, legacyDbPath);
-            Log.Debug($"Moved legacy db to '{legacyDbPath}'");
+            Log.Information("Detected legacy db format, backing up db");
+            if (File.Exists(legacyDbPath))
+            {
+                File.Delete(Settings.Instance.EarthDatabaseConnectionString!);
+            }
+            else
+            {
+                File.Move(Settings.Instance.EarthDatabaseConnectionString!, legacyDbPath);
+                Log.Debug($"Moved legacy db to '{legacyDbPath}'");
+            }
         }
 
         builder.Services.AddSingleton<ServerManager>();
@@ -106,15 +113,15 @@ public partial class Program
 
         builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
             options.UseSqlite(launcherConnectionString));
-        builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlite(launcherConnectionString));
+        // builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        //     options.UseSqlite(launcherConnectionString));
 
         string earthConnectionString = "Data Source=" + Settings.Instance.EarthDatabaseConnectionString!;
 
         builder.Services.AddDbContextFactory<EarthDbContext>(options =>
             options.UseSqlite(earthConnectionString));
-        builder.Services.AddDbContext<EarthDbContext>(options =>
-            options.UseSqlite(earthConnectionString));
+        // builder.Services.AddDbContext<EarthDbContext>(options =>
+        //     options.UseSqlite(earthConnectionString));
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
         builder.Services.AddIdentityCore<ApplicationUser>(options =>
@@ -186,31 +193,34 @@ public partial class Program
         });
 
         // Apply database migrations and initialize built-in roles
-        using (var scope = app.Services.CreateScope())
+        if (!EF.IsDesignTime)
         {
-            // make sure Data dir exists
-            Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "Data"));
-            Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), Path.GetDirectoryName(Settings.Instance.EarthDatabaseConnectionString)!));
-
-            var appDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            await appDbContext.Database.MigrateAsync();
-
-            var earthDbContext = scope.ServiceProvider.GetRequiredService<EarthDbContext>();
-            await earthDbContext.Database.MigrateAsync();
-
-            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
-            await EnsureBuiltInRolesAsync(roleManager);
-
-            if (isLegacyDb)
+            using (var scope = app.Services.CreateScope())
             {
-#pragma warning disable CS0618 // Type or member is obsolete - needed for migration
-                var optionsBuilder = new DbContextOptionsBuilder<LiveDbContext>();
-                optionsBuilder.UseSqlite("Data Source=" + Settings.Instance.LiveDatabaseConnectionString!);
+                // make sure Data dir exists
+                Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "Data"));
+                Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), Path.GetDirectoryName(Settings.Instance.EarthDatabaseConnectionString)!));
 
-                using var liveDbContext = new LiveDbContext(optionsBuilder.Options);
+                var appDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                await appDbContext.Database.MigrateAsync();
+
+                var earthDbContext = scope.ServiceProvider.GetRequiredService<EarthDbContext>();
+                await earthDbContext.Database.MigrateAsync();
+
+                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+                await EnsureBuiltInRolesAsync(roleManager);
+
+                if (isLegacyDb)
+                {
+#pragma warning disable CS0618 // Type or member is obsolete - needed for migration
+                    var optionsBuilder = new DbContextOptionsBuilder<LiveDbContext>();
+                    optionsBuilder.UseSqlite("Data Source=" + Settings.Instance.LiveDatabaseConnectionString!);
+
+                    using var liveDbContext = new LiveDbContext(optionsBuilder.Options);
 #pragma warning restore CS0618 // Type or member is obsolete
 
-                await MigrateLegacyDataAsync(earthDbContext, liveDbContext, legacyDbPath);
+                    await MigrateLegacyDataAsync(earthDbContext, liveDbContext, legacyDbPath);
+                }
             }
         }
 
