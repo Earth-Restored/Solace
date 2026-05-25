@@ -3,12 +3,12 @@ using Solace.Common.Utils;
 
 namespace Solace.EventBus.Client;
 
-public sealed class Publisher : IAsyncDisposable
+public sealed partial class Publisher : IAsyncDisposable
 {
     private readonly EventBusClient _client;
     private readonly int _channelId;
     private readonly SemaphoreSlim _lock = new(1, 1);
-    
+
     private bool _closed;
     private readonly Queue<string> _queuedEvents = [];
     private readonly LinkedList<TaskCompletionSource<bool>> _queuedEventResults = new();
@@ -45,7 +45,7 @@ public sealed class Publisher : IAsyncDisposable
         }
 
         string eventMessage = $"SEND {queueName}:{type}:{data}";
-        
+
         // Use RunContinuationsAsynchronously to prevent deadlocks when the result is set
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -88,8 +88,8 @@ public sealed class Publisher : IAsyncDisposable
         await _lock.WaitAsync();
         try
         {
-            taskToAwait = _queuedEventResults.Count is 0 
-                ? _currentPendingEventResult?.Task 
+            taskToAwait = _queuedEventResults.Count is 0
+                ? _currentPendingEventResult?.Task
                 : _queuedEventResults.Last!.Value.Task;
         }
         finally
@@ -130,13 +130,13 @@ public sealed class Publisher : IAsyncDisposable
                 _lock.Release();
             }
         }
-        
+
         if (message == "ERR")
         {
             await CloseAsync();
             return true;
         }
-        
+
         return false;
     }
 
@@ -176,15 +176,21 @@ public sealed class Publisher : IAsyncDisposable
     private static bool ValidateQueueName(string queueName)
         => !queueName.Any(c => c < 32 || c >= 127) &&
             !string.IsNullOrEmpty(queueName) &&
-            !Regex.IsMatch(queueName, "^[^A-Za-z0-9_\\-]$") &&
-            !Regex.IsMatch(queueName, "^^[^A-Za-z0-9]$");
+            !GetValidationRegex1().IsMatch(queueName) &&
+            !GetValidationRegex2().IsMatch(queueName);
 
     private static bool ValidateType(string type)
         => !type.Any(c => c < 32 || c >= 127) &&
             !string.IsNullOrEmpty(type) &&
-            !Regex.IsMatch(type, "^[^A-Za-z0-9_\\-]$") &&
-            !Regex.IsMatch(type, "^^[^A-Za-z0-9]$");
+            !GetValidationRegex1().IsMatch(type) &&
+            !GetValidationRegex2().IsMatch(type);
 
     private static bool ValidateData(string data)
         => !data.Any(c => c < 32 || c >= 127);
+
+    [GeneratedRegex("^[^A-Za-z0-9_\\-]$")]
+    private static partial Regex GetValidationRegex1();
+
+    [GeneratedRegex("^^[^A-Za-z0-9]$")]
+    private static partial Regex GetValidationRegex2();
 }

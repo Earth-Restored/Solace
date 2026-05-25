@@ -28,5 +28,4 @@
 ## Refactoring
 
 - Load static data types only when needed
-- Generated regex
 - Use new extension syntax
