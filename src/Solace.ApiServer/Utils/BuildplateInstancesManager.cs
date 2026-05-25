@@ -71,12 +71,12 @@ public sealed class BuildplateInstancesManager
 
         lock (_instances)
         {
-            var instanceIds = _instancesByBuildplateId.GetOrDefault(buildplateId);
+            var instanceIds = _instancesByBuildplateId.GetValueOrDefault(buildplateId);
             if (instanceIds is not null)
             {
                 foreach (var loopInstanceId in instanceIds)
                 {
-                    InstanceInfo? instanceInfo = _instances.GetOrDefault(loopInstanceId);
+                    var instanceInfo = _instances.GetValueOrDefault(loopInstanceId);
                     if (instanceInfo is not null && !instanceInfo.ShuttingDown)
                     {
                         if (instanceInfo.Type == type &&
@@ -129,7 +129,7 @@ public sealed class BuildplateInstancesManager
     {
         lock (_instances)
         {
-            return _instances.GetOrDefault(instanceId, null);
+            return _instances.GetValueOrDefault(instanceId);
         }
     }
 
@@ -182,8 +182,10 @@ public sealed class BuildplateInstancesManager
 
                         lock (_pendingInstances)
                         {
-                            TaskCompletionSource<bool>? completableFuture = _pendingInstances.JavaRemove(startNotification.InstanceId);
-                            completableFuture?.SetResult(true);
+                            if (_pendingInstances.Remove(startNotification.InstanceId, out var completableFuture))
+                            {
+                                completableFuture?.SetResult(true);
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -203,7 +205,7 @@ public sealed class BuildplateInstancesManager
 
                     lock (_instances)
                     {
-                        InstanceInfo? instanceInfo = _instances.GetOrDefault(instanceId, null);
+                        InstanceInfo? instanceInfo = _instances.GetValueOrDefault(instanceId);
                         if (instanceInfo is not null)
                         {
                             Log.Information($"Buildplate instance {instanceId} is ready");
@@ -263,12 +265,11 @@ public sealed class BuildplateInstancesManager
 
                     lock (_instances)
                     {
-                        var instanceInfo = _instances.JavaRemove(instanceId);
-                        if (instanceInfo is not null)
+                        if (_instances.Remove(instanceId, out var instanceInfo))
                         {
                             Log.Information($"Buildplate instance {instanceId} has stopped");
 
-                            var instanceIds = _instancesByBuildplateId.GetOrDefault(instanceInfo.BuildplateId);
+                            var instanceIds = _instancesByBuildplateId.GetValueOrDefault(instanceInfo.BuildplateId);
                             instanceIds?.Remove(instanceInfo.InstanceId);
                         }
                     }

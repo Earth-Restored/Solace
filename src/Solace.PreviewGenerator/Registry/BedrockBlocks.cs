@@ -104,14 +104,14 @@ public static class BedrockBlocks
         EnsureInitialized();
 
         var blockNameAndState = new BlockNameAndState(name, state);
-        return stateToIdMap.GetOrDefault(blockNameAndState, -1);
+        return stateToIdMap.GetValueOrDefault(blockNameAndState, -1);
     }
 
     public static string? GetName(int id)
     {
         EnsureInitialized();
 
-        BlockNameAndState? blockNameAndState = idToStateMap.GetOrDefault(id, null);
+        var blockNameAndState = idToStateMap.GetValueOrDefault(id);
         return blockNameAndState?.Name;
     }
 
@@ -119,14 +119,18 @@ public static class BedrockBlocks
     {
         EnsureInitialized();
 
-        BlockNameAndState? blockNameAndState = idToStateMap.GetOrDefault(id, null);
+        var blockNameAndState = idToStateMap.GetValueOrDefault(id);
         if (blockNameAndState is null)
         {
             return null;
         }
 
         Dictionary<string, object> state = [];
-        blockNameAndState.State.ForEach((key, value) => state[key] = value);
+        foreach (var (key, value) in blockNameAndState.State)
+        {
+            state[key] = value;
+        }
+
         return state;
     }
 
@@ -134,14 +138,14 @@ public static class BedrockBlocks
     {
         EnsureInitialized();
 
-        BlockNameAndState? blockNameAndState = idToStateMap.GetOrDefault(id, null);
+        var blockNameAndState = idToStateMap.GetValueOrDefault(id);
         if (blockNameAndState is null)
         {
             return null;
         }
 
         NbtMapBuilder builder = NbtMap.Builder();
-        blockNameAndState.State.ForEach((key, value) =>
+        foreach (var (key, value) in blockNameAndState.State)
         {
             if (value is string s)
             {
@@ -155,7 +159,8 @@ public static class BedrockBlocks
             {
                 throw new InvalidOperationException();
             }
-        });
+        }
+
         return builder.Build();
     }
 
@@ -179,7 +184,7 @@ public static class BedrockBlocks
                 hash.Add(kvp.Key, StringComparer.Ordinal);
                 hash.Add(kvp.Value);
             }
-            
+
             return hash.ToHashCode();
         }
 

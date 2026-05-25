@@ -32,7 +32,7 @@ public sealed class Rewards
 
     public Rewards AddItem(string id, int count)
     {
-        _items[id] = _items.GetOrDefault(id, 0) + count;
+        _items[id] = _items.GetValueOrDefault(id) + count;
         return this;
     }
 
@@ -195,7 +195,11 @@ public sealed class Rewards
             rewards.SetLevel(rewardsModel.Level.Value);
         }
 
-        rewardsModel.Items.ForEach((id, count) => rewards.AddItem(id, count ?? 0));
+        foreach (var (id, count) in rewardsModel.Items)
+        {
+            rewards.AddItem(id, count ?? 0);
+        }
+
         Array.ForEach(rewardsModel.Buildplates, id => rewards.AddBuildplate(id));
         Array.ForEach(rewardsModel.Challenges, id => rewards.AddChallenge(id));
         return rewards;

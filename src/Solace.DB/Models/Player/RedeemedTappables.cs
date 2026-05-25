@@ -20,7 +20,7 @@ public sealed class RedeemedTappablesEF : IEntityWithId<Guid>, IVersionedEntity,
         => Tappables[id] = expiresAt;
 
     public void Prune(long currentTime)
-        => Tappables.RemoveIf(entry => entry.Value < currentTime);
+        => Tappables.RemoveAll(entry => entry.Value < currentTime);
 
     public async Task MergeWith(RedeemedTappablesEF other, ValueMerger merger)
     {

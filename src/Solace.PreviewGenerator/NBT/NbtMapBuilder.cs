@@ -5,7 +5,7 @@ using Solace.Common.Utils;
 namespace Solace.PreviewGenerator.NBT;
 
 #pragma warning disable CA1710 // Identifiers should have correct suffix
-public sealed class NbtMapBuilder : IDictionary<string, object>
+public sealed class NbtMapBuilder : IDictionary<string, object>, IReadOnlyDictionary<string, object>
 #pragma warning restore CA1710 // Identifiers should have correct suffix
 {
     public static NbtMapBuilder From(NbtMap map)
@@ -27,6 +27,10 @@ public sealed class NbtMapBuilder : IDictionary<string, object>
 
     public bool IsReadOnly => false;
 
+    IEnumerable<string> IReadOnlyDictionary<string, object>.Keys => Keys;
+
+    IEnumerable<object> IReadOnlyDictionary<string, object>.Values => Values;
+
     public void Add(string key, object value)
     {
         ArgumentNullException.ThrowIfNull(value, nameof(value));
@@ -40,7 +44,8 @@ public sealed class NbtMapBuilder : IDictionary<string, object>
         this[key] = NbtUtils.Copy(value);
     }
 
-    public void Add(KeyValuePair<string, object> item) => throw new InvalidOperationException();
+    public void Add(KeyValuePair<string, object> item)
+        => throw new InvalidOperationException();
 
     public void Clear()
         => _map.Clear();
@@ -51,7 +56,8 @@ public sealed class NbtMapBuilder : IDictionary<string, object>
     public bool ContainsKey(string key)
         => _map.ContainsKey(key);
 
-    public void CopyTo(KeyValuePair<string, object>[] array, int arrayIndex) => throw new NotImplementedException();
+    public void CopyTo(KeyValuePair<string, object>[] array, int arrayIndex)
+        => throw new NotImplementedException();
 
     public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         => _map.GetEnumerator();

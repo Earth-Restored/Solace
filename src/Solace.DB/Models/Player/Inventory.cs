@@ -35,13 +35,13 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
 
     public int GetItemCount(string id)
     {
-        int? count = StackableItemsData.GetOrDefault(id, null);
+        int? count = StackableItemsData.GetValueOrDefault(id);
         if (count is not null)
         {
             return count.Value;
         }
 
-        Dictionary<string, NonStackableItemInstance>? instances = NonStackableItemsData!.GetOrDefault(id, null);
+        Dictionary<string, NonStackableItemInstance>? instances = NonStackableItemsData!.GetValueOrDefault(id);
 
         return instances is not null
             ? instances.Count
@@ -50,7 +50,7 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
 
     public NonStackableItemInstance[] GetItemInstances(string id)
     {
-        Dictionary<string, NonStackableItemInstance>? instances = NonStackableItemsData!.GetOrDefault(id, null);
+        Dictionary<string, NonStackableItemInstance>? instances = NonStackableItemsData!.GetValueOrDefault(id);
         return instances is not null
             ? [.. instances.Values]
             : [];
@@ -58,8 +58,8 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
 
     public NonStackableItemInstance? GetItemInstance(string id, string instanceId)
     {
-        Dictionary<string, NonStackableItemInstance>? instances = NonStackableItemsData!.GetOrDefault(id, null);
-        return instances?.GetOrDefault(instanceId, null);
+        Dictionary<string, NonStackableItemInstance>? instances = NonStackableItemsData!.GetValueOrDefault(id);
+        return instances?.GetValueOrDefault(instanceId);
     }
 
     public void AddItems(string id, int count)
@@ -69,7 +69,7 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
             throw new ArgumentException($"{nameof(count)} is negative.", nameof(count));
         }
 
-        StackableItemsData[id] = StackableItemsData.GetOrDefault(id, 0) + count;
+        StackableItemsData[id] = StackableItemsData.GetValueOrDefault(id) + count;
     }
 
     public void AddItems(string id, NonStackableItemInstance[] instances)
@@ -89,7 +89,7 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
             throw new ArgumentException($"{nameof(count)} is negative.", nameof(count));
         }
 
-        int currentCount = StackableItemsData.GetOrDefault(id, 0)!.Value;
+        int currentCount = StackableItemsData.GetValueOrDefault(id)!.Value;
         if (currentCount < count)
         {
             return false;
@@ -110,8 +110,7 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
         var instances = new List<NonStackableItemInstance>(instanceIds.Length);
         foreach (string instanceId in instanceIds)
         {
-            NonStackableItemInstance? instance = instanceMap.JavaRemove(instanceId);
-            if (instance is null)
+            if (!instanceMap.Remove(instanceId, out var instance))
             {
                 return null;
             }

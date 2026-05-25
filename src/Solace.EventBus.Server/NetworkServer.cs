@@ -171,7 +171,7 @@ public sealed class NetworkServer : IDisposable
                 return false;
             }
 
-            ChannelHandler? channel = _channels.GetOrDefault(channelId, null);
+            var channel = _channels.GetValueOrDefault(channelId);
             if (channel is not null)
             {
                 if (parts[1] is "CLOSE")
@@ -552,8 +552,7 @@ public sealed class NetworkServer : IDisposable
                     return;
                 }
 
-                TaskCompletionSource<string?>? responseCompletableFuture = _pendingResponses.JavaRemove(requestId);
-                if (responseCompletableFuture is not null)
+                if (_pendingResponses.Remove(requestId, out var responseCompletableFuture))
                 {
                     responseCompletableFuture.SetResult(null);
                 }

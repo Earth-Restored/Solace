@@ -122,7 +122,7 @@ public sealed partial class Server : IDisposable
 
     private HashSet<Subscriber> GetSubscribers(string queueName)
     {
-        HashSet<Subscriber>? subscribers = _subscribers.GetOrDefault(queueName, null);
+        var subscribers = _subscribers.GetValueOrDefault(queueName);
         return subscribers is not null
             ? subscribers
             : [];
@@ -298,7 +298,7 @@ public sealed partial class Server : IDisposable
 
     private HashSet<RequestHandler> GetHandlers(string queueName)
     {
-        HashSet<RequestHandler>? requestHandlers = _requestHandlers.GetOrDefault(queueName, null);
+        var requestHandlers = _requestHandlers.GetValueOrDefault(queueName);
         return requestHandlers is not null
             ? requestHandlers
             : [];

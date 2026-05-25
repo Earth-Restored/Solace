@@ -217,7 +217,7 @@ public static class JavaBlocks
                                     Debug.Assert(stateToken2 is not null);
 
                                     NbtMapBuilder stateBuilder = NbtMap.Builder();
-                                    ((JsonObject)stateToken2).ForEach((key, stateElement) =>
+                                    foreach (var (key, stateElement) in (JsonObject)stateToken2)
                                     {
                                         Debug.Assert(stateElement is not null);
 
@@ -238,7 +238,8 @@ public static class JavaBlocks
                                         {
                                             stateBuilder.PutInt(key, stateElement.GetValue<int>());
                                         }
-                                    });
+                                    }
+                                    
                                     builder.PutCompound("states", stateBuilder.Build());
                                 }
 
@@ -337,7 +338,7 @@ public static class JavaBlocks
     {
         EnsureInitialized();
 
-        string? name = map.GetOrDefault(id, null);
+        string? name = map.GetValueOrDefault(id);
         if (name is null && fabricRegistryManager is not null)
         {
             name = null;//fabricRegistryManager.getBlockName(id);
@@ -351,13 +352,13 @@ public static class JavaBlocks
     {
         EnsureInitialized();
 
-        BedrockMapping? bedrockMapping = bedrockMap.GetOrDefault(javaId, null);
+        BedrockMapping? bedrockMapping = bedrockMap.GetValueOrDefault(javaId);
         if (bedrockMapping is null && fabricRegistryManager is not null)
         {
             string? fabricName = null;//fabricRegistryManager.getBlockName(javaId);
             if (fabricName is not null)
             {
-                bedrockMapping = bedrockNonVanillaMap.GetOrDefault(fabricName, null);
+                bedrockMapping = bedrockNonVanillaMap.GetValueOrDefault(fabricName);
             }
         }
 
@@ -368,7 +369,7 @@ public static class JavaBlocks
     {
         EnsureInitialized();
 
-        BedrockMapping? bedrockMapping = bedrockMapByName.GetOrDefault(javaName, null) ?? bedrockNonVanillaMap.GetOrDefault(javaName, null);
+        var bedrockMapping = bedrockMapByName.GetValueOrDefault(javaName) ?? bedrockNonVanillaMap.GetValueOrDefault(javaName);
         return bedrockMapping;
     }
 

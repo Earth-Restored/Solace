@@ -57,7 +57,7 @@ internal sealed class InventoryController : SolaceControllerBase
         {
             if (item is not null)
             {
-                hotbarItemCounts[item.Uuid] = hotbarItemCounts.GetOrDefault(item.Uuid, 0) + item.Count;
+                hotbarItemCounts[item.Uuid] = hotbarItemCounts.GetValueOrDefault(item.Uuid) + item.Count;
             }
         }
 
@@ -80,7 +80,7 @@ internal sealed class InventoryController : SolaceControllerBase
             [.. inventory.StackableItems.Select(item =>
             {
                 string uuid = item.Id;
-                int count = item.Count - hotbarItemCounts.GetOrDefault(uuid, 0) ?? 0;
+                int count = item.Count - hotbarItemCounts.GetValueOrDefault(uuid) ?? 0;
                 JournalEF.ItemJournalEntry itemJournalEntry = journal.GetItem(uuid)!;
                 string firstSeen = TimeFormatter.FormatTime(itemJournalEntry.FirstSeen);
                 string lastSeen = TimeFormatter.FormatTime(itemJournalEntry.LastSeen);

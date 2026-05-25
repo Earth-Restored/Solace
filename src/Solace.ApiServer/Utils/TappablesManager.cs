@@ -41,7 +41,7 @@ public sealed class TappablesManager
 
     public Tappable[] GetTappablesAround(double lat, double lon, double radius)
         => [.. GetTileIdsAround(lat, lon, radius)
-            .Select(tileId => _tappables.GetOrDefault(tileId, null))
+            .Select(tileId => _tappables.GetValueOrDefault(tileId))
             .Where(tappables => tappables is not null)
             .Select(items => items!.Values)
             .SelectMany(stream => stream)
@@ -55,7 +55,7 @@ public sealed class TappablesManager
 
     public Encounter[] GetEncountersAround(double lat, double lon, double radius)
         => [.. GetTileIdsAround(lat, lon, radius)
-            .Select(tileId => _encounters.GetOrDefault(tileId))
+            .Select(tileId => _encounters.GetValueOrDefault(tileId))
             .Where(encounters => encounters is not null)
             .SelectMany(encounters => encounters!.Values)
             .Where(encounter =>
@@ -92,10 +92,10 @@ public sealed class TappablesManager
 
     public Tappable? GetTappableWithId(Guid id, string tileId)
     {
-        var tappablesInTile = _tappables.GetOrDefault(tileId, null);
+        var tappablesInTile = _tappables.GetValueOrDefault(tileId);
         if (tappablesInTile is not null)
         {
-            var tappable = tappablesInTile.GetOrDefault(id, null);
+            var tappable = tappablesInTile.GetValueOrDefault(id);
             if (tappable is not null)
             {
                 return tappable;
@@ -107,10 +107,10 @@ public sealed class TappablesManager
 
     public Encounter? GetEncounterWithId(Guid id, string tileId)
     {
-        var encountersInTile = _encounters.GetOrDefault(tileId);
+        var encountersInTile = _encounters.GetValueOrDefault(tileId);
         if (encountersInTile is not null)
         {
-            var encounter = encountersInTile.GetOrDefault(id);
+            var encounter = encountersInTile.GetValueOrDefault(id);
             if (encounter is not null)
             {
                 return encounter;
@@ -248,7 +248,7 @@ public sealed class TappablesManager
     {
         foreach (var tileTappables in _tappables.Values)
         {
-            tileTappables.RemoveIf(entry =>
+            tileTappables.RemoveAll(entry =>
             {
                 Tappable tappable = entry.Value;
                 long expiresAt = tappable.SpawnTime + tappable.ValidFor;
@@ -256,11 +256,11 @@ public sealed class TappablesManager
             });
         }
 
-        _tappables.RemoveIf(entry => entry.Value.IsEmpty());
+        _tappables.RemoveAll(entry => entry.Value.IsEmpty());
 
         foreach (var tileEncounters in _encounters.Values)
         {
-            tileEncounters.RemoveIf(entry =>
+            tileEncounters.RemoveAll(entry =>
             {
                 Encounter encounter = entry.Value;
                 long expiresAt = encounter.SpawnTime + encounter.ValidFor;
@@ -268,7 +268,7 @@ public sealed class TappablesManager
             });
         }
 
-        _encounters.RemoveIf(entry => entry.Value.Count == 0);
+        _encounters.RemoveAll(entry => entry.Value.Count == 0);
     }
 
     public static string LocationToTileId(float lat, float lon)

@@ -82,7 +82,7 @@ public sealed class ActiveTiles
 
     private ActiveTile MarkTileActive(int tileX, int tileY, long currentTime)
     {
-        ActiveTile? activeTile = _activeTiles.GetOrDefault((tileX << 16) + tileY, null);
+        var activeTile = _activeTiles.GetValueOrDefault((tileX << 16) + tileY);
         if (activeTile is null)
         {
             Log.Information($"Tile {tileX},{tileY} is becoming active");

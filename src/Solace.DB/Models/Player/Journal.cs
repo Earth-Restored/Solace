@@ -22,7 +22,7 @@ public sealed class JournalEF : IEntityWithId<Guid>, IVersionedEntity, IMergeabl
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
 
-        ItemJournalEntry? itemJournalEntry = Items.GetOrDefault(uuid, null);
+        ItemJournalEntry? itemJournalEntry = Items.GetValueOrDefault(uuid);
         if (itemJournalEntry is null)
         {
             Items[uuid] = new ItemJournalEntry(timestamp, timestamp, count);
