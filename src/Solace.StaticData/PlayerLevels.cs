@@ -12,7 +12,7 @@ public sealed class PlayerLevels
     {
         try
         {
-            LinkedList<Level> levels = [];
+            var levels = ImmutableArray.CreateBuilder<Level>();
             string file;
             for (int levelIndex = 2; File.Exists(file = Path.Combine(dir, $"{levelIndex}.json")); levelIndex++)
             {
@@ -22,11 +22,11 @@ public sealed class PlayerLevels
 
                     Debug.Assert(level is not null);
 
-                    levels.AddLast(level);
+                    levels.Add(level);
                 }
             }
 
-            Levels = [.. levels];
+            Levels = levels.DrainToImmutable();
 
             for (int index = 1; index < Levels.Length; index++)
             {

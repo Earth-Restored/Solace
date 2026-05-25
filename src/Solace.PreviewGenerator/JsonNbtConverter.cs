@@ -18,15 +18,7 @@ internal sealed class JsonNbtConverter
     }
 
     public static JsonNbtTag Convert(NbtList tag)
-    {
-        LinkedList<JsonNbtTag> value = new();
-        foreach (object item in tag)
-        {
-            value.AddLast(Convert(item));
-        }
-
-        return new ListJsonNbtTag([.. value]);
-    }
+        => new ListJsonNbtTag([.. tag.Select(Convert)]);
 
     private static JsonNbtTag Convert(object tag)
     {

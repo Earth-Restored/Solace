@@ -13,7 +13,7 @@ public sealed class EncountersConfig
     {
         try
         {
-            LinkedList<EncounterConfig> encounters = [];
+            var encounters = ImmutableArray.CreateBuilder<EncounterConfig>();
             foreach (string file in Directory.EnumerateFiles(dir))
             {
                 if (Path.GetExtension(file) != ".json")
@@ -27,11 +27,11 @@ public sealed class EncountersConfig
 
                     Debug.Assert(encounter is not null);
 
-                    encounters.AddLast(encounter);
+                    encounters.Add(encounter);
                 }
             }
 
-            Encounters = [.. encounters];
+            Encounters = encounters.DrainToImmutable();
         }
         catch (Exception exception)
         {

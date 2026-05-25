@@ -10,7 +10,7 @@ public sealed class Publisher : IAsyncDisposable
     private readonly SemaphoreSlim _lock = new(1, 1);
     
     private bool _closed;
-    private readonly LinkedList<string> _queuedEvents = new();
+    private readonly Queue<string> _queuedEvents = [];
     private readonly LinkedList<TaskCompletionSource<bool>> _queuedEventResults = new();
     private TaskCompletionSource<bool>? _currentPendingEventResult;
 
@@ -58,7 +58,7 @@ public sealed class Publisher : IAsyncDisposable
             }
             else
             {
-                _queuedEvents.AddLast(eventMessage);
+                _queuedEvents.Enqueue(eventMessage);
                 _queuedEventResults.AddLast(tcs);
 
                 if (_currentPendingEventResult == null)
@@ -88,7 +88,7 @@ public sealed class Publisher : IAsyncDisposable
         await _lock.WaitAsync();
         try
         {
-            taskToAwait = _queuedEventResults.Count == 0 
+            taskToAwait = _queuedEventResults.Count is 0 
                 ? _currentPendingEventResult?.Task 
                 : _queuedEventResults.Last!.Value.Task;
         }
@@ -142,8 +142,7 @@ public sealed class Publisher : IAsyncDisposable
 
     private async Task SendNextEventAsync()
     {
-        string message = _queuedEvents.First!.Value;
-        _queuedEvents.RemoveFirst();
+        string message = _queuedEvents.Dequeue();
 
         await _client.SendMessageAsync(_channelId, message);
 

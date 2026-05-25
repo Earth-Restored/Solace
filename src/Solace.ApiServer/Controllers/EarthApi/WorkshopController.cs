@@ -193,22 +193,22 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             }
             else
             {
-                NonStackableItemInstance[]? instances = inventory.TakeItems(item.ItemId, item.ItemInstanceIds);
+                var instances = inventory.TakeItems(item.ItemId, item.ItemInstanceIds);
                 if (instances is null)
                 {
                     return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
                 }
 
-                providedItems[index] = new InputItem(item.ItemId, item.Quantity, instances);
+                providedItems[index] = new InputItem(item.ItemId, item.Quantity, [.. instances]);
             }
         }
 
         hotbar.LimitToInventory(inventory);
 
-        LinkedList<LinkedList<InputItem>> inputItems = [];
+        var inputItems = new List<List<InputItem>>(recipe.Ingredients.Length);
         foreach (Catalog.RecipesCatalogR.CraftingRecipe.Ingredient ingredient in recipe.Ingredients)
         {
-            LinkedList<InputItem> ingredientItems = [];
+            var ingredientItems = new List<InputItem>(providedItems.Length);
             int requiredCount = ingredient.Count * startRequest.Multiplier;
             for (int index = 0; index < providedItems.Length; index++)
             {
@@ -226,7 +226,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
                 if (requiredCount > providedItem.Count)
                 {
                     requiredCount -= providedItem.Count;
-                    ingredientItems.AddLast(providedItem);
+                    ingredientItems.Add(providedItem);
                     providedItems[index] = new InputItem(providedItem.Id, 0, []);
                 }
                 else
@@ -235,8 +235,8 @@ internal sealed class WorkshopRouter : SolaceControllerBase
                     NonStackableItemInstance[] remainingInstances;
                     if (providedItem.Instances.Length > 0)
                     {
-                        takenInstances = ArrayExtensions.CopyOfRange(providedItem.Instances, 0, requiredCount);
-                        remainingInstances = ArrayExtensions.CopyOfRange(providedItem.Instances, requiredCount, providedItem.Count);
+                        takenInstances = providedItem.Instances[..requiredCount];
+                        remainingInstances = providedItem.Instances[requiredCount..];
                     }
                     else
                     {
@@ -244,7 +244,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
                         remainingInstances = [];
                     }
 
-                    ingredientItems.AddLast(new InputItem(providedItem.Id, requiredCount, takenInstances));
+                    ingredientItems.Add(new InputItem(providedItem.Id, requiredCount, takenInstances));
                     providedItems[index] = new InputItem(providedItem.Id, providedItem.Count - requiredCount, remainingInstances);
                     requiredCount = 0;
                 }
@@ -265,7 +265,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
                 throw new UnreachableException();
             }
 
-            inputItems.AddLast(ingredientItems);
+            inputItems.Add(ingredientItems);
         }
 
         if (inputItems.Count != recipe.Ingredients.Length)
@@ -373,13 +373,13 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
         else
         {
-            NonStackableItemInstance[]? instances = inventory.TakeItems(startRequest.Input.ItemId, startRequest.Input.ItemInstanceIds);
+            var instances = inventory.TakeItems(startRequest.Input.ItemId, startRequest.Input.ItemInstanceIds);
             if (instances is null)
             {
                 return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
             }
 
-            input = new InputItem(startRequest.Input.ItemId, startRequest.Input.Quantity, instances);
+            input = new InputItem(startRequest.Input.ItemId, startRequest.Input.Quantity, [.. instances]);
         }
 
         SmeltingSlot.Fuel? fuel;
@@ -412,13 +412,13 @@ internal sealed class WorkshopRouter : SolaceControllerBase
                 }
                 else
                 {
-                    NonStackableItemInstance[]? instances = inventory.TakeItems(startRequest.Fuel.ItemId, ArrayExtensions.CopyOfRange(startRequest.Fuel.ItemInstanceIds, 0, requiredFuelCount));
+                    var instances = inventory.TakeItems(startRequest.Fuel.ItemId, startRequest.Fuel.ItemInstanceIds.AsSpan(0, requiredFuelCount));
                     if (instances is null)
                     {
                         return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
                     }
 
-                    fuelItem = new InputItem(startRequest.Fuel.ItemId, requiredFuelCount, instances);
+                    fuelItem = new InputItem(startRequest.Fuel.ItemId, requiredFuelCount, [.. instances]);
                 }
 
                 fuel = new SmeltingSlot.Fuel(fuelItem, fuelCatalogItem.FuelInfo.BurnTime, fuelCatalogItem.FuelInfo.HeatPerSecond);

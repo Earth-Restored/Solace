@@ -11,11 +11,11 @@ public static class Generator
 
     public static string Generate(Stream stream)
     {
-        //try
-        //{
         var serverDataZip = ServerDataZip.Read(stream);
 
-        LinkedList<Chunk> chunks = new();
+        int sideLength = (CHUNK_RADIUS * 2) + 1;
+        var chunks = new List<Chunk>(sideLength * sideLength);
+
         for (int chunkX = -CHUNK_RADIUS; chunkX < CHUNK_RADIUS; chunkX++)
         {
             for (int chunkZ = -CHUNK_RADIUS; chunkZ < CHUNK_RADIUS; chunkZ++)
@@ -27,7 +27,7 @@ public static class Generator
                 }
                 else
                 {
-                    chunks.AddLast(chunk);
+                    chunks.Add(chunk);
                 }
             }
         }
@@ -126,6 +126,5 @@ public static class Generator
         );
 
         return Json.Serialize(previewModel);
-        //} catch (Exception ex) { }
     }
 }

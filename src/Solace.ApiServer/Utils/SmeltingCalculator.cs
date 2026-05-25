@@ -53,7 +53,7 @@ public static class SmeltingCalculator
                 throw new InvalidOperationException();
             }
 
-            input = new InputItem(activeJob.Input.Id, activeJob.Input.Count - completedRounds, ArrayExtensions.CopyOfRange(activeJob.Input.Instances, completedRounds, activeJob.Input.Instances.Length));
+            input = new InputItem(activeJob.Input.Id, activeJob.Input.Count - completedRounds, activeJob.Input.Instances[completedRounds..]);
         }
         else
         {
@@ -147,7 +147,7 @@ public static class SmeltingCalculator
                     throw new InvalidOperationException();
                 }
 
-                remainingAddedFuel = new SmeltingSlot.Fuel(new InputItem(activeJob.AddedFuel.Item.Id, activeJob.AddedFuel.Item.Count - consumedAddedFuelCount, ArrayExtensions.CopyOfRange(activeJob.AddedFuel.Item.Instances, consumedAddedFuelCount, activeJob.AddedFuel.Item.Instances.Length)), activeJob.AddedFuel.BurnDuration, activeJob.AddedFuel.HeatPerSecond);
+                remainingAddedFuel = new SmeltingSlot.Fuel(new InputItem(activeJob.AddedFuel.Item.Id, activeJob.AddedFuel.Item.Count - consumedAddedFuelCount, activeJob.AddedFuel.Item.Instances[consumedAddedFuelCount..]), activeJob.AddedFuel.BurnDuration, activeJob.AddedFuel.HeatPerSecond);
             }
             else
             {

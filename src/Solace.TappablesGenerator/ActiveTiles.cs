@@ -40,7 +40,8 @@ public sealed class ActiveTiles
                 long currentTime = U.CurrentTimeMillis();
                 tiles.PruneActiveTiles(currentTime);
 
-                LinkedList<ActiveTile> newActiveTiles = [];
+                int sideLength = (ACTIVE_TILE_RADIUS * 2) + 1;
+                var newActiveTiles = new List<ActiveTile>(sideLength * sideLength);
                 for (int tileX = activeTileNotification.X - ACTIVE_TILE_RADIUS; tileX < activeTileNotification.X + ACTIVE_TILE_RADIUS + 1; tileX++)
                 {
                     for (int tileY = activeTileNotification.Y - ACTIVE_TILE_RADIUS; tileY < activeTileNotification.Y + ACTIVE_TILE_RADIUS + 1; tileY++)
@@ -49,7 +50,7 @@ public sealed class ActiveTiles
 
                         if (activeTile.LatestActiveTime == activeTile.FirstActiveTime) // indicating that the tile is newly-active
                         {
-                            newActiveTiles.AddLast(activeTile);
+                            newActiveTiles.Add(activeTile);
                         }
                     }
                 }

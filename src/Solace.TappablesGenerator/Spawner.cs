@@ -99,7 +99,7 @@ public class Spawner
 
         List<Tappable> tappables = [];
         List<Encounter> encounters = [];
-        foreach (ActiveTiles.ActiveTile activeTile in activeTiles)
+        foreach (var activeTile in activeTiles)
         {
             DoSpawnCyclesForTile(activeTile.TileX, activeTile.TileY, spawnCycleTime, spawnCycleIndex, tappables, encounters);
         }

@@ -17,20 +17,17 @@ public sealed class BoostsEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
     public ActiveBoost? Get(string instanceId)
         => ActiveBoosts.FirstOrDefault(activeBoost => activeBoost is not null && activeBoost.InstanceId == instanceId);
 
-    public ActiveBoost[] Prune(long currentTime)
+    public IEnumerable<ActiveBoost> Prune(long currentTime)
     {
-        LinkedList<ActiveBoost> prunedBoosts = [];
         for (int index = 0; index < ActiveBoosts.Length; index++)
         {
             ActiveBoost? activeBoost = ActiveBoosts[index];
             if (activeBoost is not null && activeBoost.StartTime + activeBoost.Duration < currentTime)
             {
                 ActiveBoosts[index] = null;
-                prunedBoosts.AddLast(activeBoost);
+                yield return activeBoost;
             }
         }
-
-        return [.. prunedBoosts];
     }
 
     public async Task MergeWith(BoostsEF other, ValueMerger merger)

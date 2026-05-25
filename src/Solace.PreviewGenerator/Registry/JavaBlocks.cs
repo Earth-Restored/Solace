@@ -11,7 +11,7 @@ namespace Solace.PreviewGenerator.Registry;
 public static class JavaBlocks
 {
     private static readonly Dictionary<int, string> map = [];
-    private static readonly Dictionary<string, LinkedList<string>> nonVanillaStatesList = [];
+    private static readonly Dictionary<string, List<string>> nonVanillaStatesList = [];
 
     private static readonly Dictionary<int, BedrockMapping> bedrockMap = [];
     private static readonly Dictionary<string, BedrockMapping> bedrockMapByName = [];
@@ -97,15 +97,15 @@ public static class JavaBlocks
 
                 string baseName = element["name"]!.GetValue<string>()!;
 
-                LinkedList<string> stateNames = new();
                 var statesArray = (JsonArray)element["states"]!;
+                var stateNames = new List<string>(statesArray.Count);
                 foreach (var _stateElement in statesArray)
                 {
                     var stateElement = _stateElement as JsonObject;
                     Debug.Assert(stateElement is not null);
 
                     string stateName = stateElement["name"]!.GetValue<string>()!;
-                    stateNames.AddLast(stateName);
+                    stateNames.Add(stateName);
 
                     string name = baseName + stateName;
 
@@ -316,12 +316,12 @@ public static class JavaBlocks
         }
     }
 
-    public static string[]? GetStatesForNonVanillaBlock(string name)
+    public static IReadOnlyList<string>? GetStatesForNonVanillaBlock(string name)
     {
         EnsureInitialized();
 
-        LinkedList<string>? states = nonVanillaStatesList.GetOrDefault(name, null);
-        return states?.ToArray();
+        var states = nonVanillaStatesList.GetValueOrDefault(name);
+        return states;
     }
 
     // [Obsolete]

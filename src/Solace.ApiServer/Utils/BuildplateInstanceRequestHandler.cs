@@ -506,7 +506,7 @@ public sealed class BuildplateInstanceRequestHandler
                             }
                             else
                             {
-                                int wear = inventory.TakeItems(item.Uuid, [item.InstanceId])![0].Wear;
+                                int wear = inventory.TakeItems(item.Uuid, [item.InstanceId])!.First().Wear;
                                 inventoryResponseNonStackableItems.AddLast(new InventoryResponse.Item(item.Uuid, 1, item.InstanceId, wear));
                                 inventoryResponseHotbar[index] = new InventoryResponse.HotbarItem(item.Uuid, 1, item.InstanceId);
                             }

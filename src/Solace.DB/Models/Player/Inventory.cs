@@ -99,7 +99,7 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
         return true;
     }
 
-    public NonStackableItemInstance[]? TakeItems(string id, string[] instanceIds)
+    public IEnumerable<NonStackableItemInstance>? TakeItems(string id, ReadOnlySpan<string> instanceIds)
     {
         Dictionary<string, NonStackableItemInstance>? instanceMap = NonStackableItemsData.GetValueOrDefault(id);
         if (instanceMap is null)
@@ -107,7 +107,7 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
             return null;
         }
 
-        LinkedList<NonStackableItemInstance> instances = new();
+        var instances = new List<NonStackableItemInstance>(instanceIds.Length);
         foreach (string instanceId in instanceIds)
         {
             NonStackableItemInstance? instance = instanceMap.JavaRemove(instanceId);
@@ -116,10 +116,10 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
                 return null;
             }
 
-            instances.AddLast(instance);
+            instances.Add(instance);
         }
 
-        return [.. instances];
+        return instances;
     }
 
     public async Task MergeWith(InventoryEF other, ValueMerger merger)

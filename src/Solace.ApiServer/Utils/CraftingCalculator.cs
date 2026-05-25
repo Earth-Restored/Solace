@@ -44,7 +44,7 @@ public static class CraftingCalculator
                             throw new UnreachableException();
                         }
 
-                        input.AddLast(new InputItem(inputItem.Id, inputItem.Count - usedCount, ArrayExtensions.CopyOfRange(inputItem.Instances, usedCount, inputItem.Instances.Length)));
+                        input.AddLast(new InputItem(inputItem.Id, inputItem.Count - usedCount, inputItem.Instances[usedCount..]));
                     }
                     else
                     {

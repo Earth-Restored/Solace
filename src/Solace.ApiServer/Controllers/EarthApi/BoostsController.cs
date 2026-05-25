@@ -113,16 +113,16 @@ internal sealed class BoostsController : SolaceControllerBase
             }
             else
             {
-                LinkedList<Effect> effects = [];
+                var effects = new List<Effect>(activeBoostInfo.BoostInfo.Effects.Length);
                 foreach (Catalog.ItemsCatalogR.Item.BoostInfoR.Effect effect in activeBoostInfo.BoostInfo.Effects)
                 {
-                    if (effect.Activation != Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.ActivationE.TRIGGERED)
+                    if (effect.Activation is not Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.ActivationE.TRIGGERED)
                     {
                         Log.Warning($"Active boost {activeBoostInfo.ActiveBoost.ItemId} has effect with activation {effect.Activation}");
                         continue;
                     }
 
-                    effects.AddLast(BoostUtils.BoostEffectToApiResponse(effect, activeBoostInfo.ActiveBoost.Duration));
+                    effects.Add(BoostUtils.BoostEffectToApiResponse(effect, activeBoostInfo.ActiveBoost.Duration));
                 }
 
                 triggeredOnDeathBoosts.AddLast(new Types.Boost.Boosts.ScenarioBoost(true, activeBoostInfo.ActiveBoost.InstanceId, [.. effects], TimeFormatter.FormatTime(activeBoostInfo.ActiveBoost.StartTime + activeBoostInfo.ActiveBoost.Duration)));
@@ -338,7 +338,7 @@ internal sealed class BoostsController : SolaceControllerBase
     private static bool PruneBoostsAndUpdateProfile(BoostsEF boosts, ProfileEF profile, long currentTime, Catalog.ItemsCatalogR itemsCatalog)
     {
         bool profileChanged = false;
-        BoostsEF.ActiveBoost[] prunedBoosts = boosts.Prune(currentTime);
+        var prunedBoosts = boosts.Prune(currentTime);
         if (prunedBoosts.SelectMany(activeBoost => itemsCatalog.GetItem(activeBoost.ItemId)!.BoostInfo!.Effects).Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.TypeE.HEALTH))
         {
             profileChanged = true;

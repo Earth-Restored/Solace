@@ -27,7 +27,6 @@
 
 ## Refactoring
 
-- Get rid of LinkedList
 - Load static data types only when needed
 - Generated regex
 - Use new extension syntax
