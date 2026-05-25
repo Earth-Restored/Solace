@@ -200,8 +200,16 @@ public sealed class Rewards
             rewards.AddItem(id, count ?? 0);
         }
 
-        Array.ForEach(rewardsModel.Buildplates, id => rewards.AddBuildplate(id));
-        Array.ForEach(rewardsModel.Challenges, id => rewards.AddChallenge(id));
+        foreach (var id in rewardsModel.Buildplates)
+        {
+            rewards.AddBuildplate(id);
+        }
+
+        foreach (var id in rewardsModel.Challenges)
+        {
+            rewards.AddChallenge(id);
+        }
+
         return rewards;
     }
 
