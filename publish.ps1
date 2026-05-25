@@ -83,7 +83,7 @@ try {
         $Host.UI.RawUI.WindowTitle = "Solace Launcher"
 
         $fullPath = Join-Path $launcherDir "Launcher.exe"
-        $launcher = Start-Process -FilePath $fullPath -PassThru
+        $launcher = Start-Process -FilePath $fullPath -ArgumentList $args -PassThru
         Wait-Process -Id $launcher.Id
     } elseif ($isLin -or $isMac) {
         $originalTitle = $null
@@ -93,7 +93,8 @@ try {
         if (Test-Path $fullPath) {
             chmod +x $fullPath
         }
-        $launcher = Start-Process -FilePath $fullPath -PassThru
+        
+        $launcher = Start-Process -FilePath $fullPath -ArgumentList $args -PassThru
         Wait-Process -Id $launcher.Id
     } else {
         Write-Host "Unsupported platform"
