@@ -440,7 +440,7 @@ public sealed class BuildplateInstanceRequestHandler
                     initialInventoryContents = new InventoryResponse(
                         [.. Enumerable.Concat(
                             inventory.StackableItems
-                                .Select(item => new InventoryResponse.Item(item.Id, item.Count ?? 1, null, 0)),
+                                .Select(item => new InventoryResponse.Item(item.Id, item.Count, null, 0)),
                             inventory.NonStackableItems
                                 .SelectMany(item => item.Instances
                                     .Select(instance => new InventoryResponse.Item(item.Id, 1, instance.InstanceId, instance.Wear)))
@@ -491,7 +491,7 @@ public sealed class BuildplateInstanceRequestHandler
                         .FirstOrNewAsync(hotbar => hotbar.Id == playerConnectedRequest.Uuid);
 
                     var inventoryResponseHotbar = new InventoryResponse.HotbarItem[7];
-                    Dictionary<string, int?> inventoryResponseStackableItems = [];
+                    Dictionary<string, int> inventoryResponseStackableItems = [];
                     LinkedList<InventoryResponse.Item> inventoryResponseNonStackableItems = [];
                     for (int index = 0; index < 7; index++)
                     {
@@ -517,7 +517,7 @@ public sealed class BuildplateInstanceRequestHandler
 
                     initialInventoryContents = new InventoryResponse(
                         [
-                            .. inventoryResponseStackableItems.Select(entry => new InventoryResponse.Item(entry.Key, entry.Value ?? 1, null, 0)),
+                            .. inventoryResponseStackableItems.Select(entry => new InventoryResponse.Item(entry.Key, entry.Value, null, 0)),
                             .. inventoryResponseNonStackableItems
                         ],
                         inventoryResponseHotbar
@@ -727,7 +727,7 @@ public sealed class BuildplateInstanceRequestHandler
         return new InventoryResponse(
             [.. Enumerable.Concat(
                 inventory.StackableItems
-                    .Select(item => new InventoryResponse.Item(item.Id, item.Count ?? 1, null, 0)),
+                    .Select(item => new InventoryResponse.Item(item.Id, item.Count, null, 0)),
                 inventory.NonStackableItems
                     .SelectMany(item => item.Instances
                     .Select(instance => new InventoryResponse.Item(item.Id, 1, instance.InstanceId, instance.Wear)))

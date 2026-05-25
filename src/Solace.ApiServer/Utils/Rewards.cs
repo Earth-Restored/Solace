@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using Solace.Common.Utils;
 using Solace.DB;
 using Solace.DB.Models.Common;
@@ -15,7 +16,7 @@ public sealed class Rewards
     private int _experiencePoints;
 
     private int? _level;
-    private readonly Dictionary<string, int?> _items = [];
+    private readonly Dictionary<string, int> _items = [];
     private readonly HashSet<string> _buildplates = [];
     private readonly HashSet<string> _challenges = [];
 
@@ -126,7 +127,7 @@ public sealed class Rewards
             foreach (var entry in _items)
             {
                 string id = entry.Key;
-                int quantity = entry.Value ?? 0; // idk, no null checks here, so I added ?? 0
+                int quantity = entry.Value;
                 if (quantity > 0)
                 {
                     Catalog.ItemsCatalogR.Item? item = staticData.Catalog.ItemsCatalog.GetItem(id);
@@ -178,7 +179,7 @@ public sealed class Rewards
             _rubies,
             _experiencePoints,
             _level,
-            [.. _items.Select(item => new Types.Common.Rewards.Item(item.Key, item.Value ?? 0))],
+            [.. _items.Select(item => new Types.Common.Rewards.Item(item.Key, item.Value))],
             [.. _buildplates],
             [.. _challenges.Select(challenge => new Types.Common.Rewards.Challenge(challenge))],
             [],
@@ -197,7 +198,7 @@ public sealed class Rewards
 
         foreach (var (id, count) in rewardsModel.Items)
         {
-            rewards.AddItem(id, count ?? 0);
+            rewards.AddItem(id, count);
         }
 
         foreach (var id in rewardsModel.Buildplates)

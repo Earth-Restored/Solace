@@ -263,7 +263,7 @@ internal sealed class DatabaseMigrator
 
                     foreach (var (itemId, itemCount) in value.StackableItems)
                     {
-                        inventory.StackableItemsData[itemId] = itemCount;
+                        inventory.StackableItemsData[itemId] = itemCount ?? 1; // todo: 1 or 0
                     }
 
                     foreach (var (itemId, instances) in value.NonStackableItems)

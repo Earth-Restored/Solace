@@ -19,7 +19,7 @@ public sealed class HotbarEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
     {
         ThrowHelper.ThrowIfNull(inventory);
 
-        Dictionary<string, int?> usedStackableItemCounts = [];
+        Dictionary<string, int> usedStackableItemCounts = [];
         Dictionary<string, HashSet<string>> usedNonStackableItemInstances = [];
 
         for (int index = 0; index < Items.Length; index++)
@@ -50,7 +50,7 @@ public sealed class HotbarEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
             {
                 int inventoryCount = inventory.GetItemCount(item.Uuid);
 
-                int usedCount = usedStackableItemCounts.GetValueOrDefault(item.Uuid) ?? 0;
+                int usedCount = usedStackableItemCounts.GetValueOrDefault(item.Uuid);
                 if (inventoryCount - usedCount > 0)
                 {
                     if (inventoryCount - usedCount < item.Count)

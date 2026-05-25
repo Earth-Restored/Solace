@@ -13,7 +13,7 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
 
     public Account Account { get; set; } = null!;
 
-    public Dictionary<string, int?> StackableItemsData { get; set; } = [];
+    public Dictionary<string, int> StackableItemsData { get; set; } = [];
 
     public Dictionary<string, Dictionary<string, NonStackableItemInstance>> NonStackableItemsData { get; set; } = [];
 
@@ -25,7 +25,7 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
 
     public sealed record StackableItem(
         string Id,
-        int? Count
+        int Count
     );
 
     public sealed record NonStackableItem(
@@ -35,10 +35,9 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
 
     public int GetItemCount(string id)
     {
-        int? count = StackableItemsData.GetValueOrDefault(id);
-        if (count is not null)
+        if (StackableItemsData.TryGetValue(id, out var count))
         {
-            return count.Value;
+            return count;
         }
 
         Dictionary<string, NonStackableItemInstance>? instances = NonStackableItemsData!.GetValueOrDefault(id);
@@ -89,7 +88,7 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
             throw new ArgumentException($"{nameof(count)} is negative.", nameof(count));
         }
 
-        int currentCount = StackableItemsData.GetValueOrDefault(id)!.Value;
+        int currentCount = StackableItemsData.GetValueOrDefault(id);
         if (currentCount < count)
         {
             return false;
@@ -135,7 +134,7 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
             else
             {
                 // todo: resolve name
-                StackableItemsData[item.Key] = await merger.AutoMergeMax(currentValue ?? 0, item.Value ?? 0, $"Inventory item '{item.Key}'");
+                StackableItemsData[item.Key] = await merger.AutoMergeMax(currentValue, item.Value, $"Inventory item '{item.Key}'");
             }
         }
 

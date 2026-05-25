@@ -204,8 +204,8 @@ public sealed class EarthDbContext : DbContext
             .Property(x => x.StackableItemsData)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<Dictionary<string, int?>>(v, (JsonSerializerOptions)null!)
-                    ?? new Dictionary<string, int?>()
+                v => JsonSerializer.Deserialize<Dictionary<string, int>>(v, (JsonSerializerOptions)null!)
+                    ?? new Dictionary<string, int>()
             )
             .Metadata.SetValueComparer(new DictionaryStringIntValueComparer());
 
@@ -456,17 +456,17 @@ public sealed class DictionaryStringTValueComparer<TValue> : ValueComparer<Dicti
     }
 }
 
-public sealed class DictionaryStringIntValueComparer : ValueComparer<Dictionary<string, int?>>
+public sealed class DictionaryStringIntValueComparer : ValueComparer<Dictionary<string, int>>
 {
     public DictionaryStringIntValueComparer()
         : base(
             (d1, d2) => DictionariesEqual(d1, d2),
             d => ComputeHashCode(d),
-            d => new Dictionary<string, int?>(d.Select(item => new KeyValuePair<string, int?>(item.Key, item.Value))))
+            d => new Dictionary<string, int>(d.Select(item => new KeyValuePair<string, int>(item.Key, item.Value))))
     {
     }
 
-    private static bool DictionariesEqual(Dictionary<string, int?>? d1, Dictionary<string, int?>? d2)
+    private static bool DictionariesEqual(Dictionary<string, int>? d1, Dictionary<string, int>? d2)
     {
         if (d1 == d2)
         {
@@ -499,7 +499,7 @@ public sealed class DictionaryStringIntValueComparer : ValueComparer<Dictionary<
         return true;
     }
 
-    private static int ComputeHashCode(Dictionary<string, int?>? d)
+    private static int ComputeHashCode(Dictionary<string, int>? d)
     {
         if (d == null)
         {
