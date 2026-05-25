@@ -12,6 +12,7 @@ using Solace.DB.Models.Player;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Solace.DB.Utils;
+using Solace.ApiServer.Types.Journal;
 
 namespace Solace.ApiServer.Controllers.EarthApi;
 
@@ -85,16 +86,7 @@ internal sealed class JournalController : SolaceControllerBase
         }
 
         return new Types.Journal.JournalRecord.ActivityLogEntry(
-            entry.Type switch
-            {
-                ActivityLogEF.Entry.TypeE.LEVEL_UP => Types.Journal.JournalRecord.ActivityLogEntry.Type.LEVEL_UP,
-                ActivityLogEF.Entry.TypeE.TAPPABLE => Types.Journal.JournalRecord.ActivityLogEntry.Type.TAPPABLE,
-                ActivityLogEF.Entry.TypeE.JOURNAL_ITEM_UNLOCKED => Types.Journal.JournalRecord.ActivityLogEntry.Type.JOURNAL_ITEM_UNLOCKED,
-                ActivityLogEF.Entry.TypeE.CRAFTING_COMPLETED => Types.Journal.JournalRecord.ActivityLogEntry.Type.CRAFTING_COMPLETED,
-                ActivityLogEF.Entry.TypeE.SMELTING_COMPLETED => Types.Journal.JournalRecord.ActivityLogEntry.Type.SMELTING_COMPLETED,
-                ActivityLogEF.Entry.TypeE.BOOST_ACTIVATED => Types.Journal.JournalRecord.ActivityLogEntry.Type.BOOST_ACTIVATED,
-                _ => throw new UnreachableException(),
-            },
+            Types.Journal.JournalRecord.ActivityLogEntry.Type.FromDb(entry.Type),
             TimeFormatter.FormatTime(entry.Timestamp),
             rewards.ToApiResponse(),
             properties

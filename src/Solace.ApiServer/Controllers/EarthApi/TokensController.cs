@@ -109,12 +109,7 @@ internal sealed class TokensController : SolaceControllerBase
         };
 
         return new Token(
-            token.Type switch
-            {
-                TokensEF.Token.TypeE.LEVEL_UP => Token.Type.LEVEL_UP,
-                TokensEF.Token.TypeE.JOURNAL_ITEM_UNLOCKED => Token.Type.JOURNAL_ITEM_UNLOCKED,
-                _ => throw new UnreachableException(),
-            },
+            Token.Type.FromDb(token.Type),
             properties,
             rewards.ToApiResponse(),
             lifetime

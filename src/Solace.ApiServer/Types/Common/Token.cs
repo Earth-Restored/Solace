@@ -1,4 +1,5 @@
 ﻿
+using System.ComponentModel;
 using System.Text.Json.Serialization;
 
 namespace Solace.ApiServer.Types.Common;
@@ -30,5 +31,19 @@ public sealed record Token(
         PERSISTENT,
         [JsonStringEnumMemberName("Transient")]
         TRANSIENT
+    }
+}
+
+public static class TokenTypeExtensions
+{
+    extension(Token.Type)
+    {
+        public static Token.Type FromDb(DB.Models.Player.TokensEF.Token.TypeE type)
+            => type switch
+            {
+                DB.Models.Player.TokensEF.Token.TypeE.LEVEL_UP => Token.Type.LEVEL_UP,  
+                DB.Models.Player.TokensEF.Token.TypeE.JOURNAL_ITEM_UNLOCKED => Token.Type.JOURNAL_ITEM_UNLOCKED,
+                _ => throw new InvalidEnumArgumentException(nameof(type), (int)type, typeof(DB.Models.Player.TokensEF.Token.TypeE)),  
+            };
     }
 }

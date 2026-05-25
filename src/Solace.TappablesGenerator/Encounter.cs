@@ -25,7 +25,7 @@ public sealed record Encounter(
     }
 }
 
-public static class RarityExtensions
+public static class EncounterRarityExtensions
 {
     extension(Encounter.RarityE)
     {

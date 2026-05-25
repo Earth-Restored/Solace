@@ -29,7 +29,7 @@ public sealed record Tappable(
     );
 }
 
-public static class RarityExtensions
+public static class TappableRarityExtensions
 {
     extension(Tappable.RarityE)
     {
