@@ -57,7 +57,7 @@ internal sealed class InventoryController : SolaceControllerBase
         {
             if (item is not null)
             {
-                hotbarItemCounts[item.Uuid] = hotbarItemCounts.GetValueOrDefault(item.Uuid) + item.Count;
+                hotbarItemCounts[item.Uuid] = hotbarItemCounts.GetValueOrDefault(item.Uuid, 0) + item.Count;
             }
         }
 

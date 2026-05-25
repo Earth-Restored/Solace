@@ -69,7 +69,7 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
             throw new ArgumentException($"{nameof(count)} is negative.", nameof(count));
         }
 
-        StackableItemsData[id] = StackableItemsData.GetValueOrDefault(id) + count;
+        StackableItemsData[id] = StackableItemsData.GetValueOrDefault(id, 0) + count;
     }
 
     public void AddItems(string id, NonStackableItemInstance[] instances)

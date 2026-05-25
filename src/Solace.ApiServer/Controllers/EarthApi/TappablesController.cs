@@ -13,6 +13,7 @@ using Solace.DB.Models.Player;
 using Solace.StaticData;
 using Microsoft.EntityFrameworkCore;
 using Solace.DB.Utils;
+using Serilog;
 
 namespace Solace.ApiServer.Controllers.EarthApi;
 
@@ -120,6 +121,8 @@ internal sealed class TappablesController : SolaceControllerBase
         {
             return TypedResults.BadRequest();
         }
+
+        Log.Debug($"redeem tap: {string.Join("; ", tappable.Items)}");
 
         var redeemedTappables = await _earthDB.RedeemedTappables
             .AsTracking()

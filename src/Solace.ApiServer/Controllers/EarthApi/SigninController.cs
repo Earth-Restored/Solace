@@ -38,16 +38,16 @@ internal sealed partial class SigninController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        int lastDashIndex = signinRequest.SessionTicket.LastIndexOf('-');
-
-        if (lastDashIndex == -1 || lastDashIndex == signinRequest.SessionTicket.Length - 1)
+        if (signinRequest.SessionTicket.Length < 37)
         {
-            Log.Warning($"Sign in - request parts bad ({lastDashIndex})");
+            Log.Warning($"Sign in - request parts bad ({signinRequest.SessionTicket.Length})");
             return TypedResults.BadRequest();
         }
 
-        var userIdString = signinRequest.SessionTicket.AsSpan(0, lastDashIndex);
-        var jwt = signinRequest.SessionTicket.AsSpan(lastDashIndex + 1);
+        const int GuidLength = 36;
+
+        var userIdString = signinRequest.SessionTicket.AsSpan(0, GuidLength);
+        var jwt = signinRequest.SessionTicket.AsSpan(GuidLength + 1);
 
         if (Guid.TryParse(userIdString, out var userId))
         {

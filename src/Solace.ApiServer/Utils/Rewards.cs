@@ -32,7 +32,7 @@ public sealed class Rewards
 
     public Rewards AddItem(string id, int count)
     {
-        _items[id] = _items.GetValueOrDefault(id) + count;
+        _items[id] = _items.GetValueOrDefault(id, 0) + count;
         return this;
     }
 
