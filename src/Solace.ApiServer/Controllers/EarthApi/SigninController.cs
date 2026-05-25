@@ -4,14 +4,20 @@ using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using System.Text.RegularExpressions;
 using Solace.Common.Utils;
+using Solace.Common;
+using Solace.DB;
 
 namespace Solace.ApiServer.Controllers;
 
 [ApiVersion("1.1")]
 internal sealed partial class SigninController : SolaceControllerBase
 {
-    [GeneratedRegex("^[0-9A-F]{15,16}$")]
-    private static partial Regex GetUserIdRegex();
+    private readonly EarthDbContext _earthDb;
+
+    public SigninController(EarthDbContext earthDb)
+    {
+        _earthDb = earthDb;
+    }
 
     [HttpPost("api/v{version:apiVersion}/player/profile/{profileID}")]
     [HttpPost("1/api/v{version:apiVersion}/player/profile/{profileID}")]
@@ -31,17 +37,24 @@ internal sealed partial class SigninController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        string userId = parts[0];
-        if (!GetUserIdRegex().IsMatch(userId))
+        string userIdString = parts[0];
+        if (!Guid.TryParse(userIdString, out var userId))
         {
-            Log.Error($"User id not match ({userId})");
-            return TypedResults.BadRequest();
+            if (!GetUserIdRegex().IsMatch(userIdString))
+            {
+                Log.Error($"User id not match ({userIdString})");
+                return TypedResults.BadRequest();
+            }
+
+            userId = IdTranslator.ToGuid(userIdString);
+
+            await _earthDb.EnsureAccountExists(userId);
         }
 
         // TODO: check credentials - we can at least validate local (non-microsoft) accounts
 
         // TODO: generate secure session token
-        string token = userId.ToUpperInvariant();
+        string token = userId.ToString();
 
         return EarthJson(new Dictionary<string, object?>()
         {
@@ -55,6 +68,9 @@ internal sealed partial class SigninController : SolaceControllerBase
             ["updates"] = new object(),
         });
     }
+
+    [GeneratedRegex("^[0-9A-F]{15,16}$")]
+    private static partial Regex GetUserIdRegex();
 
     private sealed record SigninRequest(string SessionTicket);
 }

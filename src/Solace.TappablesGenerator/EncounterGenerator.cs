@@ -60,7 +60,7 @@ public class EncounterGenerator
                 currentTime + spawnDelay,
                 encounterConfig.Duration * 1000,
                 encounterConfig.Icon,
-                Enum.Parse<Encounter.RarityE>(encounterConfig.Rarity.ToString()),
+                Encounter.RarityE.FromStaticData(encounterConfig.Rarity),
                 encounterConfig.EncounterBuildplateId
             );
 

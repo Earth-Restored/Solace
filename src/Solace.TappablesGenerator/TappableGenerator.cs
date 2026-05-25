@@ -80,7 +80,7 @@ public class TappableGenerator
                 items.AddLast(new Tappable.Item(itemId, _random.Next(itemCount.Min, itemCount.Max + 1)));
             }
 
-            Tappable.RarityE rarity = Enum.Parse<Tappable.RarityE>(items.Select(item => _staticData.Catalog.ItemsCatalog.GetItem(item.Id)!.Rarity).Max().ToString());
+            var rarity = Tappable.RarityE.FromStaticData(items.Max(item => _staticData.Catalog.ItemsCatalog.GetItem(item.Id)!.Rarity));
 
             var tappable = new Tappable(
                 Guid.CreateVersion7(),

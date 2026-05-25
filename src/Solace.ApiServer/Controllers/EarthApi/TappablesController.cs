@@ -61,8 +61,8 @@ internal sealed class TappablesController : SolaceControllerBase
                 TimeFormatter.FormatTime(tappable.SpawnTime + tappable.ValidFor),
                 ActiveLocation.TypeE.TAPPABLE,
                 tappable.Icon,
-                new ActiveLocation.MetadataR(Guid.NewGuid().ToString(), Enum.Parse<Rarity>(tappable.Rarity.ToString())),
-                new ActiveLocation.TappableMetadataR(Enum.Parse<Rarity>(tappable.Rarity.ToString())),
+                new ActiveLocation.MetadataR(Guid.NewGuid(), Rarity.FromTappable(tappable.Rarity)),
+                new ActiveLocation.TappableMetadataR(Rarity.FromTappable(tappable.Rarity)),
                 null
             ));
 
@@ -76,7 +76,7 @@ internal sealed class TappablesController : SolaceControllerBase
                 TimeFormatter.FormatTime(encounter.SpawnTime + encounter.ValidFor),
                 ActiveLocation.TypeE.ENCOUNTER,
                 encounter.Icon,
-                new ActiveLocation.MetadataR(Guid.NewGuid().ToString(), Enum.Parse<Rarity>(encounter.Rarity.ToString())),
+                new ActiveLocation.MetadataR(Guid.NewGuid(), Rarity.FromEncounter(encounter.Rarity)),
                 null,
                 new ActiveLocation.EncounterMetadataR(
                     ActiveLocation.EncounterMetadataR.EncounterTypeE.SHORT_4X4_PEACEFUL,    // TODO

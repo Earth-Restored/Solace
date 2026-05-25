@@ -16,6 +16,7 @@ using CICIUseType = Solace.StaticData.Catalog.ItemsCatalogR.Item.UseTypeE;
 using CIJGCJGParentCollection = Solace.StaticData.Catalog.ItemJournalGroupsCatalogR.JournalGroup.ParentCollectionE;
 using CRCCRCategory = Solace.StaticData.Catalog.RecipesCatalogR.CraftingRecipe.CategoryE;
 using ItemsCatalog = Solace.ApiServer.Types.Catalog.ItemsCatalog;
+using Solace.ApiServer.Types.Common;
 
 namespace Solace.ApiServer.Controllers.EarthApi;
 
@@ -300,7 +301,7 @@ internal sealed class CatalogController : SolaceControllerBase
                     new Dictionary<string, object>()
                 ),
                 categoryString,
-                Enum.Parse<Types.Common.Rarity>(item.Rarity.ToString()),
+                Types.Common.Rarity.FromStaticData(item.Rarity),
                 1,
                 item.Stackable,
                 item.FuelInfo is not null ? new Types.Common.BurnRate(item.FuelInfo.BurnTime, item.FuelInfo.HeatPerSecond) : null,

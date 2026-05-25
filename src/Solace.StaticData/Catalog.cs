@@ -106,7 +106,7 @@ public sealed class Catalog
                 MOB,
                 ENVIRONMENT_BLOCK,
                 BOOST,
-                ADVENTURE_SCROLL
+                ADVENTURE_SCROLL,
 #pragma warning restore CA1707 // Identifiers should not contain underscores
             }
 
@@ -130,7 +130,7 @@ public sealed class Catalog
                 BOOST_RETENTION,
                 BOOST_SMELTING,
                 BOOST_STRENGTH,
-                BOOST_TAPPABLE_RADIUS
+                BOOST_TAPPABLE_RADIUS,
 #pragma warning restore CA1707 // Identifiers should not contain underscores
             }
 
@@ -142,7 +142,7 @@ public sealed class Catalog
                 RARE,
                 EPIC,
                 LEGENDARY,
-                OOBE
+                OOBE,
             }
 
             [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -156,7 +156,7 @@ public sealed class Catalog
                 INTERACT_AND_BUILD,
                 DESTROY,
                 USE,
-                CONSUME
+                CONSUME,
 #pragma warning restore CA1707 // Identifiers should not contain underscores
             }
 

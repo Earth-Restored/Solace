@@ -27,7 +27,7 @@ public record ActiveLocation(
     }
 
     public sealed record MetadataR(
-        string RewardId,
+        Guid RewardId,
         Rarity Rarity
     );
 
