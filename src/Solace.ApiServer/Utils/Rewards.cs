@@ -72,7 +72,7 @@ public sealed class Rewards
 
         InventoryEF? inventory = null;
         JournalEF? journal = null;
-        if (!_items.IsEmpty())
+        if (_items.Count > 0)
         {
             inventory = await results.EarthDb.Inventories
                 .AsTracking()
@@ -83,12 +83,12 @@ public sealed class Rewards
                 .FirstOrNewAsync(journal => journal.Id == accountId);
         }
 
-        if (!_buildplates.IsEmpty())
+        if (_buildplates.Count > 0)
         {
             // TODO
         }
 
-        if (!_challenges.IsEmpty())
+        if (_challenges.Count > 0)
         {
             // TODO
         }
@@ -118,7 +118,7 @@ public sealed class Rewards
             results.Profile = profile.Version;
         }
 
-        if (!_items.IsEmpty())
+        if (_items.Count > 0)
         {
             Debug.Assert(inventory is not null);
             Debug.Assert(journal is not null);
@@ -157,12 +157,12 @@ public sealed class Rewards
             results.Journal = journal.Version;
         }
 
-        if (!_buildplates.IsEmpty())
+        if (_buildplates.Count > 0)
         {
             // TODO
         }
 
-        if (!_challenges.IsEmpty())
+        if (_challenges.Count > 0)
         {
             // TODO
         }

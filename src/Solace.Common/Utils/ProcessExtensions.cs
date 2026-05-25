@@ -8,7 +8,8 @@ namespace Solace.Common.Utils;
 
 public static partial class ProcessExtensions
 {
-    public static async Task StopGracefullyOrKillAsync(this Process process, int timeout, CancellationToken cancellationToken)
+    extension (Process process){
+    public async Task StopGracefullyOrKillAsync(int timeout, CancellationToken cancellationToken)
     {
         if (!await process.TryStopGracefullyAsync(timeout, cancellationToken))
         {
@@ -16,14 +17,14 @@ public static partial class ProcessExtensions
         }
     }
 
-    public static async Task StopGracefullyOrKillAndWaitAsync(this Process process, int timeout, CancellationToken cancellationToken)
+    public async Task StopGracefullyOrKillAndWaitAsync(int timeout, CancellationToken cancellationToken)
     {
         await process.StopGracefullyOrKillAsync(timeout, cancellationToken);
 
         await process.WaitForExitAsync(timeout, cancellationToken);
     }
 
-    public static async Task<bool> TryStopGracefullyAsync(this Process process, int timeout, CancellationToken cancellationToken)
+    public async Task<bool> TryStopGracefullyAsync(int timeout, CancellationToken cancellationToken)
     {
         try
         {
@@ -59,11 +60,11 @@ public static partial class ProcessExtensions
         return process.HasExited;
     }
 
-    public static Task WaitForExitAsync(this Process process, int timeout, CancellationToken cancellationToken)
+    public Task WaitForExitAsync(int timeout, CancellationToken cancellationToken)
         => Task.WhenAny(process.WaitForExitAsync(cancellationToken), Task.Delay(timeout, cancellationToken));
 
     #region Async
-    private static async Task<bool> WinTrySendCtrlCAsync(this Process process, int timeout, CancellationToken cancellationToken)
+    private async Task<bool> WinTrySendCtrlCAsync(int timeout, CancellationToken cancellationToken)
     {
         Debug.Assert(RuntimeInformation.IsOSPlatform(OSPlatform.Windows));
 
@@ -98,7 +99,7 @@ public static partial class ProcessExtensions
         }
     }
 
-    private static async Task<bool> UnixTrySendShutdownSignalAsync(this Process process, int timeout, CancellationToken cancellationToken)
+    private async Task<bool> UnixTrySendShutdownSignalAsync(int timeout, CancellationToken cancellationToken)
     {
         try
         {
@@ -115,7 +116,7 @@ public static partial class ProcessExtensions
         return process.HasExited;
     }
 
-    private static async Task<string> UnixGetSignalAsync(this Process process, CancellationToken cancellationToken)
+    private async Task<string> UnixGetSignalAsync(CancellationToken cancellationToken)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
@@ -159,7 +160,7 @@ public static partial class ProcessExtensions
         return "TERM";
     }
 
-    private static async Task<bool> TryCloseMainWindowAsync(this Process process, int timeout, CancellationToken cancellationToken)
+    private async Task<bool> TryCloseMainWindowAsync(int timeout, CancellationToken cancellationToken)
     {
         try
         {
@@ -175,6 +176,7 @@ public static partial class ProcessExtensions
         return process.HasExited;
     }
     #endregion
+    }
 
     [LibraryImport("kernel32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

@@ -256,7 +256,7 @@ public sealed class TappablesManager
             });
         }
 
-        _tappables.RemoveAll(entry => entry.Value.IsEmpty());
+        _tappables.RemoveAll(entry => entry.Value.Count is 0);
 
         foreach (var tileEncounters in _encounters.Values)
         {
@@ -268,7 +268,7 @@ public sealed class TappablesManager
             });
         }
 
-        _encounters.RemoveAll(entry => entry.Value.Count == 0);
+        _encounters.RemoveAll(entry => entry.Value.Count is 0);
     }
 
     public static string LocationToTileId(float lat, float lon)

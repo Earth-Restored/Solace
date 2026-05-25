@@ -90,6 +90,9 @@ public sealed class NbtType
 
 public static class NbtTypeEnumExtensions
 {
-    public static string GetName(this NbtType.EnumE e)
-        => "TAG_" + Enum.GetName(e);
+    extension(NbtType.EnumE @enum)
+    {
+        public string GetName()
+            => "TAG_" + Enum.GetName(@enum);
+    }
 }

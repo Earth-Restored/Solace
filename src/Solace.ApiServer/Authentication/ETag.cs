@@ -84,6 +84,9 @@ public class ETagMiddleware
 
 public static class ApplicationBuilderExtensions
 {
-    public static void UseETagger(this IApplicationBuilder app)
-        => app.UseMiddleware<ETagMiddleware>();
+    extension(IApplicationBuilder app)
+    {
+        public void UseETagger()
+            => app.UseMiddleware<ETagMiddleware>();
+    }
 }

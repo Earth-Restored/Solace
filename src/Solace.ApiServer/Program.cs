@@ -306,7 +306,7 @@ public static class Program
 
         app.Use(async (context, next) =>
         {
-            context.Items.Add(RequestUtils.TimestampKey, DateTimeOffset.UtcNow);
+            context.Items.Add(RequestExtensions.TimestampKey, DateTimeOffset.UtcNow);
             await next();
         });
 
