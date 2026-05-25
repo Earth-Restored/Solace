@@ -6,6 +6,8 @@ using System.Text.RegularExpressions;
 using Solace.Common.Utils;
 using Solace.Common;
 using Solace.DB;
+using Solace.ApiServer.Utils;
+using Solace.ApiServer.Models;
 
 namespace Solace.ApiServer.Controllers;
 
@@ -28,37 +30,68 @@ internal sealed partial class SigninController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        SigninRequest? signinRequest = await Request.Body.AsJsonAsync<SigninRequest>(cancellationToken);
+        var signinRequest = await Request.Body.AsJsonAsync<SigninRequest>(cancellationToken);
 
-        string[]? parts = null;
-        if (signinRequest is null || (parts = signinRequest.SessionTicket.Split('-')).Length < 2)
+        if (signinRequest is null)
         {
-            Log.Error($"Sign in request null or parts bad ({parts?.Length ?? -1})");
+            Log.Warning($"Sign in - request null");
             return TypedResults.BadRequest();
         }
 
-        string userIdString = parts[0];
-        if (!Guid.TryParse(userIdString, out var userId))
+        int lastDashIndex = signinRequest.SessionTicket.LastIndexOf('-');
+
+        if (lastDashIndex == -1 || lastDashIndex == signinRequest.SessionTicket.Length - 1)
+        {
+            Log.Warning($"Sign in - request parts bad ({lastDashIndex})");
+            return TypedResults.BadRequest();
+        }
+
+        var userIdString = signinRequest.SessionTicket.AsSpan(0, lastDashIndex);
+        var jwt = signinRequest.SessionTicket.AsSpan(lastDashIndex + 1);
+
+        if (Guid.TryParse(userIdString, out var userId))
+        {
+            var token = JwtUtils.Verify<Tokens.Shared.PlayfabSessionTicket>(jwt.ToString(), Program.config.PlayfabApi.SessionTicketSecretBytes);
+
+            if (token is null)
+            {
+                Log.Warning($"Sign in - invalid jwt");
+                return TypedResults.BadRequest();
+            }
+
+            if (token.Expired is true)
+            {
+                Log.Warning($"Sign in - expired jwt");
+                return TypedResults.BadRequest();
+            }
+
+            if (userId != token.Data.UserId)
+            {
+                Log.Warning($"Sign in - user id does not match token user id");
+                return TypedResults.BadRequest();
+            }
+        }
+        else
         {
             if (!GetUserIdRegex().IsMatch(userIdString))
             {
-                Log.Error($"User id not match ({userIdString})");
+                Log.Warning($"Sign in - user id not match ({userIdString})");
                 return TypedResults.BadRequest();
             }
 
             userId = IdTranslator.ToGuid(userIdString);
 
             await _earthDb.EnsureAccountExists(userId);
+
+            // microsoft login - cannot validate
         }
 
-        // TODO: check credentials - we can at least validate local (non-microsoft) accounts
-
         // TODO: generate secure session token
-        string token = userId.ToString();
+        string authToken = userId.ToString();
 
         return EarthJson(new Dictionary<string, object?>()
         {
-            ["authenticationToken"] = token,
+            ["authenticationToken"] = authToken,
             ["basePath"] = "/1",
             ["clientProperties"] = new object(),
             ["mixedReality"] = null,
@@ -72,5 +105,14 @@ internal sealed partial class SigninController : SolaceControllerBase
     [GeneratedRegex("^[0-9A-F]{15,16}$")]
     private static partial Regex GetUserIdRegex();
 
-    private sealed record SigninRequest(string SessionTicket);
+    private sealed record SigninRequest(
+        double Latitude,
+        double Longitude,
+        string DeviceId,
+        string DeviceOS,
+        string DeviceToken,
+        string Language,
+        string SessionTicket,
+        object Streams
+    );
 }

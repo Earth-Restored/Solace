@@ -13,6 +13,8 @@ internal static class JwtUtils
 {
     private static readonly JwtSecurityTokenHandler jwtHandler = new JwtSecurityTokenHandler();
 
+    private const string KeyId = "solace-kid-v1";
+
     public static string Sign<TData>(Token<TData> token, byte[] secret)
         where TData : ITokenData<TData>
         => SignInternal<TData>(token, secret, new ValidityDatePair(token.Issued, token.Expires));
@@ -39,10 +41,15 @@ internal static class JwtUtils
             new Claim("data", Json.Serialize(data)),
         ];
 
+        var signingKey = new SymmetricSecurityKey(secret)
+        {
+            KeyId = KeyId,
+        };
+
+        var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+
         return jwtHandler.WriteToken(new JwtSecurityToken(
-            new JwtHeader(new SigningCredentials(
-                new SymmetricSecurityKey(secret),
-                SecurityAlgorithms.HmacSha256)),
+            new JwtHeader(credentials),
             new JwtPayload(payload)
         ));
     }
@@ -52,13 +59,18 @@ internal static class JwtUtils
     {
         try
         {
+            var signingKey = new SymmetricSecurityKey(secret)
+            {
+                KeyId = KeyId,
+            };
+
             var claims = jwtHandler.ValidateToken(token, new TokenValidationParameters()
             {
                 ValidateIssuer = false,
                 ValidateAudience = false,
                 ValidateLifetime = !allowExpired,
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(secret),
+                IssuerSigningKey = signingKey,
             }, out _).Claims.ToDictionary(claim => claim.Type, claim => claim.Value);
 
             if (!claims.TryGetValue("iat", out string? iat) || !claims.TryGetValue("exp", out string? exp) || !claims.TryGetValue("data", out string? dataJson))

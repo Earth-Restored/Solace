@@ -396,6 +396,7 @@ internal sealed partial class LoginController : SolaceControllerBase
                 return TypedResults.BadRequest();
             }
 
+            // todo: why do we allowExpired?
             var userToken = JwtUtils.Verify<Tokens.Live.UserToken>(userTokenString, Config.Login.UserTokenSecretBytes, allowExpired: true);
 #pragma warning disable IDE0059 // Unnecessary assignment of a value
             var deviceToken = JwtUtils.Verify<Tokens.Live.DeviceToken>(deviceTokenString, Config.Login.DeviceTokenSecretBytes, allowExpired: true);
