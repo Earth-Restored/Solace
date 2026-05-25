@@ -28,7 +28,7 @@
     background: #121212;
     border-radius: 8px;
     padding: 12px;
-    height: 300px;
+    height: 600px;
     min-height: 150px;
     width: 100%;
     max-width: 100%;       
@@ -99,4 +99,39 @@
 
 .nav-scroller::-webkit-scrollbar {
     display: none;
+}
+
+@media (max-width: 767.98px) {
+    .log-card {
+        margin-left: -0.5rem !important;
+        margin-right: -0.5rem !important;
+        border-radius: 0 !important;
+    }
+
+    .log-card .card-header,
+    .log-card .nav-scroller {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    .log-card .card-body {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .log-container {
+        padding: 8px 12px;
+        overflow-x: auto; 
+        height: 400px;
+        border-radius: 0 !important;
+    }
+    
+    .log-content {
+        font-size: 0.72rem; 
+    }
+    
+    .log-line {
+        white-space: pre-wrap;
+        overflow-wrap: break-word; 
+    }
 }

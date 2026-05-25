@@ -59,7 +59,7 @@
 
                     @if (comp.Status is LauncherUI.ServerStatus.Offline)
                     {
-                        <button class="btn btn-sm btn-outline-success border-0" 
+                        <button class="btn btn-sm btn-outline-success border-0 flex-shrink-0" 
                                 title="Start Component"
                                 disabled="@(IsButtonDisabled(Permissions.StartServer) || !ServerManager.CanStart || _currentStatus is LauncherUI.ServerStatus.Starting or LauncherUI.ServerStatus.Stopping)"
                                 @onclick="() => StartComponent(comp.ExeName)">
@@ -77,40 +77,40 @@
     {
         <div class="row g-2 mb-4">
             <div class="col-12 col-md-4">
-                <button class="btn btn-lg btn-success w-100 py-3 d-flex flex-column align-items-center"
+                <button class="btn btn-lg btn-success w-100 py-2 py-md-3 d-flex flex-row flex-md-column align-items-center justify-content-center"
                         disabled="@(IsButtonDisabled(Permissions.StartServer) || !ServerManager.CanStart)"
                         @onclick="() => StartServer()">
-                    <i class="bi bi-play-fill fs-2"></i>
+                    <i class="bi bi-play-fill fs-4 fs-md-2 me-2 me-md-0"></i>
                     <span style="font-size: 0.9rem;">Start All</span>
                 </button>
             </div>
             <div class="col-6 col-md-4">
-                <button class="btn btn-lg btn-warning w-100 py-3 d-flex flex-column align-items-center"
+                <button class="btn btn-lg btn-warning w-100 py-2 py-md-3 d-flex flex-row flex-md-column align-items-center justify-content-center"
                         disabled="@(IsButtonDisabled(Permissions.RestartServer) || !ServerManager.CanRestart)"
                         @onclick="() => RestartServer()">
-                    <i class="bi bi-arrow-clockwise fs-2"></i>
+                    <i class="bi bi-arrow-clockwise fs-4 fs-md-2 me-2 me-md-0"></i>
                     <span style="font-size: 0.9rem;">Restart</span>
                 </button>
             </div>
             <div class="col-6 col-md-4">
-                <button class="btn btn-lg btn-danger w-100 py-3 d-flex flex-column align-items-center"
+                <button class="btn btn-lg btn-danger w-100 py-2 py-md-3 d-flex flex-row flex-md-column align-items-center justify-content-center"
                         disabled="@(IsButtonDisabled(Permissions.StopServer) || !ServerManager.CanStop)"
                         @onclick="() => StopServer()">
-                    <i class="bi bi-stop-fill fs-2"></i>
+                    <i class="bi bi-stop-fill fs-4 fs-md-2 me-2 me-md-0"></i>
                     <span style="font-size: 0.9rem;">Stop</span>
                 </button>
             </div>
             <div class="col-12 mt-2">
-                <button class="btn btn-lg btn-outline-danger w-100 py-3 d-flex flex-column align-items-center"
+                <button class="btn btn-lg btn-outline-danger w-100 py-2 py-md-3 d-flex flex-row flex-md-column align-items-center justify-content-center"
                         disabled="@IsButtonDisabled(Permissions.StopServer)" @onclick="() => KillAll()">
-                    <i class="bi bi-x-circle-fill fs-2"></i>
+                    <i class="bi bi-x-circle-fill fs-4 fs-md-2 me-2 me-md-0"></i>
                     <span style="font-size: 0.9rem; font-weight: bold;">KILL ALL PROCESSES</span>
                 </button>
             </div>
         </div>
     }
 
-    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0 log-card">
         <div class="card-header bg-white border-0 pt-3">
             <h5 class="fw-bold"><i class="bi bi-terminal me-2"></i>Live Logs</h5>
         </div>
