@@ -140,22 +140,26 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
     {
         public string Date { get; init; }
         public Rewards Rewards { get; init; }
+        public bool Claimed { get; init; }
+        public long? ClaimedOn { get; init; }
 
-        public DailyLoginToken(string date, Rewards rewards)
+        public DailyLoginToken(string date, Rewards rewards, bool claimed = false, long? claimedOn = null)
             : base(TypeE.DAILY_LOGIN)
         {
             Date = date;
             Rewards = rewards;
+            Claimed = claimed;
+            ClaimedOn = claimedOn;
         }
 
         public override bool Equals(Token? other)
-            => other is DailyLoginToken dailyLogin && Date == dailyLogin.Date && Rewards.Equals(dailyLogin.Rewards);
+            => other is DailyLoginToken dailyLogin && Date == dailyLogin.Date && Rewards.Equals(dailyLogin.Rewards) && Claimed == dailyLogin.Claimed && ClaimedOn == dailyLogin.ClaimedOn;
 
         public override int GetHashCode()
-            => HashCode.Combine(Date, Rewards);
+            => HashCode.Combine(Date, Rewards, Claimed, ClaimedOn);
 
         public override DailyLoginToken DeepCopy()
-            => new DailyLoginToken(Date, Rewards.DeepCopy());
+            => new DailyLoginToken(Date, Rewards.DeepCopy(), Claimed, ClaimedOn);
     }
 
     public sealed class Legacy : IEquatable<Legacy>

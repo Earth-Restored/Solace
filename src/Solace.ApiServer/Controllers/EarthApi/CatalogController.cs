@@ -403,8 +403,45 @@ internal sealed class CatalogController : SolaceControllerBase
         return new JournalCatalog(items);
     }
 
-#pragma warning disable IDE0060 // Remove unused parameter
     private static NFCBoost[] MakeNFCBoostsCatalogApiResponse(Catalog catalog)
-#pragma warning restore IDE0060 // Remove unused parameter
-        => []; // TODO
+        => [.. catalog.NfcBoostsCatalog.MiniFigs.Select(miniFig => new NFCBoost(
+            miniFig.Id,
+            miniFig.Name,
+            "MiniFig",
+            new Types.Common.Rewards(
+                miniFig.Rewards.Rubies,
+                miniFig.Rewards.ExperiencePoints,
+                miniFig.Rewards.Level,
+                [.. (miniFig.Rewards.Inventory ?? []).Select(item => new Types.Common.Rewards.Item(item.Id, item.Amount))],
+                miniFig.Rewards.Buildplates ?? [],
+                [.. (miniFig.Rewards.Challenges ?? []).Select(challenge => new Types.Common.Rewards.Challenge(challenge.Id))],
+                miniFig.Rewards.PersonaItems ?? [],
+                [.. (miniFig.Rewards.UtilityBlocks ?? []).Select(_ => new Types.Common.Rewards.UtilityBlock())]
+            ),
+            new BoostMetadata(
+                miniFig.BoostMetadata.Name,
+                "MiniFig",
+                miniFig.BoostMetadata.Attribute,
+                miniFig.BoostMetadata.CanBeDeactivated,
+                miniFig.BoostMetadata.CanBeRemoved,
+                miniFig.BoostMetadata.ActiveDuration,
+                miniFig.BoostMetadata.Additive,
+                miniFig.BoostMetadata.Level,
+                [.. miniFig.BoostMetadata.Effects.Select(effect => new Effect(
+                    effect.Type,
+                    effect.Duration,
+                    effect.Value is null ? null : (int)Math.Round(effect.Value.Value),
+                    effect.Unit,
+                    effect.Targets,
+                    effect.Items,
+                    effect.ItemScenarios,
+                    effect.Activation,
+                    effect.ModifiesType
+                ))],
+                miniFig.BoostMetadata.Scenario,
+                miniFig.BoostMetadata.Cooldown
+            ),
+            miniFig.Deprecated,
+            miniFig.ToolsVersion
+        ))];
 }

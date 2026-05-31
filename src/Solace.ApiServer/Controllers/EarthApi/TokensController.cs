@@ -46,7 +46,10 @@ internal sealed class TokensController : SolaceControllerBase
         {
             {
                 "tokens",
-                tokens.GetTokens().Select(token => new KeyValuePair<string, Token>(token.Id, TokenToApiResponse(token.Token))).ToDictionary()
+                tokens.GetTokens()
+                    .Where(token => token.Token is not TokensEF.DailyLoginToken { Claimed: true })
+                    .Select(token => new KeyValuePair<string, Token>(token.Id, TokenToApiResponse(token.Token)))
+                    .ToDictionary()
             }
         }, null);
     }

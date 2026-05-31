@@ -503,8 +503,10 @@ public sealed class Catalog
     public sealed class NFCBoostsCatalogR
     {
         private sealed record NFCBoostsCatalogFile(
-        // TODO
+            NFCBoost[] MiniFigs
         );
+
+        public readonly NFCBoost[] MiniFigs;
 
         internal NFCBoostsCatalogR(string file)
         {
@@ -514,12 +516,64 @@ public sealed class Catalog
                 nfcBoostsCatalogFile = Json.Deserialize<NFCBoostsCatalogFile>(stream);
             }
 
-            // TODO
+            MiniFigs = nfcBoostsCatalogFile?.MiniFigs ?? [];
         }
 
-        public sealed record BoostInfo
-        {
+        public sealed record NFCBoost(
+            string Id,
+            BoostInfo BoostMetadata,
+            string Name,
+            bool Deprecated,
+            string ToolsVersion,
+            Rewards Rewards
+        );
 
+        public sealed record BoostInfo(
+            string Name,
+            string Attribute,
+            bool CanBeDeactivated,
+            bool CanBeRemoved,
+            string? ActiveDuration,
+            bool Additive,
+            int? Level,
+            Effect[] Effects,
+            string? Scenario,
+            string? Cooldown
+        );
+
+        public sealed record Effect(
+            string Type,
+            string? Duration,
+            double? Value,
+            string? Unit,
+            string Targets,
+            string[] Items,
+            string[] ItemScenarios,
+            string Activation,
+            string? ModifiesType
+        );
+
+        public sealed record Rewards(
+            int? Rubies,
+            int? ExperiencePoints,
+            int? Level,
+            Rewards.RewardItem[] Inventory,
+            string[] Buildplates,
+            Rewards.RewardChallenge[] Challenges,
+            string[] PersonaItems,
+            Rewards.RewardUtilityBlock[] UtilityBlocks
+        )
+        {
+            public sealed record RewardItem(
+                string Id,
+                int Amount
+            );
+
+            public sealed record RewardChallenge(
+                string Id
+            );
+
+            public sealed record RewardUtilityBlock();
         }
     }
 }

@@ -16,12 +16,9 @@ internal sealed class ChallengeActionsController : ControllerBase
 {
     [HttpPost("{challengeId}/modifyState")]
     [HttpPut("{challengeId}/modifyState")]
-    public async Task<IActionResult> ModifyState(string challengeId, CancellationToken cancellationToken)
+    public IActionResult ModifyState(string challengeId)
     {
-        await Task.CompletedTask;
         long now = HttpContext.GetTimestamp();
-        ApiRewards? apiRewards = null;
-        RedeemRewards rewards = ToRedeemRewards(apiRewards);
         var updates = new EarthApiResponse.UpdatesResponse();
         updates.Map["challenges"] = (int)(now / 1000);
 
@@ -29,7 +26,7 @@ internal sealed class ChallengeActionsController : ControllerBase
         {
             ["challengeId"] = challengeId,
             ["state"] = "Claimed",
-            ["rewards"] = apiRewards ?? rewards.ToApiResponse(),
+            ["rewards"] = new RedeemRewards().ToApiResponse(),
             ["updates"] = new Dictionary<string, object>()
         }, updates)), "application/json");
     }
@@ -52,9 +49,8 @@ internal sealed class ChallengeActionsController : ControllerBase
 
     [HttpPost("continuous/{id}/remove")]
     [HttpDelete("continuous/{id}/remove")]
-    public async Task<IActionResult> RemoveContinuousChallenge(string id, CancellationToken cancellationToken)
+    public IActionResult RemoveContinuousChallenge(string id)
     {
-        await Task.CompletedTask;
         long now = HttpContext.GetTimestamp();
         var updates = new EarthApiResponse.UpdatesResponse();
         updates.Map["challenges"] = (int)(now / 1000);
@@ -64,41 +60,5 @@ internal sealed class ChallengeActionsController : ControllerBase
             ["challengeId"] = id,
             ["updates"] = new Dictionary<string, object>()
         }, updates)), "application/json");
-    }
-
-    private static RedeemRewards ToRedeemRewards(ApiRewards? rewards)
-    {
-        var result = new RedeemRewards();
-        if (rewards is null)
-        {
-            return result;
-        }
-
-        if (rewards.Rubies is > 0)
-        {
-            result.AddRubies(rewards.Rubies.Value);
-        }
-
-        if (rewards.ExperiencePoints is > 0)
-        {
-            result.AddExperiencePoints(rewards.ExperiencePoints.Value);
-        }
-
-        foreach (var item in rewards.Inventory)
-        {
-            result.AddItem(item.Id, item.Amount);
-        }
-
-        foreach (string buildplateId in rewards.Buildplates)
-        {
-            result.AddBuildplate(buildplateId);
-        }
-
-        foreach (var challenge in rewards.Challenges)
-        {
-            result.AddChallenge(challenge.Id);
-        }
-
-        return result;
     }
 }

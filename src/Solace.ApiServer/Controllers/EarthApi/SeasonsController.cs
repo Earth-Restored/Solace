@@ -24,7 +24,8 @@ internal sealed class SeasonsController : ControllerBase
     public IActionResult GetSeason()
     {
         long now = HttpContext.GetTimestamp();
-        long endsAt = new DateTimeOffset(DateTimeOffset.FromUnixTimeMilliseconds(now).UtcDateTime.Date.AddDays(30)).ToUnixTimeMilliseconds();
+        DateTime endDate = DateTimeOffset.FromUnixTimeMilliseconds(now).UtcDateTime.Date.AddDays(30);
+        long endsAt = new DateTimeOffset(endDate, TimeSpan.Zero).ToUnixTimeMilliseconds();
 
         return Content(Json.Serialize(new EarthApiResponse(new Dictionary<string, object>
         {
@@ -61,9 +62,8 @@ internal sealed class SeasonsController : ControllerBase
     [HttpPut("challenges/season/active/{id}")]
     [HttpPost("player/challenges/season/active/{id}")]
     [HttpPut("player/challenges/season/active/{id}")]
-    public async Task<Results<ContentHttpResult, BadRequest>> SetActiveSeasonChallenge(string id, CancellationToken cancellationToken)
+    public Results<ContentHttpResult, BadRequest> SetActiveSeasonChallenge(string id)
     {
-        await Task.CompletedTask;
         string selectedChallengeId = string.IsNullOrWhiteSpace(id) ? DefaultActiveSeasonChallengeId : id;
         long now = HttpContext.GetTimestamp();
         var updates = new EarthApiResponse.UpdatesResponse();

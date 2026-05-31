@@ -7,6 +7,7 @@ namespace Solace.StaticData;
 
 public sealed class AdventuresConfig
 {
+    public const string CommonAdventureCrystalId = "4f16a053-4929-263a-c91a-29663e29df76";
     private static readonly string[] DefaultFolders = ["common", "uncommon", "rare", "epic", "legendary", "oobe"];
 
     public readonly AdventureSpawnConfig SpawnConfig;
@@ -55,7 +56,7 @@ public sealed class AdventuresConfig
     public bool CanSpawn => SpawnConfig.CrystalTypes.Length > 0 && SpawnConfig.MaxCount > 0;
 
     public AdventureCrystalType? PickCrystalType(Random random)
-        => PickWeighted(SpawnConfig.CrystalTypes, item => item.PickWeight, random);
+        => PickWeighted(SpawnConfig.CrystalTypes, item => int.Max(0, item.PickWeight), random);
 
     public string? PickTemplateForFolder(string folder, Random random)
     {
@@ -99,23 +100,27 @@ public sealed class AdventuresConfig
 
     private static T? PickWeighted<T>(IReadOnlyList<T> items, Func<T, int> weightSelector, Random random)
     {
-        int totalWeight = items.Sum(weightSelector);
+        var weightedItems = items
+            .Select(item => (Item: item, Weight: int.Max(0, weightSelector(item))))
+            .Where(item => item.Weight > 0)
+            .ToArray();
+        int totalWeight = weightedItems.Sum(item => item.Weight);
         if (totalWeight <= 0)
         {
             return default;
         }
 
         int roll = random.Next(0, totalWeight);
-        foreach (T item in items)
+        foreach (var item in weightedItems)
         {
-            roll -= weightSelector(item);
+            roll -= item.Weight;
             if (roll < 0)
             {
-                return item;
+                return item.Item;
             }
         }
 
-        return items[^1];
+        return weightedItems[^1].Item;
     }
 
     public sealed record AdventureSpawnConfig(
