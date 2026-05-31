@@ -48,6 +48,7 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
     [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
     [JsonDerivedType(typeof(LevelUpToken), "LEVEL_UP")]
     [JsonDerivedType(typeof(JournalItemUnlockedToken), "JOURNAL_ITEM_UNLOCKED")]
+    [JsonDerivedType(typeof(DailyLoginToken), "DAILY_LOGIN")]
     public abstract class Token : IEquatable<Token>, ICloneable<Token>
     {
         [JsonIgnore]
@@ -63,7 +64,8 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
         {
 #pragma warning disable CA1707 // Identifiers should not contain underscores
             LEVEL_UP,
-            JOURNAL_ITEM_UNLOCKED
+            JOURNAL_ITEM_UNLOCKED,
+            DAILY_LOGIN
 #pragma warning restore CA1707 // Identifiers should not contain underscores
         }
 
@@ -132,6 +134,28 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
 
         public override JournalItemUnlockedToken DeepCopy()
             => new JournalItemUnlockedToken(ItemId);
+    }
+
+    public sealed class DailyLoginToken : Token
+    {
+        public string Date { get; init; }
+        public Rewards Rewards { get; init; }
+
+        public DailyLoginToken(string date, Rewards rewards)
+            : base(TypeE.DAILY_LOGIN)
+        {
+            Date = date;
+            Rewards = rewards;
+        }
+
+        public override bool Equals(Token? other)
+            => other is DailyLoginToken dailyLogin && Date == dailyLogin.Date && Rewards.Equals(dailyLogin.Rewards);
+
+        public override int GetHashCode()
+            => HashCode.Combine(Date, Rewards);
+
+        public override DailyLoginToken DeepCopy()
+            => new DailyLoginToken(Date, Rewards.DeepCopy());
     }
 
     public sealed class Legacy : IEquatable<Legacy>

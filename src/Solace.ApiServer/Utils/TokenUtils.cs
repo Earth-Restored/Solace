@@ -49,6 +49,12 @@ public static class TokenUtils
                 }
 
                 break;
+            case TokensEF.DailyLoginToken dailyLoginToken:
+                {
+                    await Rewards.FromDBRewardsModel(dailyLoginToken.Rewards).ToRedeemQueryAsync(results, accountId, currentTime, staticData);
+                }
+
+                break;
         }
 
         return token;

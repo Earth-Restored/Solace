@@ -98,6 +98,7 @@ internal sealed class TokensController : SolaceControllerBase
         Rewards rewards = token switch
         {
             TokensEF.LevelUpToken levelUp => Rewards.FromDBRewardsModel(levelUp.Rewards).SetLevel(levelUp.Level),
+            TokensEF.DailyLoginToken dailyLogin => Rewards.FromDBRewardsModel(dailyLogin.Rewards),
             _ => new Rewards(),
         };
 
@@ -105,6 +106,7 @@ internal sealed class TokensController : SolaceControllerBase
         {
             TokensEF.LevelUpToken => Token.LifetimeE.TRANSIENT,
             TokensEF.JournalItemUnlockedToken => Token.LifetimeE.PERSISTENT,
+            TokensEF.DailyLoginToken => Token.LifetimeE.TRANSIENT,
             _ => throw new InvalidDataException($"Unknown Token type '{token?.GetType()?.ToString() ?? null}'"),
         };
 
