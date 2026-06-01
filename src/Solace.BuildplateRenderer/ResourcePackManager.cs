@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using SharpGLTF.Schema2;
 using SixLabors.ImageSharp.PixelFormats;
 using Solace.BuildplateRenderer.Models.ResourcePacks;
@@ -8,7 +9,9 @@ public sealed class ResourcePackManager
 {
     private readonly ResourcePack[] _packs;
 
-    private readonly Dictionary<string, SixLabors.ImageSharp.Image<Rgba32>> _textureCache = [];
+    private readonly ConcurrentDictionary<string, SixLabors.ImageSharp.Image<Rgba32>> _textureCache = new();
+
+    private readonly SemaphoreSlim _cacheLock = new(1, 1);
 
     private ResourcePackManager(ResourcePack[] packs)
     {
@@ -97,18 +100,32 @@ public sealed class ResourcePackManager
             return image;
         }
 
-        for (int i = 0; i < _packs.Length; i++)
+        await _cacheLock.WaitAsync(cancellationToken);
+
+        try
         {
-            var textureData = await _packs[i].TryGetTextureDataPNGAsync(name, cancellationToken);
-            if (textureData is not null)
+            if (_textureCache.TryGetValue(name, out image))
             {
-                using (var ms = new MemoryStream(textureData))
+                return image;
+            }
+
+            for (int i = 0; i < _packs.Length; i++)
+            {
+                var textureData = await _packs[i].TryGetTextureDataPNGAsync(name, cancellationToken);
+                if (textureData is not null)
                 {
-                    image = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(ms, cancellationToken);
-                    _textureCache.Add(name, image);
-                    return image;
+                    using (var ms = new MemoryStream(textureData))
+                    {
+                        image = await SixLabors.ImageSharp.Image.LoadAsync<Rgba32>(ms, cancellationToken);
+                        _textureCache[name] = image;
+                        return image;
+                    }
                 }
             }
+        }
+        finally
+        {
+            _cacheLock.Release();
         }
 
         throw new FileNotFoundException($"Colormap texture '{name}' not found in any loaded resource pack.");

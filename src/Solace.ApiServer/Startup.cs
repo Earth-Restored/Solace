@@ -1,5 +1,6 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -25,7 +26,7 @@ public class Startup
             .ConfigureApplicationPartManager(manager =>
             {
                 manager.FeatureProviders.Add(new InternalControllerFeatureProvider());
-            });;
+            });
 
         services.AddResponseCompression(options =>
         {
@@ -52,6 +53,16 @@ public class Startup
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 #pragma warning restore IDE0060 // Remove unused parameter
     {
+        var forwardedHeadersOptions = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+        };
+
+        forwardedHeadersOptions.KnownIPNetworks.Clear();
+        forwardedHeadersOptions.KnownProxies.Clear();
+
+        app.UseForwardedHeaders(forwardedHeadersOptions);
+
         app.Use(async (context, next) =>
         {
             context.Items.Add("RequestStartedOn", DateTimeOffset.UtcNow);
@@ -76,20 +87,20 @@ public class Startup
             };
         });
 
-        app.UseETagger();
+        app.UseStaticFiles();
+        
         //app.UseHttpsRedirection();
 
         app.UseRouting();
-
-        app.UseStaticFiles();
 
         app.UseAuthentication();
         app.UseAuthorization();
 
         //app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TransactionManager.MaximumTimeout });
 
-        app.UseResponseCaching();
+        app.UseETagger();
 
+        app.UseResponseCaching();
         app.UseResponseCompression();
 
         //app.UseSession();

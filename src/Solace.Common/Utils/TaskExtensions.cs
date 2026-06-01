@@ -34,7 +34,7 @@ public static class TaskExtensions
             {
                 if (onException is null)
                 {
-                    Log.Error($"Unhandeled async exception: {ex}");
+                    Log.Error($"Unhandled async exception: {ex}");
                 }
                 else
                 {

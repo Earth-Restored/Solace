@@ -61,7 +61,7 @@
                     {
                         <button class="btn btn-sm btn-outline-success border-0" 
                                 title="Start Component"
-                                disabled="@(IsButtonDisabled(Permissions.StartServer) || _currentStatus is LauncherUI.ServerStatus.Starting or LauncherUI.ServerStatus.Stopping)"
+                                disabled="@(IsButtonDisabled(Permissions.StartServer) || !ServerManager.CanStart || _currentStatus is LauncherUI.ServerStatus.Starting or LauncherUI.ServerStatus.Stopping)"
                                 @onclick="() => StartComponent(comp.ExeName)">
                             <i class="bi bi-play-fill fs-5"></i>
                         </button>
@@ -78,7 +78,7 @@
         <div class="row g-2 mb-4">
             <div class="col-12 col-md-4">
                 <button class="btn btn-lg btn-success w-100 py-3 d-flex flex-column align-items-center"
-                        disabled="@(IsButtonDisabled(Permissions.StartServer) || _currentStatus is LauncherUI.ServerStatus.Starting or LauncherUI.ServerStatus.Stopping)"
+                        disabled="@(IsButtonDisabled(Permissions.StartServer) || !ServerManager.CanStart)"
                         @onclick="() => StartServer()">
                     <i class="bi bi-play-fill fs-2"></i>
                     <span style="font-size: 0.9rem;">Start All</span>
@@ -86,7 +86,7 @@
             </div>
             <div class="col-6 col-md-4">
                 <button class="btn btn-lg btn-warning w-100 py-3 d-flex flex-column align-items-center"
-                        disabled="@(IsButtonDisabled(Permissions.RestartServer) || (_currentStatus is LauncherUI.ServerStatus.Offline && !ServerManager.AnyOnline) || _currentStatus is LauncherUI.ServerStatus.Stopping)"
+                        disabled="@(IsButtonDisabled(Permissions.RestartServer) || !ServerManager.CanRestart)"
                         @onclick="() => RestartServer()">
                     <i class="bi bi-arrow-clockwise fs-2"></i>
                     <span style="font-size: 0.9rem;">Restart</span>
@@ -94,7 +94,7 @@
             </div>
             <div class="col-6 col-md-4">
                 <button class="btn btn-lg btn-danger w-100 py-3 d-flex flex-column align-items-center"
-                        disabled="@(IsButtonDisabled(Permissions.StopServer) || (_currentStatus is LauncherUI.ServerStatus.Offline && !ServerManager.AnyOnline) || _currentStatus is LauncherUI.ServerStatus.Stopping)"
+                        disabled="@(IsButtonDisabled(Permissions.StopServer) || !ServerManager.CanStop)"
                         @onclick="() => StopServer()">
                     <i class="bi bi-stop-fill fs-2"></i>
                     <span style="font-size: 0.9rem;">Stop</span>
@@ -221,6 +221,7 @@
         => status switch
         {
             Solace.LauncherUI.ServerStatus.Online => "status-online",
+            Solace.LauncherUI.ServerStatus.PartiallyOnline => "status-online",
             Solace.LauncherUI.ServerStatus.Starting => "status-starting",
             Solace.LauncherUI.ServerStatus.Stopping => "status-stopping",
             _ => "status-offline"

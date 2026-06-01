@@ -44,7 +44,14 @@ public sealed class ServerManager : IDisposable
         }
     }
 
-    public bool AnyOnline { get; set; }
+    public bool AnyOnline { get; private set; }
+
+    private int _startLockCount;
+    public bool StartLocked => Volatile.Read(ref _startLockCount) > 0;
+
+    public bool CanStart => !StartLocked && Status is not (ServerStatus.Starting or ServerStatus.Online);
+    public bool CanRestart => Status is not (ServerStatus.Stopping or ServerStatus.Offline);
+    public bool CanStop => Status is not (ServerStatus.Stopping or ServerStatus.Offline);
 
     public IReadOnlyList<ServerComponent> Components { get; }
 
@@ -67,43 +74,124 @@ public sealed class ServerManager : IDisposable
         RefreshComponentStatuses();
     }
 
-    public void RefreshComponentStatuses(bool detectRunning = true)
+    public void RefreshComponentStatuses(bool detectRunning = true, bool preserveCurrentStatus = false)
     {
+        var settings = Settings.Instance;
         bool anyOnline = false;
-        bool anyOffline = false;
+
         foreach (var comp in Components)
         {
-            bool isRunning = detectRunning ? ProcessUtils.GetProgramProcesses(comp.ExeName).Any() : comp.Status is ServerStatus.Online;
-            comp.Status = isRunning ? ServerStatus.Online : ServerStatus.Offline;
-
-            if (!isRunning && comp.IsEnabled(Settings.Instance))
+            if (detectRunning)
             {
-                anyOffline = true;
+                bool isRunning = ProcessUtils.GetProgramProcesses(comp.ExeName).Any();
+                comp.Status = comp.Status switch
+                {
+                    ServerStatus.Starting => isRunning ? ServerStatus.Online : ServerStatus.Starting,
+                    ServerStatus.Stopping => isRunning ? ServerStatus.Stopping : ServerStatus.Offline,
+                    _ => isRunning ? ServerStatus.Online : ServerStatus.Offline,
+                };
             }
-            else
+
+            if (comp.Status is ServerStatus.Online && comp.IsEnabled(settings))
             {
                 anyOnline = true;
             }
         }
 
         AnyOnline = anyOnline;
-
-        if (!anyOffline && Status is ServerStatus.Offline)
+        var newStatus = ComputeGlobalStatus();
+        if (preserveCurrentStatus && Status is ServerStatus.Starting && newStatus is ServerStatus.Offline)
         {
-            Status = ServerStatus.Online;
+            return;
         }
-        else
+
+        if (preserveCurrentStatus && Status is ServerStatus.Stopping && newStatus is ServerStatus.Offline)
         {
-            OnStatusChanged?.Invoke();
+            return;
+        }
+
+        Status = newStatus;
+    }
+
+    public IDisposable? AcquireStartLock()
+    {
+        lock (_statusLock)
+        {
+            if (Status is ServerStatus.Offline)
+            {
+                return null;
+            }
+
+            return new StartLockHandle(this);
         }
     }
 
-    public async Task<bool> EnsureComponentsOnline(params IEnumerable<string> exeNames)
+    private ServerStatus ComputeGlobalStatus()
     {
+        if (Components.Any(c => c.Status is ServerStatus.Stopping))
+        {
+            return ServerStatus.Stopping;
+        }
+
+        if (Components.Any(c => c.Status is ServerStatus.Starting))
+        {
+            return ServerStatus.Starting;
+        }
+
+        var enabledComponents = Components.Where(c => c.IsEnabled(Settings.Instance)).ToList();
+        var onlineCount = enabledComponents.Count(c => c.Status is ServerStatus.Online);
+        var offlineCount = enabledComponents.Count(c => c.Status is ServerStatus.Offline);
+
+        if (enabledComponents.Count == 0)
+        {
+            return ServerStatus.Offline;
+        }
+
+        if (onlineCount > 0 && offlineCount > 0)
+        {
+            return ServerStatus.PartiallyOnline;
+        }
+
+        return onlineCount > 0 ? ServerStatus.Online : ServerStatus.Offline;
+    }
+
+    private static async Task<bool> WaitForProcessStartAsync(string exeName, CancellationToken cancellationToken)
+    {
+        const int intervalMs = 200;
+        const int maxAttempts = 50;
+
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (ProcessUtils.GetProgramProcesses(exeName).Any())
+            {
+                return true;
+            }
+
+            await Task.Delay(intervalMs, cancellationToken);
+        }
+
+        return false;
+    }
+
+    public async Task<bool> EnsureComponentsOnline(params string[] exeNames)
+    {
+        if (exeNames is null || exeNames.Length == 0)
+        {
+            return true;
+        }
+
         List<ServerComponent> targets;
+        var reservedToStart = new HashSet<ServerComponent>();
 
         lock (_statusLock)
         {
+            if (StartLocked)
+            {
+                Log.Logger.Warning("EnsureComponentsOnline blocked because server start is locked.");
+                return false;
+            }
+
             // Identify which of our managed components match the requested EXEs
             targets = [.. Components.Where(c => exeNames.Contains(c.ExeName, StringComparer.OrdinalIgnoreCase))];
 
@@ -117,12 +205,21 @@ public sealed class ServerManager : IDisposable
                 return false;
             }
 
+            foreach (var comp in targets)
+            {
+                if (comp.Status is ServerStatus.Offline)
+                {
+                    comp.Status = ServerStatus.Starting;
+                    reservedToStart.Add(comp);
+                }
+            }
+
             if (targets.All(t => t.Status is ServerStatus.Online))
             {
                 return true;
             }
 
-            if (Status is ServerStatus.Offline)
+            if (Status is ServerStatus.Offline or ServerStatus.PartiallyOnline)
             {
                 Status = ServerStatus.Starting;
             }
@@ -130,7 +227,7 @@ public sealed class ServerManager : IDisposable
 
         var logger = Log.Logger;
         var settings = Settings.Instance;
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // Safety timeout
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // Safety timeout
 
         try
         {
@@ -141,30 +238,46 @@ public sealed class ServerManager : IDisposable
                     continue;
                 }
 
-                logger.Information($"Page-level initialization: Starting {comp.Name}");
+                bool shouldStart = reservedToStart.Contains(comp);
+                if (shouldStart)
+                {
+                    logger.Debug($"Page-level initialization: Starting {comp.Name}");
+                }
+                else
+                {
+                    logger.Debug($"Page-level initialization: Waiting for {comp.Name} to become online");
+                }
 
-                comp.Status = ServerStatus.Starting;
-                OnStatusChanged?.Invoke();
-
-                comp.StartAction(settings, logger);
-
+                var process = shouldStart ? comp.StartAction(settings, logger) : null;
                 if (comp.StartupDelayMs > 0)
                 {
                     await Task.Delay(comp.StartupDelayMs, cts.Token);
                 }
 
-                if (ProcessUtils.GetProgramProcesses(comp.ExeName).Any())
+                if (await WaitForProcessStartAsync(comp.ExeName, cts.Token))
                 {
                     comp.Status = ServerStatus.Online;
                 }
                 else
                 {
                     comp.Status = ServerStatus.Offline;
-                    logger.Error($"{comp.Name} failed to start during page-level initialization.");
+                    if (process is not null && process.HasExited)
+                    {
+                        logger.Error($"{comp.Name} process exited immediately during selective startup.");
+                    }
+                    else
+                    {
+                        logger.Error($"{comp.Name} failed to start during page-level initialization.");
+                    }
                 }
 
                 OnStatusChanged?.Invoke();
             }
+        }
+        catch (OperationCanceledException)
+        {
+            logger.Warning("Selective component startup cancelled.");
+            return false;
         }
         catch (Exception ex)
         {
@@ -173,7 +286,6 @@ public sealed class ServerManager : IDisposable
         }
         finally
         {
-            _status = ServerStatus.Offline;
             RefreshComponentStatuses();
         }
 
@@ -184,7 +296,7 @@ public sealed class ServerManager : IDisposable
     {
         lock (_statusLock)
         {
-            if (Status is not ServerStatus.Offline and not ServerStatus.Online)
+            if (!CanStart)
             {
                 return;
             }
@@ -243,13 +355,23 @@ public sealed class ServerManager : IDisposable
     {
         lock (_statusLock)
         {
-            if (Status is ServerStatus.Stopping or ServerStatus.Starting)
+            if (Status is ServerStatus.Stopping or ServerStatus.Offline)
             {
                 return;
             }
         }
 
         await Stop(cancellationToken);
+
+        lock (_statusLock)
+        {
+            if (StartLocked)
+            {
+                Log.Logger.Warning("Restart aborted because server start is locked after stop.");
+                return;
+            }
+        }
+
         await Start(cancellationToken);
     }
 
@@ -287,14 +409,24 @@ public sealed class ServerManager : IDisposable
         cancellationToken.ThrowIfCancellationRequested();
         var settings = Settings.Instance;
 
+        lock (_statusLock)
+        {
+            if (StartLocked)
+            {
+                logger.Warning("Start prevented because server start is locked.");
+                Status = ServerStatus.Offline;
+                return;
+            }
+        }
+
         if (!await FileChecker.CheckAsync(settings, false, logger, cancellationToken))
         {
-            Log.Error("File validation failed");
+            logger.Error("File validation failed");
             Status = ServerStatus.Offline;
             return;
         }
 
-        RefreshComponentStatuses();
+        RefreshComponentStatuses(preserveCurrentStatus: true);
 
         foreach (var comp in Components)
         {
@@ -308,22 +440,37 @@ public sealed class ServerManager : IDisposable
 
             if (comp.Status is ServerStatus.Online)
             {
-                logger.Information($"{comp.Name} is already running.");
+                logger.Debug($"{comp.Name} is already running.");
                 continue;
             }
 
             comp.Status = ServerStatus.Starting;
             OnStatusChanged?.Invoke();
 
-            comp.StartAction(settings, logger);
-
+            var process = comp.StartAction(settings, logger);
             if (comp.StartupDelayMs > 0)
             {
                 await Task.Delay(comp.StartupDelayMs, cancellationToken);
             }
 
-            comp.Status = ServerStatus.Online;
-            AnyOnline = true;
+            if (await WaitForProcessStartAsync(comp.ExeName, cancellationToken))
+            {
+                comp.Status = ServerStatus.Online;
+                AnyOnline = true;
+            }
+            else
+            {
+                comp.Status = ServerStatus.Offline;
+                if (process is not null && process.HasExited)
+                {
+                    logger.Error($"{comp.Name} process exited immediately after launch.");
+                }
+                else
+                {
+                    logger.Error($"{comp.Name} failed to start.");
+                }
+            }
+
             OnStatusChanged?.Invoke();
         }
 
@@ -350,16 +497,12 @@ public sealed class ServerManager : IDisposable
             }
         }
 
-        OnStatusChanged?.Invoke();
+        RefreshComponentStatuses();
 
         if (!error)
         {
             logger.Information("All required programs have (most likely) running successfully");
         }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        AnyOnline = true;
-        Status = ServerStatus.Online;
     }
 
     private static async Task StopProgram(string name, Serilog.ILogger logger, CancellationToken cancellationToken)
@@ -390,6 +533,36 @@ public sealed class ServerManager : IDisposable
         var combinedSource = CancellationTokenSource.CreateLinkedTokenSource(_operationTokenSource.Token, cancellationToken);
         return combinedSource.Token;
     }
+
+    private sealed class StartLockHandle : IDisposable
+    {
+        private readonly ServerManager _manager;
+        private int _disposed;
+
+        public StartLockHandle(ServerManager manager)
+        {
+            _manager = manager;
+            if (Interlocked.Increment(ref _manager._startLockCount) == 1)
+            {
+                _manager.OnStatusChanged?.Invoke();
+            }
+        }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            {
+                return;
+            }
+
+            var remaining = Interlocked.Decrement(ref _manager._startLockCount);
+            if (remaining <= 0)
+            {
+                Interlocked.Exchange(ref _manager._startLockCount, 0);
+                _manager.OnStatusChanged?.Invoke();
+            }
+        }
+    }
 }
 
 public enum ServerStatus
@@ -397,5 +570,6 @@ public enum ServerStatus
     Online = 0,
     Starting,
     Stopping,
+    PartiallyOnline,
     Offline,
 }

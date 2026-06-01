@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using Serilog;
@@ -52,6 +53,22 @@ public sealed class ConsoleProcess : IDisposable
     private int? _actualAppPid;
     private Process? _cachedActualProcess;
 
+    private static string? _cachedLinuxTerminal;
+    private static string? _cachedLinuxTerminalExecArg;
+    private static bool _linuxTerminalDiscoveryAttempted;
+    private static readonly Lock _terminalCacheLock = new Lock();
+
+    private static readonly (string Name, string ExecutionArg)[] _linuxTerminalsToCheck =
+    [
+        ("x-terminal-emulator", "-e"),
+        ("gnome-terminal", "--"),
+        ("konsole", "-e"),
+        ("xfce4-terminal", "-e"),
+        ("alacritty", "-e"),
+        ("kitty", "--"),
+        ("xterm", "-e"),
+    ];
+
     private Process ActualProcess
     {
         get
@@ -90,9 +107,16 @@ public sealed class ConsoleProcess : IDisposable
             throw new InvalidOperationException("Can't redirect std in/out when useShellExecute is true");
         }
 
-        if (OperatingSystem.IsLinux() && openInNewWindow && !IsXTerminalEmulatorPresent())
+        if (OperatingSystem.IsLinux() && openInNewWindow)
         {
-            openInNewWindow = false;
+            bool hasDisplay = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")) ||
+                !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
+
+            if (!hasDisplay || !IsLinuxTerminalAvailable())
+            {
+                Log.Debug("No terminal emulator is available, launching without a new window");
+                openInNewWindow = false;
+            }
         }
 
         _filePath = appName;
@@ -209,7 +233,12 @@ public sealed class ConsoleProcess : IDisposable
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
-            Process.StartInfo.FileName = "x-terminal-emulator";
+            if (!IsLinuxTerminalAvailable())
+            {
+                throw new InvalidOperationException("No suitable Linux terminal emulator could be found.");
+            }
+
+            Process.StartInfo.FileName = _cachedLinuxTerminal;
 
             var linuxArgs = args.Select(a => $"'{a.Replace("'", "'\\''")}'");
 
@@ -222,7 +251,7 @@ public sealed class ConsoleProcess : IDisposable
 
             _pidFilePath = Path.GetTempFileName();
 
-            Process.StartInfo.Arguments = $"-e bash -c \"echo $$ > '{_pidFilePath}'; exec {innerCommand}\"";
+            Process.StartInfo.Arguments = $"{_cachedLinuxTerminalExecArg} bash -c \"echo $$ > '{_pidFilePath}'; exec {innerCommand}\"";
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
@@ -240,30 +269,50 @@ public sealed class ConsoleProcess : IDisposable
         }
     }
 
-    private static bool IsXTerminalEmulatorPresent()
+    [MemberNotNullWhen(true, nameof(_cachedLinuxTerminal), nameof(_cachedLinuxTerminalExecArg))]
+    private static bool IsLinuxTerminalAvailable()
     {
-        try
+        lock (_terminalCacheLock)
         {
-            using var process = new Process
+            if (_linuxTerminalDiscoveryAttempted)
             {
-                StartInfo = new ProcessStartInfo
+                return _cachedLinuxTerminal != null;
+            }
+
+            _linuxTerminalDiscoveryAttempted = true;
+
+            foreach (var (name, executionArg) in _linuxTerminalsToCheck)
+            {
+                try
                 {
-                    FileName = "/bin/sh",
-                    Arguments = "-c \"command -v x-terminal-emulator\"",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
+                    using var process = new Process
+                    {
+                        StartInfo = new ProcessStartInfo
+                        {
+                            FileName = "/bin/sh",
+                            Arguments = $"-c \"command -v {name}\"",
+                            RedirectStandardOutput = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        }
+                    };
+
+                    process.Start();
+                    process.WaitForExit();
+
+                    if (process.ExitCode == 0)
+                    {
+                        Log.Information($"Using '{name}' to launch new terminal windows.");
+                        _cachedLinuxTerminal = name;
+                        _cachedLinuxTerminalExecArg = executionArg;
+                        return true;
+                    }
                 }
-            };
+                catch
+                {
+                }
+            }
 
-            process.Start();
-            process.WaitForExit();
-
-            // exit code 0 - command was found
-            return process.ExitCode == 0;
-        }
-        catch
-        {
             return false;
         }
     }
@@ -271,39 +320,40 @@ public sealed class ConsoleProcess : IDisposable
     private static async Task<int?> ResolveActualPidAsync(string pidFile, int timeout = 30000)
     {
         using var cts = new CancellationTokenSource(timeout);
-        while (!cts.IsCancellationRequested)
-        {
-            try
-            {
-                var content = await File.ReadAllTextAsync(pidFile, cts.Token);
-                if (int.TryParse(content.Trim(), out int pid))
-                {
-                    // Clean up the temp file
-                    File.Delete(pidFile);
-                    return pid;
-                }
-            }
-            catch (IOException)
-            {
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
 
-            try
+        try
+        {
+            while (!cts.IsCancellationRequested)
             {
+                try
+                {
+                    if (File.Exists(pidFile))
+                    {
+                        var content = await File.ReadAllTextAsync(pidFile, cts.Token);
+                        if (int.TryParse(content.Trim(), out int pid))
+                        {
+                            File.Delete(pidFile);
+                            return pid;
+                        }
+                    }
+                }
+                catch (IOException)
+                {
+                }
+
                 await Task.Delay(100, cts.Token);
             }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
         }
-
-        if (File.Exists(pidFile))
+        catch (OperationCanceledException)
         {
-            File.Delete(pidFile);
+            Log.Warning("Timed out waiting for terminal emulator to report its PID.");
+        }
+        finally
+        {
+            if (File.Exists(pidFile))
+            {
+                File.Delete(pidFile);
+            }
         }
 
         return null;

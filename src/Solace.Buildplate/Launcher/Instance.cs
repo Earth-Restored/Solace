@@ -268,7 +268,7 @@ public sealed class Instance
         }
         catch (Exception exception)
         {
-            _logger.Error(exception, "Unhandled exception");
+            _logger.Error(exception, $"Unhandled exception: {exception.Message}");
         }
         finally
         {
@@ -856,9 +856,9 @@ public sealed class Instance
         {
             _baseDir.Delete(recursive: true);
         }
-        catch (IOException exception)
+        catch (Exception exception)
         {
-            _logger.Error(exception, "Exception while cleaning up runtime directory");
+            _logger.Error(exception, $"Exception while cleaning up runtime directory: {exception.Message}");
         }
     }
 

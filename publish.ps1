@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 Param (
     [string] $configuration = 'Release',
-    [string[]] $profiles = @('framework-dependent-win-x64', 'framework-dependent-linux-x64')#@('win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'framework-dependent-win-x64', 'framework-dependent-linux-x64')
+    [string[]] $profiles = @('framework-dependent-win-x64', 'framework-dependent-linux-x64') # 'framework-dependent-osx-arm64'
 )
 
 function Invoke-ProjectPublish {
@@ -38,7 +38,7 @@ foreach ($buildProfile in $profiles) {
         $projectPath = "./src/$name/$name.csproj"
         $projectDest = "$publishDir/components"
 
-       	Invoke-ProjectPublish `
+        Invoke-ProjectPublish `
             -ProjectPath $projectPath `
             -OutDir $projectDest `
             -Configuration $configuration `
@@ -51,7 +51,7 @@ foreach ($buildProfile in $profiles) {
         -Configuration $configuration `
         -BuildProfile $buildProfile
 
-    if ($buildProfile -like "*win*"){
+    if ($buildProfile -like "*win*") {
         Invoke-ProjectPublish `
             -ProjectPath "./src/Solace.KillHelper/Solace.KillHelper.csproj" `
             -OutDir "$publishDir/components" `
@@ -71,27 +71,28 @@ foreach ($buildProfile in $profiles) {
 $originalPath = Get-Location
 $launcherDir = Join-Path $PSScriptRoot "launcher"
 
-if ((-not $isWindows) -and (-not $isLinux)) {
-    $isWindows = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
-    $isLinux = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Unix
-}
+$isWin = if ($null -ne $IsWindows) { $IsWindows } else { [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT }
+$isMac = if ($null -ne $IsMacOS) { $IsMacOS } else { [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::OSX) }
+$isLin = if ($null -ne $IsLinux) { $IsLinux } else { [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Unix -and -not $isMac }
 
 try {
     Set-Location -Path $launcherDir
     
-    if ($isWindows) {
+    if ($isWin) {
         $originalTitle = $Host.UI.RawUI.WindowTitle
         $Host.UI.RawUI.WindowTitle = "Solace Launcher"
 
         $fullPath = Join-Path $launcherDir "Launcher.exe"
         $launcher = Start-Process -FilePath $fullPath -PassThru
         Wait-Process -Id $launcher.Id
-    } elseif ($isLinux) {
+    } elseif ($isLin -or $isMac) {
         $originalTitle = $null
         Write-Host "`e]0;Solace Launcher`a"
 
         $fullPath = Join-Path $launcherDir "Launcher"
-        chmod +x $fullPath
+        if (Test-Path $fullPath) {
+            chmod +x $fullPath
+        }
         $launcher = Start-Process -FilePath $fullPath -PassThru
         Wait-Process -Id $launcher.Id
     } else {
@@ -104,9 +105,9 @@ catch {
 finally {
     Set-Location -Path $originalPath
     
-    if ($isWindows) {
+    if ($isWin) {
         $Host.UI.RawUI.WindowTitle = $originalTitle
-    } elseif ($isLinux) {
+    } elseif ($isLin -or $isMac) {
         Write-Host "`e]0;$originalTitle`a"
     } else {
         Write-Host "Unsupported platform"

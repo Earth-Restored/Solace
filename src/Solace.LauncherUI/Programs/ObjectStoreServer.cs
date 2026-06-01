@@ -26,7 +26,7 @@ internal static class ObjectStoreServer
 
     public static Process? Run(Settings settings, ILogger logger)
     {
-        logger.Information($"Running {DispName}");
+        logger.Debug($"Running {DispName}");
         return Process.Start(new ProcessStartInfo(Path.GetFullPath(Path.Combine(Program.ProgramsDir, ExeName)),
         [
             $"--dataDir={Program.DataDir}{Path.DirectorySeparatorChar}object_store",

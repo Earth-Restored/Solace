@@ -22,7 +22,7 @@ internal static class Program
         {
             AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
             {
-                Log.Fatal($"Unhandeled exception: {e.ExceptionObject}");
+                Log.Fatal($"Unhandled exception: {e.ExceptionObject}");
                 Log.CloseAndFlush();
                 Environment.Exit(1);
             };

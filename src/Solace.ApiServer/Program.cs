@@ -60,13 +60,6 @@ public static class Program
 
     public static async Task<int> Main(string[] args)
     {
-        // when ran from a tool, don't try to parse args as Options
-        if (args.Any(a => a.StartsWith("--applicationName", StringComparison.Ordinal)))
-        {
-            CreateHostBuilder(args, 8080, "").Build();
-            return 0;
-        }
-
         TypeDescriptor.AddAttributes(typeof(Uuid), new TypeConverterAttribute(typeof(StringToUuidConv)));
 
         Environment.CurrentDirectory = AppDomain.CurrentDomain.BaseDirectory;
@@ -84,7 +77,10 @@ public static class Program
         {
             AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
             {
-                Log.Fatal($"Unhandeled exception: {e.ExceptionObject}");
+                Directory.CreateDirectory("logs/api_server");
+                File.WriteAllText("logs/api_server/_crash.txt", e.ExceptionObject.ToString());
+
+                Log.Fatal($"Unhandled exception: {e.ExceptionObject}");
                 Log.CloseAndFlush();
                 Environment.Exit(1);
             };
