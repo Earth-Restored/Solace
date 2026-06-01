@@ -164,26 +164,29 @@ internal sealed class ChallengesController : ControllerBase
         string activeSeasonChallengeId = SelectActiveSeasonChallengeId(progress, progress.ActiveSeasonChallengeId);
 
         var challenges = BuildSeasonChallenges(seasonEndTime, progress, activeSeasonChallengeId);
-        challenges[DailyGroupId] = new ChallengeRecord(
-            DailyReferenceId,
-            null,
-            DailyGroupId,
-            "PersonalTimed",
-            "Regular",
-            "retention",
-            null,
-            0,
-            dailyEndTime,
-            dailyState,
-            dailyComplete,
-            dailyPercent,
-            dailyCount,
-            DailyChallengeCount,
-            [],
-            "And",
-            new Rewards(0, 25, null, [new Rewards.Item(CommonAdventureCrystalId, 1)], [], [], [], []),
-            new object()
-        );
+        if (!dailyClaimed)
+        {
+            challenges[DailyGroupId] = new ChallengeRecord(
+                DailyReferenceId,
+                null,
+                DailyGroupId,
+                "PersonalTimed",
+                "Regular",
+                "retention",
+                null,
+                0,
+                dailyEndTime,
+                dailyState,
+                dailyComplete,
+                dailyPercent,
+                dailyCount,
+                DailyChallengeCount,
+                [],
+                "And",
+                new Rewards(0, 25, null, [new Rewards.Item(CommonAdventureCrystalId, 1)], [], [], [], []),
+                new object()
+            );
+        }
 
         for (int index = 0; index < dailyChallenges.Length; index++)
         {
@@ -192,6 +195,11 @@ internal sealed class ChallengesController : ControllerBase
             int currentCount = Math.Min(progress.GetObjectiveProgress(challenge.ReferenceId), threshold);
             bool isComplete = currentCount >= threshold;
             bool isClaimed = progress.ClaimedChallengeIds?.Contains(challenge.Key) == true;
+            if (isComplete || isClaimed)
+            {
+                continue;
+            }
+
             challenges[challenge.Key] = new ChallengeRecord(
                 challenge.ReferenceId,
                 null,
@@ -202,8 +210,8 @@ internal sealed class ChallengesController : ControllerBase
                 Rarity.COMMON,
                 index + 1,
                 dailyEndTime,
-                isClaimed ? "Claimed" : isComplete ? "Completed" : "Active",
-                isComplete,
+                "Active",
+                false,
                 currentCount * 100 / threshold,
                 currentCount,
                 threshold,

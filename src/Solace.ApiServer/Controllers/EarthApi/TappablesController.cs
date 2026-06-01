@@ -506,6 +506,8 @@ internal sealed class TappablesController : SolaceControllerBase
             if (tokenClaims.RedeemedChallengeRewardKeys.Add(rewardKey))
             {
                 rewards.AddExperiencePoints(10);
+                challengeProgress.ClaimedChallengeIds ??= [];
+                challengeProgress.ClaimedChallengeIds.Add(challenge.Key);
                 shouldReward = true;
             }
         }
@@ -514,6 +516,8 @@ internal sealed class TappablesController : SolaceControllerBase
         if (completedDailyChallenges >= DailyChallengeCount && tokenClaims.RedeemedChallengeRewardKeys.Add(dailyGroupRewardKey))
         {
             rewards.AddExperiencePoints(25).AddItem(CommonAdventureCrystalId, 1);
+            challengeProgress.ClaimedChallengeIds ??= [];
+            challengeProgress.ClaimedChallengeIds.Add(DailyGroupId);
             shouldReward = true;
         }
 

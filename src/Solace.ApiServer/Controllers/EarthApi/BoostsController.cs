@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using System.Diagnostics;
 using System.Security.Claims;
+using System.Globalization;
 using Solace.ApiServer.Exceptions;
 using Solace.ApiServer.Utils;
 using Solace.Common.Utils;
@@ -216,16 +217,18 @@ internal sealed class BoostsController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        Catalog.NFCBoostsCatalogR.MiniFig? miniFig = catalog.NfcBoostsCatalog.GetMiniFig(productId);
-        string resolvedProductId = productId;
+        string? normalizedProductId = NormalizeMiniFigProductId(productId);
+        string? normalizedTagProductId = NormalizeMiniFigProductId(id);
+        Catalog.NFCBoostsCatalogR.MiniFig? miniFig = normalizedProductId is null ? null : catalog.NfcBoostsCatalog.GetMiniFig(normalizedProductId);
+        string resolvedProductId = normalizedProductId ?? productId;
         string tagId = id;
         if (miniFig is null)
         {
-            Catalog.NFCBoostsCatalogR.MiniFig? swappedMiniFig = catalog.NfcBoostsCatalog.GetMiniFig(id);
+            Catalog.NFCBoostsCatalogR.MiniFig? swappedMiniFig = normalizedTagProductId is null ? null : catalog.NfcBoostsCatalog.GetMiniFig(normalizedTagProductId);
             if (swappedMiniFig is not null)
             {
                 miniFig = swappedMiniFig;
-                resolvedProductId = id;
+                resolvedProductId = normalizedTagProductId!;
                 tagId = productId;
             }
         }
@@ -539,6 +542,65 @@ internal sealed class BoostsController : SolaceControllerBase
         return duration is null
             ? 10 * 60 * 1000
             : TimeFormatter.ParseDuration(duration);
+    }
+
+    private static string? NormalizeMiniFigProductId(string value)
+    {
+        if (catalog.NfcBoostsCatalog.GetMiniFig(value) is not null)
+        {
+            return value;
+        }
+
+        string payload = value;
+        const string pidMattelMarker = "pid.mattel/";
+        int markerIndex = payload.IndexOf(pidMattelMarker, StringComparison.OrdinalIgnoreCase);
+        if (markerIndex >= 0)
+        {
+            payload = payload[(markerIndex + pidMattelMarker.Length)..];
+        }
+        else if (Uri.TryCreate(payload, UriKind.Absolute, out Uri? uri) &&
+                 uri.Host.Equals("pid.mattel", StringComparison.OrdinalIgnoreCase))
+        {
+            payload = uri.AbsolutePath.TrimStart('/');
+        }
+
+        payload = Uri.UnescapeDataString(payload).Trim();
+        int queryIndex = payload.IndexOfAny(['?', '#']);
+        if (queryIndex >= 0)
+        {
+            payload = payload[..queryIndex];
+        }
+
+        if (payload.Length == 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            byte[] decoded = Convert.FromBase64String(AddBase64Padding(payload.Replace('-', '+').Replace('_', '/')));
+            if (decoded.Length < 6 || decoded[0] != 0x02 || decoded[1] != 0x00)
+            {
+                return null;
+            }
+
+            uint boostId = ((uint)decoded[2] << 24) |
+                           ((uint)decoded[3] << 16) |
+                           ((uint)decoded[4] << 8) |
+                           decoded[5];
+            string productId = boostId.ToString(CultureInfo.InvariantCulture);
+            return catalog.NfcBoostsCatalog.GetMiniFig(productId) is null ? null : productId;
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+    }
+
+    private static string AddBase64Padding(string value)
+    {
+        int remainder = value.Length % 4;
+        return remainder == 0 ? value : value.PadRight(value.Length + 4 - remainder, '=');
     }
 
     private static Effect NfcBoostEffectToApiResponse(Catalog.NFCBoostsCatalogR.EffectR effect)
