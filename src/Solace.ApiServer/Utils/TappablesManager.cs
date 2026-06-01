@@ -11,20 +11,26 @@ public sealed class TappablesManager
 {
     private static readonly long GRACE_PERIOD = 30000;
 
+    private readonly EventBusClient _eventBusClient;
+    private readonly SemaphoreSlim _requestSenderLock = new(1, 1);
     private Subscriber _subscriber = null!;
     private RequestSender _requestSender = null!;
 
     private readonly Dictionary<string, Dictionary<string, Tappable>> _tappables = [];
     private readonly Dictionary<string, Dictionary<string, Encounter>> _encounters = [];
+    private readonly Dictionary<string, Dictionary<string, Adventure>> _adventures = [];
+    private readonly Dictionary<string, string> _adventureOwnersById = [];
+    private readonly Dictionary<string, string> _recentAdventureIdsByPlayer = [];
     private int _pruneCounter;
 
-    private TappablesManager()
+    private TappablesManager(EventBusClient eventBusClient)
     {
+        _eventBusClient = eventBusClient;
     }
 
     public static async Task<TappablesManager> CreateAsync(EventBusClient eventBusClient)
     {
-        var tappablesManager = new TappablesManager();
+        var tappablesManager = new TappablesManager(eventBusClient);
 
         tappablesManager._subscriber = await eventBusClient.AddSubscriberAsync("tappables", new SubscriberListener(
             tappablesManager.HandleEvent,
@@ -66,6 +72,40 @@ public sealed class TappablesManager
                 return distanceSquared <= radius * radius;
             })];
 
+    public Adventure[] GetAdventuresAround(double lat, double lon, double radius)
+        => [.. GetTileIdsAround(lat, lon, radius)
+            .Select(tileId => _adventures.GetOrDefault(tileId))
+            .Where(adventures => adventures is not null)
+            .SelectMany(adventures => adventures!.Values)
+            .Where(adventure =>
+            {
+                double dx = LonToX(adventure.Lon) * (1 << 16) - LonToX(lon) * (1 << 16);
+                double dy = LatToY(adventure.Lat) * (1 << 16) - LatToY(lat) * (1 << 16);
+                double distanceSquared = dx * dx + dy * dy;
+                return distanceSquared <= radius * radius;
+            })
+            .GroupBy(adventure => $"{Math.Round(adventure.Lat, 5)}:{Math.Round(adventure.Lon, 5)}:{adventure.AdventureBuildplateId}")
+            .Select(group => group.OrderBy(adventure => adventure.SpawnTime).First())];
+
+    public Adventure[] GetPlayerAdventuresAround(string playerId, double lat, double lon, double radius)
+        => [.. GetAdventuresAround(lat, lon, radius)
+            .Where(adventure => IsAdventureOwnedByPlayer(adventure, playerId))];
+
+    public Adventure[] GetAllAdventures()
+        => [.. _adventures.Values
+            .SelectMany(adventures => adventures.Values)
+            .GroupBy(adventure => $"{Math.Round(adventure.Lat, 5)}:{Math.Round(adventure.Lon, 5)}:{adventure.AdventureBuildplateId}")
+            .Select(group => group.OrderBy(adventure => adventure.SpawnTime).First())];
+
+    public Adventure[] GetAllPlayerAdventures(string playerId)
+        => [.. GetAllAdventures().Where(adventure => IsAdventureOwnedByPlayer(adventure, playerId))];
+
+    private bool IsAdventureVisibleToPlayer(Adventure adventure, string playerId)
+        => !_adventureOwnersById.TryGetValue(adventure.Id, out string? ownerId) || ownerId == playerId;
+
+    private bool IsAdventureOwnedByPlayer(Adventure adventure, string playerId)
+        => _adventureOwnersById.TryGetValue(adventure.Id, out string? ownerId) && ownerId == playerId;
+
     public Encounter[] GetEncountersAround(float lat, float lon, float radius)
         => [.. GetTileIdsAround(lat, lon, radius)
             .Select(tileId => _encounters.GetValueOrDefault(tileId))
@@ -102,6 +142,14 @@ public sealed class TappablesManager
             }
         }
 
+        foreach (Tappable tappable in _tappables.Values.SelectMany(tappables => tappables.Values))
+        {
+            if (tappable.Id == id)
+            {
+                return tappable;
+            }
+        }
+
         return null;
     }
 
@@ -118,6 +166,135 @@ public sealed class TappablesManager
         }
 
         return null;
+    }
+
+    public Adventure? GetAdventureWithId(string id, string tileId)
+    {
+        var adventuresInTile = _adventures.GetOrDefault(tileId);
+        if (adventuresInTile is not null)
+        {
+            var adventure = adventuresInTile.GetOrDefault(id);
+            if (adventure is not null)
+            {
+                return adventure;
+            }
+        }
+
+        return GetAdventureWithId(id);
+    }
+
+    public Adventure? GetPlayerAdventureWithId(string playerId, string id, string? tileId = null)
+    {
+        Adventure? adventure = !string.IsNullOrWhiteSpace(tileId)
+            ? GetAdventureWithId(id, tileId)
+            : GetAdventureWithId(id);
+
+        return adventure is not null && IsAdventureOwnedByPlayer(adventure, playerId)
+            ? adventure
+            : null;
+    }
+
+    public Adventure? GetAdventureWithId(string id)
+    {
+        foreach (Adventure adventure in _adventures.Values.SelectMany(adventures => adventures.Values))
+        {
+            if (adventure.Id == id)
+            {
+                return adventure;
+            }
+        }
+
+        return null;
+    }
+
+    public Adventure PlaceAdventure(float lat, float lon, long spawnTime, long validFor, string icon, Adventure.RarityE rarity, string adventureBuildplateId)
+    {
+        var adventure = new Adventure(U.RandomUuid().ToString(), lat, lon, spawnTime, validFor, icon, rarity, adventureBuildplateId);
+        AddAdventure(adventure);
+        return adventure;
+    }
+
+    public Adventure? GetRecentPlayerAdventure(string playerId, float lat, float lon, string adventureBuildplateId, long currentTime)
+    {
+        if (!_recentAdventureIdsByPlayer.TryGetValue(playerId, out string? adventureId))
+        {
+            return null;
+        }
+
+        foreach (Adventure adventure in _adventures.Values.SelectMany(adventures => adventures.Values))
+        {
+            if (adventure.Id == adventureId &&
+                adventure.AdventureBuildplateId == adventureBuildplateId &&
+                adventure.SpawnTime + adventure.ValidFor > currentTime &&
+                currentTime - adventure.SpawnTime <= 30 * 1000 &&
+                IsSamePlayerAdventureLocation(adventure, lat, lon))
+            {
+                return adventure;
+            }
+        }
+
+        return null;
+    }
+
+    public Adventure? GetRecentPlayerAdventureAtLocation(string playerId, float lat, float lon, long currentTime)
+    {
+        if (!_recentAdventureIdsByPlayer.TryGetValue(playerId, out string? adventureId))
+        {
+            return null;
+        }
+
+        foreach (Adventure adventure in _adventures.Values.SelectMany(adventures => adventures.Values))
+        {
+            if (adventure.Id == adventureId &&
+                adventure.SpawnTime + adventure.ValidFor > currentTime &&
+                currentTime - adventure.SpawnTime <= 60 * 1000 &&
+                IsSamePlayerAdventureLocation(adventure, lat, lon))
+            {
+                return adventure;
+            }
+        }
+
+        return null;
+    }
+
+    public Adventure PlacePlayerAdventure(string playerId, float lat, float lon, long spawnTime, long validFor, string icon, Adventure.RarityE rarity, string adventureBuildplateId)
+    {
+        Adventure? recent = GetRecentPlayerAdventureAtLocation(playerId, lat, lon, spawnTime)
+            ?? GetRecentPlayerAdventure(playerId, lat, lon, adventureBuildplateId, spawnTime);
+        if (recent is not null)
+        {
+            return recent;
+        }
+
+        RemoveRecentPlayerAdventure(playerId);
+
+        Adventure adventure = new(U.RandomUuid().ToString(), lat, lon, spawnTime, validFor, icon, rarity, adventureBuildplateId);
+        AddAdventure(adventure, playerId);
+        _recentAdventureIdsByPlayer[playerId] = adventure.Id;
+        return adventure;
+    }
+
+    private static bool IsSamePlayerAdventureLocation(Adventure adventure, float lat, float lon)
+    {
+        double dx = LonToX(adventure.Lon) * (1 << 16) - LonToX(lon) * (1 << 16);
+        double dy = LatToY(adventure.Lat) * (1 << 16) - LatToY(lat) * (1 << 16);
+        return (dx * dx + dy * dy) <= 0.25;
+    }
+
+    private void RemoveRecentPlayerAdventure(string playerId)
+    {
+        if (!_recentAdventureIdsByPlayer.TryGetValue(playerId, out string? adventureId))
+        {
+            return;
+        }
+
+        foreach (var tileAdventures in _adventures.Values)
+        {
+            tileAdventures.Remove(adventureId);
+        }
+
+        _adventureOwnersById.Remove(adventureId);
+        _recentAdventureIdsByPlayer.Remove(playerId);
     }
 
 #pragma warning disable IDE0060 // Remove unused parameter
@@ -153,11 +330,43 @@ public sealed class TappablesManager
     {
         int tileX = XToTile(LonToX(lon));
         int tileY = YToTile(LatToY(lat));
-        string? response = await _requestSender.RequestAsync("tappables", "activeTile", Json.Serialize(new ActiveTileNotification(tileX, tileY, playerId)));
-        if (response is null)
+
+        await _requestSenderLock.WaitAsync();
+        try
         {
-            Log.Warning("Active tile notification event was rejected/ignored");
+            Task<string?> responseTask = _requestSender.RequestAsync("tappables", "activeTile", Json.Serialize(new ActiveTileNotification(tileX, tileY, playerId)));
+            Task timeoutTask = Task.Delay(TimeSpan.FromSeconds(2));
+            if (await Task.WhenAny(responseTask, timeoutTask) != responseTask)
+            {
+                Log.Warning("Active tile notification timed out for tile {TileX},{TileY}; resetting sender and continuing", tileX, tileY);
+                await ResetRequestSenderAsync();
+                return;
+            }
+
+            string? response = await responseTask;
+            if (response is null)
+            {
+                Log.Warning("Active tile notification event was rejected/ignored");
+            }
         }
+        finally
+        {
+            _requestSenderLock.Release();
+        }
+    }
+
+    private async Task ResetRequestSenderAsync()
+    {
+        try
+        {
+            await _requestSender.CloseAsync();
+        }
+        catch (Exception exception)
+        {
+            Log.Warning(exception, "Could not close stale tappables request sender");
+        }
+
+        _requestSender = await _eventBusClient.AddRequestSenderAsync();
     }
 
     private sealed record ActiveTileNotification(
@@ -227,6 +436,35 @@ public sealed class TappablesManager
                 }
 
                 break;
+            case "adventureSpawn":
+                {
+                    Adventure[]? adventures;
+
+                    try
+                    {
+                        adventures = Json.Deserialize<Adventure[]>(@event.Data);
+                    }
+                    catch (Exception exception)
+                    {
+                        Log.Error($"Could not deserialise adventure spawn event: {exception}");
+                        break;
+                    }
+
+                    Debug.Assert(adventures is not null);
+
+                    foreach (var adventure in adventures)
+                    {
+                        AddAdventure(adventure);
+                    }
+
+                    if (_pruneCounter++ == 10)
+                    {
+                        _pruneCounter = 0;
+                        Prune(@event.Timestamp);
+                    }
+                }
+
+                break;
         }
 
         return Task.CompletedTask;
@@ -242,6 +480,18 @@ public sealed class TappablesManager
     {
         string tileId = LocationToTileId(encounter.Lat, encounter.Lon);
         _encounters.ComputeIfAbsent(tileId, tileId1 => [])![encounter.Id] = encounter;
+    }
+
+    private void AddAdventure(Adventure adventure)
+    {
+        string tileId = LocationToTileId(adventure.Lat, adventure.Lon);
+        _adventures.ComputeIfAbsent(tileId, tileId1 => [])![adventure.Id] = adventure;
+    }
+
+    private void AddAdventure(Adventure adventure, string playerId)
+    {
+        AddAdventure(adventure);
+        _adventureOwnersById[adventure.Id] = playerId;
     }
 
     private void Prune(long currentTime)
@@ -269,6 +519,19 @@ public sealed class TappablesManager
         }
 
         _encounters.RemoveIf(entry => entry.Value.Count == 0);
+
+        foreach (var tileAdventures in _adventures.Values)
+        {
+            tileAdventures.RemoveIf(entry =>
+            {
+                Adventure adventure = entry.Value;
+                long expiresAt = adventure.SpawnTime + adventure.ValidFor;
+                return expiresAt + GRACE_PERIOD <= currentTime;
+            });
+        }
+
+        _adventures.RemoveIf(entry => entry.Value.Count == 0);
+        _adventureOwnersById.RemoveIf(entry => !_adventures.Values.Any(tileAdventures => tileAdventures.ContainsKey(entry.Key)));
     }
 
     public static string LocationToTileId(float lat, float lon)
@@ -332,6 +595,29 @@ public sealed class TappablesManager
             RARE,
             EPIC,
             LEGENDARY
+        }
+    }
+
+    public sealed record Adventure(
+        string Id,
+        float Lat,
+        float Lon,
+        long SpawnTime,
+        long ValidFor,
+        string Icon,
+        Adventure.RarityE Rarity,
+        string AdventureBuildplateId
+    )
+    {
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public enum RarityE
+        {
+            COMMON,
+            UNCOMMON,
+            RARE,
+            EPIC,
+            LEGENDARY,
+            OOBE
         }
     }
 }

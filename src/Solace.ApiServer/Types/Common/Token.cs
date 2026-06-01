@@ -19,7 +19,15 @@ public sealed record Token(
         [JsonStringEnumMemberName("redeemtappable")]
         TAPPABLE,
         [JsonStringEnumMemberName("item.unlocked")]
-        JOURNAL_ITEM_UNLOCKED
+        JOURNAL_ITEM_UNLOCKED,
+        [JsonStringEnumMemberName("daily.login")]
+        DAILY_LOGIN,
+        [JsonStringEnumMemberName("oobe.adventure_crystal")]
+        OOBE_ADVENTURE_CRYSTAL,
+        [JsonStringEnumMemberName("challenge.progress")]
+        CHALLENGE_PROGRESS,
+        [JsonStringEnumMemberName("challenge.completed")]
+        CHALLENGE_COMPLETED
 #pragma warning restore CA1707 // Identifiers should not contain underscores
     }
 

@@ -1,4 +1,4 @@
-﻿{
+{
     "store.search.filter.allWorlds": {
         "sv_SE": "Alla världar",
         "sk_SK": "Všetky svety",
@@ -14943,6 +14943,54 @@
         "zh_CN": "史上最佳 - 现已支持您的语言",
         "zh_TW": "史上最佳 - 現在可以用你的語言遊玩"
     },
+    "challenge_2619913d-6504-4c74-9fc9-e03649a70efc.title": {
+        "neutral": "Tap Tap Tap",
+        "en_US": "Tap Tap Tap",
+        "en_GB": "Tap Tap Tap",
+        "it_IT": "Tocca Tocca Tocca"
+    },
+    "challenge_2619913d-6504-4c74-9fc9-e03649a70efc.desc.single": {
+        "neutral": "Collect 3 tappables",
+        "en_US": "Collect 3 tappables",
+        "en_GB": "Collect 3 tappables",
+        "it_IT": "Raccogli 3 oggetti sulla mappa"
+    },
+    "challenge_2b64c950-f80b-4491-b81d-bf90cee88db1.title": {
+        "neutral": "Treasure Hunt",
+        "en_US": "Treasure Hunt",
+        "en_GB": "Treasure Hunt",
+        "it_IT": "Caccia al tesoro"
+    },
+    "challenge_2b64c950-f80b-4491-b81d-bf90cee88db1.desc.single": {
+        "neutral": "Collect an adventure chest",
+        "en_US": "Collect an adventure chest",
+        "en_GB": "Collect an adventure chest",
+        "it_IT": "Raccogli un forziere avventura"
+    },
+    "challenge_06eb0e50-b18d-43e8-9aad-422203ffdf28.title": {
+        "neutral": "Best Defense",
+        "en_US": "Best Defense",
+        "en_GB": "Best Defense",
+        "it_IT": "La miglior difesa"
+    },
+    "challenge_06eb0e50-b18d-43e8-9aad-422203ffdf28.desc.single": {
+        "neutral": "Defeat a hostile mob in an adventure",
+        "en_US": "Defeat a hostile mob in an adventure",
+        "en_GB": "Defeat a hostile mob in an adventure",
+        "it_IT": "Sconfiggi un mob ostile in un'avventura"
+    },
+    "challenge_bd9d3fd7-12ef-49e0-91fa-c971795f8e35.title": {
+        "neutral": "Chop Chop",
+        "en_US": "Chop Chop",
+        "en_GB": "Chop Chop",
+        "it_IT": "Svelto svelto"
+    },
+    "challenge_bd9d3fd7-12ef-49e0-91fa-c971795f8e35.desc.single": {
+        "neutral": "Collect an oak log",
+        "en_US": "Collect an oak log",
+        "en_GB": "Collect an oak log",
+        "it_IT": "Raccogli un tronco di quercia"
+    },
     "editorial.row.raytracingworlds": {
         "neutral": "Ray Tracing Worlds",
         "en_US": "Ray Tracing Worlds",
@@ -14974,5 +15022,153 @@
         "uk_UA": "Світи з трасуванням променів",
         "zh_CN": "光线追踪世界",
         "zh_TW": "光線追蹤世界"
+    },
+    "challenge_14e99996-0b42-4d2d-ad84-4ff279827ea6.title": {
+        "neutral": "Treasure time",
+        "en_US": "Treasure time",
+        "en_GB": "Treasure time",
+        "it_IT": "Treasure time"
+    },
+    "challenge_14e99996-0b42-4d2d-ad84-4ff279827ea6.desc.single": {
+        "neutral": "Collect 1 chest",
+        "en_US": "Collect 1 chest",
+        "en_GB": "Collect 1 chest",
+        "it_IT": "Collect 1 chest"
+    },
+    "challenge_170b8a07-e781-4509-8de9-ddcc0beb88ba.title": {
+        "neutral": "Mooooo!",
+        "en_US": "Mooooo!",
+        "en_GB": "Mooooo!",
+        "it_IT": "Mooooo!"
+    },
+    "challenge_170b8a07-e781-4509-8de9-ddcc0beb88ba.desc.single": {
+        "neutral": "Collect 1 cow",
+        "en_US": "Collect 1 cow",
+        "en_GB": "Collect 1 cow",
+        "it_IT": "Collect 1 cow"
+    },
+    "challenge_1d981b84-a03a-451d-82a6-9bfe0fc885fb.title": {
+        "neutral": "On the farm",
+        "en_US": "On the farm",
+        "en_GB": "On the farm",
+        "it_IT": "On the farm"
+    },
+    "challenge_1d981b84-a03a-451d-82a6-9bfe0fc885fb.desc.single": {
+        "neutral": "Collect 1 mob",
+        "en_US": "Collect 1 mob",
+        "en_GB": "Collect 1 mob",
+        "it_IT": "Collect 1 mob"
+    },
+    "challenge_252bb18b-5a96-4ac5-bca0-45c1a0d51269.title": {
+        "neutral": "Home on the range",
+        "en_US": "Home on the range",
+        "en_GB": "Home on the range",
+        "it_IT": "Home on the range"
+    },
+    "challenge_252bb18b-5a96-4ac5-bca0-45c1a0d51269.desc.single": {
+        "neutral": "Collect 1 cow or sheep",
+        "en_US": "Collect 1 cow or sheep",
+        "en_GB": "Collect 1 cow or sheep",
+        "it_IT": "Collect 1 cow or sheep"
+    },
+    "challenge_61e55110-e206-4752-95a3-aeb2b98ad6ad.title": {
+        "neutral": "Zoo keeper",
+        "en_US": "Zoo keeper",
+        "en_GB": "Zoo keeper",
+        "it_IT": "Zoo keeper"
+    },
+    "challenge_61e55110-e206-4752-95a3-aeb2b98ad6ad.desc.single": {
+        "neutral": "Collect 1 mob",
+        "en_US": "Collect 1 mob",
+        "en_GB": "Collect 1 mob",
+        "it_IT": "Collect 1 mob"
+    },
+    "challenge_6b0655aa-cc63-4876-a1e1-afb319403c1c.title": {
+        "neutral": "Tap tap away",
+        "en_US": "Tap tap away",
+        "en_GB": "Tap tap away",
+        "it_IT": "Tap tap away"
+    },
+    "challenge_6b0655aa-cc63-4876-a1e1-afb319403c1c.desc.single": {
+        "neutral": "Collect 3 tappables",
+        "en_US": "Collect 3 tappables",
+        "en_GB": "Collect 3 tappables",
+        "it_IT": "Collect 3 tappables"
+    },
+    "challenge_6d01c0d0-2ac9-4549-be82-acd7f5631950.title": {
+        "neutral": "Petting zoo",
+        "en_US": "Petting zoo",
+        "en_GB": "Petting zoo",
+        "it_IT": "Petting zoo"
+    },
+    "challenge_6d01c0d0-2ac9-4549-be82-acd7f5631950.desc.single": {
+        "neutral": "Collect 1 mob",
+        "en_US": "Collect 1 mob",
+        "en_GB": "Collect 1 mob",
+        "it_IT": "Collect 1 mob"
+    },
+    "challenge_d5cbfe47-504a-4e8a-a7b8-481de901c20f.title": {
+        "neutral": "Treasure trove",
+        "en_US": "Treasure trove",
+        "en_GB": "Treasure trove",
+        "it_IT": "Treasure trove"
+    },
+    "challenge_d5cbfe47-504a-4e8a-a7b8-481de901c20f.desc.single": {
+        "neutral": "Collect 1 tappable chest",
+        "en_US": "Collect 1 tappable chest",
+        "en_GB": "Collect 1 tappable chest",
+        "it_IT": "Collect 1 tappable chest"
+    },
+    "challenge_e7b9715a-6c27-4708-bab6-ca4c80397625.title": {
+        "neutral": "Cluck cluck",
+        "en_US": "Cluck cluck",
+        "en_GB": "Cluck cluck",
+        "it_IT": "Cluck cluck"
+    },
+    "challenge_e7b9715a-6c27-4708-bab6-ca4c80397625.desc.single": {
+        "neutral": "Collect 1 chicken",
+        "en_US": "Collect 1 chicken",
+        "en_GB": "Collect 1 chicken",
+        "it_IT": "Collect 1 chicken"
+    },
+    "challenge_2425a33a-8c73-48d9-9de9-2f11d66c8016.title": {
+        "neutral": "Ruby reward",
+        "en_US": "Ruby reward",
+        "en_GB": "Ruby reward",
+        "it_IT": "Ricompensa rubino"
+    },
+    "challenge_2425a33a-8c73-48d9-9de9-2f11d66c8016.desc.single": {
+        "neutral": "Earn a ruby from a tappable",
+        "en_US": "Earn a ruby from a tappable",
+        "en_GB": "Earn a ruby from a tappable",
+        "it_IT": "Ottieni un rubino da un oggetto sulla mappa"
+    },
+    "profile.activity_log_daily_gift": {
+        "en_US": "Daily Login Completed",
+        "neutral": "Daily Login Completed"
+    },
+    "daily_login.title": {
+        "en_US": "Daily Goodies!",
+        "neutral": "Daily Goodies!"
+    },
+    "daily_login.login_bonus": {
+        "en_US": "Login Bonuses",
+        "neutral": "Login Bonuses"
+    },
+    "daily_login.day_7": {
+        "en_US": "Day 7",
+        "neutral": "Day 7"
+    },
+    "daily_login.todo": {
+        "en_US": "Things to do Today",
+        "neutral": "Things to do Today"
+    },
+    "daily_login.adventure_crystal": {
+        "en_US": "Daily Gift",
+        "neutral": "Daily Gift"
+    },
+    "daily_login.slots_full": {
+        "en_US": "Slots full!",
+        "neutral": "Slots full!"
     }
 }

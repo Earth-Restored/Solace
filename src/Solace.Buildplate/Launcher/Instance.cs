@@ -597,6 +597,12 @@ public sealed class Instance
 
             if (response is null)
             {
+                if (!returnResponse)
+                {
+                    Log.Warning($"Event bus request '{type}' returned no response for fire-and-forget message");
+                    return default;
+                }
+
                 Log.Error("Event bus request failed (no response)");
                 BeginShutdown();
                 return default;

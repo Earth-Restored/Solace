@@ -56,7 +56,8 @@ internal sealed record BuildplateInstance(
             [JsonStringEnumMemberName("Buildplate")] BUILDPLATE,
             [JsonStringEnumMemberName("BuildplatePlay")] BUILDPLATE_PLAY,
             [JsonStringEnumMemberName("SharedBuildplatePlay")] SHARED_BUILDPLATE_PLAY,
-            [JsonStringEnumMemberName("Encounter")] ENCOUNTER
+            [JsonStringEnumMemberName("Encounter")] ENCOUNTER,
+            [JsonStringEnumMemberName("PlayerAdventure")] PLAYER_ADVENTURE
 #pragma warning restore CA1707 // Identifiers should not contain underscores
         }
     }

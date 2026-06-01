@@ -48,6 +48,10 @@ public sealed class Tokens
     [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
     [JsonDerivedType(typeof(LevelUpToken), "LEVEL_UP")]
     [JsonDerivedType(typeof(JournalItemUnlockedToken), "JOURNAL_ITEM_UNLOCKED")]
+    [JsonDerivedType(typeof(DailyLoginToken), "DAILY_LOGIN")]
+    [JsonDerivedType(typeof(OobeAdventureCrystalToken), "OOBE_ADVENTURE_CRYSTAL")]
+    [JsonDerivedType(typeof(ChallengeProgressToken), "CHALLENGE_PROGRESS")]
+    [JsonDerivedType(typeof(ChallengeCompletedToken), "CHALLENGE_COMPLETED")]
     public abstract class Token
     {
         [JsonIgnore]
@@ -63,7 +67,11 @@ public sealed class Tokens
         {
 #pragma warning disable CA1707 // Identifiers should not contain underscores
             LEVEL_UP,
-            JOURNAL_ITEM_UNLOCKED
+            JOURNAL_ITEM_UNLOCKED,
+            DAILY_LOGIN,
+            OOBE_ADVENTURE_CRYSTAL,
+            CHALLENGE_PROGRESS,
+            CHALLENGE_COMPLETED
 #pragma warning restore CA1707 // Identifiers should not contain underscores
         }
     }
@@ -89,6 +97,58 @@ public sealed class Tokens
             : base(TypeE.JOURNAL_ITEM_UNLOCKED)
         {
             ItemId = itemId;
+        }
+    }
+
+    public sealed class DailyLoginToken : Token
+    {
+        public string Date { get; init; }
+        public Rewards Rewards { get; init; }
+
+        public DailyLoginToken(string date, Rewards rewards)
+            : base(TypeE.DAILY_LOGIN)
+        {
+            Date = date;
+            Rewards = rewards;
+        }
+    }
+
+    public sealed class OobeAdventureCrystalToken : Token
+    {
+        public string ItemId { get; init; }
+        public Rewards Rewards { get; init; }
+
+        public OobeAdventureCrystalToken(string itemId, Rewards rewards)
+            : base(TypeE.OOBE_ADVENTURE_CRYSTAL)
+        {
+            ItemId = itemId;
+            Rewards = rewards;
+        }
+    }
+
+    public sealed class ChallengeProgressToken : Token
+    {
+        public string ChallengeId { get; init; }
+        public string ChallengeReferenceId { get; init; }
+
+        public ChallengeProgressToken(string challengeId, string challengeReferenceId)
+            : base(TypeE.CHALLENGE_PROGRESS)
+        {
+            ChallengeId = challengeId;
+            ChallengeReferenceId = challengeReferenceId;
+        }
+    }
+
+    public sealed class ChallengeCompletedToken : Token
+    {
+        public string ChallengeId { get; init; }
+        public string ChallengeReferenceId { get; init; }
+
+        public ChallengeCompletedToken(string challengeId, string challengeReferenceId)
+            : base(TypeE.CHALLENGE_COMPLETED)
+        {
+            ChallengeId = challengeId;
+            ChallengeReferenceId = challengeReferenceId;
         }
     }
 }

@@ -30,6 +30,10 @@ public class EarthApiResponse
     {
         public Dictionary<string, int?> Map = [];
 
+        public UpdatesResponse()
+        {
+        }
+
         public UpdatesResponse(EarthDB.Results results)
         {
             Dictionary<string, int?> updates = results.GetUpdates();

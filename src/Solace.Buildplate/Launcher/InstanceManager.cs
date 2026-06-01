@@ -26,6 +26,7 @@ public sealed class InstanceManager
         SHARED_BUILD,
         SHARED_PLAY,
         ENCOUNTER,
+        PLAYER_ADVENTURE,
     }
 
     private sealed record StartRequest(
@@ -134,6 +135,7 @@ public sealed class InstanceManager
 
                             break;
                         case InstanceType.ENCOUNTER:
+                        case InstanceType.PLAYER_ADVENTURE:
                             {
                                 survival = true;
                                 saveEnabled = false;

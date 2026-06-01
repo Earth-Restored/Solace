@@ -9,6 +9,8 @@ namespace Solace.ApiServer.Utils;
 public sealed class BuildplateInstancesManager
 {
     private readonly EventBusClient _eventBusClient;
+    private readonly SemaphoreSlim _requestSenderLock = new(1, 1);
+    private readonly SemaphoreSlim _startLock = new(1, 1);
     private Subscriber _subscriber = null!;
     private RequestSender _requestSender = null!;
 
@@ -42,16 +44,19 @@ public sealed class BuildplateInstancesManager
 
     public async Task<string?> RequestBuildplateInstance(string? playerId, string? encounterId, string buildplateId, InstanceType type, long shutdownTime, bool night)
     {
-        if (playerId is null && type is not InstanceType.ENCOUNTER)
+        if (playerId is null && type is not InstanceType.ENCOUNTER and not InstanceType.PLAYER_ADVENTURE)
         {
-            throw new ArgumentException($"{nameof(playerId)} cannot be null when {nameof(type)} is not {nameof(InstanceType.ENCOUNTER)}.");
+            throw new ArgumentException($"{nameof(playerId)} cannot be null when {nameof(type)} is not {nameof(InstanceType.ENCOUNTER)} or {nameof(InstanceType.PLAYER_ADVENTURE)}.");
         }
 
-        if (encounterId is not null && type is not InstanceType.ENCOUNTER)
+        if (encounterId is not null && type is not InstanceType.ENCOUNTER and not InstanceType.PLAYER_ADVENTURE)
         {
-            throw new ArgumentException($"{nameof(encounterId)} can only be set when {nameof(type)} is {nameof(InstanceType.ENCOUNTER)}.");
+            throw new ArgumentException($"{nameof(encounterId)} can only be set when {nameof(type)} is {nameof(InstanceType.ENCOUNTER)} or {nameof(InstanceType.PLAYER_ADVENTURE)}.");
         }
 
+        await _startLock.WaitAsync();
+        try
+        {
         if (playerId is not null && encounterId is not null)
         {
             Log.Information($"Finding buildplate instance for buildplate {buildplateId} type {type} encounter {encounterId} player {playerId}");
@@ -79,9 +84,10 @@ public sealed class BuildplateInstancesManager
                     InstanceInfo? instanceInfo = _instances.GetOrDefault(loopInstanceId);
                     if (instanceInfo is not null && !instanceInfo.ShuttingDown)
                     {
+                        bool sameEncounter = instanceInfo.EncounterId == encounterId || type is InstanceType.PLAYER_ADVENTURE;
                         if (instanceInfo.Type == type &&
                             instanceInfo.PlayerId == playerId &&
-                            instanceInfo.EncounterId == encounterId
+                            sameEncounter
                         )
                         {
                             Log.Information($"Found existing buildplate instance {loopInstanceId}");
@@ -93,7 +99,7 @@ public sealed class BuildplateInstancesManager
         }
 
         Log.Information("Did not find existing instance, starting new instance");
-        string? instanceId = await _requestSender.RequestAsync("buildplates", "start", Json.Serialize(new StartRequest(playerId, encounterId, buildplateId, night, type, shutdownTime)));
+        string? instanceId = await SendStartRequestWithTimeoutAsync(playerId, encounterId, buildplateId, night, type, shutdownTime);
         if (instanceId is null)
         {
             Log.Error("Buildplate start request was rejected/ignored");
@@ -123,6 +129,47 @@ public sealed class BuildplateInstancesManager
         }
 
         return instanceId;
+        }
+        finally
+        {
+            _startLock.Release();
+        }
+    }
+
+    private async Task<string?> SendStartRequestWithTimeoutAsync(string? playerId, string? encounterId, string buildplateId, bool night, InstanceType type, long shutdownTime)
+    {
+        await _requestSenderLock.WaitAsync();
+        try
+        {
+            Task<string?> responseTask = _requestSender.RequestAsync("buildplates", "start", Json.Serialize(new StartRequest(playerId, encounterId, buildplateId, night, type, shutdownTime)));
+            Task timeoutTask = Task.Delay(TimeSpan.FromSeconds(8));
+            if (await Task.WhenAny(responseTask, timeoutTask) == responseTask)
+            {
+                return await responseTask;
+            }
+
+            Log.Warning("Buildplate start request timed out for buildplate {BuildplateId}; resetting sender", buildplateId);
+            await ResetRequestSenderAsync();
+            return null;
+        }
+        finally
+        {
+            _requestSenderLock.Release();
+        }
+    }
+
+    private async Task ResetRequestSenderAsync()
+    {
+        try
+        {
+            await _requestSender.CloseAsync();
+        }
+        catch (Exception exception)
+        {
+            Log.Warning(exception, "Could not close stale buildplates request sender");
+        }
+
+        _requestSender = await _eventBusClient.AddRequestSenderAsync();
     }
 
     public InstanceInfo? GetInstanceInfo(string instanceId)
@@ -156,7 +203,7 @@ public sealed class BuildplateInstancesManager
                     try
                     {
                         startNotification = Json.Deserialize<StartNotification>(@event.Data)!;
-                        if (startNotification.PlayerId is null && startNotification.Type is not InstanceType.ENCOUNTER)
+                        if (startNotification.PlayerId is null && startNotification.Type is not InstanceType.ENCOUNTER and not InstanceType.PLAYER_ADVENTURE)
                         {
                             Log.Warning("Bad start notification");
                             return Task.CompletedTask;
@@ -300,6 +347,7 @@ public sealed class BuildplateInstancesManager
         SHARED_BUILD,
         SHARED_PLAY,
         ENCOUNTER,
+        PLAYER_ADVENTURE,
 #pragma warning restore CA1707 // Identifiers should not contain underscores
     }
 

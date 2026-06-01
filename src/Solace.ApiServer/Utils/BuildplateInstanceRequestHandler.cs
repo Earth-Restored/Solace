@@ -184,6 +184,11 @@ public sealed class BuildplateInstanceRequestHandler
                    Log.Error($"Database error while handling request: {ex}");
                    return null;
                }
+               catch (Exception ex)
+               {
+                   Log.Error($"Unexpected error while handling buildplates request '{request.Type}': {ex}");
+                   return null;
+               }
            },
            async () =>
            {
@@ -273,7 +278,23 @@ public sealed class BuildplateInstanceRequestHandler
         EncounterBuildplates.EncounterBuildplate? encounterBuildplate = encounterBuildplates.GetEncounterBuildplate(encounterBuildplateId);
         if (encounterBuildplate is null)
         {
-            return null;
+            EarthDB.ObjectResults objectResults = await new EarthDB.ObjectQuery(false)
+                .GetBuildplate(encounterBuildplateId)
+                .ExecuteAsync(_earthDB);
+            TemplateBuildplate? templateBuildplate = objectResults.GetBuildplate(encounterBuildplateId);
+            if (templateBuildplate is null)
+            {
+                return null;
+            }
+
+            byte[]? templateServerData = await _objectStoreClient.GetAsync(templateBuildplate.ServerDataObjectId);
+            if (templateServerData is null)
+            {
+                Log.Error($"Data object {templateBuildplate.ServerDataObjectId} for template buildplate {encounterBuildplateId} could not be loaded from object store");
+                return null;
+            }
+
+            return new BuildplateLoadResponse(Convert.ToBase64String(templateServerData));
         }
 
         byte[]? serverData = await _objectStoreClient.GetAsync(encounterBuildplate.ServerDataObjectId);
@@ -509,6 +530,7 @@ public sealed class BuildplateInstanceRequestHandler
 
                 break;
             case BuildplateInstancesManager.InstanceType.ENCOUNTER:
+            case BuildplateInstancesManager.InstanceType.PLAYER_ADVENTURE:
                 {
                     EarthDB.Results results = await new EarthDB.Query(true)
                         .Get("inventory", playerConnectedRequest.Uuid, typeof(Inventory))
@@ -528,13 +550,25 @@ public sealed class BuildplateInstanceRequestHandler
                                 {
                                     if (item.InstanceId is null)
                                     {
-                                        inventory.TakeItems(item.Uuid, item.Count);
+                                        if (!inventory.TakeItems(item.Uuid, item.Count))
+                                        {
+                                            hotbar.Items[index] = null;
+                                            continue;
+                                        }
+
                                         inventoryResponseStackableItems[item.Uuid] = inventoryResponseStackableItems.GetValueOrDefault(item.Uuid, 0) + item.Count;
                                         inventoryResponseHotbar[index] = new InventoryResponse.HotbarItem(item.Uuid, item.Count, null);
                                     }
                                     else
                                     {
-                                        int wear = inventory.TakeItems(item.Uuid, [item.InstanceId])![0].Wear;
+                                        NonStackableItemInstance[]? takenItems = inventory.TakeItems(item.Uuid, [item.InstanceId]);
+                                        if (takenItems is null || takenItems.Length == 0)
+                                        {
+                                            hotbar.Items[index] = null;
+                                            continue;
+                                        }
+
+                                        int wear = takenItems[0].Wear;
                                         inventoryResponseNonStackableItems.AddLast(new InventoryResponse.Item(item.Uuid, 1, item.InstanceId, wear));
                                         inventoryResponseHotbar[index] = new InventoryResponse.HotbarItem(item.Uuid, 1, item.InstanceId);
                                     }
@@ -586,14 +620,14 @@ public sealed class BuildplateInstanceRequestHandler
             return null;
         }
 
-        bool usesBackpack = instanceInfo.Type == BuildplateInstancesManager.InstanceType.ENCOUNTER;
+        bool usesBackpack = instanceInfo.Type is BuildplateInstancesManager.InstanceType.ENCOUNTER or BuildplateInstancesManager.InstanceType.PLAYER_ADVENTURE;
         if (usesBackpack)
         {
             InventoryResponse? backpackContents = playerDisconnectedRequest.BackpackContents;
             if (backpackContents is null)
             {
-                Log.Error("Expected backpack contents in player disconnected request");
-                return null;
+                Log.Warning("Expected backpack contents in player disconnected request; closing instance without inventory merge");
+                return new PlayerDisconnectedResponse();
             }
 
             EarthDB.Results results = await new EarthDB.Query(true)
@@ -605,8 +639,14 @@ public sealed class BuildplateInstanceRequestHandler
                     Journal journal = results1.Get<Journal>("journal");
 
                     LinkedList<string> unlockedJournalItems = [];
-                    foreach (InventoryResponse.Item item in backpackContents.Items)
+                    InventoryResponse.Item[] backpackItems = backpackContents.Items ?? [];
+                    foreach (InventoryResponse.Item item in backpackItems)
                     {
+                        if (item is null || item.Count <= 0)
+                        {
+                            continue;
+                        }
+
                         Catalog.ItemsCatalogR.Item? catalogItem = _catalog.ItemsCatalog.GetItem(item.Id);
                         if (catalogItem is null)
                         {
@@ -642,10 +682,11 @@ public sealed class BuildplateInstanceRequestHandler
                     }
 
                     var hotbar = new Hotbar();
-                    for (int index = 0; index < 7; index++)
+                    InventoryResponse.HotbarItem?[] backpackHotbar = backpackContents.Hotbar ?? [];
+                    for (int index = 0; index < 7 && index < backpackHotbar.Length; index++)
                     {
-                        InventoryResponse.HotbarItem? hotbarItem = backpackContents.Hotbar[index];
-                        if (hotbarItem is not null)
+                        InventoryResponse.HotbarItem? hotbarItem = backpackHotbar[index];
+                        if (hotbarItem is not null && _catalog.ItemsCatalog.GetItem(hotbarItem.Id) is not null && hotbarItem.Count > 0)
                         {
                             hotbar.Items[index] = new Hotbar.Item(hotbarItem.Id, hotbarItem.Count, hotbarItem.InstanceId);
                         }
@@ -700,6 +741,7 @@ public sealed class BuildplateInstanceRequestHandler
             BuildplateInstancesManager.InstanceType.SHARED_BUILD => (false, false),
             BuildplateInstancesManager.InstanceType.SHARED_PLAY => (false, true),
             BuildplateInstancesManager.InstanceType.ENCOUNTER => (true, true),
+            BuildplateInstancesManager.InstanceType.PLAYER_ADVENTURE => (true, true),
             _ => (false, false),
         };
 
@@ -924,9 +966,10 @@ public sealed class BuildplateInstanceRequestHandler
                 Inventory inventory = results1.Get<Inventory>("inventory");
 
                 var hotbar = new Hotbar();
+                InventorySetHotbarMessage.Item[] requestedItems = inventorySetHotbarMessage.Items ?? [];
                 for (int index = 0; index < hotbar.Items.Length; index++)
                 {
-                    InventorySetHotbarMessage.Item item = inventorySetHotbarMessage.Items[index];
+                    InventorySetHotbarMessage.Item? item = index < requestedItems.Length ? requestedItems[index] : null;
                     hotbar.Items[index] = item is not null ? new Hotbar.Item(item.ItemId, item.Count, item.InstanceId) : null;
                 }
 

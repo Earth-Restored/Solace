@@ -28,6 +28,11 @@ internal sealed class BoostsController : SolaceControllerBase
         Catalog.ItemsCatalogR.Item.BoostInfoR BoostInfo
     );
 
+    private sealed record ActiveMiniFigInfo(
+        Boosts.ActiveMiniFig ActiveMiniFig,
+        Catalog.NFCBoostsCatalogR.MiniFig MiniFig
+    );
+
     [HttpGet("boosts")]
     public async Task<Results<ContentHttpResult, BadRequest>> GetBoosts(CancellationToken cancellation)
     {
@@ -52,13 +57,24 @@ internal sealed class BoostsController : SolaceControllerBase
                     Boosts boosts = results1.Get<Boosts>("boosts");
                     Profile profile = results1.Get<Profile>("profile");
 
-                    return PruneBoostsAndUpdateProfile(boosts, profile, requestStartedOn, catalog.ItemsCatalog)
-                        ? new EarthDB.Query(true)
-                            .Update("boosts", playerId, boosts)
-                            .Update("profile", playerId, profile)
-                            .Extra("boosts", boosts)
-                        : new EarthDB.Query(false)
+                    bool profileChanged = PruneBoostsAndUpdateProfile(boosts, profile, requestStartedOn, catalog.ItemsCatalog);
+                    bool miniFigsChanged = boosts.PruneMiniFigs(requestStartedOn).Length > 0;
+                    if (!profileChanged && !miniFigsChanged)
+                    {
+                        return new EarthDB.Query(false)
                             .Extra("boosts", boosts);
+                    }
+
+                    var updateQuery = new EarthDB.Query(true)
+                        .Update("boosts", playerId, boosts)
+                        .Extra("boosts", boosts);
+
+                    if (profileChanged)
+                    {
+                        updateQuery.Update("profile", playerId, profile);
+                    }
+
+                    return updateQuery;
                 })
                 .ExecuteAsync(earthDB, cancellation);
         }
@@ -140,30 +156,153 @@ internal sealed class BoostsController : SolaceControllerBase
             scenarioBoosts["death"] = [.. triggeredOnDeathBoosts];
         }
 
+        // The 0.33 client is fragile around partially implemented Boost Mini state.
+        // Keep NFC activation accepted, but do not surface minifig records/effects in the boosts menu yet.
+        Types.Boost.Boosts.MiniFig?[] miniFigs = new Types.Boost.Boosts.MiniFig?[5];
+        Dictionary<string, Types.Boost.Boosts.MiniFigRecord> miniFigRecords = [];
+
         BoostUtils.StatModiferValues statModiferValues = BoostUtils.GetActiveStatModifiers(boosts, requestStartedOn, catalog.ItemsCatalog);
+        int tappableInteractionRadiusExtraMeters = statModiferValues.TappableInteractionRadiusExtraMeters;
+        int experiencePointRate = 0;
+        int itemExperiencePointRates = 0;
+        int attackMultiplier = statModiferValues.AttackMultiplier;
+        int defenseMultiplier = statModiferValues.DefenseMultiplier;
+        int miningSpeedMultiplier = statModiferValues.MiningSpeedMultiplier;
+        int maxPlayerHealthMultiplier = statModiferValues.MaxPlayerHealthMultiplier;
+        int craftingSpeedMultiplier = statModiferValues.CraftingSpeedMultiplier;
+        int smeltingSpeedMultiplier = statModiferValues.SmeltingSpeedMultiplier;
+        int foodMultiplier = statModiferValues.FoodMultiplier;
 
         var boostsResponse = new Types.Boost.Boosts(
             potions,
-            new Types.Boost.Boosts.MiniFig[5],
+            miniFigs,
             [.. activeEffects],
             scenarioBoosts,
             new Types.Boost.Boosts.StatusEffectsR(
-                statModiferValues.TappableInteractionRadiusExtraMeters > 0 ? statModiferValues.TappableInteractionRadiusExtraMeters + 70 : null,
-                null,
-                null,
-                statModiferValues.AttackMultiplier > 0 ? statModiferValues.AttackMultiplier + 100 : null,
-                statModiferValues.DefenseMultiplier > 0 ? statModiferValues.DefenseMultiplier + 100 : null,
-                statModiferValues.MiningSpeedMultiplier > 0 ? statModiferValues.MiningSpeedMultiplier + 100 : null,
-                statModiferValues.MaxPlayerHealthMultiplier > 0 ? 20 * statModiferValues.MaxPlayerHealthMultiplier / 100 + 20 : 20,
-                statModiferValues.CraftingSpeedMultiplier > 0 ? statModiferValues.CraftingSpeedMultiplier / 100 + 1 : null,
-                statModiferValues.SmeltingSpeedMultiplier > 0 ? statModiferValues.SmeltingSpeedMultiplier / 100 + 1 : null,
-                statModiferValues.FoodMultiplier > 0 ? (statModiferValues.FoodMultiplier + 100) / 100f : null
+                tappableInteractionRadiusExtraMeters > 0 ? tappableInteractionRadiusExtraMeters + 70 : null,
+                experiencePointRate > 0 ? experiencePointRate + 100 : null,
+                itemExperiencePointRates > 0 ? itemExperiencePointRates + 100 : null,
+                attackMultiplier > 0 ? attackMultiplier + 100 : null,
+                defenseMultiplier > 0 ? defenseMultiplier + 100 : null,
+                miningSpeedMultiplier > 0 ? miningSpeedMultiplier + 100 : null,
+                maxPlayerHealthMultiplier > 0 ? 20 * maxPlayerHealthMultiplier / 100 + 20 : 20,
+                craftingSpeedMultiplier > 0 ? craftingSpeedMultiplier / 100 + 1 : null,
+                smeltingSpeedMultiplier > 0 ? smeltingSpeedMultiplier / 100 + 1 : null,
+                foodMultiplier > 0 ? (foodMultiplier + 100) / 100f : null
             ),
-            [],
-            activeBoostsWithInfo.Count != 0 ? TimeFormatter.FormatTime(activeBoostsWithInfo.Values.Select(activeBoostInfo => activeBoostInfo.ActiveBoost.StartTime + activeBoostInfo.ActiveBoost.Duration).Min()) : null
+            miniFigRecords,
+            activeBoostsWithInfo.Count != 0
+                ? TimeFormatter.FormatTime(
+                    activeBoostsWithInfo.Values
+                        .Select(activeBoostInfo => activeBoostInfo.ActiveBoost.StartTime + activeBoostInfo.ActiveBoost.Duration)
+                        .Min()
+                )
+                : null
         );
 
         return EarthJson(boostsResponse, new EarthApiResponse.UpdatesResponse(results));
+    }
+
+    [HttpGet("boosts/players/{playerId}/latest")]
+    public Task<Results<ContentHttpResult, BadRequest>> GetLatestBoosts(string playerId, CancellationToken cancellation)
+        => GetBoosts(cancellation);
+
+    [HttpPost("boosts/minifigs/{productId}/{id}/activate")]
+    public async Task<Results<ContentHttpResult, BadRequest>> ActivateMiniFig(string productId, string id, CancellationToken cancellationToken)
+    {
+        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(playerId))
+        {
+            return TypedResults.BadRequest();
+        }
+
+        Catalog.NFCBoostsCatalogR.MiniFig? miniFig = catalog.NfcBoostsCatalog.GetMiniFig(productId);
+        string resolvedProductId = productId;
+        string tagId = id;
+        if (miniFig is null)
+        {
+            Catalog.NFCBoostsCatalogR.MiniFig? swappedMiniFig = catalog.NfcBoostsCatalog.GetMiniFig(id);
+            if (swappedMiniFig is not null)
+            {
+                miniFig = swappedMiniFig;
+                resolvedProductId = id;
+                tagId = productId;
+            }
+        }
+
+        if (miniFig is null)
+        {
+            miniFig = catalog.NfcBoostsCatalog.MiniFigs.FirstOrDefault(static candidate => !candidate.Deprecated);
+            if (miniFig is not null)
+            {
+                resolvedProductId = miniFig.Id;
+                tagId = $"{productId}:{id}";
+                Log.Information("Unknown NFC minifig product {ProductId} tag {TagId}; using fallback product {FallbackProductId}", productId, id, resolvedProductId);
+            }
+        }
+
+        if (miniFig is null || miniFig.Deprecated)
+        {
+            return TypedResults.BadRequest();
+        }
+
+        long requestStartedOn = HttpContext.GetTimestamp();
+        long duration = GetMiniFigDuration(miniFig);
+
+        try
+        {
+            EarthDB.Results results = await new EarthDB.Query(true)
+                .Get("boosts", playerId, typeof(Boosts))
+                .Then(results1 =>
+                {
+                    Boosts boosts = results1.Get<Boosts>("boosts");
+                    boosts.PruneMiniFigs(requestStartedOn);
+
+                    int slot = -1;
+                    for (int index = 0; index < boosts.ActiveMiniFigs.Length; index++)
+                    {
+                        Boosts.ActiveMiniFig? activeMiniFig = boosts.ActiveMiniFigs[index];
+                        if (activeMiniFig is not null && (activeMiniFig.TagId == tagId || activeMiniFig.ProductId == resolvedProductId))
+                        {
+                            slot = index;
+                            break;
+                        }
+                    }
+
+                    if (slot == -1)
+                    {
+                        for (int index = 0; index < boosts.ActiveMiniFigs.Length; index++)
+                        {
+                            if (boosts.ActiveMiniFigs[index] is null)
+                            {
+                                slot = index;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (slot == -1)
+                    {
+                        return new EarthDB.Query(false);
+                    }
+
+                    boosts.ActiveMiniFigs[slot] = new Boosts.ActiveMiniFig(U.RandomUuid().ToString(), resolvedProductId, tagId, requestStartedOn, duration);
+                    boosts.MiniFigRecords[tagId] = boosts.MiniFigRecords.TryGetValue(tagId, out Boosts.MiniFigRecord? existingRecord)
+                        ? existingRecord with { LastSeen = requestStartedOn, Activations = existingRecord.Activations + 1 }
+                        : new Boosts.MiniFigRecord(resolvedProductId, tagId, requestStartedOn, 1);
+
+                    return new EarthDB.Query(true)
+                        .Update("boosts", playerId, boosts)
+                        .Then(ActivityLogUtils.AddEntry(playerId, new ActivityLog.BoostActivatedEntry(requestStartedOn, resolvedProductId)));
+                })
+                .ExecuteAsync(earthDB, cancellationToken);
+
+            return EarthJson(null, new EarthApiResponse.UpdatesResponse(results));
+        }
+        catch (EarthDB.DatabaseException exception)
+        {
+            throw new ServerErrorException(exception);
+        }
     }
 
     [HttpPost("boosts/potions/{itemId}/activate")]
@@ -277,6 +416,7 @@ internal sealed class BoostsController : SolaceControllerBase
     }
 
     [HttpDelete("boosts/{instanceId}")]
+    [HttpDelete("boosts/{instanceId}/deactivate")]
     public async Task<Results<ContentHttpResult, BadRequest>> DeactivateBoost(string instanceId, CancellationToken cancellationToken)
     {
         string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -304,13 +444,20 @@ internal sealed class BoostsController : SolaceControllerBase
                     }
 
                     Boosts.ActiveBoost? activeBoost = boosts.Get(instanceId);
-                    if (activeBoost is null)
+                    Boosts.ActiveMiniFig? activeMiniFig = boosts.GetMiniFig(instanceId);
+                    if (activeBoost is null && activeMiniFig is null)
                     {
                         return new EarthDB.Query(false);
                     }
 
-                    Catalog.ItemsCatalogR.Item? item = catalog.ItemsCatalog.GetItem(activeBoost.ItemId);
-                    if (item is null || item.BoostInfo is null || !item.BoostInfo.CanBeRemoved)
+                    Catalog.ItemsCatalogR.Item? item = activeBoost is null ? null : catalog.ItemsCatalog.GetItem(activeBoost.ItemId);
+                    Catalog.NFCBoostsCatalogR.MiniFig? miniFig = activeMiniFig is null ? null : catalog.NfcBoostsCatalog.GetMiniFig(activeMiniFig.ProductId);
+                    if (activeBoost is not null && (item is null || item.BoostInfo is null || !item.BoostInfo.CanBeRemoved))
+                    {
+                        return new EarthDB.Query(false);
+                    }
+
+                    if (activeMiniFig is not null && (miniFig is null || !miniFig.BoostMetadata.CanBeRemoved))
                     {
                         return new EarthDB.Query(false);
                     }
@@ -325,7 +472,18 @@ internal sealed class BoostsController : SolaceControllerBase
                         }
                     }
 
-                    if (item.BoostInfo.Effects.Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.TypeE.HEALTH))
+                    for (int index = 0; index < boosts.ActiveMiniFigs.Length; index++)
+                    {
+                        var boost = boosts.ActiveMiniFigs[index];
+
+                        if (boost is not null && boost.InstanceId == instanceId)
+                        {
+                            boosts.ActiveMiniFigs[index] = null;
+                        }
+                    }
+
+                    if (item?.BoostInfo?.Effects.Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.TypeE.HEALTH) == true
+                        || miniFig?.BoostMetadata.Effects.Any(effect => effect.Type == "MaximumPlayerHealth") == true)
                     {
                         profileChanged = true;
                         int maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, catalog.ItemsCatalog);
@@ -372,4 +530,27 @@ internal sealed class BoostsController : SolaceControllerBase
 
         return profileChanged;
     }
+
+    private static long GetMiniFigDuration(Catalog.NFCBoostsCatalogR.MiniFig miniFig)
+    {
+        string? duration = miniFig.BoostMetadata.ActiveDuration
+            ?? miniFig.BoostMetadata.Effects.FirstOrDefault(effect => !string.IsNullOrEmpty(effect.Duration))?.Duration;
+
+        return duration is null
+            ? 10 * 60 * 1000
+            : TimeFormatter.ParseDuration(duration);
+    }
+
+    private static Effect NfcBoostEffectToApiResponse(Catalog.NFCBoostsCatalogR.EffectR effect)
+        => new Effect(
+            effect.Type,
+            effect.Duration,
+            effect.Value is null ? null : (int)Math.Round(effect.Value.Value),
+            effect.Unit,
+            effect.Targets,
+            effect.Items,
+            effect.ItemScenarios,
+            effect.Activation,
+            effect.ModifiesType
+        );
 }

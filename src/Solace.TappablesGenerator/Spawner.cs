@@ -28,7 +28,8 @@ public class Spawner
         _encounterGenerator = encounterGenerator;
         _publisher = publisher;
 
-        _maxTappableLifetimeIntervals = (int)(long.Max(TappableGenerator.GetMaxTappableLifetime(), _encounterGenerator.GetMaxEncounterLifetime()) / SPAWN_INTERVAL + 1);
+        long maxLifetime = long.Max(TappableGenerator.GetMaxTappableLifetime(), _encounterGenerator.GetMaxEncounterLifetime());
+        _maxTappableLifetimeIntervals = (int)(maxLifetime / SPAWN_INTERVAL + 1);
 
         _spawnCycleTime = U.CurrentTimeMillis();
         _spawnCycleIndex = _maxTappableLifetimeIntervals;
@@ -165,5 +166,6 @@ public class Spawner
         {
             Log.Error("Event bus server rejected encounter spawn event");
         }
+
     }
 }

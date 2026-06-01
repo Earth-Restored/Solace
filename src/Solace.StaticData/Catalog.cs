@@ -503,8 +503,12 @@ public sealed class Catalog
     public sealed class NFCBoostsCatalogR
     {
         private sealed record NFCBoostsCatalogFile(
-        // TODO
+            MiniFig[] MiniFigs
         );
+
+        public readonly ImmutableArray<MiniFig> MiniFigs;
+
+        private readonly Dictionary<string, MiniFig> miniFigsById = [];
 
         internal NFCBoostsCatalogR(string file)
         {
@@ -514,12 +518,58 @@ public sealed class Catalog
                 nfcBoostsCatalogFile = Json.Deserialize<NFCBoostsCatalogFile>(stream);
             }
 
-            // TODO
+            Debug.Assert(nfcBoostsCatalogFile is not null);
+            MiniFigs = ImmutableCollectionsMarshal.AsImmutableArray(nfcBoostsCatalogFile.MiniFigs);
+
+            foreach (MiniFig miniFig in MiniFigs)
+            {
+                if (!miniFigsById.TryAdd(miniFig.Id, miniFig))
+                {
+                    throw new StaticDataException($"Duplicate NFC mini fig ID {miniFig.Id}");
+                }
+            }
         }
 
-        public sealed record BoostInfo
-        {
+        public MiniFig? GetMiniFig(string id)
+            => miniFigsById.GetValueOrDefault(id);
 
-        }
+        public sealed record MiniFig(
+            string Id,
+            BoostMetadataR BoostMetadata,
+            string Name,
+            bool Deprecated,
+            string ToolsVersion,
+            RewardsR Rewards
+        );
+
+        public sealed record RewardsR(
+            int? Rubies,
+            int? ExperiencePoints
+        );
+
+        public sealed record BoostMetadataR(
+            string Name,
+            string Attribute,
+            bool CanBeDeactivated,
+            bool CanBeRemoved,
+            string? ActiveDuration,
+            bool Additive,
+            int? Level,
+            EffectR[] Effects,
+            string? Scenario,
+            string? Cooldown
+        );
+
+        public sealed record EffectR(
+            string Type,
+            string? Duration,
+            double? Value,
+            string? Unit,
+            string Targets,
+            string[] Items,
+            string[] ItemScenarios,
+            string Activation,
+            string? ModifiesType
+        );
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using System.Text.RegularExpressions;
+using Solace.ApiServer.Utils;
 using Solace.Common.Utils;
 
 namespace Solace.ApiServer.Controllers;
@@ -39,6 +40,8 @@ internal sealed partial class SigninController : SolaceControllerBase
         }
 
         // TODO: check credentials
+
+        await TokenUtils.EnsureDailyLoginToken(userId.ToLowerInvariant(), cancellationToken);
 
         // TODO: generate secure session token
         string token = userId.ToUpperInvariant();

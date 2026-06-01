@@ -11,6 +11,7 @@ using Solace.ApiServer.Exceptions;
 using Solace.ApiServer.Types.Buildplates;
 using Solace.ApiServer.Types.Common;
 using Solace.ApiServer.Types.Inventory;
+using Solace.ApiServer.Types.Tappables;
 using Solace.ApiServer.Utils;
 using Solace.Common.Utils;
 using Solace.DB;
@@ -27,6 +28,7 @@ namespace Solace.ApiServer.Controllers.EarthApi;
 [Route("1/api/v{version:apiVersion}")]
 internal sealed class BuildplatesController : SolaceControllerBase
 {
+    private static readonly SemaphoreSlim AdventureScrollLock = new(1, 1);
     private static EarthDB earthDB => Program.DB;
     private static BuildplateInstancesManager buildplateInstancesManager => Program.buildplateInstancesManager;
     private static Catalog catalog => Program.staticData.Catalog;
@@ -329,6 +331,15 @@ internal sealed class BuildplatesController : SolaceControllerBase
         string TileId
     );
 
+    private sealed record AdventureScrollRequest(
+        Coordinate? Coordinate,
+        Coordinate? PlayerCoordinate,
+        float? Latitude,
+        float? Longitude,
+        float? Lat,
+        float? Lon
+    );
+
     [HttpPost("multiplayer/encounters/{encounterId}/instances")]
     public async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> CreateEncounterInstance(string encounterId, CancellationToken cancellationToken)
     {
@@ -343,6 +354,166 @@ internal sealed class BuildplatesController : SolaceControllerBase
         return encounterInstanceRequest is null
             ? TypedResults.BadRequest()
             : await GetNewEncounterBuildplateInstanceResponse(encounterId, encounterInstanceRequest.TileId, tappablesManager, cancellationToken);
+    }
+
+    [HttpPost("multiplayer/adventures/{adventureId}/instances")]
+    [HttpPost("multiplayer/player/adventures/{adventureId}/instances")]
+    public async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> CreateAdventureInstance(string adventureId, CancellationToken cancellationToken)
+    {
+        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(playerId))
+        {
+            return TypedResults.BadRequest();
+        }
+
+        var adventureInstanceRequest = await Request.Body.AsJsonAsync<EncounterInstanceRequest>(cancellationToken);
+
+        return await GetNewAdventureBuildplateInstanceResponse(playerId, adventureId, adventureInstanceRequest?.TileId, tappablesManager, cancellationToken);
+    }
+
+    [HttpPost("adventures/scrolls/{itemId}")]
+    public async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> RedeemAdventureScroll(string itemId, CancellationToken cancellationToken)
+    {
+        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(playerId))
+        {
+            return TypedResults.BadRequest();
+        }
+
+        AdventureScrollRequest? request = await Request.Body.AsJsonAsync<AdventureScrollRequest>(cancellationToken);
+        if (request is null || !TryGetCoordinate(request, out float lat, out float lon))
+        {
+            return TypedResults.BadRequest();
+        }
+
+        long requestStartedOn = HttpContext.GetTimestamp();
+
+        await AdventureScrollLock.WaitAsync(cancellationToken);
+        try
+        {
+            TappablesManager.Adventure? recentAtLocation = tappablesManager.GetRecentPlayerAdventureAtLocation(playerId, lat, lon, requestStartedOn);
+            if (recentAtLocation is not null)
+            {
+                return EarthJson(AdventureToActiveLocation(recentAtLocation));
+            }
+
+            Catalog.ItemsCatalogR.Item? catalogItem;
+            string? instanceId = null;
+            DB.Models.Player.Inventory inventory;
+            try
+            {
+                EarthDB.Results readResults = await new EarthDB.Query(false)
+                    .Get("inventory", playerId, typeof(DB.Models.Player.Inventory))
+                    .ExecuteAsync(earthDB, cancellationToken);
+                inventory = readResults.Get<DB.Models.Player.Inventory>("inventory");
+            }
+            catch (EarthDB.DatabaseException exception)
+            {
+                throw new ServerErrorException(exception);
+            }
+
+            catalogItem = catalog.ItemsCatalog.GetItem(itemId);
+            if (catalogItem is null)
+            {
+                (catalogItem, instanceId) = ResolveNonStackableByInstanceId(inventory, itemId);
+            }
+
+            if (catalogItem is null || catalogItem.Type is not Catalog.ItemsCatalogR.Item.TypeE.ADVENTURE_SCROLL)
+            {
+                return TypedResults.NotFound();
+            }
+
+            string? templateId = Program.staticData.AdventuresConfig.TryPickTemplateForCrystalItem(catalogItem.Name, Random.Shared);
+            if (templateId is null)
+            {
+                return TypedResults.NotFound();
+            }
+
+            TappablesManager.Adventure? recentAdventure = tappablesManager.GetRecentPlayerAdventure(playerId, lat, lon, templateId, requestStartedOn);
+            if (recentAdventure is not null)
+            {
+                return EarthJson(AdventureToActiveLocation(recentAdventure));
+            }
+
+            DB.Models.Player.Inventory updatedInventory = inventory.Copy();
+            bool consumed = instanceId is null
+                ? updatedInventory.TakeItems(catalogItem.Id, 1)
+                : updatedInventory.TakeItems(catalogItem.Id, [instanceId]) is not null;
+            if (!consumed)
+            {
+                return TypedResults.BadRequest();
+            }
+
+            try
+            {
+                await new EarthDB.Query(true)
+                    .Update("inventory", playerId, updatedInventory)
+                    .ExecuteAsync(earthDB, cancellationToken);
+            }
+            catch (EarthDB.DatabaseException exception)
+            {
+                throw new ServerErrorException(exception);
+            }
+
+            string rarity = catalogItem.Rarity.ToString();
+            TappablesManager.Adventure adventure = tappablesManager.PlacePlayerAdventure(
+                playerId,
+                lat,
+                lon,
+                requestStartedOn,
+                60 * 60 * 1000,
+                AdventureMapIcons.ToClientMapIcon(catalogItem.Name, rarity),
+                Enum.Parse<TappablesManager.Adventure.RarityE>(rarity),
+                templateId);
+
+            PrewarmAdventureInstance(playerId, adventure);
+
+            return EarthJson(AdventureToActiveLocation(adventure));
+        }
+        finally
+        {
+            AdventureScrollLock.Release();
+        }
+    }
+
+    private static void PrewarmAdventureInstance(string playerId, TappablesManager.Adventure adventure)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await buildplateInstancesManager.RequestBuildplateInstance(
+                    playerId,
+                    adventure.Id,
+                    adventure.AdventureBuildplateId,
+                    BuildplateInstancesManager.InstanceType.PLAYER_ADVENTURE,
+                    adventure.SpawnTime + adventure.ValidFor,
+                    false);
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "Could not prewarm adventure instance {AdventureId}", adventure.Id);
+            }
+        });
+    }
+
+    [HttpGet("adventures/scrolls")]
+    public Results<ContentHttpResult, BadRequest> GetActiveAdventureScrolls()
+    {
+        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(playerId))
+        {
+            return TypedResults.BadRequest();
+        }
+
+        long requestStartedOn = HttpContext.GetTimestamp();
+        ActiveLocation[] activeLocations = [.. tappablesManager.GetAllPlayerAdventures(playerId)
+            .Where(adventure => adventure.SpawnTime + adventure.ValidFor > requestStartedOn)
+            .OrderBy(adventure => adventure.SpawnTime)
+            .Take(1)
+            .Select(AdventureToActiveLocation)];
+
+        return EarthJson(activeLocations);
     }
 
     // TODO: should we restrict this to matching player ID?
@@ -363,22 +534,25 @@ internal sealed class BuildplatesController : SolaceControllerBase
             return TypedResults.NotFound();
         }
 
-        Buildplates.Buildplate? buildplate;
-        try
+        if (instanceInfo.Type is BuildplateInstancesManager.InstanceType.BUILD or BuildplateInstancesManager.InstanceType.PLAY)
         {
-            EarthDB.Results results = await new EarthDB.Query(false)
-                    .Get("buildplates", playerId, typeof(Buildplates))
-                    .ExecuteAsync(earthDB, cancellationToken);
-            buildplate = results.Get<Buildplates>("buildplates").GetBuildplate(instanceInfo.BuildplateId);
-        }
-        catch (EarthDB.DatabaseException ex)
-        {
-            throw new ServerErrorException(ex);
-        }
+            Buildplates.Buildplate? buildplate;
+            try
+            {
+                EarthDB.Results results = await new EarthDB.Query(false)
+                        .Get("buildplates", playerId, typeof(Buildplates))
+                        .ExecuteAsync(earthDB, cancellationToken);
+                buildplate = results.Get<Buildplates>("buildplates").GetBuildplate(instanceInfo.BuildplateId);
+            }
+            catch (EarthDB.DatabaseException ex)
+            {
+                throw new ServerErrorException(ex);
+            }
 
-        if (buildplate is null)
-        {
-            return TypedResults.NotFound();
+            if (buildplate is null)
+            {
+                return TypedResults.NotFound();
+            }
         }
 
         // TODO: the client is supposed to poll until the buildplate server is ready, but instead it just crashes if we tell it that the buildplate server is not ready yet
@@ -441,7 +615,7 @@ internal sealed class BuildplatesController : SolaceControllerBase
             return TypedResults.InternalServerError();
         }
 
-        BuildplateInstancesManager.InstanceInfo? instanceInfo = buildplateInstancesManager.GetInstanceInfo(instanceId);
+        BuildplateInstancesManager.InstanceInfo? instanceInfo = await WaitForInstanceReadyAsync(instanceId, cancellationToken);
         if (instanceInfo is null)
         {
             return TypedResults.InternalServerError();
@@ -483,7 +657,7 @@ internal sealed class BuildplatesController : SolaceControllerBase
             return TypedResults.InternalServerError();
         }
 
-        BuildplateInstancesManager.InstanceInfo? instanceInfo = buildplateInstancesManager.GetInstanceInfo(instanceId);
+        BuildplateInstancesManager.InstanceInfo? instanceInfo = await WaitForInstanceReadyAsync(instanceId, cancellationToken);
         if (instanceInfo is null)
         {
             return TypedResults.InternalServerError();
@@ -513,7 +687,7 @@ internal sealed class BuildplatesController : SolaceControllerBase
             return TypedResults.InternalServerError();
         }
 
-        BuildplateInstancesManager.InstanceInfo? instanceInfo = buildplateInstancesManager.GetInstanceInfo(instanceId);
+        BuildplateInstancesManager.InstanceInfo? instanceInfo = await WaitForInstanceReadyAsync(instanceId, cancellationToken);
         if (instanceInfo is null)
         {
             return TypedResults.InternalServerError();
@@ -527,6 +701,106 @@ internal sealed class BuildplatesController : SolaceControllerBase
 
         return EarthJson(buildplateInstance);
     }
+
+    private static async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> GetNewAdventureBuildplateInstanceResponse(string playerId, string adventureId, string? tileId, TappablesManager tappablesManager, CancellationToken cancellationToken)
+    {
+        TappablesManager.Adventure? adventure = tappablesManager.GetPlayerAdventureWithId(playerId, adventureId, tileId);
+        if (adventure is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        string? instanceId = await buildplateInstancesManager.RequestBuildplateInstance(playerId, adventureId, adventure.AdventureBuildplateId, BuildplateInstancesManager.InstanceType.PLAYER_ADVENTURE, adventure.SpawnTime + adventure.ValidFor, false);
+
+        if (instanceId is null)
+        {
+            return TypedResults.InternalServerError();
+        }
+
+        BuildplateInstancesManager.InstanceInfo? instanceInfo = await WaitForInstanceReadyAsync(instanceId, cancellationToken);
+        if (instanceInfo is null)
+        {
+            return TypedResults.InternalServerError();
+        }
+
+        BuildplateInstance? buildplateInstance = await InstanceInfoToApiResponse(instanceInfo, cancellationToken);
+        if (buildplateInstance is null)
+        {
+            return TypedResults.InternalServerError();
+        }
+
+        return EarthJson(buildplateInstance);
+    }
+
+    private static async Task<BuildplateInstancesManager.InstanceInfo?> WaitForInstanceReadyAsync(string instanceId, CancellationToken cancellationToken)
+    {
+        BuildplateInstancesManager.InstanceInfo? instanceInfo;
+        int waitCount = 0;
+        do
+        {
+            instanceInfo = buildplateInstancesManager.GetInstanceInfo(instanceId);
+            if (instanceInfo is null || instanceInfo.ShuttingDown)
+            {
+                return null;
+            }
+
+            if (!instanceInfo.Ready)
+            {
+                await Task.Delay(1000, cancellationToken);
+                waitCount++;
+            }
+        }
+        while (!instanceInfo.Ready && waitCount < 90);
+
+        return instanceInfo.Ready ? instanceInfo : null;
+    }
+
+    private static bool TryGetCoordinate(AdventureScrollRequest request, out float lat, out float lon)
+    {
+        Coordinate? coordinate = request.Coordinate ?? request.PlayerCoordinate;
+        if (coordinate is not null)
+        {
+            lat = coordinate.Latitude;
+            lon = coordinate.Longitude;
+            return true;
+        }
+
+        lat = request.Latitude ?? request.Lat ?? 0;
+        lon = request.Longitude ?? request.Lon ?? 0;
+        return (request.Latitude is not null || request.Lat is not null) && (request.Longitude is not null || request.Lon is not null);
+    }
+
+    private static (Catalog.ItemsCatalogR.Item? Item, string? InstanceId) ResolveNonStackableByInstanceId(DB.Models.Player.Inventory inventory, string instanceId)
+    {
+        foreach (DB.Models.Player.Inventory.NonStackableItem item in inventory.NonStackableItems)
+        {
+            if (item.Instances.Any(instance => instance.InstanceId == instanceId))
+            {
+                return (catalog.ItemsCatalog.GetItem(item.Id), instanceId);
+            }
+        }
+
+        return (null, null);
+    }
+
+    private static ActiveLocation AdventureToActiveLocation(TappablesManager.Adventure adventure)
+        => new(
+            adventure.Id,
+            TappablesManager.LocationToTileId(adventure.Lat, adventure.Lon),
+            new Coordinate(adventure.Lat, adventure.Lon),
+            TimeFormatter.FormatTime(adventure.SpawnTime),
+            TimeFormatter.FormatTime(adventure.SpawnTime + adventure.ValidFor),
+            ActiveLocation.TypeE.PLAYER_ADVENTURE,
+            adventure.Icon,
+            new ActiveLocation.MetadataR(adventure.Id, Enum.Parse<Rarity>(adventure.Rarity.ToString())),
+            new ActiveLocation.TappableMetadataR(Enum.Parse<Rarity>(adventure.Rarity.ToString())),
+            new ActiveLocation.EncounterMetadataR(
+                ActiveLocation.EncounterMetadataR.EncounterTypeE.SHORT_4X4_PEACEFUL,
+                adventure.Id,
+                adventure.AdventureBuildplateId,
+                ActiveLocation.EncounterMetadataR.AnchorStateE.OFF,
+                "",
+                ""));
 
     [JsonConverter(typeof(JsonStringEnumConverter))]
     private enum Source
@@ -545,6 +819,7 @@ internal sealed class BuildplatesController : SolaceControllerBase
             BuildplateInstancesManager.InstanceType.SHARED_BUILD => (true, BuildplateInstance.GameplayMetadataR.GameplayModeE.SHARED_BUILDPLATE_PLAY, Source.SHARED),
             BuildplateInstancesManager.InstanceType.SHARED_PLAY => (true, BuildplateInstance.GameplayMetadataR.GameplayModeE.SHARED_BUILDPLATE_PLAY, Source.SHARED),
             BuildplateInstancesManager.InstanceType.ENCOUNTER => (true, BuildplateInstance.GameplayMetadataR.GameplayModeE.ENCOUNTER, Source.ENCOUNTER),
+            BuildplateInstancesManager.InstanceType.PLAYER_ADVENTURE => (true, BuildplateInstance.GameplayMetadataR.GameplayModeE.PLAYER_ADVENTURE, Source.ENCOUNTER),
             _ => throw new UnreachableException(),
         };
 
@@ -641,7 +916,7 @@ internal sealed class BuildplatesController : SolaceControllerBase
         return new BuildplateInstance(
             instanceInfo.InstanceId,
             "00000000-0000-0000-0000-000000000000",
-            "d.projectearth.dev",    // TODO
+            "67e.duckdns.org",
             instanceInfo.Address,
             instanceInfo.Port,
             instanceInfo.Ready,
