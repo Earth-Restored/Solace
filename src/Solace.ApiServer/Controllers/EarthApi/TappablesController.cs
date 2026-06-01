@@ -403,7 +403,6 @@ internal sealed class TappablesController : SolaceControllerBase
 
         if (isMob)
         {
-            challengeProgress.AddObjectiveProgress(requestStartedOn, BestDefenseReferenceId);
             challengeProgress.AddObjectiveProgress(requestStartedOn, MobReferenceId);
             challengeProgress.AddObjectiveProgress(requestStartedOn, ZooKeeperReferenceId);
             challengeProgress.AddObjectiveProgress(requestStartedOn, PettingZooReferenceId);
