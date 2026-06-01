@@ -54,29 +54,11 @@ internal sealed class DailyGoodiesController : SolaceControllerBase
     }
 
     [HttpPost("player/dailygoodies/claim")]
-    [HttpPost("player/daily-goodies/claim")]
-    [HttpPost("player/daily-login/claim")]
     [HttpPost("player/dailyrewards/claim")]
-    [HttpPost("dailygoodies/claim")]
-    [HttpPost("daily-goodies/claim")]
-    [HttpPost("daily-login/claim")]
-    [HttpPost("dailyrewards/claim")]
     [HttpPost("player/dailygoodies/collect")]
-    [HttpPost("player/daily-goodies/collect")]
-    [HttpPost("player/daily-login/collect")]
     [HttpPost("player/dailyrewards/collect")]
-    [HttpPost("dailygoodies/collect")]
-    [HttpPost("daily-goodies/collect")]
-    [HttpPost("daily-login/collect")]
-    [HttpPost("dailyrewards/collect")]
     [HttpPost("player/dailygoodies/redeem")]
-    [HttpPost("player/daily-goodies/redeem")]
-    [HttpPost("player/daily-login/redeem")]
     [HttpPost("player/dailyrewards/redeem")]
-    [HttpPost("dailygoodies/redeem")]
-    [HttpPost("daily-goodies/redeem")]
-    [HttpPost("daily-login/redeem")]
-    [HttpPost("dailyrewards/redeem")]
     public async Task<Results<ContentHttpResult, BadRequest>> Claim(CancellationToken cancellationToken)
     {
         if (!TryGetAccountId(out var accountId))

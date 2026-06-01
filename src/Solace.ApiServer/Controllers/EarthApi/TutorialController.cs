@@ -1,15 +1,14 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Solace.ApiServer.Utils;
-using Solace.Common;
 
 namespace Solace.ApiServer.Controllers.EarthApi;
 
 [Authorize]
 [ApiVersion("1.1")]
 [Route("1/api/v{version:apiVersion}")]
-internal sealed class TutorialController : ControllerBase
+internal sealed class TutorialController : SolaceControllerBase
 {
     [HttpGet("player/tutorial")]
     [HttpGet("player/tutorials")]
@@ -19,8 +18,8 @@ internal sealed class TutorialController : ControllerBase
     [HttpGet("tutorials")]
     [HttpGet("oobe")]
     [HttpGet("outofboxexperience")]
-    public IActionResult GetTutorialState()
-        => Content(Json.Serialize(new EarthApiResponse(new Dictionary<string, object>
+    public ContentHttpResult GetTutorialState()
+        => EarthJson(new Dictionary<string, object>
         {
             ["completed"] = new Dictionary<string, bool>
             {
@@ -37,7 +36,7 @@ internal sealed class TutorialController : ControllerBase
                 ["freedom"] = true
             },
             ["available"] = Array.Empty<string>()
-        })), "application/json");
+        });
 
     [HttpPost("player/tutorial")]
     [HttpPost("player/tutorials")]
@@ -53,11 +52,11 @@ internal sealed class TutorialController : ControllerBase
     [HttpPost("oobe/{tutorialId}")]
     [HttpPost("outofboxexperience")]
     [HttpPost("outofboxexperience/{tutorialId}")]
-    public IActionResult CompleteTutorial(string? tutorialId = null)
-        => Content(Json.Serialize(new EarthApiResponse(new Dictionary<string, object?>
+    public ContentHttpResult CompleteTutorial(string? tutorialId = null)
+        => EarthJson(new Dictionary<string, object?>
         {
             ["tutorialId"] = tutorialId,
             ["completed"] = true,
             ["updates"] = null
-        })), "application/json");
+        });
 }

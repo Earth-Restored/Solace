@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Solace.ApiServer.Utils;
-using Solace.Common;
 using Solace.Common.Utils;
 
 namespace Solace.ApiServer.Controllers.EarthApi;
@@ -11,7 +10,7 @@ namespace Solace.ApiServer.Controllers.EarthApi;
 [Authorize]
 [ApiVersion("1.1")]
 [Route("1/api/v{version:apiVersion}")]
-internal sealed class SeasonsController : ControllerBase
+internal sealed class SeasonsController : SolaceControllerBase
 {
     private const string ActiveSeasonId = "00000000-0000-0000-0000-000000000001";
     private const string DefaultActiveSeasonChallengeId = "00000000-0000-0000-0000-000000000000";
@@ -21,13 +20,13 @@ internal sealed class SeasonsController : ControllerBase
     [HttpGet("player/seasonpass")]
     [HttpGet("season")]
     [HttpGet("seasons")]
-    public IActionResult GetSeason()
+    public ContentHttpResult GetSeason()
     {
         long now = HttpContext.GetTimestamp();
         DateTime endDate = DateTimeOffset.FromUnixTimeMilliseconds(now).UtcDateTime.Date.AddDays(30);
         long endsAt = new DateTimeOffset(endDate, TimeSpan.Zero).ToUnixTimeMilliseconds();
 
-        return Content(Json.Serialize(new EarthApiResponse(new Dictionary<string, object>
+        return EarthJson(new Dictionary<string, object>
         {
             ["activeSeasonId"] = ActiveSeasonId,
             ["seasonId"] = ActiveSeasonId,
@@ -47,16 +46,16 @@ internal sealed class SeasonsController : ControllerBase
                     ["premiumRewards"] = Array.Empty<object>()
                 }
             }
-        })), "application/json");
+        });
     }
 
     [HttpPost("player/seasonpass/purchase")]
     [HttpPost("seasonpass/purchase")]
-    public IActionResult PurchaseSeasonPass()
-        => Content(Json.Serialize(new EarthApiResponse(new Dictionary<string, object>
+    public ContentHttpResult PurchaseSeasonPass()
+        => EarthJson(new Dictionary<string, object>
         {
             ["premiumPassOwned"] = true
-        })), "application/json");
+        });
 
     [HttpPost("challenges/season/active/{id}")]
     [HttpPut("challenges/season/active/{id}")]
@@ -69,12 +68,12 @@ internal sealed class SeasonsController : ControllerBase
         var updates = new EarthApiResponse.UpdatesResponse();
         updates.Map["challenges"] = (int)(now / 1000);
 
-        return TypedResults.Content(Json.Serialize(new EarthApiResponse(new Dictionary<string, object>
+        return EarthJson(new Dictionary<string, object>
         {
             ["activeSeasonChallenge"] = selectedChallengeId,
             ["activeChallengeId"] = selectedChallengeId,
             ["activeSeasonId"] = ActiveSeasonId,
             ["seasonId"] = ActiveSeasonId,
-        }, updates)), "application/json");
+        }, updates);
     }
 }
