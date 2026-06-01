@@ -407,7 +407,7 @@ internal sealed class CatalogController : SolaceControllerBase
         => [.. catalog.NfcBoostsCatalog.MiniFigs.Select(miniFig => new NFCBoost(
             miniFig.Id,
             miniFig.Name,
-            "MiniFig",
+            "NfcMiniFig",
             new Types.Common.Rewards(
                 miniFig.Rewards.Rubies,
                 miniFig.Rewards.ExperiencePoints,

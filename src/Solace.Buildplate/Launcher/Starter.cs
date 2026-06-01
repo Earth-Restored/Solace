@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
 using Serilog;
 using Solace.Buildplate.Connector.Model;
 using Solace.Common.Utils;
@@ -67,13 +69,28 @@ public sealed class Starter
 		lock (portsInUse)
 		{
 			int port = basePort;
-			while (portsInUse.Contains(port))
+			while (portsInUse.Contains(port) || !CanBindPort(port))
 			{
 				port++;
 			}
 
 			portsInUse.Add(port);
 			return port;
+		}
+	}
+
+	private static bool CanBindPort(int port)
+	{
+		try
+		{
+			using var listener = new TcpListener(IPAddress.Any, port);
+			listener.Start();
+			using var udpClient = new UdpClient(port);
+			return true;
+		}
+		catch (SocketException)
+		{
+			return false;
 		}
 	}
 
