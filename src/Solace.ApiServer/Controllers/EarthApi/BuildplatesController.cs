@@ -532,18 +532,15 @@ internal sealed class BuildplatesController : SolaceControllerBase
                 break;
             case Source.ENCOUNTER:
                 {
-                    var encounterBuildplate = await _earthDB.EncounterBuildplates
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(encounterBuildplate => encounterBuildplate.Id == instanceInfo.BuildplateId, cancellationToken);
-
-                    if (encounterBuildplate is null)
+                    BuildplateGeometry? geometry = await GetEncounterBuildplateGeometry(instanceInfo.BuildplateId, cancellationToken);
+                    if (geometry is null)
                     {
                         return null;
                     }
 
-                    size = encounterBuildplate.Size;
-                    offset = encounterBuildplate.Offset;
-                    scale = encounterBuildplate.Scale;
+                    size = geometry.Size;
+                    offset = geometry.Offset;
+                    scale = geometry.Scale;
                 }
 
                 break;
@@ -584,6 +581,26 @@ internal sealed class BuildplatesController : SolaceControllerBase
             //new Coordinate(50.99636722700025f, -0.7234904312500047f)
             new Coordinate(0.0f, 0.0f)    // TODO
         );
+    }
+
+    private sealed record BuildplateGeometry(int Size, int Offset, int Scale);
+
+    private async Task<BuildplateGeometry?> GetEncounterBuildplateGeometry(Guid buildplateId, CancellationToken cancellationToken)
+    {
+        var encounterBuildplate = await _earthDB.EncounterBuildplates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(encounterBuildplate => encounterBuildplate.Id == buildplateId, cancellationToken);
+        if (encounterBuildplate is not null)
+        {
+            return new BuildplateGeometry(encounterBuildplate.Size, encounterBuildplate.Offset, encounterBuildplate.Scale);
+        }
+
+        var templateBuildplate = await _earthDB.TemplateBuildplates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(templateBuildplate => templateBuildplate.Id == buildplateId, cancellationToken);
+        return templateBuildplate is null
+            ? null
+            : new BuildplateGeometry(templateBuildplate.Size, templateBuildplate.Offset, templateBuildplate.Scale);
     }
 
     private sealed record SharedBuildplateInstanceRequest(

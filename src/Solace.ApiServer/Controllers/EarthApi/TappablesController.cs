@@ -195,6 +195,8 @@ internal sealed class TappablesController : SolaceControllerBase
     }
 
     [HttpPost("multiplayer/encounters/state")]
+    [HttpPost("multiplayer/adventures/state")]
+    [HttpPost("multiplayer/player/adventures/state")]
     public async Task<Results<ContentHttpResult, BadRequest>> EncountersState(CancellationToken cancellationToken)
     {
         var requestedIds = await Request.Body.AsJsonAsync<Dictionary<string, object>>(cancellationToken);
