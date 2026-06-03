@@ -20,7 +20,7 @@ a,
     background-repeat: no-repeat;
     background-position: center;
     width: 100%;
-    aspect-ratio: 8 / 1;
+    aspect-ratio: 3 / 1;
 }
 
 .btn:focus,
