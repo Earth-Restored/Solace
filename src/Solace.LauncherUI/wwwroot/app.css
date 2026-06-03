@@ -17,10 +17,9 @@ a,
 .navbar-brand {
     display: block;
     width: 100%;
-    height: 130px;
+    height: auto;
     padding: 0;
-    object-fit: cover;
-    object-position: center;
+    object-fit: contain;
 }
 
 .btn:focus,
