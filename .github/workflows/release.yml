@@ -1,16 +1,55 @@
-name: Build and Release
+name: Release Build
 
 on:
-  release:
-    types: [created]
+  workflow_dispatch:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
-  build:
+  prepare_version:
     runs-on: windows-latest
+    outputs:
+      next_tag: ${{ steps.versioning.outputs.next_tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
+      - name: Calculate Next Version
+        id: versioning
+        shell: pwsh
+        run: |
+          git fetch --tags
+          $latestTag = git tag --list "v*" | Sort-Object {[version]($_ -replace 'v','')} -Descending | Select-Object -First 1
+          if (-not $latestTag) {
+              $nextTag = "v0.0.1"
+              echo "No previous tags found. Defaulting to $nextTag"
+          } else {
+              echo "Found latest tag: $latestTag"
+              $versionStr = $latestTag -replace 'v', ''
+              $version = [version]$versionStr
+              $nextVersion = "{0}.{1}.{2}" -f $version.Major, $version.Minor, ($version.Build + 1)
+              $nextTag = "v$nextVersion"
+          }
+          echo "Next release tag will be: $nextTag"
+          echo "next_tag=$nextTag" >> $env:GITHUB_OUTPUT
+
+      - name: Create and Push Git Tag
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.versioning.outputs.next_tag }}
+          git push origin ${{ steps.versioning.outputs.next_tag }}
+
+  build:
+    needs: prepare_version
+    runs-on: windows-latest
     strategy:
       matrix:
         include:
@@ -28,13 +67,10 @@ jobs:
             arch: arm64
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository at new tag
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-          fetch-tags: true
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ needs.prepare_version.outputs.next_tag }}
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
@@ -53,8 +89,60 @@ jobs:
             -Path "build/Release/framework-dependent-${{ matrix.os }}-${{ matrix.arch }}/*" `
             -DestinationPath "Solace-${{ matrix.os }}-${{ matrix.arch }}.zip"
 
-      - name: Upload release asset
-        uses: softprops/action-gh-release@v2
+      - name: Stage artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path staging
+          Copy-Item "Solace-${{ matrix.os }}-${{ matrix.arch }}.zip" staging/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6
         with:
-          tag_name: ${{ github.event.release.tag_name }}
-          files: Solace-${{ matrix.os }}-${{ matrix.arch }}.zip
+          name: build-${{ matrix.os }}-${{ matrix.arch }}
+          path: staging/*
+
+  release:
+    needs: [prepare_version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Attest artifacts
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: 'artifacts/*'
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ needs.prepare_version.outputs.next_tag }}
+          gh release create $VERSION artifacts/* \
+            --title "Solace $VERSION" \
+            --generate-notes \
+            --notes "![Solace Banner](https://github.com/FroquaCubez/Solace/raw/main/images/solace_banner.png)
+
+          "
+
+  cleanup:
+    needs: release
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cleanup artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            build-win-x64
+            build-win-arm64
+            build-linux-x64
+            build-linux-arm64
+            build-osx-x64
+            build-osx-arm64
