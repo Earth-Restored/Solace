@@ -158,13 +158,13 @@ fi
 # ─── HELP SUBCOMMAND ──────────────────────────────────────────
 
 if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-    echo ""
+    echo -e "\033[1;34m"
     echo "   _____       __"
     echo "  / ___/____  / /___ _________"
     echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
     echo " ___/ / /_/ / / /_/ / /__/  __/"
     echo "/____/\____/_/\__,_/\___/\___/"
-    echo ""
+    echo -e "\033[0m"
     echo "Usage: earth [COMMAND]"
     echo ""
     echo "Commands:"
@@ -228,12 +228,13 @@ start_server() {
     date +%s > "$TIME_FILE"
 
     clear
-    echo ""
+    echo -e "\033[1;34m"
     echo "   _____       __"
     echo "  / ___/____  / /___ _________"
     echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
     echo " ___/ / /_/ / / /_/ / /__/  __/"
     echo "/____/\____/_/\__,_/\___/\___/"
+    echo -e "\033[0m"
     echo ""
     echo "[Solace] server is now running."
     echo ""
@@ -258,12 +259,13 @@ stop_server() {
     rm -f "$PID_FILE" "$TIME_FILE"
 
     clear
-    echo ""
+    echo -e "\033[1;34m"
     echo "   _____       __"
     echo "  / ___/____  / /___ _________"
     echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
     echo " ___/ / /_/ / / /_/ / /__/  __/"
     echo "/____/\____/_/\__,_/\___/\___/"
+    echo -e "\033[0m"
     echo ""
     echo "[Solace] server stopped."
     sleep 1
@@ -362,6 +364,14 @@ process_viewer() {
 while true; do
 
 clear
+
+echo -e "\033[1;34m"
+echo "   _____       __"
+echo "  / ___/____  / /___ _________"
+echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
+echo " ___/ / /_/ / / /_/ / /__/  __/"
+echo "/____/\____/_/\__,_/\___/\___/"
+echo -e "\033[0m"
 
 PID=$(get_pid)
 
@@ -657,12 +667,13 @@ open_admin_panel() {
 # ─── BANNER / UI HELPERS ──────────────────────────────────────
 
 show_banner() {
-    echo ""
+    echo -e "\033[1;34m"
     echo "   _____       __"
     echo "  / ___/____  / /___ _________"
     echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
     echo " ___/ / /_/ / / /_/ / /__/  __/"
     echo "/____/\____/_/\__,_/\___/\___/"
+    echo -e "\033[0m"
     echo ""
 }
 
