@@ -14,11 +14,12 @@ a,
     border-color: #1861ac;
 }
 
-.navbar-brand {
+.sidebar .navbar-brand {
     display: block;
-    width: 100%;
+    width: 85%;
     height: auto;
-    padding: 0;
+    padding: 0.5rem 0;
+    margin: 0 auto;
     object-fit: contain;
 }
 
