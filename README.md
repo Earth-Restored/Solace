@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/solace_branding.png" alt="Solace">
+  <img src="images/solace_branding.png" alt="Solace" width="80%">
 </p>
 
 <p align="center">
