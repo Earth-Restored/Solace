@@ -18,6 +18,7 @@
 .top-row {
     min-height: 3.5rem;
     background-color: rgba(0,0,0,0.4);
+    padding: 0;
 }
 
 .navbar-brand {
