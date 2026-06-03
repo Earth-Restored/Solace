@@ -55,6 +55,31 @@ err()  { echo -e "${RED}[ERROR] $1${RST}"; exit 1; }
 
 banner
 
+# ─── RELEASE CHANNEL ──────────────────────────────────────────
+
+echo ""
+echo -e "${CYN}Select release channel:${RST}"
+echo ""
+echo -e "  ${GRN}1) Stable (recommended)${RST}"
+echo -e "  ${YLW}2) Dev Build (unstable - may break)${RST}"
+echo ""
+
+printf "Choice [1/2] > "
+read -r CHANNEL_CHOICE < /dev/tty
+CHANNEL_CHOICE="$(echo "$CHANNEL_CHOICE" | tr -d '\r\n')"
+
+case "$CHANNEL_CHOICE" in
+    2|dev|Dev)
+        RELEASE_CHANNEL="dev"
+        echo -e "${YLW}[INFO] Selected Dev Build - use at your own risk${RST}"
+        ;;
+    *)
+        RELEASE_CHANNEL="stable"
+        echo -e "${GRN}[INFO] Selected Stable release${RST}"
+        ;;
+esac
+echo ""
+
 
 # ─────────────────────────────────────────
 #  TERMUX BRANCH
@@ -129,24 +154,33 @@ mkdir -p ~/Solace
 echo "[5] Downloading pre-compiled server"
 cd ~
 
-RELEASE_JSON=$(curl -s https://api.github.com/repos/FroquaCubez/Solace/releases)
+if [ "$RELEASE_CHANNEL" = "dev" ]; then
+    echo "[INFO] Downloading Dev Build..."
+    URL="https://github.com/FroquaCubez/Solace/releases/download/dev-build/Solace-Dev-linux-arm64.zip"
+    TAG="dev-build"
+else
+    echo "[INFO] Fetching latest stable release..."
+    RELEASE_JSON=$(curl -s https://api.github.com/repos/FroquaCubez/Solace/releases)
 
-URL=$(echo "$RELEASE_JSON" \
-| grep -o '"browser_download_url": "[^"]*linux-arm64[^"]*"' \
-| cut -d '"' -f4 \
-| head -n1)
+    URL=$(echo "$RELEASE_JSON" \
+    | grep -o '"browser_download_url": "[^"]*linux-arm64[^"]*"' \
+    | grep -v "\-Dev-" \
+    | cut -d '"' -f4 \
+    | head -n1)
 
-TAG=$(echo "$RELEASE_JSON" \
-| grep '"tag_name"' \
-| head -n1 \
-| cut -d '"' -f4)
+    TAG=$(echo "$RELEASE_JSON" \
+    | grep '"tag_name"' \
+    | cut -d '"' -f4 \
+    | grep -v "^dev-build$" \
+    | head -n1)
+fi
 
 if [ -z "$URL" ]; then
     echo "[ERROR] No download URL found"
     exit 1
 fi
 
-echo "[INFO] Latest build: $TAG"
+echo "[INFO] Build: $TAG"
 echo "[INFO] Downloading..."
 
 curl -L --progress-bar -o Solace-linux-arm64.zip "$URL"
@@ -441,17 +475,25 @@ print_step "3. PULLING LATEST CODE FROM GITHUB"
 mkdir -p "$INSTALL_DIR"
 chown "$CURRENT_USER":"$(id -gn "$CURRENT_USER")" "$INSTALL_DIR"
 
+if [ "$RELEASE_CHANNEL" = "dev" ]; then
+    GIT_BRANCH="dev"
+    echo -e "${YLW}[INFO] Using Dev branch${RST}"
+else
+    GIT_BRANCH="main"
+    echo -e "${GRN}[INFO] Using Stable branch${RST}"
+fi
+
 if [ -d "$REPO_DIR/.git" ]; then
     cd "$REPO_DIR"
     git remote set-url origin https://github.com/FroquaCubez/Solace.git
-    git fetch origin main
-    git reset --hard origin/main
+    git fetch origin "$GIT_BRANCH"
+    git reset --hard "origin/$GIT_BRANCH"
     git submodule update --init --recursive
-    ok "Repository updated"
+    ok "Repository updated ($GIT_BRANCH)"
 else
-    sudo -u "$CURRENT_USER" git clone --recurse-submodules https://github.com/FroquaCubez/Solace.git "$REPO_DIR"
+    sudo -u "$CURRENT_USER" git clone --recurse-submodules -b "$GIT_BRANCH" https://github.com/FroquaCubez/Solace.git "$REPO_DIR"
     cd "$REPO_DIR"
-    ok "Repository cloned"
+    ok "Repository cloned ($GIT_BRANCH)"
 fi
 
 print_step "4. BUILDING SERVER"
