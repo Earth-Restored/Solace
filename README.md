@@ -1,8 +1,12 @@
-[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](./LICENSE)
-![GitHub Repo stars](https://img.shields.io/github/stars/Earth-Restored/Solace?style=flat-square)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Earth-Restored/Solace/total?style=flat-square)
+<p align="center">
+  <img src="images/solace_branding.png" alt="Solace">
+</p>
 
-# Solace
+<p align="center">
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License"></a>
+  <img src="https://img.shields.io/github/stars/Earth-Restored/Solace?style=flat-square" alt="GitHub Stars">
+  <img src="https://img.shields.io/github/downloads/Earth-Restored/Solace/total?style=flat-square" alt="GitHub Downloads">
+</p>
 
 Replacement server for Minecraft Earth™, based on [Vienna](https://github.com/Project-Genoa/Vienna)
 

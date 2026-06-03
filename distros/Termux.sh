@@ -1,7 +1,9 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
-REMOTE_URL="https://raw.githubusercontent.com/Earth-Restored/Solace/refs/heads/main/distros/Termux.sh"
+REMOTE_URL="https://raw.githubusercontent.com/FroquaCubez/Solace/refs/heads/main/distros/Termux.sh"
 SELF_PATH="$(realpath "$0")"
+
+RELEASE_ARCH="linux-arm64"
 
 echo "Checking for updates..."
 
@@ -36,6 +38,8 @@ update_self() {
 
 update_self "$@"
 
+# ─── EULA SUBCOMMAND ──────────────────────────────────────────
+
 if [ "$1" = "eula" ]; then
     EULA_ACTION="$2"
 
@@ -50,20 +54,17 @@ EULA_FILE="$HOME/Solace/staticdata/server_template_dir/eula.txt"
 
 if [ "$EULA_ACTION" = "--delete" ]; then
     rm -f "$EULA_FILE"
-
-    echo "[Solace]: The eula file has been deleted you can now start the server to generate a new one."
-
+    echo "[Solace]: The eula file has been deleted. You can now start the server to generate a new one."
     exit 0
 fi
 
 if [ ! -f "$EULA_FILE" ]; then
     clear
-
     echo "======================================="
     echo "        MINECRAFT SERVER EULA"
     echo "======================================="
     echo ""
-    echo "[WARNING]: agreeing to the EULA"
+    echo "[WARNING]: Agreeing to the EULA"
     echo "without starting the server first will"
     echo "NOT pre-download the files needed"
     echo "for Buildplate Launcher."
@@ -73,10 +74,8 @@ if [ ! -f "$EULA_FILE" ]; then
     echo ""
     echo "======================================="
     echo ""
-
     printf "Press ENTER to exit..."
     read -r
-
     exit 1
 fi
 
@@ -86,7 +85,6 @@ if grep -q "eula=true" "$EULA_FILE"; then
 fi
 
 clear
-
 echo "======================================="
 echo "        MINECRAFT SERVER EULA"
 echo "======================================="
@@ -101,9 +99,7 @@ echo "Type YES to agree."
 echo ""
 echo "======================================="
 echo ""
-
 printf "Accept EULA > "
-
 read CONFIRM < /dev/tty
 
 CONFIRM="$(echo "$CONFIRM" | tr -d '\r\n')"
@@ -114,7 +110,6 @@ if [ "$CONFIRM" = "YES" ]; then
     else
         echo "eula=true" >> "$EULA_FILE"
     fi
-
     echo ""
     echo "[Solace]: EULA accepted."
 else
@@ -133,17 +128,70 @@ EOF
     exit 0
 fi
 
-proot-distro login ubuntu -- bash << 'EOF'
+# ─── UNINSTALL SUBCOMMAND ─────────────────────────────────----
 
-# =========================
-#        MAIN SCRIPT
-# =========================
+if [ "$1" = "uninstall" ]; then
+    echo "[Solace] Stopping server..."
+    proot-distro login ubuntu -- bash -c '
+        PID_FILE=~/Solace/server.pid
+        if [ -f "$PID_FILE" ]; then
+            PID=$(cat "$PID_FILE")
+            PGID=$(ps -o pgid= "$PID" 2>/dev/null | tr -d " ")
+            kill -- -"$PGID" 2>/dev/null
+            kill "$PID" 2>/dev/null
+        fi
+        pkill -f run_launcher.ps1 2>/dev/null
+        fuser -k 5000/tcp 2>/dev/null
+        rm -f "$PID_FILE"
+    ' 2>/dev/null
+
+    echo "[Solace] Removing Solace files..."
+    proot-distro login ubuntu -- rm -rf ~/Solace 2>/dev/null
+
+    echo "[Solace] Removing earth command..."
+    rm -f "$SELF_PATH"
+
+    echo "[Solace] Solace has been uninstalled."
+    exit 0
+fi
+
+# ─── HELP SUBCOMMAND ──────────────────────────────────────────
+
+if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    echo ""
+    echo "   _____       __"
+    echo "  / ___/____  / /___ _________"
+    echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
+    echo " ___/ / /_/ / / /_/ / /__/  __/"
+    echo "/____/\____/_/\__,_/\___/\___/"
+    echo ""
+    echo "Usage: earth [COMMAND]"
+    echo ""
+    echo "Commands:"
+    echo "  (no args)    Open the TUI menu"
+    echo "  help         Show this help message"
+    echo "  eula         Accept the Minecraft EULA"
+    echo "  eula --delete  Delete the EULA file"
+    echo "  uninstall    Completely remove Solace"
+    echo ""
+    echo "Platform: Termux (Android) - proot-distro + Ubuntu"
+    echo ""
+    exit 0
+fi
+
+# ─── MAIN SCRIPT (runs inside proot-distro) ───────────────────
+
+proot-distro login ubuntu -- bash << 'EOF'
 
 DB=~/Solace/nohup.log
 PID_FILE=~/Solace/server.pid
 TIME_FILE=~/Solace/server.start
+SOLACE_DIR=~/Solace
+EULA_FILE="$SOLACE_DIR/staticdata/server_template_dir/eula.txt"
+RESOURCEPACK="$SOLACE_DIR/staticdata/resourcepacks/vanilla.zip"
+RELEASE_ARCH="linux-arm64"
 
-mkdir -p ~/Solace
+mkdir -p "$SOLACE_DIR"
 
 is_running() {
     curl -s --max-time 1 http://127.0.0.1:5000 | grep -q .
@@ -154,7 +202,6 @@ is_process_alive() {
         PID=$(cat "$PID_FILE")
         kill -0 "$PID" 2>/dev/null && return 0
     fi
-
     pgrep -f run_launcher.ps1 >/dev/null 2>&1
 }
 
@@ -167,26 +214,30 @@ start_server() {
         return
     fi
 
-    cd ~/Solace || exit 1
+    cd "$SOLACE_DIR" || exit 1
 
     export DOTNET_ROOT=$HOME/.dotnet
     export PATH=$PATH:$HOME/.dotnet:$HOME/.dotnet/tools
     export COMPlus_gcServer=0
 
     nohup setsid pwsh run_launcher.ps1 > "$DB" 2>&1 < /dev/null &
-
     PID=$!
-
     disown
 
     echo "$PID" > "$PID_FILE"
     date +%s > "$TIME_FILE"
 
     clear
+    echo ""
+    echo "   _____       __"
+    echo "  / ___/____  / /___ _________"
+    echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
+    echo " ___/ / /_/ / / /_/ / /__/  __/"
+    echo "/____/\____/_/\__,_/\___/\___/"
+    echo ""
     echo "[Solace] server is now running."
     echo ""
-    echo "Admin Panel:"
-    echo "http://127.0.0.1:5000"
+    echo "Admin Panel: http://127.0.0.1:5000"
     sleep 1
 }
 
@@ -198,28 +249,29 @@ stop_server() {
     if [ -f "$PID_FILE" ]; then
         PID=$(cat "$PID_FILE")
         PGID=$(ps -o pgid= "$PID" 2>/dev/null | tr -d ' ')
-
         kill -- -"$PGID" 2>/dev/null
         kill "$PID" 2>/dev/null
     fi
 
     pkill -f run_launcher.ps1 2>/dev/null
     fuser -k 5000/tcp 2>/dev/null
-
     rm -f "$PID_FILE" "$TIME_FILE"
 
     clear
+    echo ""
+    echo "   _____       __"
+    echo "  / ___/____  / /___ _________"
+    echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
+    echo " ___/ / /_/ / / /_/ / /__/  __/"
+    echo "/____/\____/_/\__,_/\___/\___/"
+    echo ""
     echo "[Solace] server stopped."
     sleep 1
 }
 
 first_start_checks() {
-    RESOURCEPACK=~/Solace/staticdata/resourcepacks/vanilla.zip
-    EULA_FILE=~/Solace/staticdata/server_template_dir/eula.txt
-
     if [ ! -f "$RESOURCEPACK" ]; then
         clear
-
         echo "======================================="
         echo "         RESOURCE PACK REQUIRED"
         echo "======================================="
@@ -233,19 +285,16 @@ first_start_checks() {
         echo ""
         echo "======================================="
         echo ""
-
         printf "Back\n" | fzf \
             --height=15% \
             --reverse \
             --border \
             --prompt="Resource Packs > " >/dev/null
-
         return 1
     fi
 
     if [ ! -f "$EULA_FILE" ]; then
         clear
-
         echo "======================================="
         echo "           FIRST TIME SETUP"
         echo "======================================="
@@ -260,21 +309,17 @@ first_start_checks() {
         echo ""
         echo "======================================="
         echo ""
-
         CHOICE=$(printf "Continue\nBack" | fzf \
             --height=15% \
             --reverse \
             --border \
             --prompt="Continue Startup > ")
-
         [ "$CHOICE" = "Continue" ] || return 1
-
         return 0
     fi
 
     if grep -q "eula=false" "$EULA_FILE"; then
         clear
-
         echo "======================================="
         echo "            EULA REQUIRED"
         echo "======================================="
@@ -288,13 +333,11 @@ first_start_checks() {
         echo ""
         echo "======================================="
         echo ""
-
         printf "Back\n" | fzf \
             --height=15% \
             --reverse \
             --border \
             --prompt="EULA > " >/dev/null
-
         return 1
     fi
 
@@ -308,7 +351,6 @@ toggle_server() {
             --reverse \
             --border \
             --prompt="Stop server? > ")
-
         [ "$CH" = "Yes" ] && stop_server
     else
         first_start_checks || return
@@ -352,17 +394,16 @@ fi
 PROC_COUNT=$(ps -eo cmd 2>/dev/null | grep -E "pwsh|Launcher|ApiServer|EventBus|ObjectStore|TileRenderer|BuildplateLauncher" | grep -v grep | wc -l)
 
 if is_running; then
-    echo "Solace [RUNNING] http://localhost:5000"
-
+    echo "Solace [RUNNING] http://127.0.0.1:5000"
     printf "Uptime: %s | RAM: %s%% | Processes: %s\n" \
     "$UPTIME_TEXT" "$MEM_PCT" "$PROC_COUNT"
 else
     echo "Solace [STOPPED]"
 fi
 
-echo "────────────────────────────────"
+echo "-----------------------------------------------"
 printf "Load: %s\n" "$LOAD"
-echo "────────────────────────────────"
+echo "-----------------------------------------------"
 echo ""
 
 SELECT=$(
@@ -405,93 +446,96 @@ done
 done
 }
 
+# ─── UPDATE ───────────────────────────────────────────────────
+
 update_solace() {
     while true; do
         clear
 
-        echo "======================================="
-        echo "             UPDATE Solace"
-        echo "======================================="
+        echo "================================================"
+        echo "               UPDATE SOLACE"
+        echo "================================================"
         echo ""
 
         CURRENT_VERSION="unknown"
+        [ -f "$SOLACE_DIR/version.txt" ] && CURRENT_VERSION=$(cat "$SOLACE_DIR/version.txt")
 
-        [ -f ~/Solace/version.txt ] && CURRENT_VERSION=$(cat ~/Solace/version.txt)
-
-        RELEASE_JSON=$(curl -s https://api.github.com/repos/Earth-Restored/Solace/releases)
-
-        LATEST_TAG=$(echo "$RELEASE_JSON" | grep '"tag_name"' | head -n1 | cut -d '"' -f4)
-
-        echo "Current Version: $CURRENT_VERSION"
-        echo "Latest Version:  $LATEST_TAG"
-        echo ""
-        echo "Download Solace build?"
-        echo ""
-        echo "This will:"
-        echo "- Replace updated files ONLY"
-        echo "- Keep your databases untouched"
-        echo ""
-        echo "======================================="
-
-        CHOICE=$(printf "Latest ($LATEST_TAG)\nOther versions...\nNo" \
-            | fzf \
+        CHOICE=$(printf "Stable (recommended)\nDev Build (not recommended - may break)\nNo" | fzf \
             --height=20% \
             --reverse \
             --border \
-            --prompt="Select update option > ")
+            --prompt="Select update branch > ")
 
         [ "$CHOICE" = "No" ] && return
 
-        if echo "$CHOICE" | grep -q "Other versions"; then
-            TAG=$(echo "$RELEASE_JSON" \
-                | grep '"tag_name"' \
-                | cut -d '"' -f4 \
-                | fzf \
-                --height=50% \
+        if echo "$CHOICE" | grep -q "Dev"; then
+            clear
+            echo "================================================"
+            echo "  WARNING: Dev builds are unstable and may"
+            echo "  break your server. Only use for testing."
+            echo ""
+            echo "  Updating from a stable build to a dev build"
+            echo "  can cause database corruption or data loss."
+            echo "================================================"
+            echo ""
+            CONFIRM=$(printf "No, go back\nYes, continue anyway" | fzf \
+                --height=15% \
                 --reverse \
                 --border \
-                --prompt="Select version > ")
+                --prompt="Are you sure? > ")
+            [ "$CONFIRM" != "Yes, continue anyway" ] && continue
+
+            TAG="dev-build"
+            ARTIFACT_PREFIX="Solace-Dev"
+            DISPLAY_TAG="dev-build"
         else
+            RELEASE_JSON=$(curl -s https://api.github.com/repos/FroquaCubez/Solace/releases)
+            ALL_TAGS=$(echo "$RELEASE_JSON" | grep '"tag_name"' | cut -d '"' -f4)
+            LATEST_TAG=$(echo "$ALL_TAGS" | grep -v "^dev-build$" | head -n1)
+
+            if [ -z "$LATEST_TAG" ]; then
+                echo "[ERROR] Failed to get latest stable version."
+                sleep 2
+                return
+            fi
+
             TAG="$LATEST_TAG"
+            ARTIFACT_PREFIX="Solace"
+            DISPLAY_TAG="$TAG"
         fi
 
-        [ -z "$TAG" ] && return
+        echo ""
+        echo "Current version: $CURRENT_VERSION"
+        echo "Selected: $DISPLAY_TAG"
+        echo ""
+
+        CONFIRM=$(printf "Cancel\nDownload" | fzf \
+            --height=15% \
+            --reverse \
+            --border \
+            --prompt="Confirm > ")
+        [ "$CONFIRM" != "Download" ] && continue
 
         force_stop_server
 
-        echo "[Solace] preparing download for $TAG..."
+        echo "[Solace] preparing download for $DISPLAY_TAG..."
 
-        URL=$(echo "$RELEASE_JSON" \
-            | grep -o '"browser_download_url": "[^"]*linux-arm64[^"]*"' \
-            | cut -d '"' -f4 \
-            | head -n1)
-
-        [ -z "$URL" ] && echo "[Solace] failed to get download URL" && sleep 2 && return
+        URL="https://github.com/FroquaCubez/Solace/releases/download/${TAG}/${ARTIFACT_PREFIX}-${RELEASE_ARCH}.zip"
 
         TMP_DIR="$(mktemp -d ~/Solace_update_XXXXXX)"
-
         cd "$TMP_DIR" || return
 
-        echo "[Solace] downloading $TAG..."
-
+        echo "[Solace] downloading $DISPLAY_TAG..."
         curl -L --fail "$URL" -o update.zip
-
         unzip -o update.zip >/dev/null 2>&1
 
-        TARGET=~/Solace
-
-        echo "[Solace] applying update ($TAG)..."
-
-        cp -r . "$TARGET"/
-
-        echo "$TAG" > ~/Solace/version.txt
-
-        echo "[Solace] update complete ($TAG)"
+        echo "[Solace] applying update ($DISPLAY_TAG)..."
+        cp -r . "$SOLACE_DIR"/
+        echo "$DISPLAY_TAG" > "$SOLACE_DIR/version.txt"
+        echo "[Solace] update complete ($DISPLAY_TAG)"
 
         rm -rf "$TMP_DIR"
-
         sleep 2
-
         return
     done
 }
@@ -503,19 +547,56 @@ force_stop_server() {
         if [ -f "$PID_FILE" ]; then
             PID=$(cat "$PID_FILE")
             PGID=$(ps -o pgid= "$PID" 2>/dev/null | tr -d ' ')
-
             kill -- -"$PGID" 2>/dev/null
             kill "$PID" 2>/dev/null
         fi
 
         pkill -f run_launcher.ps1 2>/dev/null
         fuser -k 5000/tcp 2>/dev/null
-
         rm -f "$PID_FILE" "$TIME_FILE"
-
         sleep 2
     fi
 }
+
+# ─── UNINSTALL ────────────────────────────────────────────────
+
+uninstall_solace() {
+    clear
+    echo "================================================"
+    echo "            UNINSTALL SOLACE"
+    echo "================================================"
+    echo ""
+    echo "This will permanently remove:"
+    echo "  - All Solace server files"
+    echo "  - Databases and configuration"
+    echo "  - The earth command"
+    echo ""
+    echo "This action cannot be undone."
+    echo "================================================"
+    echo ""
+
+    CONFIRM=$(printf "No, cancel\nYes, remove everything" | fzf \
+        --height=15% \
+        --reverse \
+        --border \
+        --prompt="Uninstall Solace? > ")
+
+    [ "$CONFIRM" != "Yes, remove everything" ] && return
+
+    force_stop_server
+
+    echo "[Solace] Removing Solace files..."
+    rm -rf "$SOLACE_DIR"
+
+    echo "[Solace] Solace has been uninstalled."
+    echo "The earth command will be removed once you exit."
+    sleep 2
+
+    rm -f /data/data/com.termux/files/usr/bin/earth
+    exit 0
+}
+
+# ─── INFORMATION ──────────────────────────────────────────────
 
 info_panel() {
 while true; do
@@ -528,7 +609,7 @@ echo "======================================="
 echo
 echo "Resourcepack:"
 echo "- Check the server log on the admin panel or ask for help on the Discord server"
-echo "- Location of the file: ~/Solace/staticdata/resourcepacks/vanilla.zip"
+echo "- Location: ~/Solace/staticdata/resourcepacks/vanilla.zip"
 echo "- This can be accessed using the proot-distro command referred below"
 echo
 echo "Solace Storage:"
@@ -537,15 +618,15 @@ echo "- Enter Ubuntu with: proot-distro login ubuntu"
 echo
 echo "Admin Panel Configuration:"
 echo "- If you are running a patched Minecraft Earth APK on the same device:"
-echo "  → Use IP: 127.0.0.1"
+echo "  Use IP: 127.0.0.1"
 echo
 echo "MapTiler Setup:"
 echo "- Create an API key at: https://cloud.maptiler.com/account/keys/"
 echo "- Add the API key inside the server admin panel settings"
 echo
 echo "APK:"
-echo "- Patch your own LEGALLY obtained minecraft earth app"
-echo "- and set the IP to 127.0.0.1 if you're using it on the same device"
+echo "- Patch your own LEGALLY obtained Minecraft Earth app"
+echo "- and set the IP to 127.0.0.1 if you are using it on the same device"
 echo
 echo "Notes:"
 echo "- This setup is intended for local device use only"
@@ -567,15 +648,31 @@ done
 }
 
 open_admin_panel() {
-    termux-open-url "http://localhost:5000" 2>/dev/null || \
+    termux-open-url "http://127.0.0.1:5000" 2>/dev/null || \
     echo "Open: http://127.0.0.1:5000"
 
     sleep 2
 }
 
+# ─── BANNER / UI HELPERS ──────────────────────────────────────
+
+show_banner() {
+    echo ""
+    echo "   _____       __"
+    echo "  / ___/____  / /___ _________"
+    echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
+    echo " ___/ / /_/ / / /_/ / /__/  __/"
+    echo "/____/\____/_/\__,_/\___/\___/"
+    echo ""
+}
+
+# ─── MAIN MENU LOOP ───────────────────────────────────────────
+
 while true; do
 
 clear
+
+show_banner
 
 if is_process_alive; then
     TITLE="Solace [RUNNING] http://127.0.0.1:5000"
@@ -588,12 +685,13 @@ OPTIONS=(
 "Process Explorer"
 "Open Admin Panel"
 "Update Solace"
+"Uninstall Solace"
 "Information"
 "Exit"
 )
 
 CHOICE=$(printf "%s\n" "${OPTIONS[@]}" | fzf \
-    --height=30% \
+    --height=40% \
     --reverse \
     --border \
     --prompt="$TITLE > " \
@@ -612,6 +710,9 @@ case "$CHOICE" in
         ;;
     "Update Solace")
         update_solace
+        ;;
+    "Uninstall Solace")
+        uninstall_solace
         ;;
     "Information")
         info_panel

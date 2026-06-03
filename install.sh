@@ -10,11 +10,37 @@ RST='\033[0m'
 
 banner() {
     echo -e "${ORG}"
-    echo "=============================="
-    echo "    SOLACE INSTALLER   "
-    echo "=============================="
+    echo "   _____       __"
+    echo "  / ___/____  / /___ _________"
+    echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
+    echo " ___/ / /_/ / / /_/ / /__/  __/"
+    echo "/____/\____/_/\__,_/\___/\___/"
     echo -e "${RST}"
 }
+
+help_text() {
+    echo ""
+    echo -e "${CYN}Usage:${RST} install.sh [OPTIONS]"
+    echo ""
+    echo "Install Solace - a Minecraft Earth replacement server."
+    echo ""
+    echo -e "${CYN}Options:${RST}"
+    echo "  -h, --help     Show this help message"
+    echo ""
+    echo -e "${CYN}Platforms:${RST}"
+    echo "  Termux (Android)   Auto-detected, uses proot-distro"
+    echo "  Linux              Auto-detected, uses systemd"
+    echo "  macOS              Auto-detected, uses launchd"
+    echo ""
+    echo "After installation, run: earth"
+    exit 0
+}
+
+for arg in "$@"; do
+    case "$arg" in
+        -h|--help) help_text ;;
+    esac
+done
 
 print_step() {
     echo ""
@@ -103,7 +129,7 @@ mkdir -p ~/Solace
 echo "[5] Downloading pre-compiled server"
 cd ~
 
-RELEASE_JSON=$(curl -s https://api.github.com/repos/Earth-Restored/Solace/releases)
+RELEASE_JSON=$(curl -s https://api.github.com/repos/FroquaCubez/Solace/releases)
 
 URL=$(echo "$RELEASE_JSON" \
 | grep -o '"browser_download_url": "[^"]*linux-arm64[^"]*"' \
@@ -155,19 +181,27 @@ print_step "4. CREATING EARTH COMMAND"
 
 mkdir -p "$PREFIX/bin"
 
-curl -fsSL https://raw.githubusercontent.com/Earth-Restored/Solace/refs/heads/main/distros/Termux.sh -o "$PREFIX/bin/earth"
+curl -fsSL https://raw.githubusercontent.com/FroquaCubez/Solace/refs/heads/main/distros/Termux.sh -o "$PREFIX/bin/earth"
 
 chmod +x "$PREFIX/bin/earth"
 
 ok "earth command installed"
 
 echo ""
-echo "=============================="
-echo " INSTALL COMPLETE"
-echo "=============================="
-echo "Run: earth"
-echo "IMPORTANT: Read the guide in the menu first."
-echo "=============================="
+echo -e "${GRN}========================================${RST}"
+echo -e "${ORG}          INSTALL COMPLETE              ${RST}"
+echo -e "${GRN}========================================${RST}"
+echo ""
+echo "  Run: earth"
+echo ""
+echo "Useful commands:"
+echo "  earth              TUI menu"
+echo "  earth eula         accept Minecraft EULA"
+echo "  earth help         show all commands"
+echo ""
+echo -e "${YLW}Installation guide:${RST}"
+echo "  https://github.com/Earth-Restored/Solace/blob/main/Installation.md"
+echo ""
 exit 0
 fi
 
@@ -409,13 +443,13 @@ chown "$CURRENT_USER":"$(id -gn "$CURRENT_USER")" "$INSTALL_DIR"
 
 if [ -d "$REPO_DIR/.git" ]; then
     cd "$REPO_DIR"
-    git remote set-url origin https://github.com/Earth-Restored/Solace.git
+    git remote set-url origin https://github.com/FroquaCubez/Solace.git
     git fetch origin main
     git reset --hard origin/main
     git submodule update --init --recursive
     ok "Repository updated"
 else
-    sudo -u "$CURRENT_USER" git clone --recurse-submodules https://github.com/Earth-Restored/Solace.git "$REPO_DIR"
+    sudo -u "$CURRENT_USER" git clone --recurse-submodules https://github.com/FroquaCubez/Solace.git "$REPO_DIR"
     cd "$REPO_DIR"
     ok "Repository cloned"
 fi
@@ -437,10 +471,21 @@ install_service
 print_step "7. STARTING SERVER"
 start_service
 
+print_step "8. INSTALLING EARTH COMMAND"
+if [ "$OS" = "Darwin" ]; then
+    curl -fsSL https://raw.githubusercontent.com/FroquaCubez/Solace/refs/heads/main/distros/macOS.sh \
+        -o /usr/local/bin/earth
+else
+    curl -fsSL https://raw.githubusercontent.com/FroquaCubez/Solace/refs/heads/main/distros/Linux.sh \
+        -o /usr/local/bin/earth
+fi
+chmod +x /usr/local/bin/earth
+ok "earth command installed (/usr/local/bin/earth)"
+
 echo ""
-echo -e "${GRN}==============================${RST}"
-echo -e "${ORG}     INSTALL COMPLETE         ${RST}"
-echo -e "${GRN}==============================${RST}"
+echo -e "${GRN}========================================${RST}"
+echo -e "${ORG}          INSTALL COMPLETE              ${RST}"
+echo -e "${GRN}========================================${RST}"
 echo ""
 echo "   User:    $CURRENT_USER"
 echo "   OS:      $OS ($PKG_MANAGER)"
@@ -448,20 +493,23 @@ echo "   Arch:    $PROFILE"
 echo "   Install: $REPO_DIR"
 echo "   Build:   $BUILD_DIR"
 echo ""
-echo "Next steps:"
-echo "  1. Open http://localhost:5000 and create your admin account"
+echo -e "${CYN}Next steps:${RST}"
+echo "  1. Open http://127.0.0.1:5000 and create your admin account"
 echo "  2. Under 'Server Options', set Network/IPv4 Address to your PC's IP"
 echo "  3. Under 'Server Status', click Start"
 echo "  4. Accept the Minecraft EULA when prompted in the logs"
 echo ""
+echo -e "${CYN}Useful commands:${RST}"
+echo "  earth              TUI menu"
+echo "  earth eula         accept Minecraft EULA"
+echo "  earth help         show all commands"
+echo "  earth uninstall    remove Solace completely"
 if [ "$OS" = "Darwin" ]; then
-    echo "Useful commands:"
-    echo "  tail -f $BUILD_DIR/logs/solace.log   → live logs"
-    echo "  launchctl stop com.solace.server      → stop"
-    echo "  launchctl start com.solace.server     → start"
+    echo "  tail -f $BUILD_DIR/logs/solace.log       live logs"
 else
-    echo "Useful commands:"
-    echo "  sudo journalctl -u solace.service -f     → live logs"
-    echo "  sudo systemctl status solace.service     → status"
-    echo "  sudo systemctl restart solace.service    → restart"
+    echo "  journalctl -u solace.service -f          live logs"
+    echo "  systemctl status solace.service          status"
 fi
+echo ""
+echo -e "${YLW}Installation guide:${RST}"
+echo "  https://github.com/Earth-Restored/Solace/blob/main/Installation.md"
