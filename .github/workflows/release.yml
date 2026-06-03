@@ -13,6 +13,7 @@ jobs:
     runs-on: windows-latest
     outputs:
       next_tag: ${{ steps.versioning.outputs.next_tag }}
+      previous_tag: ${{ steps.versioning.outputs.previous_tag }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,16 +29,16 @@ jobs:
           $latestTag = git tag --list "v*" | Sort-Object {[version]($_ -replace 'v','')} -Descending | Select-Object -First 1
           if (-not $latestTag) {
               $nextTag = "v0.0.1"
-              echo "No previous tags found. Defaulting to $nextTag"
+              $previousTag = ""
           } else {
-              echo "Found latest tag: $latestTag"
+              $previousTag = $latestTag
               $versionStr = $latestTag -replace 'v', ''
               $version = [version]$versionStr
               $nextVersion = "{0}.{1}.{2}" -f $version.Major, $version.Minor, ($version.Build + 1)
               $nextTag = "v$nextVersion"
           }
-          echo "Next release tag will be: $nextTag"
           echo "next_tag=$nextTag" >> $env:GITHUB_OUTPUT
+          echo "previous_tag=$previousTag" >> $env:GITHUB_OUTPUT
 
       - name: Create and Push Git Tag
         shell: pwsh
@@ -119,17 +120,28 @@ jobs:
         with:
           subject-path: 'artifacts/*'
 
-      - name: Create release
+      - name: Generate Notes and Create Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=${{ needs.prepare_version.outputs.next_tag }}
-          gh release create $VERSION artifacts/* \
-            --title "Solace $VERSION" \
-            --generate-notes \
-            --notes "![Solace Banner](https://github.com/FroquaCubez/Solace/raw/main/images/solace_banner.png)
+          PREV_VERSION=${{ needs.prepare_version.outputs.previous_tag }}
+          REPO="${{ github.repository }}"
+          if [ -z "$PREV_VERSION" ]; then
+            NOTES_JSON=$(gh api repos/$REPO/releases/generate-notes -f tag_name="$VERSION")
+          else
+            NOTES_JSON=$(gh api repos/$REPO/releases/generate-notes -f tag_name="$VERSION" -f target_commitish="main" -f previous_tag_name="$PREV_VERSION")
+          fi
+          GENERATED_NOTES=$(echo "$NOTES_JSON" | jq -r '.body')
+          RELEASE_BODY="## Solace ($VERSION)
 
-          "
+          $GENERATED_NOTES
+
+          ---
+          ![Solace Banner](https://raw.githubusercontent.com/FroquaCubez/Solace/main/images/solace_banner.png)"
+          gh release create "$VERSION" artifacts/* \
+            --title "$VERSION" \
+            --notes "$RELEASE_BODY"
 
   cleanup:
     needs: release
