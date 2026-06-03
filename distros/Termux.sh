@@ -664,6 +664,16 @@ open_admin_panel() {
     sleep 2
 }
 
+# ─── UBUNTU TERMINAL ─────────────────────────────────────────
+
+open_ubuntu_terminal() {
+    clear
+    echo ""
+    echo "[Solace] Entering Ubuntu shell. Type 'exit' to return."
+    echo ""
+    bash
+}
+
 # ─── BANNER / UI HELPERS ──────────────────────────────────────
 
 show_banner() {
@@ -697,6 +707,7 @@ OPTIONS=(
 "Open Admin Panel"
 "Update Solace"
 "Uninstall Solace"
+"Open Ubuntu Terminal"
 "Information"
 "Exit"
 )
@@ -724,6 +735,9 @@ case "$CHOICE" in
         ;;
     "Uninstall Solace")
         uninstall_solace
+        ;;
+    "Open Ubuntu Terminal")
+        open_ubuntu_terminal
         ;;
     "Information")
         info_panel
