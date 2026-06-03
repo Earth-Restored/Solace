@@ -60,9 +60,10 @@ jobs:
           files: Solace-Dev-${{ matrix.os }}-${{ matrix.arch }}.zip
           generate_release_notes: true
           body: |
-            ![Solace Banner](https://github.com/FroquaCubez/Solace/raw/main/images/solace_banner.png)
-            
             ⚠️ **Warning:** This is a manually triggered developer snapshot. It may contain unfinished features or bugs.
             
             **Source Branch:** ${{ github.ref_name }}
             **Commit SHA:** ${{ github.sha }}
+            
+            ---
+            ![Solace Banner](https://raw.githubusercontent.com/FroquaCubez/Solace/main/images/solace_banner.png)
