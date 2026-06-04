@@ -253,3 +253,63 @@ h1:focus {
 .bi-eye {
     mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0iY3VycmVudENvbG9yIiBjbGFzcz0iYmkgYmktZXllIiB2aWV3Qm94PSIwIDAgMTYgMTYiPgogIDxwYXRoIGQ9Ik0xNiA4cy0zLTUuNS04LTUuNVMwIDggMCA4czMgNS41IDggNS41UzE2IDggMTYgOE0xLjE3MyA4YTEzIDEzIDAgMCAxIDEuNjYtMi4wNDNDNC4xMiA0LjY2OCA1Ljg4IDMuNSA4IDMuNXMzLjg3OSAxLjE2OCA1LjE2OCAyLjQ1N0ExMyAxMyAwIDAgMSAxNC44MjggOHEtLjA4Ni4xMy0uMTk1LjI4OGMtLjMzNS40OC0uODMgMS4xMi0xLjQ2NSAxLjc1NUMxMS44NzkgMTEuMzMyIDEwLjExOSAxMi41IDggMTIuNXMtMy44NzktMS4xNjgtNS4xNjgtMi40NTdBMTMgMTMgMCAwIDEgMS4xNzIgOHoiLz4KICA8cGF0aCBkPSJNOCA1LjVhMi41IDIuNSAwIDEgMCAwIDUgMi41IDIuNSAwIDAgMCAwLTVNNC41IDhhMy41IDMuNSAwIDEgMSA3IDAgMy41IDMuNSAwIDAgMS03IDAiLz4KPC9zdmc+");
 }
+
+.dark-mode-btn {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 0 0.5rem;
+    line-height: 1;
+}
+
+html.dark {
+    color-scheme: dark;
+}
+
+html.dark body {
+    background-color: #1a1a2e;
+    color: #e0e0e0;
+}
+
+html.dark .sidebar {
+    background-image: linear-gradient(180deg, #0f0f23 0%, #1a1a3e 70%) !important;
+}
+
+html.dark .top-row {
+    background-color: #16163a !important;
+    border-bottom-color: #2a2a5e !important;
+}
+
+html.dark article {
+    background-color: #1a1a2e;
+    color: #e0e0e0;
+}
+
+html.dark a, html.dark .btn-link {
+    color: #6ea8fe;
+}
+
+html.dark .nav-item ::deep .nav-link {
+    color: #b0b0c0;
+}
+
+html.dark .nav-item ::deep a.active {
+    background-color: rgba(255,255,255,0.15);
+    color: white;
+}
+
+html.dark .navbar-toggler {
+    background-color: rgba(255,255,255,0.15);
+}
+
+html.dark .card, html.dark .form-control, html.dark .form-floating {
+    background-color: #252550;
+    color: #e0e0e0;
+    border-color: #3a3a6a;
+}
+
+html.dark .btn-primary {
+    background-color: #375a7f;
+    border-color: #375a7f;
+}

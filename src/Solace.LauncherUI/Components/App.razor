@@ -19,6 +19,28 @@
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>
+    <script>
+        (function() {
+            const html = document.documentElement;
+            const stored = localStorage.getItem('darkMode');
+            if (stored === 'true') html.classList.add('dark');
+
+            window.toggleDarkMode = function() {
+                const isDark = html.classList.toggle('dark');
+                localStorage.setItem('darkMode', isDark);
+                document.querySelectorAll('.dark-mode-btn').forEach(b => {
+                    b.textContent = isDark ? '☀️' : '🌙';
+                });
+            };
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const isDark = html.classList.contains('dark');
+                document.querySelectorAll('.dark-mode-btn').forEach(b => {
+                    b.textContent = isDark ? '☀️' : '🌙';
+                });
+            });
+        })();
+    </script>
 </body>
 
 </html>
