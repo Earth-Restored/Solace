@@ -252,3 +252,42 @@ h2 {
     gap: 8px;
     align-items: center;
 }
+
+html.dark .drop-zone {
+    background-color: #1e1e42;
+    border-color: #5a5a9a;
+}
+
+html.dark .drop-zone.hovering {
+    background-color: #2a2a5a;
+    border-color: #7a7aba;
+}
+
+html.dark .file-item {
+    background: #1e1e42;
+    border-color: #3a3a6a;
+}
+
+html.dark .file-hint,
+html.dark .file-status {
+    color: #9a9ab0;
+}
+
+html.dark .progress-bar-container {
+    background: #3a3a6a;
+}
+
+html.dark .dialog-card {
+    background: #1e1e42;
+    color: #d0d0e0;
+}
+
+html.dark .import-container {
+    background: #1e1e42;
+    color: #d0d0e0;
+}
+
+html.dark .btn-back-link:hover {
+    background-color: #2a2a5a;
+    color: #7eb8ff;
+}

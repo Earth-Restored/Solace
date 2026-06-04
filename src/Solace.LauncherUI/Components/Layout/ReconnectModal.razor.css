@@ -155,3 +155,16 @@
         opacity: 0;
     }
 }
+
+html.dark #components-reconnect-modal {
+    background-color: #1e1e42;
+    color: #d0d0e0;
+}
+
+html.dark #components-reconnect-modal button {
+    background-color: #375a7f;
+}
+
+html.dark #components-reconnect-modal button:hover {
+    background-color: #2a4a6a;
+}
