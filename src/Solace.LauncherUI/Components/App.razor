@@ -21,24 +21,25 @@
     <script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>
     <script>
         (function() {
-            const html = document.documentElement;
-            const stored = localStorage.getItem('darkMode');
-            if (stored === 'true') html.classList.add('dark');
-
+            var toggling = false;
+            function applyDark() {
+                var html = document.documentElement;
+                if (localStorage.getItem('darkMode') === 'true') html.classList.add('dark');
+                else html.classList.remove('dark');
+            }
+            applyDark();
             window.toggleDarkMode = function() {
-                const isDark = html.classList.toggle('dark');
+                toggling = true;
+                var html = document.documentElement;
+                var isDark = html.classList.toggle('dark');
                 localStorage.setItem('darkMode', isDark);
-                document.querySelectorAll('.dark-mode-btn').forEach(b => {
-                    b.textContent = isDark ? '☀️' : '🌙';
-                });
+                setTimeout(function() { toggling = false; }, 100);
             };
-
-            document.addEventListener('DOMContentLoaded', () => {
-                const isDark = html.classList.contains('dark');
-                document.querySelectorAll('.dark-mode-btn').forEach(b => {
-                    b.textContent = isDark ? '☀️' : '🌙';
-                });
-            });
+            new MutationObserver(function() {
+                if (toggling) return;
+                if (localStorage.getItem('darkMode') === 'true' && !document.documentElement.classList.contains('dark'))
+                    document.documentElement.classList.add('dark');
+            }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
         })();
     </script>
 </body>

@@ -262,54 +262,145 @@ h1:focus {
     padding: 0 0.5rem;
     line-height: 1;
 }
+.dmb-sun { display: none; }
+html.dark .dmb-moon { display: none; }
+html.dark .dmb-sun { display: inline; }
 
 html.dark {
     color-scheme: dark;
 }
 
 html.dark body {
-    background-color: #1a1a2e;
-    color: #e0e0e0;
+    background-color: #12122a;
+    color: #d0d0e0;
 }
 
 html.dark .sidebar {
-    background-image: linear-gradient(180deg, #0f0f23 0%, #1a1a3e 70%) !important;
+    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%) !important;
 }
 
 html.dark .top-row {
-    background-color: #16163a !important;
-    border-bottom-color: #2a2a5e !important;
+    background-color: #1a1a3a !important;
+    border-bottom-color: #3a3a6a !important;
 }
 
 html.dark article {
-    background-color: #1a1a2e;
-    color: #e0e0e0;
+    background-color: #12122a;
+    color: #d0d0e0;
 }
 
 html.dark a, html.dark .btn-link {
-    color: #6ea8fe;
+    color: #7eb8ff;
 }
 
 html.dark .nav-item ::deep .nav-link {
-    color: #b0b0c0;
+    color: #c0c0d0 !important;
 }
 
 html.dark .nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.15);
-    color: white;
+    background-color: rgba(255,255,255,0.15) !important;
+    color: white !important;
 }
 
 html.dark .navbar-toggler {
-    background-color: rgba(255,255,255,0.15);
+    background-color: rgba(255,255,255,0.15) !important;
 }
 
-html.dark .card, html.dark .form-control, html.dark .form-floating {
-    background-color: #252550;
-    color: #e0e0e0;
+html.dark .card,
+html.dark .form-control,
+html.dark .form-floating,
+html.dark .table,
+html.dark .list-group-item {
+    background-color: #1e1e42;
+    color: #d0d0e0;
     border-color: #3a3a6a;
 }
 
 html.dark .btn-primary {
     background-color: #375a7f;
     border-color: #375a7f;
+}
+
+html.dark .btn-secondary {
+    background-color: #3a3a5a;
+    border-color: #3a3a5a;
+    color: #d0d0e0;
+}
+
+html.dark .text-muted,
+html.dark .text-secondary {
+    color: #9a9ab0 !important;
+}
+
+html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6,
+html.dark label, html.dark th {
+    color: #e0e0f0;
+}
+
+html.dark input, html.dark select, html.dark textarea {
+    background-color: #1e1e42;
+    color: #d0d0e0;
+    border-color: #3a3a6a;
+}
+
+html.dark .alert-info {
+    background-color: #1a2a4a;
+    color: #b0c8f0;
+    border-color: #2a4a7a;
+}
+
+html.dark .alert-danger {
+    background-color: #4a1a1a;
+    color: #f0b0b0;
+    border-color: #7a2a2a;
+}
+
+html.dark .alert-success {
+    background-color: #1a3a1a;
+    color: #b0f0b0;
+    border-color: #2a6a2a;
+}
+
+html.dark .alert-warning {
+    background-color: #3a3a1a;
+    color: #f0f0b0;
+    border-color: #6a6a2a;
+}
+
+html.dark .modal-content {
+    background-color: #1e1e42;
+    color: #d0d0e0;
+}
+
+html.dark .page-link {
+    background-color: #1e1e42;
+    color: #7eb8ff;
+    border-color: #3a3a6a;
+}
+
+html.dark .page-item.active .page-link {
+    background-color: #375a7f;
+    border-color: #375a7f;
+}
+
+html.dark .dropdown-menu {
+    background-color: #1e1e42;
+    color: #d0d0e0;
+}
+
+html.dark .dropdown-item {
+    color: #d0d0e0;
+}
+
+html.dark .dropdown-item:hover {
+    background-color: #3a3a6a;
+    color: white;
+}
+
+html.dark .table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: rgba(255,255,255,0.03);
+}
+
+html.dark .navbar-brand {
+    filter: brightness(0.9);
 }
