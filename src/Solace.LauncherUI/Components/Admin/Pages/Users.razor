@@ -503,8 +503,8 @@
                     var roleInfo = _roles.FirstOrDefault(r => r.Name == roleName);
                     if (roleInfo != null)
                     {
-                        <span class="badge border text-dark fw-normal"
-                              style="background-color: #f8f9fa; border-left: 3px solid @roleInfo.Color !important;">
+                        <span class="badge badge-subtle border text-dark fw-normal"
+                              style="border-left: 3px solid @roleInfo.Color !important;">
                             @roleInfo.Name
                         </span>
                     }

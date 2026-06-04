@@ -719,8 +719,25 @@ html.dark .navbar-brand {
     filter: brightness(0.9);
 }
 
-html.dark .badge {
-    color: #d0d0e0;
+.badge-subtle {
+    background-color: #f8f9fa;
+}
+
+html.dark .badge-subtle {
+    background-color: #2a2a5a;
+}
+
+html.dark .bg-dark-subtle {
+    background-color: #1e1e42 !important;
+}
+
+html.dark .bg-secondary {
+    background-color: #495057 !important;
+}
+
+html.dark .bg-secondary-subtle {
+    background-color: #2a2a5a !important;
+    color: #b0b0c8 !important;
 }
 
 html.dark .nav-pills .nav-link {
