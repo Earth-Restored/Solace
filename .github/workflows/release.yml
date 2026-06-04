@@ -1,4 +1,4 @@
-name: Release Build
+Name: Release Build
 
 on:
   workflow_dispatch:
@@ -34,7 +34,15 @@ jobs:
               $previousTag = $latestTag
               $versionStr = $latestTag -replace 'v', ''
               $version = [version]$versionStr
-              $nextVersion = "{0}.{1}.{2}" -f $version.Major, $version.Minor, ($version.Build + 1)
+              if ($version.Build -eq 9) {
+                  if ($version.Minor -eq 9) {
+                      $nextVersion = "{0}.0.0" -f ($version.Major + 1)
+                  } else {
+                      $nextVersion = "{0}.{1}.0" -f $version.Major, ($version.Minor + 1)
+                  }
+              } else {
+                  $nextVersion = "{0}.{1}.{2}" -f $version.Major, $version.Minor, ($version.Build + 1)
+              }
               $nextTag = "v$nextVersion"
           }
           echo "next_tag=$nextTag" >> $env:GITHUB_OUTPUT
