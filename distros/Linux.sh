@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-REMOTE_URL="https://raw.githubusercontent.com/FroquaCubez/Solace/refs/heads/main/distros/Linux.sh"
+REMOTE_URL="https://raw.githubusercontent.com/Earth-Restored/Solace/refs/heads/main/distros/Linux.sh"
 SELF_PATH="$(realpath "$0")"
 
 RED='\033[1;31m'
@@ -372,7 +372,7 @@ update_solace() {
             ARTIFACT_PREFIX="Solace-Dev"
             DISPLAY_TAG="dev-build"
         else
-            RELEASE_JSON=$(curl -s https://api.github.com/repos/FroquaCubez/Solace/releases)
+            RELEASE_JSON=$(curl -s https://api.github.com/repos/Earth-Restored/Solace/releases)
             ALL_TAGS=$(echo "$RELEASE_JSON" | grep '"tag_name"' | cut -d '"' -f4)
             LATEST_TAG=$(echo "$ALL_TAGS" | grep -v "^dev-build$" | head -n1)
 
@@ -403,7 +403,7 @@ update_solace() {
 
         echo "[Solace] preparing download for $DISPLAY_TAG..."
 
-        URL="https://github.com/FroquaCubez/Solace/releases/download/${TAG}/${ARTIFACT_PREFIX}-${RELEASE_ARCH}.zip"
+        URL="https://github.com/Earth-Restored/Solace/releases/download/${TAG}/${ARTIFACT_PREFIX}-${RELEASE_ARCH}.zip"
 
         TMP_DIR="$(mktemp -d /tmp/Solace_update_XXXXXX)"
         cd "$TMP_DIR" || return

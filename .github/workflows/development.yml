@@ -66,4 +66,4 @@ jobs:
             **Commit SHA:** ${{ github.sha }}
             
             ---
-            ![Solace Banner](https://raw.githubusercontent.com/FroquaCubez/Solace/main/images/solace_banner.png)
+            ![Solace Banner](https://raw.githubusercontent.com/Earth-Restored/Solace/main/images/solace_banner.png)

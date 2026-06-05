@@ -146,7 +146,7 @@ jobs:
           $GENERATED_NOTES
 
           ---
-          ![Solace Banner](https://raw.githubusercontent.com/FroquaCubez/Solace/main/images/solace_banner.png)"
+          ![Solace Banner](https://raw.githubusercontent.com/Earth-Restored/Solace/main/images/solace_banner.png)"
           gh release create "$VERSION" artifacts/* \
             --title "$VERSION" \
             --notes "$RELEASE_BODY"

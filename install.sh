@@ -156,11 +156,11 @@ cd ~
 
 if [ "$RELEASE_CHANNEL" = "dev" ]; then
     echo "[INFO] Downloading Dev Build..."
-    URL="https://github.com/FroquaCubez/Solace/releases/download/dev-build/Solace-Dev-linux-arm64.zip"
+    URL="https://github.com/Earth-Restored/Solace/releases/download/dev-build/Solace-Dev-linux-arm64.zip"
     TAG="dev-build"
 else
     echo "[INFO] Fetching latest stable release..."
-    RELEASE_JSON=$(curl -s https://api.github.com/repos/FroquaCubez/Solace/releases)
+    RELEASE_JSON=$(curl -s https://api.github.com/repos/Earth-Restored/Solace/releases)
 
     URL=$(echo "$RELEASE_JSON" \
     | grep -o '"browser_download_url": "[^"]*linux-arm64[^"]*"' \
@@ -215,7 +215,7 @@ print_step "4. CREATING EARTH COMMAND"
 
 mkdir -p "$PREFIX/bin"
 
-curl -fsSL https://raw.githubusercontent.com/FroquaCubez/Solace/refs/heads/main/distros/Termux.sh -o "$PREFIX/bin/earth"
+curl -fsSL https://raw.githubusercontent.com/Earth-Restored/Solace/refs/heads/main/distros/Termux.sh -o "$PREFIX/bin/earth"
 
 chmod +x "$PREFIX/bin/earth"
 
@@ -485,13 +485,13 @@ fi
 
 if [ -d "$REPO_DIR/.git" ]; then
     cd "$REPO_DIR"
-    git remote set-url origin https://github.com/FroquaCubez/Solace.git
+    git remote set-url origin https://github.com/Earth-Restored/Solace.git
     git fetch origin "$GIT_BRANCH"
     git reset --hard "origin/$GIT_BRANCH"
     git submodule update --init --recursive
     ok "Repository updated ($GIT_BRANCH)"
 else
-    sudo -u "$CURRENT_USER" git clone --recurse-submodules -b "$GIT_BRANCH" https://github.com/FroquaCubez/Solace.git "$REPO_DIR"
+    sudo -u "$CURRENT_USER" git clone --recurse-submodules -b "$GIT_BRANCH" https://github.com/Earth-Restored/Solace.git "$REPO_DIR"
     cd "$REPO_DIR"
     ok "Repository cloned ($GIT_BRANCH)"
 fi
@@ -515,10 +515,10 @@ start_service
 
 print_step "8. INSTALLING EARTH COMMAND"
 if [ "$OS" = "Darwin" ]; then
-    curl -fsSL https://raw.githubusercontent.com/FroquaCubez/Solace/refs/heads/main/distros/macOS.sh \
+    curl -fsSL https://raw.githubusercontent.com/Earth-Restored/Solace/refs/heads/main/distros/macOS.sh \
         -o /usr/local/bin/earth
 else
-    curl -fsSL https://raw.githubusercontent.com/FroquaCubez/Solace/refs/heads/main/distros/Linux.sh \
+    curl -fsSL https://raw.githubusercontent.com/Earth-Restored/Solace/refs/heads/main/distros/Linux.sh \
         -o /usr/local/bin/earth
 fi
 chmod +x /usr/local/bin/earth
