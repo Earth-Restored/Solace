@@ -414,6 +414,8 @@ html.dark .card {
     background-color: #1e1e42;
     color: #d0d0e0;
     border-color: #3a3a6a;
+    border-radius: var(--bs-card-border-radius, 0.375rem);
+    overflow: hidden;
 }
 
 html.dark .card-header {
