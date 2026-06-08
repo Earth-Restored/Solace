@@ -252,23 +252,19 @@ fi
 
 HOME_DIR=$(eval echo "~$CURRENT_USER")
 INSTALL_DIR="$HOME_DIR/solace-server"
-REPO_DIR="$INSTALL_DIR/Solace"
+SOLACE_DIR="$INSTALL_DIR/Solace"
 SERVICE_FILE="/etc/systemd/system/solace.service"
 
 OS=$(uname -s)
 case $(uname -m) in
-    x86_64)        ARCH_PROFILE="x64"   ; JAVA_ARCH="amd64" ;;
-    aarch64|arm64) ARCH_PROFILE="arm64" ; JAVA_ARCH="arm64" ;;
+    x86_64)        ARCH_PROFILE="x64"   ; JAVA_ARCH="amd64" ; RELEASE_ARCH="linux-x64"   ;;
+    aarch64|arm64) ARCH_PROFILE="arm64" ; JAVA_ARCH="arm64" ; RELEASE_ARCH="linux-arm64" ;;
     *) err "Unsupported architecture: $(uname -m)" ;;
 esac
 
 if [ "$OS" = "Darwin" ]; then
-    PROFILE="framework-dependent-osx-$ARCH_PROFILE"
-else
-    PROFILE="framework-dependent-linux-$ARCH_PROFILE"
+    RELEASE_ARCH="osx-$ARCH_PROFILE"
 fi
-
-BUILD_DIR="$REPO_DIR/build/Release/$PROFILE"
 
 export DOTNET_ROOT="$HOME_DIR/.dotnet"
 export PATH="$DOTNET_ROOT:$PATH"
@@ -370,7 +366,7 @@ install_service() {
         <string>./run_launcher.ps1</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>$BUILD_DIR</string>
+    <string>$SOLACE_DIR</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>DOTNET_ROOT</key>
@@ -385,9 +381,9 @@ install_service() {
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>$BUILD_DIR/logs/solace.log</string>
+    <string>$SOLACE_DIR/logs/solace.log</string>
     <key>StandardErrorPath</key>
-    <string>$BUILD_DIR/logs/solace.err</string>
+    <string>$SOLACE_DIR/logs/solace.err</string>
 </dict>
 </plist>
 EOF
@@ -402,7 +398,7 @@ After=network.target
 [Service]
 Type=simple
 User=$CURRENT_USER
-WorkingDirectory=$BUILD_DIR
+WorkingDirectory=$SOLACE_DIR
 Environment=TERM=xterm-256color
 Environment=DOTNET_ROOT=$HOME_DIR/.dotnet
 Environment=PATH=$HOME_DIR/.dotnet:$HOME_DIR/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -444,7 +440,7 @@ detect_pkg_manager
 
 print_step "1. INSTALLING DEPENDENCIES"
 pkg_update
-pkg_install curl git wget unzip
+pkg_install curl git wget unzip fzf
 
 if ! command -v java &>/dev/null; then
     install_java
@@ -471,49 +467,66 @@ print_step "2. STOPPING EXISTING SERVICE"
 stop_service
 sleep 2
 
-print_step "3. PULLING LATEST CODE FROM GITHUB"
+print_step "3. DOWNLOADING PRE-COMPILED SERVER"
 mkdir -p "$INSTALL_DIR"
-chown "$CURRENT_USER":"$(id -gn "$CURRENT_USER")" "$INSTALL_DIR"
 
 if [ "$RELEASE_CHANNEL" = "dev" ]; then
-    GIT_BRANCH="dev"
-    echo -e "${YLW}[INFO] Using Dev branch${RST}"
+    echo -e "${YLW}[INFO] Downloading Dev Build...${RST}"
+    ARTIFACT="Solace-Dev-${RELEASE_ARCH}.zip"
+    URL="https://github.com/Earth-Restored/Solace/releases/download/dev-build/${ARTIFACT}"
+    TAG="dev-build"
 else
-    GIT_BRANCH="main"
-    echo -e "${GRN}[INFO] Using Stable branch${RST}"
+    echo -e "${GRN}[INFO] Fetching latest stable release...${RST}"
+    RELEASE_JSON=$(curl -s https://api.github.com/repos/Earth-Restored/Solace/releases)
+    URL=$(echo "$RELEASE_JSON" \
+        | grep -o '"browser_download_url": "[^"]*'"${RELEASE_ARCH}"'[^"]*"' \
+        | grep -v "\-Dev-" \
+        | cut -d '"' -f4 \
+        | head -n1)
+    TAG=$(echo "$RELEASE_JSON" \
+        | grep '"tag_name"' \
+        | cut -d '"' -f4 \
+        | grep -v "^dev-build$" \
+        | head -n1)
 fi
 
-if [ -d "$REPO_DIR/.git" ]; then
-    cd "$REPO_DIR"
-    git remote set-url origin https://github.com/Earth-Restored/Solace.git
-    git fetch origin "$GIT_BRANCH"
-    git reset --hard "origin/$GIT_BRANCH"
-    git submodule update --init --recursive
-    ok "Repository updated ($GIT_BRANCH)"
-else
-    sudo -u "$CURRENT_USER" git clone --recurse-submodules -b "$GIT_BRANCH" https://github.com/Earth-Restored/Solace.git "$REPO_DIR"
-    cd "$REPO_DIR"
-    ok "Repository cloned ($GIT_BRANCH)"
+if [ -z "$URL" ]; then
+    err "No download URL found for $RELEASE_ARCH"
 fi
 
-print_step "4. BUILDING SERVER"
-sudo -u "$CURRENT_USER" env \
-    DOTNET_ROOT="$HOME_DIR/.dotnet" \
-    PATH="$HOME_DIR/.dotnet:$PATH" \
-    pwsh ./publish.ps1 --profiles "$PROFILE"
+echo -e "${CYN}[INFO] Build: $TAG${RST}"
+echo -e "${CYN}[INFO] Downloading...${RST}"
 
-print_step "5. PREPARING BUILD ENVIRONMENT"
-cd "$BUILD_DIR"
-cp *.json components/ 2>/dev/null || true
+curl -L --progress-bar -o "/tmp/Solace-${RELEASE_ARCH}.zip" "$URL"
+
+rm -rf "$SOLACE_DIR"
+mkdir -p "$SOLACE_DIR"
+
+echo -e "${CYN}[INFO] Extracting...${RST}"
+unzip -o "/tmp/Solace-${RELEASE_ARCH}.zip" -d "$SOLACE_DIR" >/dev/null 2>&1
+
+if [ -d "$SOLACE_DIR/Solace-${RELEASE_ARCH}" ]; then
+    mv "$SOLACE_DIR/Solace-${RELEASE_ARCH}"/* "$SOLACE_DIR/"
+    rm -rf "$SOLACE_DIR/Solace-${RELEASE_ARCH}"
+fi
+
+echo "$TAG" > "$SOLACE_DIR/version.txt"
+rm -f "/tmp/Solace-${RELEASE_ARCH}.zip"
+
+chown -R "$CURRENT_USER":"$(id -gn "$CURRENT_USER")" "$SOLACE_DIR"
+
+print_step "4. PREPARING BUILD ENVIRONMENT"
+cd "$SOLACE_DIR"
 mkdir -p logs/EventBusServer logs/ObjectStoreServer logs/ApiServer logs/TileRenderer
+chmod -R +x "$SOLACE_DIR/components/" 2>/dev/null || true
 
-print_step "6. INSTALLING SERVICE"
+print_step "5. INSTALLING SERVICE"
 install_service
 
-print_step "7. STARTING SERVER"
+print_step "6. STARTING SERVER"
 start_service
 
-print_step "8. INSTALLING EARTH COMMAND"
+print_step "7. INSTALLING EARTH COMMAND"
 if [ "$OS" = "Darwin" ]; then
     curl -fsSL https://raw.githubusercontent.com/Earth-Restored/Solace/refs/heads/main/distros/macOS.sh \
         -o /usr/local/bin/earth
@@ -531,9 +544,8 @@ echo -e "${GRN}========================================${RST}"
 echo ""
 echo "   User:    $CURRENT_USER"
 echo "   OS:      $OS ($PKG_MANAGER)"
-echo "   Arch:    $PROFILE"
-echo "   Install: $REPO_DIR"
-echo "   Build:   $BUILD_DIR"
+echo "   Arch:    $RELEASE_ARCH"
+echo "   Install: $SOLACE_DIR"
 echo ""
 echo -e "${CYN}Next steps:${RST}"
 echo "  1. Open http://127.0.0.1:5000 and create your admin account"
@@ -547,7 +559,7 @@ echo "  earth eula         accept Minecraft EULA"
 echo "  earth help         show all commands"
 echo "  earth uninstall    remove Solace completely"
 if [ "$OS" = "Darwin" ]; then
-    echo "  tail -f $BUILD_DIR/logs/solace.log       live logs"
+    echo "  tail -f $SOLACE_DIR/logs/solace.log       live logs"
 else
     echo "  journalctl -u solace.service -f          live logs"
     echo "  systemctl status solace.service          status"
