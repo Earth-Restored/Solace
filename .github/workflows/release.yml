@@ -70,10 +70,6 @@ jobs:
             arch: x64
           - os: linux
             arch: arm64
-          - os: osx
-            arch: x64
-          - os: osx
-            arch: arm64
 
     steps:
       - name: Checkout repository at new tag
@@ -164,5 +160,4 @@ jobs:
             build-win-arm64
             build-linux-x64
             build-linux-arm64
-            build-osx-x64
-            build-osx-arm64
+            
