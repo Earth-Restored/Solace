@@ -21,10 +21,6 @@ jobs:
             arch: x64
           - os: linux
             arch: arm64
-          - os: osx
-            arch: x64
-          - os: osx
-            arch: arm64
 
     steps:
       - name: Checkout repository
