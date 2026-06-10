@@ -714,16 +714,6 @@ fi
 sudo chmod +x /usr/local/bin/earth
 ok "earth command installed (/usr/local/bin/earth)"
 
-# ─── STEP 8: START SERVER ──────────────────────────────────
-
-print_step "STARTING SERVER"
-if [ "$OS" = "Darwin" ]; then
-    sudo -u "$CURRENT_USER" launchctl start com.solace.server
-else
-    sudo systemctl start solace.service || skip "systemctl start failed (try: sudo systemctl start solace.service)"
-fi
-ok "Server started"
-
 # ─── COMPLETE ──────────────────────────────────────────────
 
 echo ""
