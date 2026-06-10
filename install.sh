@@ -6,16 +6,17 @@ GRN='\033[1;32m'
 YLW='\033[1;33m'
 ORG='\033[38;5;208m'
 CYN='\033[1;36m'
+BLU='\033[1;34m'
 RST='\033[0m'
 
 banner() {
-    echo -e "\033[1;34m"
+    echo -e "${BLU}"
     echo "   _____       __"
     echo "  / ___/____  / /___ _________"
     echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
     echo " ___/ / /_/ / / /_/ / /__/  __/"
     echo "/____/\____/_/\__,_/\___/\___/"
-    echo -e "\033[0m"
+    echo -e "${RST}"
 }
 
 help_text() {
@@ -49,37 +50,18 @@ print_step() {
     echo -e "${CYN}========================================${RST}"
 }
 
+print_sub() {
+    echo -e "  ${BLU}>${RST} $1"
+}
+
 ok()   { echo -e "${GRN}[OK] $1${RST}"; }
 skip() { echo -e "${YLW}[SKIP] $1${RST}"; }
 err()  { echo -e "${RED}[ERROR] $1${RST}"; exit 1; }
 
+GITHUB_REPO="cosmetide/Solace"
+GITHUB_URL="https://github.com/$GITHUB_REPO.git"
+
 banner
-
-# ─── RELEASE CHANNEL ──────────────────────────────────────────
-
-echo ""
-echo -e "${CYN}Select release channel:${RST}"
-echo ""
-echo -e "  ${GRN}1) Stable (recommended)${RST}"
-echo -e "  ${YLW}2) Dev Build (unstable - may break)${RST}"
-echo ""
-
-printf "Choice [1/2] > "
-read -r CHANNEL_CHOICE < /dev/tty
-CHANNEL_CHOICE="$(echo "$CHANNEL_CHOICE" | tr -d '\r\n')"
-
-case "$CHANNEL_CHOICE" in
-    2|dev|Dev)
-        RELEASE_CHANNEL="dev"
-        echo -e "${YLW}[INFO] Selected Dev Build - use at your own risk${RST}"
-        ;;
-    *)
-        RELEASE_CHANNEL="stable"
-        echo -e "${GRN}[INFO] Selected Stable release${RST}"
-        ;;
-esac
-echo ""
-
 
 # ─────────────────────────────────────────
 #  TERMUX BRANCH
@@ -154,33 +136,24 @@ mkdir -p ~/Solace
 echo "[5] Downloading pre-compiled server"
 cd ~
 
-if [ "$RELEASE_CHANNEL" = "dev" ]; then
-    echo "[INFO] Downloading Dev Build..."
-    URL="https://github.com/Earth-Restored/Solace/releases/download/dev-build/Solace-Dev-linux-arm64.zip"
-    TAG="dev-build"
-else
-    echo "[INFO] Fetching latest stable release..."
-    RELEASE_JSON=$(curl -s https://api.github.com/repos/Earth-Restored/Solace/releases)
+RELEASE_JSON=$(curl -s https://api.github.com/repos/cosmetide/Solace/releases)
 
-    URL=$(echo "$RELEASE_JSON" \
-    | grep -o '"browser_download_url": "[^"]*linux-arm64[^"]*"' \
-    | grep -v "\-Dev-" \
-    | cut -d '"' -f4 \
-    | head -n1)
+URL=$(echo "$RELEASE_JSON" \
+| grep -o '"browser_download_url": "[^"]*linux-arm64[^"]*"' \
+| cut -d '"' -f4 \
+| head -n1)
 
-    TAG=$(echo "$RELEASE_JSON" \
-    | grep '"tag_name"' \
-    | cut -d '"' -f4 \
-    | grep -v "^dev-build$" \
-    | head -n1)
-fi
+TAG=$(echo "$RELEASE_JSON" \
+| grep '"tag_name"' \
+| head -n1 \
+| cut -d '"' -f4)
 
 if [ -z "$URL" ]; then
     echo "[ERROR] No download URL found"
     exit 1
 fi
 
-echo "[INFO] Build: $TAG"
+echo "[INFO] Latest build: $TAG"
 echo "[INFO] Downloading..."
 
 curl -L --progress-bar -o Solace-linux-arm64.zip "$URL"
@@ -202,7 +175,6 @@ fi
 chmod -R +x ~/Solace/components/ 2>/dev/null || true
 
 echo "[6] Cleaning installer leftovers"
-
 rm -f ~/dotnet-install.sh
 rm -f ~/Solace-linux-arm64.zip
 
@@ -212,29 +184,19 @@ EOF
     ok "Ubuntu configured"
 
 print_step "4. CREATING EARTH COMMAND"
-
 mkdir -p "$PREFIX/bin"
-
-curl -fsSL https://raw.githubusercontent.com/Earth-Restored/Solace/refs/heads/main/distros/Termux.sh -o "$PREFIX/bin/earth"
-
+curl -fsSL "https://raw.githubusercontent.com/$GITHUB_REPO/refs/heads/main/distros/Termux.sh" -o "$PREFIX/bin/earth"
 chmod +x "$PREFIX/bin/earth"
-
 ok "earth command installed"
 
 echo ""
-echo -e "${GRN}========================================${RST}"
-echo -e "${ORG}          INSTALL COMPLETE              ${RST}"
-echo -e "${GRN}========================================${RST}"
+echo -e "${GRN}==============================${RST}"
+echo -e "${ORG}      INSTALL COMPLETE         ${RST}"
+echo -e "${GRN}==============================${RST}"
 echo ""
 echo "  Run: earth"
 echo ""
-echo "Useful commands:"
-echo "  earth              TUI menu"
-echo "  earth eula         accept Minecraft EULA"
-echo "  earth help         show all commands"
-echo ""
-echo -e "${YLW}Installation guide:${RST}"
-echo "  https://github.com/Earth-Restored/Solace/blob/main/Installation.md"
+echo -e "${YLW}IMPORTANT:${RST} Read the guide in the menu first."
 echo ""
 exit 0
 fi
@@ -243,7 +205,6 @@ fi
 #  LINUX / MACOS BRANCH
 # ─────────────────────────────────────────
 
-# Detect the real user even when run via sudo
 if [ -n "$SUDO_USER" ]; then
     CURRENT_USER="$SUDO_USER"
 else
@@ -251,9 +212,12 @@ else
 fi
 
 HOME_DIR=$(eval echo "~$CURRENT_USER")
-INSTALL_DIR="$HOME_DIR/solace-server"
-REPO_DIR="$INSTALL_DIR/Solace"
+SOLACE_DIR="$HOME_DIR/solace"
+SERVER_DIR="$SOLACE_DIR/solace-server"
+SOURCE_DIR="$SOLACE_DIR/solace-source"
 SERVICE_FILE="/etc/systemd/system/solace.service"
+SETTINGS_FILE="$SOLACE_DIR/settings.json"
+VERSION_FILE="$SOLACE_DIR/version.txt"
 
 OS=$(uname -s)
 case $(uname -m) in
@@ -267,8 +231,6 @@ if [ "$OS" = "Darwin" ]; then
 else
     PROFILE="framework-dependent-linux-$ARCH_PROFILE"
 fi
-
-BUILD_DIR="$REPO_DIR/build/Release/$PROFILE"
 
 export DOTNET_ROOT="$HOME_DIR/.dotnet"
 export PATH="$DOTNET_ROOT:$PATH"
@@ -287,7 +249,7 @@ detect_pkg_manager() {
     else
         err "No supported package manager found (apt, dnf, pacman, zypper, brew)."
     fi
-    echo "Detected package manager: $PKG_MANAGER"
+    ok "Detected package manager: $PKG_MANAGER"
 }
 
 pkg_install() {
@@ -311,6 +273,7 @@ pkg_update() {
 }
 
 install_java() {
+    print_sub "Installing Java 17..."
     case $PKG_MANAGER in
         apt)    pkg_install openjdk-17-jre ;;
         dnf)    pkg_install java-17-openjdk ;;
@@ -321,13 +284,14 @@ install_java() {
 }
 
 install_pwsh() {
+    print_sub "Installing PowerShell..."
     case $PKG_MANAGER in
         apt)
             wget -q "https://packages.microsoft.com/config/$(. /etc/os-release && echo "$ID")/$(. /etc/os-release && echo "$VERSION_ID")/packages-microsoft-prod.deb" \
                 -O /tmp/packages-microsoft-prod.deb 2>/dev/null \
             || wget -q "https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb" \
                 -O /tmp/packages-microsoft-prod.deb
-            dpkg -i /tmp/packages-microsoft-prod.deb
+            dpkg -i /tmp/packages-microsoft-prod.deb 2>/dev/null || true
             apt-get update -qq
             pkg_install powershell
             ;;
@@ -338,13 +302,13 @@ install_pwsh() {
             ;;
         pacman)
             sudo -u "$CURRENT_USER" bash -c "
-                git clone https://aur.archlinux.org/powershell-bin.git /tmp/powershell-bin
-                cd /tmp/powershell-bin && makepkg -si --noconfirm
-            "
+                git clone https://aur.archlinux.org/powershell-bin.git /tmp/powershell-bin 2>/dev/null || true
+                cd /tmp/powershell-bin && makepkg -si --noconfirm 2>/dev/null || true
+            " 2>/dev/null || pkg_install powershell-bin 2>/dev/null || pkg_install powershell 2>/dev/null || true
             ;;
         zypper)
             rpm --import https://packages.microsoft.com/keys/microsoft.asc
-            zypper addrepo https://packages.microsoft.com/rhel/9/prod/ microsoft
+            zypper addrepo https://packages.microsoft.com/rhel/9/prod/ microsoft 2>/dev/null || true
             pkg_install powershell
             ;;
         brew)
@@ -352,6 +316,291 @@ install_pwsh() {
             ;;
     esac
 }
+
+# ─── STEP 1: ROOT CHECK ────────────────────────────────────
+
+print_step "PRE-FLIGHT CHECK"
+if [ "$OS" != "Darwin" ] && [ "$EUID" -ne 0 ]; then
+    err "Please run the script as root (sudo)!"
+fi
+detect_pkg_manager
+
+# ─── STEP 2: DEPENDENCY CHECK ──────────────────────────────
+
+MISSING_DEPS=()
+
+check_dep() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        MISSING_DEPS+=("$1 ($2)")
+    else
+        skip "$1 already installed"
+    fi
+}
+
+check_dep "java"   "Java 17+ JRE"
+check_dep "pwsh"   "PowerShell 7+"
+check_dep "curl"   "curl"
+check_dep "git"    "git"
+check_dep "fzf"    "fzf"
+
+DOTNET_MISSING=false
+if ! command -v dotnet >/dev/null 2>&1 || ! dotnet --list-sdks 2>/dev/null | grep -q "^10\."; then
+    DOTNET_MISSING=true
+    MISSING_DEPS+=("dotnet (.NET 10 SDK)")
+else
+    skip ".NET 10 already installed"
+fi
+
+if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
+    echo ""
+    echo -e "${YLW}Missing dependencies:${RST}"
+    for dep in "${MISSING_DEPS[@]}"; do
+        echo -e "  ${RED}✗${RST} $dep"
+    done
+    echo ""
+    echo -e "${CYN}Install missing dependencies now?${RST}"
+    echo ""
+    printf "Install now? [Y/n] > "
+    read -r INSTALL_DEPS < /dev/tty
+    INSTALL_DEPS="$(echo "$INSTALL_DEPS" | tr -d '\r\n')"
+
+    if [ "$INSTALL_DEPS" = "n" ] || [ "$INSTALL_DEPS" = "N" ] || [ "$INSTALL_DEPS" = "no" ] || [ "$INSTALL_DEPS" = "No" ]; then
+        err "Cannot continue without dependencies. Install them and try again."
+    fi
+
+    pkg_update
+
+    for dep in "${MISSING_DEPS[@]}"; do
+        case "$dep" in
+            java*)   install_java ;;
+            pwsh*)   install_pwsh ;;
+            curl*)   pkg_install curl ;;
+            git*)    pkg_install git ;;
+            fzf*)    pkg_install fzf ;;
+            dotnet*) ;;
+        esac
+    done
+
+    if [ "$DOTNET_MISSING" = "true" ]; then
+        print_sub "Installing .NET 10 SDK..."
+        wget -q https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh
+        chmod +x /tmp/dotnet-install.sh
+        sudo -u "$CURRENT_USER" bash /tmp/dotnet-install.sh --channel 10.0 --install-dir "$HOME_DIR/.dotnet" >/dev/null 2>&1
+        ok ".NET 10 installed"
+    fi
+
+    ok "All dependencies installed"
+else
+    ok "All dependencies already present"
+fi
+
+# ─── STEP 3: INSTALL METHOD CHOICE ─────────────────────────
+
+print_step "INSTALL METHOD"
+echo ""
+echo -e "${CYN}How would you like to install Solace?${RST}"
+echo ""
+echo -e "  ${GRN}[1] Prebuilt${RST}     - Download a pre-compiled binary (faster)"
+echo -e "  ${YLW}[2] Build from Source${RST} - Clone and compile from source"
+echo ""
+printf "Choice [1/2] > "
+read -r METHOD_CHOICE < /dev/tty
+METHOD_CHOICE="$(echo "$METHOD_CHOICE" | tr -d '\r\n')"
+
+case "$METHOD_CHOICE" in
+    2|source|Source)
+        INSTALL_MODE="source"
+        echo -e "${YLW}[INFO] Selected Build from Source${RST}"
+        ;;
+    *)
+        INSTALL_MODE="prebuilt"
+        echo -e "${GRN}[INFO] Selected Prebuilt${RST}"
+        ;;
+esac
+echo ""
+
+mkdir -p "$SOLACE_DIR"
+
+# ─── STEP 4A: PREBUILT PATH ────────────────────────────────
+
+if [ "$INSTALL_MODE" = "prebuilt" ]; then
+    print_step "PREBUILT INSTALL"
+
+    echo ""
+    echo -e "${CYN}Select branch:${RST}"
+    echo ""
+    echo -e "  ${GRN}[1] Main (stable - recommended)${RST}"
+    echo -e "  ${YLW}[2] Dev (unstable - may break)${RST}"
+    echo ""
+    printf "Choice [1/2] > "
+    read -r BRANCH_CHOICE < /dev/tty
+    BRANCH_CHOICE="$(echo "$BRANCH_CHOICE" | tr -d '\r\n')"
+
+    INSTALL_BRANCH="main"
+    case "$BRANCH_CHOICE" in
+        2|dev|Dev) INSTALL_BRANCH="dev" ;;
+    esac
+
+    if [ "$INSTALL_BRANCH" = "main" ]; then
+        print_sub "Fetching available releases..."
+        RELEASE_JSON=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases")
+        ALL_TAGS=$(echo "$RELEASE_JSON" | grep '"tag_name"' | cut -d '"' -f4)
+
+        if command -v fzf >/dev/null 2>&1 && [ -n "$ALL_TAGS" ]; then
+            echo ""
+            echo -e "${CYN}Select a version:${RST}"
+            SELECTED_TAG=$(echo "$ALL_TAGS" | fzf \
+                --height=40% \
+                --reverse \
+                --border \
+                --prompt="Version > " \
+                --no-multi)
+            [ -z "$SELECTED_TAG" ] && SELECTED_TAG=$(echo "$ALL_TAGS" | head -n1)
+        else
+            LATEST_TAG=$(echo "$ALL_TAGS" | head -n1)
+            echo -e "${GRN}Latest: $LATEST_TAG${RST}"
+            SELECTED_TAG="$LATEST_TAG"
+        fi
+
+        ARTIFACT_PREFIX="Solace"
+        DISPLAY_TAG="$SELECTED_TAG"
+    else
+        SELECTED_TAG="dev-build"
+        ARTIFACT_PREFIX="Solace-Dev"
+        DISPLAY_TAG="dev-build"
+        echo -e "${YLW}[INFO] Using Dev build${RST}"
+    fi
+
+    echo "[INFO] Downloading $DISPLAY_TAG..."
+
+    ZIP_NAME="${ARTIFACT_PREFIX}-linux-${ARCH_PROFILE}.zip"
+    if [ "$OS" = "Darwin" ]; then
+        ZIP_NAME="${ARTIFACT_PREFIX}-osx-${ARCH_PROFILE}.zip"
+    fi
+
+    URL="https://github.com/$GITHUB_REPO/releases/download/${SELECTED_TAG}/${ZIP_NAME}"
+
+    TMP_DIR=$(mktemp -d "/tmp/solace_install_XXXXXX")
+    cd "$TMP_DIR"
+
+    curl -L --progress-bar -o server.zip "$URL"
+
+    print_sub "Extracting..."
+    unzip -o server.zip >/dev/null 2>&1
+
+    mkdir -p "$SERVER_DIR"
+    if [ -d "Solace-linux-${ARCH_PROFILE}" ]; then
+        mv "Solace-linux-${ARCH_PROFILE}/"* "$SERVER_DIR/" 2>/dev/null || true
+    elif [ -d "Solace-osx-${ARCH_PROFILE}" ]; then
+        mv "Solace-osx-${ARCH_PROFILE}/"* "$SERVER_DIR/" 2>/dev/null || true
+    else
+        find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SERVER_DIR/" \; 2>/dev/null || true
+    fi
+
+    chmod -R +x "$SERVER_DIR/components/" 2>/dev/null || true
+
+    echo "$DISPLAY_TAG" > "$VERSION_FILE"
+    cat > "$SETTINGS_FILE" << JSONEOF
+{
+  "installMode": "prebuilt",
+  "branch": "$INSTALL_BRANCH",
+  "version": "$DISPLAY_TAG",
+  "updatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+JSONEOF
+
+    cd /
+    rm -rf "$TMP_DIR"
+    ok "Solace $DISPLAY_TAG downloaded to $SERVER_DIR"
+fi
+
+# ─── STEP 4B: BUILD FROM SOURCE PATH ───────────────────────
+
+if [ "$INSTALL_MODE" = "source" ]; then
+    print_step "BUILD FROM SOURCE"
+    print_sub "Fetching available branches..."
+
+    command -v git >/dev/null 2>&1 || pkg_install git
+
+    TMP_CLONE_DIR=$(mktemp -d "/tmp/solace_source_XXXXXX")
+    git clone --bare "$GITHUB_URL" "$TMP_CLONE_DIR" >/dev/null 2>&1
+    cd "$TMP_CLONE_DIR"
+
+    ALL_BRANCHES=$(git branch -r | sed 's|origin/||' | grep -v HEAD | sed 's/^ *//')
+
+    echo ""
+    echo -e "${CYN}Select a branch:${RST}"
+    if command -v fzf >/dev/null 2>&1; then
+        SELECTED_BRANCH=$(echo "$ALL_BRANCHES" | fzf \
+            --height=40% \
+            --reverse \
+            --border \
+            --prompt="Branch > " \
+            --no-multi)
+    else
+        echo "$ALL_BRANCHES" | head -10
+        printf "Enter branch name [main] > "
+        read -r SELECTED_BRANCH < /dev/tty
+    fi
+
+    [ -z "$SELECTED_BRANCH" ] && SELECTED_BRANCH="main"
+    INSTALL_BRANCH="$SELECTED_BRANCH"
+    rm -rf "$TMP_CLONE_DIR"
+
+    print_sub "Cloning $INSTALL_BRANCH..."
+    if [ -d "$SOURCE_DIR/.git" ]; then
+        cd "$SOURCE_DIR"
+        git remote set-url origin "$GITHUB_URL"
+        git fetch origin "$INSTALL_BRANCH"
+        git reset --hard "origin/$INSTALL_BRANCH"
+        git submodule update --init --recursive
+        ok "Repository updated ($INSTALL_BRANCH)"
+    else
+        rm -rf "$SOURCE_DIR"
+        sudo -u "$CURRENT_USER" git clone --recurse-submodules -b "$INSTALL_BRANCH" "$GITHUB_URL" "$SOURCE_DIR"
+        cd "$SOURCE_DIR"
+        ok "Repository cloned ($INSTALL_BRANCH)"
+    fi
+
+    BUILD_DIR="$SOURCE_DIR/build/Release/$PROFILE"
+
+    print_step "BUILDING SOLACE"
+    sudo -u "$CURRENT_USER" env \
+        DOTNET_ROOT="$HOME_DIR/.dotnet" \
+        PATH="$HOME_DIR/.dotnet:$PATH" \
+        pwsh ./publish.ps1 --profiles "$PROFILE"
+    ok "Build complete"
+
+    print_sub "Copying build output..."
+    mkdir -p "$SERVER_DIR"
+    cp -r "$BUILD_DIR/"* "$SERVER_DIR/" 2>/dev/null || true
+    cp "$BUILD_DIR"/../*.json "$SERVER_DIR/components/" 2>/dev/null || true
+    chmod -R +x "$SERVER_DIR/components/" 2>/dev/null || true
+
+    SELECTED_TAG="$INSTALL_BRANCH"
+    echo "$SELECTED_TAG" > "$VERSION_FILE"
+    cat > "$SETTINGS_FILE" << JSONEOF
+{
+  "installMode": "source",
+  "branch": "$INSTALL_BRANCH",
+  "version": "$SELECTED_TAG",
+  "updatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+JSONEOF
+    ok "Solace built from $INSTALL_BRANCH"
+fi
+
+# ─── STEP 5: PREPARE SERVER ENVIRONMENT ────────────────────
+
+print_step "PREPARING SERVER ENVIRONMENT"
+cd "$SERVER_DIR"
+cp *.json components/ 2>/dev/null || true
+mkdir -p logs/EventBusServer logs/ObjectStoreServer logs/ApiServer logs/TileRenderer
+ok "Server environment ready"
+
+# ─── STEP 6: INSTALL SERVICE ───────────────────────────────
+
+print_step "INSTALLING SERVICE"
 
 install_service() {
     if [ "$OS" = "Darwin" ]; then
@@ -370,7 +619,7 @@ install_service() {
         <string>./run_launcher.ps1</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>$BUILD_DIR</string>
+    <string>$SERVER_DIR</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>DOTNET_ROOT</key>
@@ -385,14 +634,15 @@ install_service() {
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>$BUILD_DIR/logs/solace.log</string>
+    <string>$SERVER_DIR/logs/solace.log</string>
     <key>StandardErrorPath</key>
-    <string>$BUILD_DIR/logs/solace.err</string>
+    <string>$SERVER_DIR/logs/solace.err</string>
 </dict>
 </plist>
 EOF
         sudo -u "$CURRENT_USER" launchctl unload "$PLIST" 2>/dev/null || true
         sudo -u "$CURRENT_USER" launchctl load "$PLIST"
+        ok "Launchd service installed"
     else
         cat > "$SERVICE_FILE" <<EOF
 [Unit]
@@ -402,7 +652,7 @@ After=network.target
 [Service]
 Type=simple
 User=$CURRENT_USER
-WorkingDirectory=$BUILD_DIR
+WorkingDirectory=$SERVER_DIR
 Environment=TERM=xterm-256color
 Environment=DOTNET_ROOT=$HOME_DIR/.dotnet
 Environment=PATH=$HOME_DIR/.dotnet:$HOME_DIR/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -417,141 +667,67 @@ WantedBy=multi-user.target
 EOF
         systemctl daemon-reload
         systemctl enable solace.service
+        ok "Systemd service installed"
     fi
 }
 
-start_service() {
-    if [ "$OS" = "Darwin" ]; then
-        sudo -u "$CURRENT_USER" launchctl start com.solace.server
-    else
-        systemctl start solace.service
-    fi
-}
-
-stop_service() {
-    if [ "$OS" = "Darwin" ]; then
-        sudo -u "$CURRENT_USER" launchctl stop com.solace.server 2>/dev/null || true
-    else
-        systemctl stop solace.service 2>/dev/null || true
-    fi
-}
-
-if [ "$OS" != "Darwin" ] && [ "$EUID" -ne 0 ]; then
-    err "Please run the script as root!"
-fi
-
-detect_pkg_manager
-
-print_step "1. INSTALLING DEPENDENCIES"
-pkg_update
-pkg_install curl git wget unzip
-
-if ! command -v java &>/dev/null; then
-    install_java
-else
-    skip "Java already installed"
-fi
-
-if ! command -v pwsh &>/dev/null; then
-    install_pwsh
-else
-    skip "PowerShell already installed"
-fi
-
-if ! command -v dotnet &>/dev/null || ! dotnet --list-sdks 2>/dev/null | grep -q "^10\."; then
-    wget https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh
-    chmod +x /tmp/dotnet-install.sh
-    sudo -u "$CURRENT_USER" bash /tmp/dotnet-install.sh --channel 10.0 --install-dir "$HOME_DIR/.dotnet"
-    ok ".NET 10 installed"
-else
-    skip ".NET 10 already installed"
-fi
-
-print_step "2. STOPPING EXISTING SERVICE"
-stop_service
-sleep 2
-
-print_step "3. PULLING LATEST CODE FROM GITHUB"
-mkdir -p "$INSTALL_DIR"
-chown "$CURRENT_USER":"$(id -gn "$CURRENT_USER")" "$INSTALL_DIR"
-
-if [ "$RELEASE_CHANNEL" = "dev" ]; then
-    GIT_BRANCH="dev"
-    echo -e "${YLW}[INFO] Using Dev branch${RST}"
-else
-    GIT_BRANCH="main"
-    echo -e "${GRN}[INFO] Using Stable branch${RST}"
-fi
-
-if [ -d "$REPO_DIR/.git" ]; then
-    cd "$REPO_DIR"
-    git remote set-url origin https://github.com/Earth-Restored/Solace.git
-    git fetch origin "$GIT_BRANCH"
-    git reset --hard "origin/$GIT_BRANCH"
-    git submodule update --init --recursive
-    ok "Repository updated ($GIT_BRANCH)"
-else
-    sudo -u "$CURRENT_USER" git clone --recurse-submodules -b "$GIT_BRANCH" https://github.com/Earth-Restored/Solace.git "$REPO_DIR"
-    cd "$REPO_DIR"
-    ok "Repository cloned ($GIT_BRANCH)"
-fi
-
-print_step "4. BUILDING SERVER"
-sudo -u "$CURRENT_USER" env \
-    DOTNET_ROOT="$HOME_DIR/.dotnet" \
-    PATH="$HOME_DIR/.dotnet:$PATH" \
-    pwsh ./publish.ps1 --profiles "$PROFILE"
-
-print_step "5. PREPARING BUILD ENVIRONMENT"
-cd "$BUILD_DIR"
-cp *.json components/ 2>/dev/null || true
-mkdir -p logs/EventBusServer logs/ObjectStoreServer logs/ApiServer logs/TileRenderer
-
-print_step "6. INSTALLING SERVICE"
 install_service
 
-print_step "7. STARTING SERVER"
-start_service
+# ─── STEP 7: INSTALL EARTH COMMAND ─────────────────────────
 
-print_step "8. INSTALLING EARTH COMMAND"
+print_step "INSTALLING EARTH COMMAND"
+
 if [ "$OS" = "Darwin" ]; then
-    curl -fsSL https://raw.githubusercontent.com/Earth-Restored/Solace/refs/heads/main/distros/macOS.sh \
+    curl -fsSL "https://raw.githubusercontent.com/$GITHUB_REPO/refs/heads/main/distros/macOS.sh" \
         -o /usr/local/bin/earth
 else
-    curl -fsSL https://raw.githubusercontent.com/Earth-Restored/Solace/refs/heads/main/distros/Linux.sh \
+    curl -fsSL "https://raw.githubusercontent.com/$GITHUB_REPO/refs/heads/main/distros/Linux.sh" \
         -o /usr/local/bin/earth
 fi
 chmod +x /usr/local/bin/earth
 ok "earth command installed (/usr/local/bin/earth)"
+
+# ─── STEP 8: START SERVER ──────────────────────────────────
+
+print_step "STARTING SERVER"
+if [ "$OS" = "Darwin" ]; then
+    sudo -u "$CURRENT_USER" launchctl start com.solace.server
+else
+    systemctl start solace.service
+fi
+ok "Server started"
+
+# ─── COMPLETE ──────────────────────────────────────────────
 
 echo ""
 echo -e "${GRN}========================================${RST}"
 echo -e "${ORG}          INSTALL COMPLETE              ${RST}"
 echo -e "${GRN}========================================${RST}"
 echo ""
-echo "   User:    $CURRENT_USER"
-echo "   OS:      $OS ($PKG_MANAGER)"
-echo "   Arch:    $PROFILE"
-echo "   Install: $REPO_DIR"
-echo "   Build:   $BUILD_DIR"
+echo -e "  ${CYN}User:${RST}    $CURRENT_USER"
+echo -e "  ${CYN}OS:${RST}      $OS ($PKG_MANAGER)"
+echo -e "  ${CYN}Arch:${RST}    $PROFILE"
+echo -e "  ${CYN}Mode:${RST}    $INSTALL_MODE"
+echo -e "  ${CYN}Branch:${RST}  $INSTALL_BRANCH"
+echo -e "  ${CYN}Server:${RST}  $SERVER_DIR"
+if [ "$INSTALL_MODE" = "source" ]; then
+    echo -e "  ${CYN}Source:${RST}  $SOURCE_DIR"
+fi
 echo ""
 echo -e "${CYN}Next steps:${RST}"
-echo "  1. Open http://127.0.0.1:5000 and create your admin account"
-echo "  2. Under 'Server Options', set Network/IPv4 Address to your PC's IP"
-echo "  3. Under 'Server Status', click Start"
-echo "  4. Accept the Minecraft EULA when prompted in the logs"
+echo "  1. Run: earth"
+echo "  2. Open http://localhost:5000 and create your admin account"
+echo "  3. Under 'Server Options', set Network/IPv4 Address to your PC's IP"
+echo "  4. Under 'Server Status', click Start"
+echo "  5. Accept the Minecraft EULA when prompted in the logs"
 echo ""
 echo -e "${CYN}Useful commands:${RST}"
 echo "  earth              TUI menu"
-echo "  earth eula         accept Minecraft EULA"
-echo "  earth help         show all commands"
 echo "  earth uninstall    remove Solace completely"
 if [ "$OS" = "Darwin" ]; then
-    echo "  tail -f $BUILD_DIR/logs/solace.log       live logs"
+    echo "  tail -f $SERVER_DIR/logs/solace.log       live logs"
 else
     echo "  journalctl -u solace.service -f          live logs"
     echo "  systemctl status solace.service          status"
 fi
 echo ""
-echo -e "${YLW}Installation guide:${RST}"
-echo "  https://github.com/Earth-Restored/Solace/blob/main/Installation.md"

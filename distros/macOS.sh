@@ -1,53 +1,41 @@
 #!/usr/bin/env bash
 
-REMOTE_URL="https://raw.githubusercontent.com/Earth-Restored/Solace/refs/heads/main/distros/macOS.sh"
-SELF_PATH="$(realpath "$0")"
-
 RED='\033[1;31m'
 GRN='\033[1;32m'
 YLW='\033[1;33m'
+ORG='\033[38;5;208m'
 CYN='\033[1;36m'
+BLU='\033[1;34m'
 RST='\033[0m'
 
-SERVICE_LABEL="com.solace.server"
-PLIST="$HOME/Library/LaunchAgents/$SERVICE_LABEL.plist"
-INSTALL_DIR="${INSTALL_DIR:-$HOME/solace-server}"
-SOLACE_DIR="$INSTALL_DIR/Solace"
-EULA_FILE="$SOLACE_DIR/staticdata/server_template_dir/eula.txt"
-RESOURCEPACK="$SOLACE_DIR/staticdata/resourcepacks/vanilla.zip"
+REMOTE_URL="https://raw.githubusercontent.com/cosmetide/Solace/refs/heads/main/distros/macOS.sh"
+SELF_PATH="$(realpath "$0")"
+GITHUB_REPO="cosmetide/Solace"
+GITHUB_URL="https://github.com/$GITHUB_REPO.git"
 
-ARCH=$(uname -m)
-case "$ARCH" in
-    x86_64)  RELEASE_ARCH="osx-x64"   ; ARCH_PROFILE="x64"   ;;
-    arm64)   RELEASE_ARCH="osx-arm64"  ; ARCH_PROFILE="arm64" ;;
-    *)
-        echo "Unsupported architecture: $ARCH"
-        exit 1
-        ;;
+SOLACE_DIR="$HOME/solace"
+SERVER_DIR="$SOLACE_DIR/solace-server"
+SOURCE_DIR="$SOLACE_DIR/solace-source"
+SETTINGS_FILE="$SOLACE_DIR/settings.json"
+VERSION_FILE="$SOLACE_DIR/version.txt"
+PLIST="$HOME/Library/LaunchAgents/com.solace.server.plist"
+
+case $(uname -m) in
+    x86_64)        ARCH_PROFILE="x64"   ;;
+    aarch64|arm64) ARCH_PROFILE="arm64" ;;
 esac
-
-PROFILE="framework-dependent-osx-$ARCH_PROFILE"
-BUILD_DIR="$SOLACE_DIR/build/Release/$PROFILE"
-LOG_DIR="$BUILD_DIR/logs"
-
-mkdir -p "$SOLACE_DIR"
 
 echo "Checking for updates..."
 
 update_self() {
     command -v curl >/dev/null 2>&1 || return
-
     TMP_PATH="$(mktemp /tmp/.earth_update_XXXXXX)"
-
     curl -fsSL --max-time 5 "$REMOTE_URL" -o "$TMP_PATH" 2>/dev/null
-
     if [ -s "$TMP_PATH" ]; then
         chmod +x "$TMP_PATH"
-
         if ! cmp -s "$TMP_PATH" "$SELF_PATH"; then
             mv "$TMP_PATH" "$SELF_PATH"
-            echo "[Solace] updated"
-            echo "[Solace] restarting..."
+            echo "[Solace] updated, restarting..."
             exec "$SELF_PATH" "$@"
         else
             rm -f "$TMP_PATH"
@@ -59,547 +47,311 @@ update_self() {
 
 update_self "$@"
 
-# ─── EULA SUBCOMMAND ──────────────────────────────────────────
+load_settings() {
+    if [ -f "$SETTINGS_FILE" ]; then
+        INSTALL_MODE=$(grep -o '"installMode": *"[^"]*"' "$SETTINGS_FILE" 2>/dev/null | cut -d'"' -f4)
+        INSTALL_BRANCH=$(grep -o '"branch": *"[^"]*"' "$SETTINGS_FILE" 2>/dev/null | cut -d'"' -f4)
+        CURRENT_VERSION=$(grep -o '"version": *"[^"]*"' "$SETTINGS_FILE" 2>/dev/null | cut -d'"' -f4)
+    fi
+    [ -z "$INSTALL_MODE" ] && INSTALL_MODE="prebuilt"
+    [ -z "$INSTALL_BRANCH" ] && INSTALL_BRANCH="main"
+    [ -z "$CURRENT_VERSION" ] && CURRENT_VERSION="unknown"
+    if [ -f "$VERSION_FILE" ]; then CURRENT_VERSION=$(cat "$VERSION_FILE"); fi
+}
+
+is_running() { curl -s --max-time 1 http://127.0.0.1:5000 | grep -q .; }
+is_process_alive() { pgrep -f run_launcher.ps1 >/dev/null 2>&1; }
+get_pid() { pgrep -f run_launcher.ps1 2>/dev/null | head -1; }
+
+get_uptime() {
+    local pid=$(get_pid)
+    if [ -n "$pid" ]; then
+        local start_str=$(ps -o lstart= "$pid" 2>/dev/null)
+        [ -z "$start_str" ] && return
+        local start_epoch=$(date -j -f "%a %b %d %H:%M:%S %Y" "$start_str" +%s 2>/dev/null)
+        local now_epoch=$(date +%s)
+        local diff=$((now_epoch - start_epoch))
+        echo "$((diff/86400))d $(((diff%86400)/3600))h $(((diff%3600)/60))m"
+    fi
+}
+
+get_local_ip() { ifconfig 2>/dev/null | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1; }
+
+check_deps() {
+    local missing=false
+    for cmd in java pwsh fzf; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then echo -e "  ${RED}✗${RST} $cmd"; missing=true; fi
+    done
+    if [ "$INSTALL_MODE" = "source" ] && ! command -v dotnet >/dev/null 2>&1; then
+        echo -e "  ${RED}✗${RST} dotnet"; missing=true
+    fi
+    $missing
+}
 
 if [ "$1" = "eula" ]; then
-    EULA_ACTION="$2"
-
-    if [ "$EULA_ACTION" = "--delete" ]; then
-        rm -f "$EULA_FILE"
-        echo "[Solace]: The eula file has been deleted. You can now start the server to generate a new one."
-        exit 0
-    fi
-
-    if [ ! -f "$EULA_FILE" ]; then
-        clear
-        echo "======================================="
-        echo "        MINECRAFT SERVER EULA"
-        echo "======================================="
-        echo ""
-        echo "[WARNING]: Agreeing to the EULA"
-        echo "without starting the server first will"
-        echo "NOT pre-download the files needed"
-        echo "for Buildplate Launcher."
-        echo ""
-        echo "Please start the server first from"
-        echo "the admin panel."
-        echo ""
-        echo "======================================="
-        echo ""
-        printf "Press ENTER to exit..."
-        read -r
-        exit 1
-    fi
-
-    if grep -q "eula=true" "$EULA_FILE"; then
-        echo "[Solace]: EULA already accepted."
-        exit 0
-    fi
-
-    clear
-    echo "======================================="
-    echo "        MINECRAFT SERVER EULA"
-    echo "======================================="
-    echo ""
-    echo "Before starting the server, you must"
-    echo "accept the End User License Agreement."
-    echo ""
-    echo "Read it here:"
-    echo "https://aka.ms/MinecraftEULA"
-    echo ""
-    echo "Type YES to agree."
-    echo ""
-    echo "======================================="
-    echo ""
-    printf "Accept EULA > "
-    read CONFIRM < /dev/tty
+    EULA_ACTION="$2"; EULA_FILE="$SERVER_DIR/staticdata/server_template_dir/eula.txt"
+    [ "$EULA_ACTION" = "--delete" ] && { rm -f "$EULA_FILE"; echo "[Solace]: Deleted."; exit 0; }
+    [ ! -f "$EULA_FILE" ] && { echo "Start server first to generate EULA."; read -r; exit 1; }
+    grep -q "eula=true" "$EULA_FILE" && { echo "[Solace]: Already accepted."; exit 0; }
+    printf "Type YES to agree: "; read CONFIRM < /dev/tty
     CONFIRM="$(echo "$CONFIRM" | tr -d '\r\n')"
-
     if [ "$CONFIRM" = "YES" ]; then
-        if grep -q "eula=false" "$EULA_FILE"; then
-            sed -i 's/eula=false/eula=true/g' "$EULA_FILE"
-        else
-            echo "eula=true" >> "$EULA_FILE"
-        fi
-        echo ""
+        if grep -q "eula=false" "$EULA_FILE"; then sed -i 's/eula=false/eula=true/g' "$EULA_FILE"
+        else echo "eula=true" >> "$EULA_FILE"; fi
         echo "[Solace]: EULA accepted."
-    else
-        echo ""
-        echo "[Solace]: EULA not accepted."
-    fi
-
+    else echo "[Solace]: Not accepted."; fi
     exit 0
 fi
-
-# ─── UNINSTALL SUBCOMMAND ─────────────────────────────────────
 
 if [ "$1" = "uninstall" ]; then
-    echo "[Solace] Stopping and removing launchd service..."
-    launchctl unload "$PLIST" 2>/dev/null || true
-    rm -f "$PLIST"
-
-    echo "[Solace] Removing Solace files..."
-    rm -rf "$INSTALL_DIR"
-
-    echo "[Solace] Removing earth command..."
-    rm -f "$SELF_PATH"
-
-    echo "[Solace] Solace has been uninstalled."
-    exit 0
+    CONFIRM=$(printf "No, cancel\nYes, remove everything" | fzf --height=15% --reverse --border --prompt="Uninstall? > ")
+    [ "$CONFIRM" != "Yes, remove everything" ] && exit 0
+    launchctl unload "$PLIST" 2>/dev/null || true; rm -f "$PLIST"
+    rm -rf "$SOLACE_DIR"; rm -f "$SELF_PATH"
+    echo "[Solace] Uninstalled."; exit 0
 fi
 
-# ─── HELP SUBCOMMAND ──────────────────────────────────────────
-
 if [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-    echo -e "\033[1;34m"
+    echo -e "${BLU}"
     echo "   _____       __"
     echo "  / ___/____  / /___ _________"
     echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
     echo " ___/ / /_/ / / /_/ / /__/  __/"
     echo "/____/\____/_/\__,_/\___/\___/"
-    echo -e "\033[0m"
+    echo -e "${RST}"
     echo "Usage: earth [COMMAND]"
-    echo ""
-    echo "Commands:"
     echo "  (no args)    Open the TUI menu"
     echo "  help         Show this help message"
     echo "  eula         Accept the Minecraft EULA"
     echo "  eula --delete  Delete the EULA file"
     echo "  uninstall    Completely remove Solace"
-    echo ""
-    echo "Platform: macOS - launchd service"
-    echo ""
     exit 0
 fi
 
-# ─── CORE FUNCTIONS ───────────────────────────────────────────
-
-is_running() {
-    launchctl list "$SERVICE_LABEL" >/dev/null 2>&1
-}
-
 start_server() {
-    if is_running; then
-        return
-    fi
-
-    if [ ! -f "$PLIST" ]; then
-        echo "[Solace] Service plist not found. Run install.sh first."
-        sleep 2
-        return
-    fi
-
-    echo "[Solace] Starting server..."
-    launchctl load "$PLIST" 2>/dev/null || {
-        echo "[Solace] Failed to load service."
-        sleep 2
-        return
-    }
-    launchctl start "$SERVICE_LABEL" 2>/dev/null || true
-
-    clear
-    echo "[Solace] server is now running."
-    echo ""
-    echo "Admin Panel:"
-    echo "http://127.0.0.1:5000"
-    sleep 1
+    if is_process_alive; then return; fi
+    if [ ! -f "$SERVER_DIR/run_launcher.ps1" ]; then echo -e "${RED}[ERROR] Server files not found${RST}"; sleep 2; return; fi
+    if check_deps; then echo -e "${RED}Missing dependencies.${RST}"; read -r; return; fi
+    cd "$SERVER_DIR" || return
+    export DOTNET_ROOT="$HOME/.dotnet" PATH="$PATH:$HOME/.dotnet:$HOME/.dotnet/tools"
+    export COMPlus_gcServer=0 COMPlus_gcConcurrent=1 DOTNET_GCHeapHardLimit=268435456
+    nohup pwsh ./run_launcher.ps1 > "$SERVER_DIR/logs/launcher.log" 2>&1 & disown; sleep 3
 }
 
 stop_server() {
-    if ! is_running; then
-        return
+    local pid=$(get_pid)
+    if [ -n "$pid" ]; then
+        local pgid=$(ps -o pgid= "$pid" 2>/dev/null | tr -d ' ')
+        kill -- -"$pgid" 2>/dev/null; kill "$pid" 2>/dev/null
     fi
-
-    echo "[Solace] Stopping server..."
-    launchctl stop "$SERVICE_LABEL" 2>/dev/null || true
-    launchctl unload "$PLIST" 2>/dev/null || true
-
-    clear
-    echo "[Solace] server stopped."
-    sleep 1
-}
-
-first_start_checks() {
-    if [ ! -f "$RESOURCEPACK" ]; then
-        clear
-        echo "======================================="
-        echo "         RESOURCE PACK REQUIRED"
-        echo "======================================="
-        echo ""
-        echo "It seems that resource packs"
-        echo "have not been installed yet."
-        echo ""
-        echo "Please refer to the Discord server"
-        echo "for the commands needed to download"
-        echo "the required resource packs."
-        echo ""
-        echo "======================================="
-        echo ""
-        printf "Back\n" | fzf \
-            --height=15% \
-            --reverse \
-            --border \
-            --prompt="Resource Packs > " >/dev/null
-        return 1
-    fi
-
-    if [ ! -f "$EULA_FILE" ]; then
-        clear
-        echo "======================================="
-        echo "           FIRST TIME SETUP"
-        echo "======================================="
-        echo ""
-        echo "After startup, create an account"
-        echo "using the admin panel and follow"
-        echo "steps 4-6 in the manual server"
-        echo "setup instructions on the"
-        echo "Solace GitHub repository."
-        echo ""
-        echo 'Use: "earth eula" after the setup.'
-        echo ""
-        echo "======================================="
-        echo ""
-        CHOICE=$(printf "Continue\nBack" | fzf \
-            --height=15% \
-            --reverse \
-            --border \
-            --prompt="Continue Startup > ")
-        [ "$CHOICE" = "Continue" ] || return 1
-        return 0
-    fi
-
-    if grep -q "eula=false" "$EULA_FILE"; then
-        clear
-        echo "======================================="
-        echo "            EULA REQUIRED"
-        echo "======================================="
-        echo ""
-        echo "Please run:"
-        echo ""
-        echo "earth eula"
-        echo ""
-        echo "to accept the Minecraft EULA"
-        echo "before starting the server."
-        echo ""
-        echo "======================================="
-        echo ""
-        printf "Back\n" | fzf \
-            --height=15% \
-            --reverse \
-            --border \
-            --prompt="EULA > " >/dev/null
-        return 1
-    fi
-
-    return 0
+    pkill -f run_launcher.ps1 2>/dev/null; sleep 2
 }
 
 toggle_server() {
-    if is_running; then
-        CH=$(printf "Yes\nNo" | fzf \
-            --height=20% \
-            --reverse \
-            --border \
-            --prompt="Stop server? > ")
+    if is_process_alive; then
+        CH=$(printf "Yes\nNo" | fzf --height=20% --reverse --border --prompt="Stop server? > ")
         [ "$CH" = "Yes" ] && stop_server
-    else
-        first_start_checks || return
-        start_server
-    fi
+    else start_server; fi
 }
 
-# ─── STATUS / LOGS ────────────────────────────────────────────
+process_viewer() {
+while true; do
+    clear
+    echo -e "${BLU}"
+    echo "   _____       __"
+    echo "  / ___/____  / /___ _________"
+    echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
+    echo " ___/ / /_/ / / /_/ / /__/  __/"
+    echo "/____/\____/_/\__,_/\___/\___/"
+    echo -e "${RST}"
+    PID=$(get_pid)
+    SELECT=$({
+        echo "Back"
+        if [ -n "$PID" ]; then
+            ps -eo pid,cmd --no-headers 2>/dev/null | grep -E "pwsh|Launcher|ApiServer|EventBus|ObjectStore|TileRenderer|BuildplateLauncher" | grep -v grep
+        fi
+    } | fzf --height=50% --reverse --border --prompt="Process > ")
+    [ -z "$SELECT" ] && continue; [ "$SELECT" = "Back" ] && return
+    SELPID=$(echo "$SELECT" | awk '{print $1}'); [[ "$SELPID" =~ ^[0-9]+$ ]] || continue
+    while true; do
+        clear; echo "PID: $SELPID"
+        tail -n 120 "$SERVER_DIR/logs/launcher.log" 2>/dev/null || echo "(no log)"
+        CH=$(printf "Refresh\nBack" | fzf --height=10% --reverse --border --prompt="Log > ")
+        [ "$CH" = "Back" ] && break
+    done
+done
+}
 
-status_viewer() {
+update_prebuilt() {
+    stop_server
+    echo "[Solace] Fetching available releases..."
+    local tags=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases" | grep '"tag_name"' | cut -d '"' -f4)
+    local sel=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
+    [ -z "$sel" ] && return
+    local zip_name="Solace-osx-${ARCH_PROFILE}.zip"
+    local tmp=$(mktemp -d "/tmp/solace_update_XXXXXX"); cd "$tmp"
+    curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/${sel}/${zip_name}"
+    unzip -o server.zip >/dev/null 2>&1; rm -rf "$SERVER_DIR"/*
+    if [ -d "Solace-osx-${ARCH_PROFILE}" ]; then mv "Solace-osx-${ARCH_PROFILE}/"* "$SERVER_DIR/" 2>/dev/null || true
+    else find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SERVER_DIR/" \; 2>/dev/null || true; fi
+    chmod -R +x "$SERVER_DIR/components/" 2>/dev/null || true
+    echo "$sel" > "$VERSION_FILE"
+    cat > "$SETTINGS_FILE" << JSONEOF
+{"installMode":"prebuilt","branch":"main","version":"$sel","updatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+JSONEOF
+    cd /; rm -rf "$tmp"; echo "[Solace] Update complete ($sel)"; sleep 2
+}
+
+update_solace() {
+    load_settings
+    while true; do
+        clear; echo "UPDATE SOLACE"; echo ""
+        echo -e "  ${CYN}Current:${RST} $CURRENT_VERSION"
+        echo -e "  ${CYN}Mode:${RST}    $INSTALL_MODE"; echo ""
+        if [ "$INSTALL_MODE" = "source" ]; then
+            CHOICE=$(printf "Pull & Rebuild\nSwitch to Prebuilt\nCancel" | fzf --height=20% --reverse --border --prompt="Update method > ")
+        else
+            CHOICE=$(printf "Select Version\nCancel" | fzf --height=15% --reverse --border --prompt="Update > ")
+        fi
+        [ "$CHOICE" = "Cancel" ] && return
+        if [ "$CHOICE" = "Pull & Rebuild" ] && [ "$INSTALL_MODE" = "source" ] && [ -d "$SOURCE_DIR/.git" ]; then
+            cd "$SOURCE_DIR"; git pull
+            env DOTNET_ROOT="$HOME/.dotnet" PATH="$HOME/.dotnet:$PATH" pwsh ./publish.ps1 --profiles "framework-dependent-osx-$ARCH_PROFILE"
+            local build_dir="$SOURCE_DIR/build/Release/framework-dependent-osx-$ARCH_PROFILE"
+            cp -r "$build_dir/"* "$SERVER_DIR/" 2>/dev/null || true
+            echo "updated" > "$VERSION_FILE"; echo "[Solace] Update complete"; sleep 2; return
+        fi
+        if [ "$CHOICE" = "Switch to Prebuilt" ] || [ "$CHOICE" = "Select Version" ]; then update_prebuilt; return; fi
+    done
+}
+
+rebuild_source() {
+    if [ ! -d "$SOURCE_DIR/.git" ]; then echo -e "${RED}[ERROR] Source directory not found${RST}"; sleep 2; return; fi
+    cd "$SOURCE_DIR"
+    env DOTNET_ROOT="$HOME/.dotnet" PATH="$HOME/.dotnet:$PATH" pwsh ./publish.ps1 --profiles "framework-dependent-osx-$ARCH_PROFILE"
+    local build_dir="$SOURCE_DIR/build/Release/framework-dependent-osx-$ARCH_PROFILE"
+    if [ -d "$build_dir" ]; then
+        cp -r "$build_dir/"* "$SERVER_DIR/" 2>/dev/null || true; chmod -R +x "$SERVER_DIR/components/" 2>/dev/null || true
+        echo "source-build" > "$VERSION_FILE"; echo "[Solace] Rebuild complete"
+    else echo -e "${RED}[ERROR] Build output not found${RST}"; fi
+    sleep 2
+}
+
+settings_menu() {
+    load_settings
     while true; do
         clear
-        echo "==== SERVICE STATUS ===="
-        if is_running; then
-            echo "Solace [RUNNING]"
-            launchctl list "$SERVICE_LABEL" 2>/dev/null | tail -n1
-        else
-            echo "Solace [STOPPED]"
-        fi
-        echo ""
-
-        CH=$(printf "Logs (last 50)\nLogs (follow)\nBack" | fzf \
-            --height=20% \
-            --reverse \
-            --border \
-            --prompt="Status > ")
-
-        case "$CH" in
-            "Logs (last 50)")
-                clear
-                if [ -f "$LOG_DIR/solace.log" ]; then
-                    tail -n 50 "$LOG_DIR/solace.log" 2>/dev/null
+        echo "SETTINGS"; echo ""
+        echo -e "  ${CYN}Mode:${RST}    $INSTALL_MODE"
+        echo -e "  ${CYN}Branch:${RST}  $INSTALL_BRANCH"
+        echo -e "  ${CYN}Version:${RST} $CURRENT_VERSION"; echo ""
+        local options=("Switch Branch")
+        if [ "$INSTALL_MODE" = "source" ] && [ -d "$SOURCE_DIR/.git" ]; then
+            options+=("Rebuild from Source"); options+=("Delete Source Folder"); options+=("Switch to Prebuilt Mode")
+        elif [ ! -d "$SOURCE_DIR/.git" ]; then options+=("Switch to Source Mode"); fi
+        options+=("Back")
+        CHOICE=$(printf "%s\n" "${options[@]}" | fzf --height=40% --reverse --border --prompt="Settings > " --no-multi)
+        case "$CHOICE" in
+            "Back") return ;;
+            "Switch Branch")
+                if [ -d "$SOURCE_DIR/.git" ]; then
+                    cd "$SOURCE_DIR"; git fetch --all 2>/dev/null || true
+                    local branches=$(git branch -r | sed 's|origin/||' | grep -v HEAD | sed 's/^ *//')
+                    local sel=$(echo "$branches" | fzf --height=40% --reverse --border --prompt="Branch > " --no-multi)
+                    if [ -n "$sel" ]; then git checkout "$sel"; git pull origin "$sel"; INSTALL_BRANCH="$sel"; rebuild_source; fi
                 else
-                    echo "[No log file found]"
-                fi
-                echo ""
-                printf "Press ENTER to return..."
-                read -r
-                ;;
-            "Logs (follow)")
-                if [ -f "$LOG_DIR/solace.log" ]; then
-                    tail -f "$LOG_DIR/solace.log" 2>/dev/null
-                else
-                    echo "[No log file found]"
-                    sleep 1
-                fi
-                ;;
-            "Back")
-                return
-                ;;
+                    local tags=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases" | grep '"tag_name"' | cut -d '"' -f4)
+                    local sel=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
+                    [ -n "$sel" ] && update_prebuilt
+                fi ;;
+            "Rebuild from Source") [ -d "$SOURCE_DIR/.git" ] && rebuild_source ;;
+            "Delete Source Folder")
+                echo -e "${RED}WARNING: Deleting source switches to prebuilt mode.${RST}"
+                CONFIRM=$(printf "Cancel\nDelete" | fzf --height=15% --reverse --border --prompt="Are you sure? > ")
+                if [ "$CONFIRM" = "Delete" ]; then
+                    rm -rf "$SOURCE_DIR"
+                    cat > "$SETTINGS_FILE" << JSONEOF
+{"installMode":"prebuilt","branch":"main","version":"deleted-source","updatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+JSONEOF
+                    echo "[Solace] Source deleted. Switched to prebuilt."; sleep 2
+                fi ;;
+            "Switch to Prebuilt Mode")
+                CONFIRM=$(printf "Cancel\nSwitch to Prebuilt" | fzf --height=15% --reverse --border --prompt="Are you sure? > ")
+                if [ "$CONFIRM" = "Switch to Prebuilt" ]; then rm -rf "$SOURCE_DIR"; update_prebuilt; fi ;;
+            "Switch to Source Mode")
+                CONFIRM=$(printf "Cancel\nClone & Build" | fzf --height=15% --reverse --border --prompt="Are you sure? > ")
+                if [ "$CONFIRM" = "Clone & Build" ]; then
+                    local tmp=$(mktemp -d "/tmp/solace_source_XXXXXX")
+                    git clone --bare "$GITHUB_URL" "$tmp" >/dev/null 2>&1; cd "$tmp" || continue
+                    local branches=$(git branch -r | sed 's|origin/||' | grep -v HEAD | sed 's/^ *//')
+                    local sel=$(echo "$branches" | fzf --height=40% --reverse --border --prompt="Branch > " --no-multi)
+                    [ -z "$sel" ] && sel="main"; rm -rf "$tmp"
+                    rm -rf "$SOURCE_DIR"; git clone --recurse-submodules -b "$sel" "$GITHUB_URL" "$SOURCE_DIR"
+                    cd "$SOURCE_DIR"
+                    env DOTNET_ROOT="$HOME/.dotnet" PATH="$HOME/.dotnet:$PATH" pwsh ./publish.ps1 --profiles "framework-dependent-osx-$ARCH_PROFILE"
+                    local build_dir="$SOURCE_DIR/build/Release/framework-dependent-osx-$ARCH_PROFILE"
+                    mkdir -p "$SERVER_DIR"
+                    if [ -d "$build_dir" ]; then cp -r "$build_dir/"* "$SERVER_DIR/" 2>/dev/null || true; fi
+                    chmod -R +x "$SERVER_DIR/components/" 2>/dev/null || true
+                    cat > "$SETTINGS_FILE" << JSONEOF
+{"installMode":"source","branch":"$sel","version":"source-build","updatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+JSONEOF
+                    echo "source-build ($sel)" > "$VERSION_FILE"; echo "[Solace] Build complete"; sleep 2
+                fi ;;
         esac
     done
 }
 
-# ─── UPDATE ───────────────────────────────────────────────────
-
-update_solace() {
-    while true; do
-        clear
-
-        echo "================================================"
-        echo "               UPDATE SOLACE"
-        echo "================================================"
-        echo ""
-
-        CURRENT_VERSION="unknown"
-        [ -f "$SOLACE_DIR/version.txt" ] && CURRENT_VERSION=$(cat "$SOLACE_DIR/version.txt")
-
-        CHOICE=$(printf "Stable (recommended)\nDev Build (not recommended - may break)\nNo" | fzf \
-            --height=20% \
-            --reverse \
-            --border \
-            --prompt="Select update branch > ")
-
-        [ "$CHOICE" = "No" ] && return
-
-        if echo "$CHOICE" | grep -q "Dev"; then
-            clear
-            echo "================================================"
-            echo "  WARNING: Dev builds are unstable and may"
-            echo "  break your server. Only use for testing."
-            echo ""
-            echo "  Updating from a stable build to a dev build"
-            echo "  can cause database corruption or data loss."
-            echo "================================================"
-            echo ""
-            CONFIRM=$(printf "No, go back\nYes, continue anyway" | fzf \
-                --height=15% \
-                --reverse \
-                --border \
-                --prompt="Are you sure? > ")
-            [ "$CONFIRM" != "Yes, continue anyway" ] && continue
-
-            TAG="dev-build"
-            ARTIFACT_PREFIX="Solace-Dev"
-            DISPLAY_TAG="dev-build"
-        else
-            RELEASE_JSON=$(curl -s https://api.github.com/repos/Earth-Restored/Solace/releases)
-            ALL_TAGS=$(echo "$RELEASE_JSON" | grep '"tag_name"' | cut -d '"' -f4)
-            LATEST_TAG=$(echo "$ALL_TAGS" | grep -v "^dev-build$" | head -n1)
-
-            if [ -z "$LATEST_TAG" ]; then
-                echo "[ERROR] Failed to get latest stable version."
-                sleep 2
-                return
-            fi
-
-            TAG="$LATEST_TAG"
-            ARTIFACT_PREFIX="Solace"
-            DISPLAY_TAG="$TAG"
-        fi
-
-        echo ""
-        echo "Current version: $CURRENT_VERSION"
-        echo "Selected: $DISPLAY_TAG"
-        echo ""
-
-        CONFIRM=$(printf "Cancel\nDownload" | fzf \
-            --height=15% \
-            --reverse \
-            --border \
-            --prompt="Confirm > ")
-        [ "$CONFIRM" != "Download" ] && continue
-
-        force_stop_server
-
-        echo "[Solace] preparing download for $DISPLAY_TAG..."
-
-        URL="https://github.com/Earth-Restored/Solace/releases/download/${TAG}/${ARTIFACT_PREFIX}-${RELEASE_ARCH}.zip"
-
-        TMP_DIR="$(mktemp -d /tmp/Solace_update_XXXXXX)"
-        cd "$TMP_DIR" || return
-
-        echo "[Solace] downloading $DISPLAY_TAG..."
-        curl -L --fail "$URL" -o update.zip
-        unzip -o update.zip >/dev/null 2>&1
-
-        echo "[Solace] applying update ($DISPLAY_TAG)..."
-        cp -r ./* "$SOLACE_DIR"/ 2>/dev/null || true
-        echo "$DISPLAY_TAG" > "$SOLACE_DIR/version.txt"
-        echo "[Solace] update complete ($DISPLAY_TAG)"
-
-        rm -rf "$TMP_DIR"
-        sleep 2
-        return
-    done
-}
-
-force_stop_server() {
-    if is_running; then
-        echo "[Solace] stopping server before update..."
-        launchctl stop "$SERVICE_LABEL" 2>/dev/null || true
-        launchctl unload "$PLIST" 2>/dev/null || true
-        sleep 2
-    fi
-}
-
-# ─── UNINSTALL ────────────────────────────────────────────────
-
-uninstall_solace() {
-    clear
-    echo "================================================"
-    echo "            UNINSTALL SOLACE"
-    echo "================================================"
-    echo ""
-    echo "This will permanently remove:"
-    echo "  - All Solace server files"
-    echo "  - Databases and configuration"
-    echo "  - The launchd plist"
-    echo "  - The earth command"
-    echo ""
-    echo "This action cannot be undone."
-    echo "================================================"
-    echo ""
-
-    CONFIRM=$(printf "No, cancel\nYes, remove everything" | fzf \
-        --height=15% \
-        --reverse \
-        --border \
-        --prompt="Uninstall Solace? > ")
-
-    [ "$CONFIRM" != "Yes, remove everything" ] && return
-
-    echo "[Solace] Stopping and removing launchd service..."
-    launchctl unload "$PLIST" 2>/dev/null || true
-    rm -f "$PLIST"
-
-    echo "[Solace] Removing Solace files..."
-    rm -rf "$INSTALL_DIR"
-
-    echo "[Solace] Removing earth command..."
-    rm -f "$SELF_PATH"
-
-    echo "[Solace] Solace has been uninstalled."
-    sleep 2
-    exit 0
-}
-
-# ─── INFORMATION ──────────────────────────────────────────────
-
 info_panel() {
-    while true; do
-        clear
-        echo "======================================="
-        echo " INFORMATION"
-        echo "======================================="
-        echo
-        echo "Resourcepack:"
-        echo "- Check the server log on the admin panel or ask for help on the Discord server"
-        echo "- Location: $SOLACE_DIR/staticdata/resourcepacks/vanilla.zip"
-        echo
-        echo "Solace Storage:"
-        echo "- Files are stored at: $SOLACE_DIR"
-        echo "- Build output: $BUILD_DIR"
-        echo
-        echo "Admin Panel Configuration:"
-        echo "- If running on the same machine, use IP: 127.0.0.1"
-        echo
-        echo "MapTiler Setup:"
-        echo "- Create an API key at: https://cloud.maptiler.com/account/keys/"
-        echo "- Add the API key inside the server admin panel settings"
-        echo
-        echo "Service Management:"
-        echo "- Status:  launchctl list $SERVICE_LABEL"
-        echo "- Start:   launchctl start $SERVICE_LABEL"
-        echo "- Stop:    launchctl stop $SERVICE_LABEL"
-        echo "- Logs:    tail -f $LOG_DIR/solace.log"
-        echo
-        echo "======================================="
-        echo ""
-
-        CHOICE=$(printf "Back\n" | fzf \
-            --height=20% \
-            --reverse \
-            --border \
-            --prompt="Info > ")
-
-        [ "$CHOICE" = "Back" ] && return
-    done
-}
-
-# ─── ADMIN PANEL ──────────────────────────────────────────────
-
-open_admin_panel() {
-    open "http://127.0.0.1:5000" 2>/dev/null || \
-    echo "Open: http://127.0.0.1:5000"
-    sleep 2
-}
-
-# ─── MAIN MENU LOOP ───────────────────────────────────────────
-
 while true; do
     clear
+    echo "INFORMATION"; echo ""
+    echo "Server: $SERVER_DIR"; [ -d "$SOURCE_DIR" ] && echo "Source: $SOURCE_DIR"
+    echo "Admin Panel: http://127.0.0.1:5000"
+    echo "Logs: $SERVER_DIR/logs/"; echo ""
+    CHOICE=$(printf "Back" | fzf --height=10% --reverse --border --prompt="Info > ")
+    [ "$CHOICE" = "Back" ] && return
+done
+}
 
-    if is_running; then
-        TITLE="Solace [RUNNING] http://127.0.0.1:5000"
-    else
-        TITLE="Solace [STOPPED]"
-    fi
+show_banner() {
+    echo -e "${BLU}"
+    echo "   _____       __"
+    echo "  / ___/____  / /___ _________"
+    echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
+    echo " ___/ / /_/ / / /_/ / /__/  __/"
+    echo "/____/\____/_/\__,_/\___/\___/"
+    echo -e "${RST}"
+}
 
-    OPTIONS=(
-        "Start/Stop Server"
-        "Status & Logs"
-        "Open Admin Panel"
-        "Update Solace"
-        "Uninstall Solace"
-        "Information"
-        "Exit"
-    )
+load_settings
 
-    CHOICE=$(printf "%s\n" "${OPTIONS[@]}" | fzf \
-        --height=30% \
-        --reverse \
-        --border \
-        --prompt="$TITLE > " \
-        --no-multi \
-        --ansi)
-
-    case "$CHOICE" in
-        "Start/Stop Server")
-            toggle_server
-            ;;
-        "Status & Logs")
-            status_viewer
-            ;;
-        "Open Admin Panel")
-            open_admin_panel
-            ;;
-        "Update Solace")
-            update_solace
-            ;;
-        "Uninstall Solace")
-            uninstall_solace
-            ;;
-        "Information")
-            info_panel
-            ;;
-        "Exit")
-            break
-            ;;
+while true; do
+    clear; show_banner
+    if is_running; then STATUS_TEXT="${GRN}[RUNNING]${RST}"
+    else STATUS_TEXT="${RED}[STOPPED]${RST}"; fi
+    UPTIME_TEXT=""; is_running && UPTIME_TEXT=$(get_uptime)
+    LOCAL_IP=$(get_local_ip); [ -z "$LOCAL_IP" ] && LOCAL_IP="127.0.0.1"
+    echo "  Status: $STATUS_TEXT"
+    if is_running && [ -n "$UPTIME_TEXT" ]; then echo "  Uptime: $UPTIME_TEXT"; fi
+    echo "  Admin Panel: http://${LOCAL_IP}:5000"; echo ""
+    echo "  ${CYN}[1]${RST} Start/Stop Server"
+    echo "  ${CYN}[2]${RST} Process Explorer"
+    echo "  ${CYN}[3]${RST} Update Solace"
+    echo "  ${CYN}[4]${RST} Settings"
+    echo "  ${CYN}[5]${RST} Information"
+    echo "  ${CYN}[6]${RST} Uninstall"
+    echo "  ${CYN}[7]${RST} Exit"; echo ""
+    echo -e "  ${YLW}Solace ${CURRENT_VERSION}${RST}"
+    read -t 2 -n 1 KEY < /dev/tty || true
+    case "$KEY" in
+        1) toggle_server ;; 2) process_viewer ;; 3) update_solace ;;
+        4) settings_menu ;; 5) info_panel ;;
+        6) CONFIRM=$(printf "No, cancel\nYes, remove everything" | fzf --height=15% --reverse --border --prompt="Uninstall? > ")
+           if [ "$CONFIRM" = "Yes, remove everything" ]; then
+               launchctl unload "$PLIST" 2>/dev/null || true; rm -f "$PLIST"
+               rm -rf "$SOLACE_DIR"; rm -f "$SELF_PATH"; clear; echo "[Solace] Uninstalled."; exit 0
+           fi ;;
+        7|q) clear; exit 0 ;;
     esac
 done
