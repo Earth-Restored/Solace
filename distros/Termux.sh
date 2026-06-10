@@ -599,6 +599,7 @@ open_admin_panel() {
 # ─── BANNER ──────────────────────────────────────
 
 show_banner() {
+    echo ""
     echo -e "${BLU}"
     echo "   _____       __"
     echo "  / ___/____  / /___ _________"
@@ -606,13 +607,19 @@ show_banner() {
     echo " ___/ / /_/ / / /_/ / /__/  __/"
     echo "/____/\____/_/\__,_/\___/\___/"
     echo -e "${RST}"
+    echo ""
 }
 
 # ─── MAIN DASHBOARD LOOP ─────────────────────────
 
 section_title() {
+    local title="$1"
+    local len=${#title}
+    local total=40
+    local left=$(( (total - len) / 2 ))
+    printf -v pad "%*s" $left ""
     echo -e "${BLU}========================================${RST}"
-    echo -e "${BLU}          $1${RST}"
+    echo -e "${BLU}${pad}${title}${RST}"
     echo -e "${BLU}========================================${RST}"
     echo ""
 }

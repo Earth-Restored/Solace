@@ -173,14 +173,25 @@ start_server() {
 }
 
 stop_server() {
-    if [ -f "$PLIST" ]; then launchctl unload "$PLIST" 2>/dev/null || true; fi
+    if [ -f "$PLIST" ]; then
+        launchctl unload "$PLIST" 2>/dev/null || true
+    fi
     local pid=$(get_pid)
     if [ -n "$pid" ]; then
         local pgid=$(ps -o pgid= "$pid" 2>/dev/null | tr -d ' ')
         kill -- -"$pgid" 2>/dev/null; kill "$pid" 2>/dev/null
     fi
     pkill -f run_launcher.ps1 2>/dev/null; fuser -k 5000/tcp 2>/dev/null
-    sleep 2
+    for i in 1 2 3; do
+        if is_process_alive; then
+            pkill -9 -f run_launcher.ps1 2>/dev/null
+            fuser -k 5000/tcp 2>/dev/null
+            sleep 1
+        else
+            break
+        fi
+    done
+    sleep 1
 }
 
 toggle_server() {
@@ -352,6 +363,7 @@ done
 }
 
 show_banner() {
+    echo ""
     echo -e "${BLU}"
     echo "   _____       __"
     echo "  / ___/____  / /___ _________"
@@ -359,14 +371,20 @@ show_banner() {
     echo " ___/ / /_/ / / /_/ / /__/  __/"
     echo "/____/\____/_/\__,_/\___/\___/"
     echo -e "${RST}"
+    echo ""
 }
 
 load_settings
 
 section_title() {
-    echo -e "${BLU}==============================================${RST}"
-    echo -e "${BLU}          $1${RST}"
-    echo -e "${BLU}==============================================${RST}"
+    local title="$1"
+    local len=${#title}
+    local total=40
+    local left=$(( (total - len) / 2 ))
+    printf -v pad "%*s" $left ""
+    echo -e "${BLU}========================================${RST}"
+    echo -e "${BLU}${pad}${title}${RST}"
+    echo -e "${BLU}========================================${RST}"
     echo ""
 }
 

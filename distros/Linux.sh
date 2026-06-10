@@ -220,16 +220,18 @@ start_server() {
     export DOTNET_ROOT="$HOME/.dotnet"
     export PATH="$PATH:$HOME/.dotnet:$HOME/.dotnet/tools"
     export COMPlus_gcServer=0 COMPlus_gcConcurrent=1 DOTNET_GCHeapHardLimit=268435456
-    pkill -f run_launcher.ps1 2>/dev/null; fuser -k 5000/tcp 2>/dev/null
     nohup pwsh ./run_launcher.ps1 > "$SERVER_DIR/logs/launcher.log" 2>&1 &
     disown
     sleep 3
 }
 
 stop_server() {
-    if command -v systemctl >/dev/null 2>&1; then
-        systemctl stop solace.service 2>/dev/null || true
-        systemctl disable solace.service 2>/dev/null || true
+    if command -v systemctl >/dev/null 2>&1 && [ -f "$SERVICE_FILE" ]; then
+        if [ "$(id -u)" != "0" ]; then
+            sudo systemctl stop solace.service 2>/dev/null || true
+        else
+            systemctl stop solace.service 2>/dev/null || true
+        fi
     fi
     local pid=$(get_pid)
     if [ -n "$pid" ]; then
@@ -237,7 +239,16 @@ stop_server() {
         kill -- -"$pgid" 2>/dev/null; kill "$pid" 2>/dev/null
     fi
     pkill -f run_launcher.ps1 2>/dev/null; fuser -k 5000/tcp 2>/dev/null
-    sleep 2
+    for i in 1 2 3; do
+        if is_process_alive; then
+            pkill -9 -f run_launcher.ps1 2>/dev/null
+            fuser -k 5000/tcp 2>/dev/null
+            sleep 1
+        else
+            break
+        fi
+    done
+    sleep 1
 }
 
 toggle_server() {
@@ -436,6 +447,7 @@ done
 }
 
 show_banner() {
+    echo ""
     echo -e "${BLU}"
     echo "   _____       __"
     echo "  / ___/____  / /___ _________"
@@ -443,13 +455,19 @@ show_banner() {
     echo " ___/ / /_/ / / /_/ / /__/  __/"
     echo "/____/\____/_/\__,_/\___/\___/"
     echo -e "${RST}"
+    echo ""
 }
 
 load_settings
 
 section_title() {
+    local title="$1"
+    local len=${#title}
+    local total=40
+    local left=$(( (total - len) / 2 ))
+    printf -v pad "%*s" $left ""
     echo -e "${BLU}========================================${RST}"
-    echo -e "${BLU}          $1${RST}"
+    echo -e "${BLU}${pad}${title}${RST}"
     echo -e "${BLU}========================================${RST}"
     echo ""
 }
