@@ -653,7 +653,11 @@ while true; do
     echo -e "    ${CYN}[7]${RST} Uninstall"
     echo -e "    ${CYN}[0]${RST} Exit"
     echo ""
-    echo -e "    ${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
+    if [ "$INSTALL_MODE" = "prebuilt" ]; then
+        echo -e "    ${YLW}Solace TUI (Prebuilt - ${CURRENT_VERSION})${RST}"
+    else
+        echo -e "    ${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
+    fi
 
     read -t 2 -n 1 KEY < /dev/tty || true
 
