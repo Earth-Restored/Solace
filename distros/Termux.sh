@@ -601,11 +601,11 @@ open_admin_panel() {
 show_banner() {
     echo ""
     echo -e "${BLU}"
-    echo "   _____       __"
-    echo "  / ___/____  / /___ _________"
-    echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
-    echo " ___/ / /_/ / / /_/ / /__/  __/"
-    echo "/____/\____/_/\__,_/\___/\___/"
+    echo "      _____       __"
+    echo "     / ___/____  / /___ _________"
+    echo "     \__ \/ __ \/ / __ \`/ ___/ _ \\"
+    echo "    ___/ / /_/ / / /_/ / /__/  __/"
+    echo "   /____/\____/_/\__,_/\___/\___/"
     echo -e "${RST}"
     echo ""
 }
@@ -631,30 +631,29 @@ is_starting() {
 load_settings
 
 while true; do
-    clear
-    show_banner
+    printf '\033[H\033[J'; tput civis 2>/dev/null; show_banner
 
     LOCAL_IP="127.0.0.1"
     if is_running; then
-        echo -e "  Status: ${GRN}[RUNNING]${RST}"
-        echo -e "  Admin Panel: http://${LOCAL_IP}:5000"
+        echo -e "    ${GRN}[RUNNING]${RST}"
+        echo -e "    Admin Panel: http://${LOCAL_IP}:5000"
     elif is_starting; then
-        echo -e "  Status: ${YLW}[STARTING]${RST}"
-        echo -e "  Admin Panel: http://${LOCAL_IP}:5000"
+        echo -e "    ${YLW}[STARTING]${RST}"
+        echo -e "    Admin Panel: http://${LOCAL_IP}:5000"
     else
-        echo -e "  Status: ${RED}[STOPPED]${RST}"
+        echo -e "    ${RED}[STOPPED]${RST}"
     fi
     echo ""
-    echo -e "  ${CYN}[1]${RST} Start/Stop Server"
-    echo -e "  ${CYN}[2]${RST} Process Explorer"
-    echo -e "  ${CYN}[3]${RST} Open Admin Panel"
-    echo -e "  ${CYN}[4]${RST} Update Solace"
-    echo -e "  ${CYN}[5]${RST} Settings"
-    echo -e "  ${CYN}[6]${RST} Information"
-    echo -e "  ${CYN}[7]${RST} Uninstall"
-    echo -e "  ${CYN}[0]${RST} Exit"
+    echo -e "    ${CYN}[1]${RST} Start/Stop Server"
+    echo -e "    ${CYN}[2]${RST} Process Explorer"
+    echo -e "    ${CYN}[3]${RST} Open Admin Panel"
+    echo -e "    ${CYN}[4]${RST} Update Solace"
+    echo -e "    ${CYN}[5]${RST} Settings"
+    echo -e "    ${CYN}[6]${RST} Information"
+    echo -e "    ${CYN}[7]${RST} Uninstall"
+    echo -e "    ${CYN}[0]${RST} Exit"
     echo ""
-    echo -e "  ${YLW}Solace ${CURRENT_VERSION}${RST}"
+    echo -e "    ${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
 
     read -t 2 -n 1 KEY < /dev/tty || true
 
@@ -673,8 +672,7 @@ while true; do
         5) settings_menu ;;
         6) info_panel ;;
         7)
-            clear
-            show_banner
+            printf '\033[H\033[J'; show_banner
             section_title "UNINSTALL"
             echo "  This will permanently remove all Solace files."; echo ""
             CONFIRM=$(printf "No, cancel\nYes, remove everything" | fzf \
@@ -688,7 +686,7 @@ while true; do
                 exit 0
             fi
             ;;
-        0|q) clear; break ;;
+        0|q) tput cnorm 2>/dev/null; clear; break ;;
     esac
 done
 
