@@ -137,7 +137,7 @@ if [ "$1" = "uninstall" ]; then
     [ "$CONFIRM" != "Yes, remove everything" ] && exit 0
     if [ -f "$PLIST" ]; then launchctl unload "$PLIST" 2>/dev/null || true; rm -f "$PLIST" 2>/dev/null || true; fi
     rm -rf "$SOLACE_DIR" 2>/dev/null || true
-    rm -f "$SELF_PATH" 2>/dev/null || true
+    sudo rm -f "$SELF_PATH" 2>/dev/null || true
     echo "[Solace] Uninstalled."; exit 0
 fi
 
@@ -257,26 +257,57 @@ JSONEOF
 
 update_solace() {
     load_settings
-    while true; do
-        clear; show_banner
-        section_title "UPDATE"
-        echo -e "  ${CYN}Current:${RST} $CURRENT_VERSION"
-        echo -e "  ${CYN}Mode:${RST}    $INSTALL_MODE"; echo ""
-        if [ "$INSTALL_MODE" = "source" ]; then
-            CHOICE=$(printf "Pull & Rebuild\nSwitch to Prebuilt\nCancel" | fzf --height=20% --reverse --border --prompt="Update method > ")
+    stop_server
+    local branch
+    branch=$(pick_branch "Update Branch") || return
+    if [ "$branch" = "dev" ]; then
+        echo -e "${YLW}Downloading dev build...${RST}"
+        local zip_name="Solace-Dev-osx-${ARCH_PROFILE}.zip"
+        local tmp=$(mktemp -d "/tmp/solace_update_XXXXXX") || return 1
+        cd "$tmp" || return 1
+        curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/dev-build/${zip_name}"
+        unzip -o server.zip >/dev/null 2>&1
+        if [ -d "Solace-Dev-osx-${ARCH_PROFILE}" ]; then
+            rm -rf "$SERVER_DIR"/* 2>/dev/null || true
+            mv "Solace-Dev-osx-${ARCH_PROFILE}/"* "$SERVER_DIR/" 2>/dev/null || true
         else
-            CHOICE=$(printf "Select Version\nCancel" | fzf --height=15% --reverse --border --prompt="Update > ")
+            rm -rf "$SERVER_DIR"/* 2>/dev/null || true
+            find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SERVER_DIR/" \; 2>/dev/null || true
         fi
-        [ "$CHOICE" = "Cancel" ] && return
-        if [ "$CHOICE" = "Pull & Rebuild" ] && [ "$INSTALL_MODE" = "source" ] && [ -d "$SOURCE_DIR/.git" ]; then
-            cd "$SOURCE_DIR"; git pull
-            env DOTNET_ROOT="$HOME/.dotnet" PATH="$HOME/.dotnet:$PATH" pwsh ./publish.ps1 --profiles "framework-dependent-osx-$ARCH_PROFILE"
-            local build_dir="$SOURCE_DIR/build/Release/framework-dependent-osx-$ARCH_PROFILE"
-            cp -r "$build_dir/"* "$SERVER_DIR/" 2>/dev/null || true
-            echo "updated" > "$VERSION_FILE"; echo "[Solace] Update complete"; sleep 2; return
+        chmod -R +x "$SERVER_DIR/components/" 2>/dev/null || true
+        echo "dev-build" > "$VERSION_FILE"
+        cat > "$SETTINGS_FILE" << JSONEOF
+{"installMode":"prebuilt","branch":"dev","version":"dev-build","updatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+JSONEOF
+        cd /; rm -rf "$tmp"
+        echo "[Solace] Update complete (dev-build)"; sleep 2
+    else
+        echo "[Solace] Fetching available releases..."
+        local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
+        local tags=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -v "^dev-build$")
+        [ -z "$tags" ] && echo -e "${RED}[ERROR] No releases found${RST}" && sleep 2 && return 1
+        local sel=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
+        [ -z "$sel" ] && return
+        local zip_name="Solace-osx-${ARCH_PROFILE}.zip"
+        local tmp=$(mktemp -d "/tmp/solace_update_XXXXXX") || return 1
+        cd "$tmp" || return 1
+        curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/${sel}/${zip_name}"
+        unzip -o server.zip >/dev/null 2>&1
+        if [ -d "Solace-osx-${ARCH_PROFILE}" ]; then
+            rm -rf "$SERVER_DIR"/* 2>/dev/null || true
+            mv "Solace-osx-${ARCH_PROFILE}/"* "$SERVER_DIR/" 2>/dev/null || true
+        else
+            rm -rf "$SERVER_DIR"/* 2>/dev/null || true
+            find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SERVER_DIR/" \; 2>/dev/null || true
         fi
-        if [ "$CHOICE" = "Switch to Prebuilt" ] || [ "$CHOICE" = "Select Version" ]; then update_prebuilt; return; fi
-    done
+        chmod -R +x "$SERVER_DIR/components/" 2>/dev/null || true
+        echo "$sel" > "$VERSION_FILE"
+        cat > "$SETTINGS_FILE" << JSONEOF
+{"installMode":"prebuilt","branch":"main","version":"$sel","updatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+JSONEOF
+        cd /; rm -rf "$tmp"
+        echo "[Solace] Update complete ($sel)"; sleep 2
+    fi
 }
 
 rebuild_source() {
@@ -303,7 +334,7 @@ settings_menu() {
         if [ "$INSTALL_MODE" = "source" ] && [ -d "$SOURCE_DIR/.git" ]; then
             options+=("Rebuild from Source"); options+=("Delete Source Folder"); options+=("Switch to Prebuilt Mode")
         elif [ ! -d "$SOURCE_DIR/.git" ]; then options+=("Switch to Source Mode"); fi
-        options+=("Back")
+        options+=("Uninstall"); options+=("Back")
         CHOICE=$(printf "%s\n" "${options[@]}" | fzf --height=40% --reverse --border --prompt="Settings > " --no-multi)
         case "$CHOICE" in
             "Back") return ;;
@@ -348,6 +379,17 @@ JSONEOF
 {"installMode":"source","branch":"$sel","version":"source-build","updatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
 JSONEOF
                     echo "source-build ($sel)" > "$VERSION_FILE"; echo "[Solace] Build complete"; sleep 2
+                fi ;;
+            "Uninstall")
+                printf '\033[H\033[J'; show_banner
+                section_title "UNINSTALL"
+                echo "  This will permanently remove all Solace files."; echo ""
+                CONFIRM=$(printf "No, cancel\nYes, remove everything" | fzf --height=15% --reverse --border --prompt="Uninstall? > ")
+                if [ "$CONFIRM" = "Yes, remove everything" ]; then
+                    if [ -f "$PLIST" ]; then launchctl unload "$PLIST" 2>/dev/null || true; rm -f "$PLIST" 2>/dev/null || true; fi
+                    rm -rf "$SOLACE_DIR" 2>/dev/null || true
+                    sudo rm -f "$SELF_PATH" 2>/dev/null || true
+                    tput cnorm 2>/dev/null; clear; echo "[Solace] Uninstalled."; exit 0
                 fi ;;
         esac
     done
@@ -410,12 +452,6 @@ pick_branch() {
 
 while true; do
     printf '\033[H\033[J'; tput civis 2>/dev/null; show_banner
-    if [ "$INSTALL_MODE" = "prebuilt" ]; then
-        echo -e "  ${YLW}Solace TUI (Prebuilt - ${CURRENT_VERSION})${RST}"
-    else
-        echo -e "  ${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
-    fi
-    echo ""
     LOCAL_IP=$(get_local_ip); [ -z "$LOCAL_IP" ] && LOCAL_IP="127.0.0.1"
     if is_running; then
         echo -e "  ${GRN}●${RST} ${GRN}[RUNNING]${RST}  |  http://${LOCAL_IP}:5000"
@@ -432,22 +468,17 @@ while true; do
     echo -e "  │ ${CYN}[3]${RST} Update Solace                           │"
     echo -e "  │ ${CYN}[4]${RST} Settings                                │"
     echo -e "  │ ${CYN}[5]${RST} Information                             │"
-    echo -e "  │ ${CYN}[6]${RST} Uninstall                               │"
     echo -e "  │ ${CYN}[0]${RST} Exit                                    │"
     echo -e "  └─────────────────────────────────────────────┘"
-    tput cnorm 2>/dev/null
-    echo -e "  ${CYN}Choose an option:${RST}"
+    if [ "$INSTALL_MODE" = "prebuilt" ]; then
+        echo -e "  ${YLW}Solace TUI (Prebuilt - ${CURRENT_VERSION})${RST}"
+    else
+        echo -e "  ${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
+    fi
     read -t 2 -n 1 KEY < /dev/tty || true
     case "$KEY" in
         1) toggle_server ;; 2) process_viewer ;; 3) update_solace ;;
         4) settings_menu ;; 5) info_panel ;;
-        6) CONFIRM=$(printf "No, cancel\nYes, remove everything" | fzf --height=15% --reverse --border --prompt="Uninstall? > ")
-           if [ "$CONFIRM" = "Yes, remove everything" ]; then
-               if [ -f "$PLIST" ]; then launchctl unload "$PLIST" 2>/dev/null || true; rm -f "$PLIST" 2>/dev/null || true; fi
-               rm -rf "$SOLACE_DIR" 2>/dev/null || true
-               rm -f "$SELF_PATH" 2>/dev/null || true
-               tput cnorm 2>/dev/null; clear; echo "[Solace] Uninstalled."; exit 0
-           fi ;;
         0|q) tput cnorm 2>/dev/null; clear; exit 0 ;;
     esac
 done

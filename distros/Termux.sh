@@ -146,7 +146,7 @@ if [ "$1" = "uninstall" ]; then
     proot-distro login ubuntu -- rm -rf ~/Solace 2>/dev/null
 
     echo "[Solace] Removing earth command..."
-    rm -f "$SELF_PATH"
+    sudo rm -f "$SELF_PATH" 2>/dev/null || rm -f "$SELF_PATH"
 
     echo "[Solace] Solace has been uninstalled."
     exit 0
@@ -411,86 +411,60 @@ done
 # ─── UPDATE ──────────────────────────────────────
 
 update_solace() {
-    while true; do
-        clear; show_banner
-        section_title "UPDATE"
-        echo -e "  ${CYN}Current:${RST} $CURRENT_VERSION"
-        echo ""
-
-        CHOICE=$(printf "Stable (recommended)\nDev Build (not recommended)\nSelect Version\nCancel" | fzf \
-            --height=25% --reverse --border --prompt="Update > ")
-
-        [ "$CHOICE" = "Cancel" ] && return
-
-        force_stop_server
-
-        if echo "$CHOICE" | grep -q "Dev"; then
-            clear
-            echo "================================================"
-            echo "  WARNING: Dev builds are unstable and may"
-            echo "  break your server."
-            echo "================================================"
-            echo ""
-            CONFIRM=$(printf "No, go back\nYes, continue anyway" | fzf \
-                --height=15% --reverse --border --prompt="Are you sure? > ")
-            [ "$CONFIRM" != "Yes, continue anyway" ] && continue
-            TAG="dev-build"
-            ARTIFACT_PREFIX="Solace-Dev"
-            DISPLAY_TAG="dev-build"
-        elif [ "$CHOICE" = "Select Version" ]; then
-            echo "[Solace] Fetching releases..."
-            local release_json
-            release_json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
-            local tags
-            tags=$(echo "$release_json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//')
-            local sel_tag
-            sel_tag=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
-            [ -z "$sel_tag" ] && continue
-            TAG="$sel_tag"
-            ARTIFACT_PREFIX="Solace"
-            DISPLAY_TAG="$TAG"
-        else
-            local release_json
-            release_json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
-            local all_tags
-            all_tags=$(echo "$release_json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//')
-            local latest_tag
-            latest_tag=$(echo "$all_tags" | grep -v "^dev-build$" | head -n1)
-            [ -z "$latest_tag" ] && { echo "[ERROR] No releases found"; sleep 2; return; }
-            TAG="$latest_tag"
-            ARTIFACT_PREFIX="Solace"
-            DISPLAY_TAG="$TAG"
-        fi
-
-        echo ""
-        echo "Selected: $DISPLAY_TAG"
-        CONFIRM=$(printf "Cancel\nDownload" | fzf --height=15% --reverse --border --prompt="Confirm > ")
-        [ "$CONFIRM" != "Download" ] && continue
-
-        force_stop_server
-        echo "[Solace] downloading $DISPLAY_TAG..."
-
-        URL="https://github.com/$GITHUB_REPO/releases/download/${TAG}/${ARTIFACT_PREFIX}-${RELEASE_ARCH}.zip"
-        TMP_DIR="$(mktemp -d ~/Solace_update_XXXXXX)"
-        cd "$TMP_DIR" || return
-        curl -L --fail "$URL" -o update.zip
-        unzip -o update.zip >/dev/null 2>&1
-        echo "[Solace] applying update..."
-        cp -r . "$SOLACE_DIR"/
-        echo "$DISPLAY_TAG" > "$VERSION_FILE"
+    load_settings
+    force_stop_server
+    local branch
+    branch=$(pick_branch "Update Branch") || return
+    if [ "$branch" = "dev" ]; then
+        echo -e "${YLW}Downloading dev build...${RST}"
+        local zip_name="Solace-Dev-${RELEASE_ARCH}.zip"
+        local tmp=$(mktemp -d ~/Solace_update_XXXXXX) || return 1
+        cd "$tmp" || return 1
+        curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/dev-build/${zip_name}"
+        unzip -o server.zip >/dev/null 2>&1
+        rm -rf "$SOLACE_DIR"/* 2>/dev/null || true
+        find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SOLACE_DIR/" \; 2>/dev/null || true
+        chmod -R +x "$SOLACE_DIR/components/" 2>/dev/null || true
+        echo "dev-build" > "$VERSION_FILE"
+        cat > "$SETTINGS_FILE" << JSONEOF
+{
+  "installMode": "prebuilt",
+  "branch": "dev",
+  "version": "dev-build",
+  "updatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+JSONEOF
+        rm -rf "$TMP_DIR"
+        echo "[Solace] Update complete (dev-build)"
+        sleep 2
+    else
+        echo "[Solace] Fetching available releases..."
+        local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
+        local tags=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -v "^dev-build$")
+        [ -z "$tags" ] && echo -e "${RED}[ERROR] No releases found${RST}" && sleep 2 && return 1
+        local sel=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
+        [ -z "$sel" ] && return
+        local zip_name="Solace-${RELEASE_ARCH}.zip"
+        local tmp=$(mktemp -d ~/Solace_update_XXXXXX) || return 1
+        cd "$tmp" || return 1
+        curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/${sel}/${zip_name}"
+        unzip -o server.zip >/dev/null 2>&1
+        rm -rf "$SOLACE_DIR"/* 2>/dev/null || true
+        find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SOLACE_DIR/" \; 2>/dev/null || true
+        chmod -R +x "$SOLACE_DIR/components/" 2>/dev/null || true
         cat > "$SETTINGS_FILE" << JSONEOF
 {
   "installMode": "prebuilt",
   "branch": "main",
-  "version": "$DISPLAY_TAG",
+  "version": "$sel",
   "updatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 JSONEOF
-        echo "[Solace] update complete ($DISPLAY_TAG)"
-        rm -rf "$TMP_DIR"
+        echo "$sel" > "$VERSION_FILE"
+        rm -rf "$tmp"
+        echo "[Solace] Update complete ($sel)"
         sleep 2
-        return
-    done
+    fi
 }
 
 force_stop_server() {
@@ -523,7 +497,7 @@ settings_menu() {
         echo "  Server: $SOLACE_DIR"
         echo ""
 
-        CHOICE=$(printf "Switch Branch (re-download)\nBack" | fzf \
+        CHOICE=$(printf "Switch Branch (re-download)\nUninstall\nBack" | fzf \
             --height=20% --reverse --border --prompt="Settings > " --no-multi)
 
         case "$CHOICE" in
@@ -563,6 +537,19 @@ JSONEOF
                 echo "[Solace] Switched to $sel ($tag)"
                 sleep 2
                 ;;
+            "Uninstall")
+                printf '\033[H\033[J'; show_banner
+                section_title "UNINSTALL"
+                echo "  This will permanently remove all Solace files."; echo ""
+                CONFIRM=$(printf "No, cancel\nYes, remove everything" | fzf --height=15% --reverse --border --prompt="Uninstall? > ")
+                if [ "$CONFIRM" = "Yes, remove everything" ]; then
+                    force_stop_server
+                    rm -rf "$SOLACE_DIR"
+                    echo "[Solace] Uninstalled inside Ubuntu."
+                    echo "Run 'exit' and then 'rm /data/data/com.termux/files/usr/bin/earth' to finish."
+                    sleep 3
+                    exit 0
+                fi ;;
         esac
     done
 }
@@ -651,13 +638,6 @@ load_settings
 while true; do
     printf '\033[H\033[J'; tput civis 2>/dev/null; show_banner
 
-    if [ "$INSTALL_MODE" = "prebuilt" ]; then
-        echo -e "  ${YLW}Solace TUI (Prebuilt - ${CURRENT_VERSION})${RST}"
-    else
-        echo -e "  ${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
-    fi
-    echo ""
-
     LOCAL_IP="127.0.0.1"
     if is_running; then
         echo -e "  ${GRN}●${RST} ${GRN}[RUNNING]${RST}  |  http://${LOCAL_IP}:5000"
@@ -675,11 +655,13 @@ while true; do
     echo -e "  │ ${CYN}[4]${RST} Update Solace                           │"
     echo -e "  │ ${CYN}[5]${RST} Settings                                │"
     echo -e "  │ ${CYN}[6]${RST} Information                             │"
-    echo -e "  │ ${CYN}[7]${RST} Uninstall                               │"
     echo -e "  │ ${CYN}[0]${RST} Exit                                    │"
     echo -e "  └─────────────────────────────────────────────┘"
-    tput cnorm 2>/dev/null
-    echo -e "  ${CYN}Choose an option:${RST}"
+    if [ "$INSTALL_MODE" = "prebuilt" ]; then
+        echo -e "  ${YLW}Solace TUI (Prebuilt - ${CURRENT_VERSION})${RST}"
+    else
+        echo -e "  ${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
+    fi
 
     read -t 2 -n 1 KEY < /dev/tty || true
 
@@ -697,21 +679,6 @@ while true; do
         4) update_solace ;;
         5) settings_menu ;;
         6) info_panel ;;
-        7)
-            printf '\033[H\033[J'; show_banner
-            section_title "UNINSTALL"
-            echo "  This will permanently remove all Solace files."; echo ""
-            CONFIRM=$(printf "No, cancel\nYes, remove everything" | fzf \
-                --height=15% --reverse --border --prompt="Uninstall Solace? > ")
-            if [ "$CONFIRM" = "Yes, remove everything" ]; then
-                force_stop_server
-                rm -rf "$SOLACE_DIR"
-                echo "[Solace] Uninstalled inside Ubuntu."
-                echo "Run 'exit' and then 'rm /data/data/com.termux/files/usr/bin/earth' to finish."
-                sleep 3
-                exit 0
-            fi
-            ;;
         0|q) tput cnorm 2>/dev/null; clear; break ;;
     esac
 done
