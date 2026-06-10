@@ -569,7 +569,7 @@ JSONEOF
                     force_stop_server
                     rm -rf "$SOLACE_DIR"
                     echo "[Solace] Uninstalled inside Ubuntu."
-                    echo "Run 'exit' and then 'rm /data/data/com.termux/files/usr/bin/earth' to finish."
+                    echo "Run 'rm /data/data/com.termux/files/usr/bin/earth' to finish."
                     sleep 3
                     exit 0
                 fi ;;
