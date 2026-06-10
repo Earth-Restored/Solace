@@ -422,7 +422,7 @@ update_solace() {
         cd "$tmp" || return 1
         curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/dev-build/${zip_name}"
         unzip -o server.zip >/dev/null 2>&1
-        rm -rf "$SOLACE_DIR"/* 2>/dev/null || true
+        
         find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SOLACE_DIR/" \; 2>/dev/null || true
         chmod -R +x "$SOLACE_DIR/components/" 2>/dev/null || true
         echo "dev-build" > "$VERSION_FILE"
@@ -449,7 +449,7 @@ JSONEOF
         cd "$tmp" || return 1
         curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/${sel}/${zip_name}"
         unzip -o server.zip >/dev/null 2>&1
-        rm -rf "$SOLACE_DIR"/* 2>/dev/null || true
+        
         find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SOLACE_DIR/" \; 2>/dev/null || true
         chmod -R +x "$SOLACE_DIR/components/" 2>/dev/null || true
         cat > "$SETTINGS_FILE" << JSONEOF

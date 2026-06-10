@@ -361,10 +361,10 @@ update_prebuilt() {
     curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/${sel}/${zip_name}"
     unzip -o server.zip >/dev/null 2>&1
     if [ -d "Solace-linux-${ARCH_PROFILE}" ]; then
-        rm -rf "$SERVER_DIR"/* 2>/dev/null || true
+        
         mv "Solace-linux-${ARCH_PROFILE}/"* "$SERVER_DIR/" 2>/dev/null || true
     else
-        rm -rf "$SERVER_DIR"/* 2>/dev/null || true
+        
         find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SERVER_DIR/" \; 2>/dev/null || true
     fi
     chmod -R +x "$SERVER_DIR/components/" 2>/dev/null || true
@@ -389,10 +389,10 @@ update_solace() {
         curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/dev-build/${zip_name}"
         unzip -o server.zip >/dev/null 2>&1
         if [ -d "Solace-Dev-linux-${ARCH_PROFILE}" ]; then
-            rm -rf "$SERVER_DIR"/* 2>/dev/null || true
+            
             mv "Solace-Dev-linux-${ARCH_PROFILE}/"* "$SERVER_DIR/" 2>/dev/null || true
         else
-            rm -rf "$SERVER_DIR"/* 2>/dev/null || true
+            
             find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SERVER_DIR/" \; 2>/dev/null || true
         fi
         chmod -R +x "$SERVER_DIR/components/" 2>/dev/null || true
@@ -415,10 +415,10 @@ JSONEOF
         curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/${sel}/${zip_name}"
         unzip -o server.zip >/dev/null 2>&1
         if [ -d "Solace-linux-${ARCH_PROFILE}" ]; then
-            rm -rf "$SERVER_DIR"/* 2>/dev/null || true
+            
             mv "Solace-linux-${ARCH_PROFILE}/"* "$SERVER_DIR/" 2>/dev/null || true
         else
-            rm -rf "$SERVER_DIR"/* 2>/dev/null || true
+            
             find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SERVER_DIR/" \; 2>/dev/null || true
         fi
         chmod -R +x "$SERVER_DIR/components/" 2>/dev/null || true
