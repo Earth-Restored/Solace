@@ -396,6 +396,8 @@ fi
 
 # ─── STEP 3: INSTALL METHOD CHOICE ─────────────────────────
 
+banner
+
 print_step "INSTALL METHOD"
 echo ""
 echo -e "${CYN}How would you like to install Solace?${RST}"
@@ -523,27 +525,22 @@ fi
 
 if [ "$INSTALL_MODE" = "source" ]; then
     print_step "BUILD FROM SOURCE"
-    print_sub "Fetching available branches..."
+    echo ""
+    echo -e "${CYN}Select branch:${RST}"
+    echo ""
+    echo -e "  ${GRN}[1] Main (stable - recommended)${RST}"
+    echo -e "  ${YLW}[2] Dev (not recommended - may break)${RST}"
+    echo ""
+    printf "Choice [1/2] > "
+    read -r BRANCH_CHOICE < /dev/tty
+    BRANCH_CHOICE="$(echo "$BRANCH_CHOICE" | tr -d '\r\n')"
+
+    INSTALL_BRANCH="main"
+    case "$BRANCH_CHOICE" in
+        2|dev|Dev) INSTALL_BRANCH="dev" ;;
+    esac
 
     command -v git >/dev/null 2>&1 || pkg_install git
-
-    TMP_CLONE_DIR=$(mktemp -d "/tmp/solace_source_XXXXXX")
-    git clone --bare "$GITHUB_URL" "$TMP_CLONE_DIR" >/dev/null 2>&1
-    cd "$TMP_CLONE_DIR"
-
-    ALL_BRANCHES=$(git branch -r | sed 's|origin/||' | grep -v HEAD | sed 's/^ *//')
-
-    echo ""
-    echo -e "${CYN}Available branches:${RST}"
-    echo "$ALL_BRANCHES" | head -20
-    echo ""
-    printf "Enter branch name [main] > "
-    read -r SELECTED_BRANCH < /dev/tty
-    SELECTED_BRANCH="$(echo "$SELECTED_BRANCH" | tr -d '\r\n')"
-
-    [ -z "$SELECTED_BRANCH" ] && SELECTED_BRANCH="main"
-    INSTALL_BRANCH="$SELECTED_BRANCH"
-    rm -rf "$TMP_CLONE_DIR"
 
     print_sub "Cloning $INSTALL_BRANCH..."
     if [ -d "$SOURCE_DIR/.git" ]; then
