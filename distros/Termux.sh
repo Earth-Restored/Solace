@@ -685,9 +685,19 @@ while true; do
         5) settings_menu ;;
         6) info_panel ;;
          0|q)
-            CHOICE=$(printf "Cancel\nExit (server will stop!)" | fzf \
-                --height=20% --reverse --border --prompt="Exit? > ")
-            [ "$CHOICE" = "Exit (server will stop!)" ] || continue
+            if is_process_alive; then
+                clear; show_banner
+                section_title "SERVER IS RUNNING"
+                echo ""
+                echo "  Exiting the TUI will cause the server"
+                echo "  to stop. Please turn off the server"
+                echo "  from the Admin Panel first to avoid"
+                echo "  unexpected issues."
+                echo ""
+                CHOICE=$(printf "Cancel — Return to menu\nExit — Exit TUI (server will stop)" | fzf \
+                    --height=20% --reverse --border --prompt="Exit? > ")
+                [ "$CHOICE" = "Exit — Exit TUI (server will stop)" ] || continue
+            fi
             tput cnorm 2>/dev/null; clear; break ;;
     esac
 done
