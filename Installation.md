@@ -39,7 +39,7 @@ sudo curl -sSl https://raw.githubusercontent.com/Earth-Restored/Solace/main/inst
 
 #### Termux:
 ```bash
-sudo curl -sSl https://raw.githubusercontent.com/Earth-Restored/Solace/main/install.sh | bash
+curl -sSl https://raw.githubusercontent.com/Earth-Restored/Solace/main/install.sh | bash
 ```
 
 * Wait until the command finishes
