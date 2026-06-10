@@ -198,12 +198,6 @@ toggle_server() {
     else first_start_checks && start_server; fi
 }
 
-open_admin_panel() {
-    open "http://127.0.0.1:5000" 2>/dev/null || \
-    echo "Open: http://127.0.0.1:5000"
-    sleep 2
-}
-
 EULA_FILE="$SERVER_DIR/staticdata/server_template_dir/eula.txt"
 RESOURCEPACK="$SERVER_DIR/staticdata/resourcepacks/vanilla.zip"
 
@@ -545,10 +539,9 @@ while true; do
     echo -e "  ┌─────────────────────────────────────────────┐"
     echo -e "  │ ${CYN}[1]${RST} Start/Stop Server                       │"
     echo -e "  │ ${CYN}[2]${RST} Process Explorer                        │"
-    echo -e "  │ ${CYN}[3]${RST} Open Admin Panel                        │"
-    echo -e "  │ ${CYN}[4]${RST} Update Solace                           │"
-    echo -e "  │ ${CYN}[5]${RST} Settings                                │"
-    echo -e "  │ ${CYN}[6]${RST} Information                             │"
+    echo -e "  │ ${CYN}[3]${RST} Update Solace                           │"
+    echo -e "  │ ${CYN}[4]${RST} Settings                                │"
+    echo -e "  │ ${CYN}[5]${RST} Information                             │"
     echo -e "  │ ${CYN}[0]${RST} Exit                                    │"
     echo -e "  └─────────────────────────────────────────────┘"
     if [ "$INSTALL_MODE" = "prebuilt" ]; then
@@ -558,8 +551,8 @@ while true; do
     fi
     read -t 2 -n 1 KEY < /dev/tty || true
     case "$KEY" in
-        1) toggle_server ;; 2) process_viewer ;; 3) open_admin_panel ;;
-        4) update_solace ;; 5) settings_menu ;; 6) info_panel ;;
+        1) toggle_server ;; 2) process_viewer ;; 3) update_solace ;;
+        4) settings_menu ;; 5) info_panel ;;
         0|q) tput cnorm 2>/dev/null; clear; exit 0 ;;
     esac
 done
