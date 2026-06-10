@@ -485,31 +485,32 @@ pick_branch() {
 
 while true; do
     printf '\033[H\033[J'; tput civis 2>/dev/null; show_banner
+    if [ "$INSTALL_MODE" = "prebuilt" ]; then
+        echo -e "  ${YLW}Solace TUI (Prebuilt - ${CURRENT_VERSION})${RST}"
+    else
+        echo -e "  ${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
+    fi
+    echo ""
     LOCAL_IP=$(get_local_ip); [ -z "$LOCAL_IP" ] && LOCAL_IP="127.0.0.1"
     if is_running; then
         echo -e "  ${GRN}●${RST} ${GRN}[RUNNING]${RST}  |  http://${LOCAL_IP}:5000"
     elif is_starting; then
         echo -e "  ${YLW}●${RST} ${YLW}[STARTING]${RST}  |  http://${LOCAL_IP}:5000"
     else
-        echo -e "  ${RED}●${RST} ${RED}[STOPPED]${RST}"
+        echo -e "  ${RED}●${RST} ${RED}[STOPPED]${RST}  |  http://${LOCAL_IP}:5000"
     fi
-    echo -e "  ${BLU}─────────────────────────────────────────────${RST}"
+    echo -e "  ─────────────────────────────────────────────"
     echo ""
-    echo -e "  ${BLU}┌─────────────────────────────────────────────┐${RST}"
-    echo -e "  ${BLU}│${RST} ${CYN}[1]${RST} Start/Stop Server                       ${BLU}│${RST}"
-    echo -e "  ${BLU}│${RST} ${CYN}[2]${RST} Process Explorer                        ${BLU}│${RST}"
-    echo -e "  ${BLU}│${RST} ${CYN}[3]${RST} Update Solace                           ${BLU}│${RST}"
-    echo -e "  ${BLU}│${RST} ${CYN}[4]${RST} Settings                                ${BLU}│${RST}"
-    echo -e "  ${BLU}│${RST} ${CYN}[5]${RST} Information                             ${BLU}│${RST}"
-    echo -e "  ${BLU}│${RST} ${CYN}[6]${RST} Uninstall                               ${BLU}│${RST}"
-    echo -e "  ${BLU}│${RST} ${CYN}[0]${RST} Exit                                    ${BLU}│${RST}"
-    echo -e "  ${BLU}└─────────────────────────────────────────────┘${RST}"
-    echo ""
-    if [ "$INSTALL_MODE" = "prebuilt" ]; then
-        echo -e "  ${YLW}Solace TUI (Prebuilt - ${CURRENT_VERSION})${RST}"
-    else
-        echo -e "  ${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
-    fi
+    echo -e "  ┌─────────────────────────────────────────────┐"
+    echo -e "  │ ${CYN}[1]${RST} Start/Stop Server                       │"
+    echo -e "  │ ${CYN}[2]${RST} Process Explorer                        │"
+    echo -e "  │ ${CYN}[3]${RST} Update Solace                           │"
+    echo -e "  │ ${CYN}[4]${RST} Settings                                │"
+    echo -e "  │ ${CYN}[5]${RST} Information                             │"
+    echo -e "  │ ${CYN}[6]${RST} Uninstall                               │"
+    echo -e "  │ ${CYN}[0]${RST} Exit                                    │"
+    echo -e "  └─────────────────────────────────────────────┘"
+    tput cnorm 2>/dev/null
     echo -e "  ${CYN}Choose an option:${RST}"
     read -t 2 -n 1 KEY < /dev/tty || true
     case "$KEY" in
