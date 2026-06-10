@@ -650,7 +650,7 @@ EOF
         sudo -u "$CURRENT_USER" launchctl load "$PLIST"
         ok "Launchd service installed"
     else
-        cat > "$SERVICE_FILE" <<EOF
+        sudo tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
 Description=Solace Server Launcher
 After=network.target
@@ -671,8 +671,8 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
-        systemctl daemon-reload
-        systemctl enable solace.service
+        sudo systemctl daemon-reload || skip "systemctl daemon-reload failed"
+        sudo systemctl enable solace.service || skip "systemctl enable failed"
         ok "Systemd service installed"
     fi
 }
@@ -685,12 +685,12 @@ print_step "INSTALLING EARTH COMMAND"
 
 if [ "$OS" = "Darwin" ]; then
     curl -fsSL "https://raw.githubusercontent.com/$GITHUB_REPO/refs/heads/main/distros/macOS.sh" \
-        -o /usr/local/bin/earth || err "Failed to download earth command"
+        -o /tmp/earth && sudo mv /tmp/earth /usr/local/bin/earth || err "Failed to download earth command"
 else
     curl -fsSL "https://raw.githubusercontent.com/$GITHUB_REPO/refs/heads/main/distros/Linux.sh" \
-        -o /usr/local/bin/earth || err "Failed to download earth command"
+        -o /tmp/earth && sudo mv /tmp/earth /usr/local/bin/earth || err "Failed to download earth command"
 fi
-chmod +x /usr/local/bin/earth
+sudo chmod +x /usr/local/bin/earth
 ok "earth command installed (/usr/local/bin/earth)"
 
 # ─── STEP 8: START SERVER ──────────────────────────────────
@@ -699,7 +699,7 @@ print_step "STARTING SERVER"
 if [ "$OS" = "Darwin" ]; then
     sudo -u "$CURRENT_USER" launchctl start com.solace.server
 else
-    systemctl start solace.service
+    sudo systemctl start solace.service || skip "systemctl start failed (try: sudo systemctl start solace.service)"
 fi
 ok "Server started"
 
