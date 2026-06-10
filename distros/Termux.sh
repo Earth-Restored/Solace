@@ -234,19 +234,6 @@ get_pid() {
     [ -f "$PID_FILE" ] && cat "$PID_FILE"
 }
 
-get_uptime() {
-    if is_running && [ -f "$TIME_FILE" ]; then
-        local now_epoch start_epoch
-        now_epoch=$(date +%s)
-        start_epoch=$(cat "$TIME_FILE")
-        local diff=$((now_epoch - start_epoch))
-        local d=$((diff / 86400))
-        local h=$(( (diff % 86400) / 3600 ))
-        local m=$(( (diff % 3600) / 60 ))
-        echo "${d}d ${h}h ${m}m"
-    fi
-}
-
 check_deps() {
     local missing=false
     for cmd in java pwsh fzf; do
@@ -378,21 +365,9 @@ first_start_checks() {
 
 process_viewer() {
 while true; do
-    clear
-    echo -e "${BLU}"
-    echo "   _____       __"
-    echo "  / ___/____  / /___ _________"
-    echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
-    echo " ___/ / /_/ / / /_/ / /__/  __/"
-    echo "/____/\____/_/\__,_/\___/\___/"
-    echo -e "${RST}"
-
+    clear; show_banner
+    section_title "PROCESS EXPLORER"
     PID=$(get_pid)
-
-    echo "================================================"
-    echo "            PROCESS EXPLORER"
-    echo "================================================"
-    echo ""
 
     if is_running; then
         echo -e "  ${GRN}[RUNNING]${RST}"
@@ -432,11 +407,8 @@ done
 
 update_solace() {
     while true; do
-        clear
-        echo "================================================"
-        echo "               UPDATE SOLACE"
-        echo "================================================"
-        echo ""
+        clear; show_banner
+        section_title "UPDATE"
         echo -e "  ${CYN}Current:${RST} $CURRENT_VERSION"
         echo ""
 
@@ -536,10 +508,8 @@ force_stop_server() {
 settings_menu() {
     load_settings
     while true; do
-        clear
-        echo "================================================"
-        echo "               SETTINGS"
-        echo "================================================"
+        clear; show_banner
+        section_title "SETTINGS"
         echo ""
         echo -e "  ${CYN}Mode:${RST}    $INSTALL_MODE"
         echo -e "  ${CYN}Branch:${RST}  $INSTALL_BRANCH"
@@ -591,10 +561,8 @@ JSONEOF
 
 info_panel() {
 while true; do
-    clear
-    echo "======================================="
-    echo " INFORMATION"
-    echo "======================================="
+    clear; show_banner
+    section_title "INFORMATION"
     echo
     echo "Resourcepack:"
     echo "  $SOLACE_DIR/staticdata/resourcepacks/vanilla.zip"
@@ -637,34 +605,42 @@ show_banner() {
 
 # ─── MAIN DASHBOARD LOOP ─────────────────────────
 
+section_title() {
+    echo -e "${BLU}========================================${RST}"
+    echo -e "${BLU}          $1${RST}"
+    echo -e "${BLU}========================================${RST}"
+    echo ""
+}
+
+is_starting() {
+    is_process_alive && ! is_running
+}
+
 load_settings
 
 while true; do
     clear
     show_banner
 
-    if is_process_alive; then
-        STATUS_TEXT="${GRN}[RUNNING]${RST}"
+    LOCAL_IP="127.0.0.1"
+    if is_running; then
+        echo -e "  Status: ${GRN}[RUNNING]${RST}"
+        echo -e "  Admin Panel: http://${LOCAL_IP}:5000"
+    elif is_starting; then
+        echo -e "  Status: ${YLW}[STARTING]${RST}"
+        echo -e "  Admin Panel: http://${LOCAL_IP}:5000"
     else
-        STATUS_TEXT="${RED}[STOPPED]${RST}"
+        echo -e "  Status: ${RED}[STOPPED]${RST}"
     fi
-
-    UPTIME_TEXT=$(get_uptime)
-
-    echo "  Status: $STATUS_TEXT"
-    if is_running && [ -n "$UPTIME_TEXT" ]; then
-        echo "  Uptime: $UPTIME_TEXT"
-    fi
-    echo "  Admin Panel: http://127.0.0.1:5000"
     echo ""
-    echo "  ${CYN}[1]${RST} Start/Stop Server"
-    echo "  ${CYN}[2]${RST} Process Explorer"
-    echo "  ${CYN}[3]${RST} Open Admin Panel"
-    echo "  ${CYN}[4]${RST} Update Solace"
-    echo "  ${CYN}[5]${RST} Settings"
-    echo "  ${CYN}[6]${RST} Information"
-    echo "  ${CYN}[7]${RST} Uninstall"
-    echo "  ${CYN}[8]${RST} Exit"
+    echo -e "  ${CYN}[1]${RST} Start/Stop Server"
+    echo -e "  ${CYN}[2]${RST} Process Explorer"
+    echo -e "  ${CYN}[3]${RST} Open Admin Panel"
+    echo -e "  ${CYN}[4]${RST} Update Solace"
+    echo -e "  ${CYN}[5]${RST} Settings"
+    echo -e "  ${CYN}[6]${RST} Information"
+    echo -e "  ${CYN}[7]${RST} Uninstall"
+    echo -e "  ${CYN}[0]${RST} Exit"
     echo ""
     echo -e "  ${YLW}Solace ${CURRENT_VERSION}${RST}"
 
@@ -687,7 +663,8 @@ while true; do
         7)
             clear
             show_banner
-            echo ""
+            section_title "UNINSTALL"
+            echo "  This will permanently remove all Solace files."; echo ""
             CONFIRM=$(printf "No, cancel\nYes, remove everything" | fzf \
                 --height=15% --reverse --border --prompt="Uninstall Solace? > ")
             if [ "$CONFIRM" = "Yes, remove everything" ]; then
@@ -699,7 +676,7 @@ while true; do
                 exit 0
             fi
             ;;
-        8|q) clear; break ;;
+        0|q) clear; break ;;
     esac
 done
 

@@ -63,18 +63,6 @@ is_running() { curl -s --max-time 1 http://127.0.0.1:5000 | grep -q .; }
 is_process_alive() { pgrep -f run_launcher.ps1 >/dev/null 2>&1; }
 get_pid() { pgrep -f run_launcher.ps1 2>/dev/null | head -1; }
 
-get_uptime() {
-    local pid=$(get_pid)
-    if [ -n "$pid" ]; then
-        local start_str=$(ps -o lstart= "$pid" 2>/dev/null)
-        [ -z "$start_str" ] && return
-        local start_epoch=$(date -j -f "%a %b %d %H:%M:%S %Y" "$start_str" +%s 2>/dev/null)
-        local now_epoch=$(date +%s)
-        local diff=$((now_epoch - start_epoch))
-        echo "$((diff/86400))d $(((diff%86400)/3600))h $(((diff%3600)/60))m"
-    fi
-}
-
 get_local_ip() { ifconfig 2>/dev/null | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1; }
 
 check_deps() {
@@ -139,10 +127,14 @@ if [ "$1" = "eula" ]; then
 fi
 
 if [ "$1" = "uninstall" ]; then
+    clear; show_banner
+    section_title "UNINSTALL"
+    echo "  This will permanently remove all Solace files and the earth command."
     CONFIRM=$(printf "No, cancel\nYes, remove everything" | fzf --height=15% --reverse --border --prompt="Uninstall? > ")
     [ "$CONFIRM" != "Yes, remove everything" ] && exit 0
-    launchctl unload "$PLIST" 2>/dev/null || true; rm -f "$PLIST"
-    rm -rf "$SOLACE_DIR"; rm -f "$SELF_PATH"
+    if [ -f "$PLIST" ]; then launchctl unload "$PLIST" 2>/dev/null || true; rm -f "$PLIST" 2>/dev/null || true; fi
+    rm -rf "$SOLACE_DIR" 2>/dev/null || true
+    rm -f "$SELF_PATH" 2>/dev/null || true
     echo "[Solace] Uninstalled."; exit 0
 fi
 
@@ -170,16 +162,19 @@ start_server() {
     cd "$SERVER_DIR" || return
     export DOTNET_ROOT="$HOME/.dotnet" PATH="$PATH:$HOME/.dotnet:$HOME/.dotnet/tools"
     export COMPlus_gcServer=0 COMPlus_gcConcurrent=1 DOTNET_GCHeapHardLimit=268435456
+    pkill -f run_launcher.ps1 2>/dev/null; fuser -k 5000/tcp 2>/dev/null
     nohup pwsh ./run_launcher.ps1 > "$SERVER_DIR/logs/launcher.log" 2>&1 & disown; sleep 3
 }
 
 stop_server() {
+    if [ -f "$PLIST" ]; then launchctl unload "$PLIST" 2>/dev/null || true; fi
     local pid=$(get_pid)
     if [ -n "$pid" ]; then
         local pgid=$(ps -o pgid= "$pid" 2>/dev/null | tr -d ' ')
         kill -- -"$pgid" 2>/dev/null; kill "$pid" 2>/dev/null
     fi
-    pkill -f run_launcher.ps1 2>/dev/null; sleep 2
+    pkill -f run_launcher.ps1 2>/dev/null; fuser -k 5000/tcp 2>/dev/null
+    sleep 2
 }
 
 toggle_server() {
@@ -240,7 +235,8 @@ JSONEOF
 update_solace() {
     load_settings
     while true; do
-        clear; echo "UPDATE SOLACE"; echo ""
+        clear; show_banner
+        section_title "UPDATE"
         echo -e "  ${CYN}Current:${RST} $CURRENT_VERSION"
         echo -e "  ${CYN}Mode:${RST}    $INSTALL_MODE"; echo ""
         if [ "$INSTALL_MODE" = "source" ]; then
@@ -275,8 +271,8 @@ rebuild_source() {
 settings_menu() {
     load_settings
     while true; do
-        clear
-        echo "SETTINGS"; echo ""
+        clear; show_banner
+        section_title "SETTINGS"
         echo -e "  ${CYN}Mode:${RST}    $INSTALL_MODE"
         echo -e "  ${CYN}Branch:${RST}  $INSTALL_BRANCH"
         echo -e "  ${CYN}Version:${RST} $CURRENT_VERSION"; echo ""
@@ -339,11 +335,11 @@ JSONEOF
 
 info_panel() {
 while true; do
-    clear
-    echo "INFORMATION"; echo ""
-    echo "Server: $SERVER_DIR"; [ -d "$SOURCE_DIR" ] && echo "Source: $SOURCE_DIR"
-    echo "Admin Panel: http://127.0.0.1:5000"
-    echo "Logs: $SERVER_DIR/logs/"; echo ""
+    clear; show_banner
+    section_title "INFORMATION"
+    echo "  Server: $SERVER_DIR"; [ -d "$SOURCE_DIR" ] && echo "  Source: $SOURCE_DIR"
+    echo "  Admin Panel: http://127.0.0.1:5000"
+    echo "  Logs: $SERVER_DIR/logs/"; echo ""
     CHOICE=$(printf "Back" | fzf --height=10% --reverse --border --prompt="Info > ")
     [ "$CHOICE" = "Back" ] && return
 done
@@ -361,22 +357,37 @@ show_banner() {
 
 load_settings
 
+section_title() {
+    echo -e "${BLU}==============================================${RST}"
+    echo -e "${BLU}          $1${RST}"
+    echo -e "${BLU}==============================================${RST}"
+    echo ""
+}
+
+is_starting() {
+    is_process_alive && ! is_running
+}
+
 while true; do
     clear; show_banner
-    if is_running; then STATUS_TEXT="${GRN}[RUNNING]${RST}"
-    else STATUS_TEXT="${RED}[STOPPED]${RST}"; fi
-    UPTIME_TEXT=""; is_running && UPTIME_TEXT=$(get_uptime)
     LOCAL_IP=$(get_local_ip); [ -z "$LOCAL_IP" ] && LOCAL_IP="127.0.0.1"
-    echo "  Status: $STATUS_TEXT"
-    if is_running && [ -n "$UPTIME_TEXT" ]; then echo "  Uptime: $UPTIME_TEXT"; fi
-    echo "  Admin Panel: http://${LOCAL_IP}:5000"; echo ""
-    echo "  ${CYN}[1]${RST} Start/Stop Server"
-    echo "  ${CYN}[2]${RST} Process Explorer"
-    echo "  ${CYN}[3]${RST} Update Solace"
-    echo "  ${CYN}[4]${RST} Settings"
-    echo "  ${CYN}[5]${RST} Information"
-    echo "  ${CYN}[6]${RST} Uninstall"
-    echo "  ${CYN}[7]${RST} Exit"; echo ""
+    if is_running; then
+        echo -e "  Status: ${GRN}[RUNNING]${RST}"
+        echo -e "  Admin Panel: http://${LOCAL_IP}:5000"
+    elif is_starting; then
+        echo -e "  Status: ${YLW}[STARTING]${RST}"
+        echo -e "  Admin Panel: http://${LOCAL_IP}:5000"
+    else
+        echo -e "  Status: ${RED}[STOPPED]${RST}"
+    fi
+    echo ""
+    echo -e "  ${CYN}[1]${RST} Start/Stop Server"
+    echo -e "  ${CYN}[2]${RST} Process Explorer"
+    echo -e "  ${CYN}[3]${RST} Update Solace"
+    echo -e "  ${CYN}[4]${RST} Settings"
+    echo -e "  ${CYN}[5]${RST} Information"
+    echo -e "  ${CYN}[6]${RST} Uninstall"
+    echo -e "  ${CYN}[0]${RST} Exit"; echo ""
     echo -e "  ${YLW}Solace ${CURRENT_VERSION}${RST}"
     read -t 2 -n 1 KEY < /dev/tty || true
     case "$KEY" in
@@ -384,9 +395,11 @@ while true; do
         4) settings_menu ;; 5) info_panel ;;
         6) CONFIRM=$(printf "No, cancel\nYes, remove everything" | fzf --height=15% --reverse --border --prompt="Uninstall? > ")
            if [ "$CONFIRM" = "Yes, remove everything" ]; then
-               launchctl unload "$PLIST" 2>/dev/null || true; rm -f "$PLIST"
-               rm -rf "$SOLACE_DIR"; rm -f "$SELF_PATH"; clear; echo "[Solace] Uninstalled."; exit 0
+               if [ -f "$PLIST" ]; then launchctl unload "$PLIST" 2>/dev/null || true; rm -f "$PLIST" 2>/dev/null || true; fi
+               rm -rf "$SOLACE_DIR" 2>/dev/null || true
+               rm -f "$SELF_PATH" 2>/dev/null || true
+               clear; echo "[Solace] Uninstalled."; exit 0
            fi ;;
-        7|q) clear; exit 0 ;;
+        0|q) clear; exit 0 ;;
     esac
 done
