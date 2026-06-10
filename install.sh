@@ -102,7 +102,7 @@ echo "[1] System update"
 apt update -y
 
 echo "[2] Installing dependencies"
-apt install -y wget fzf curl unzip gnupg software-properties-common \
+apt install -y wget curl unzip gnupg software-properties-common \
     apt-transport-https ca-certificates openjdk-21-jre libicu-dev
 
 if ! command -v pwsh >/dev/null 2>&1; then
@@ -445,21 +445,26 @@ if [ "$INSTALL_MODE" = "prebuilt" ]; then
         print_sub "Fetching available releases..."
         RELEASE_JSON=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases")
         ALL_TAGS=$(echo "$RELEASE_JSON" | grep '"tag_name"' | cut -d '"' -f4)
+        LATEST_TAG=$(echo "$ALL_TAGS" | head -n1)
 
-        if command -v fzf >/dev/null 2>&1 && [ -n "$ALL_TAGS" ]; then
+        if [ -n "$LATEST_TAG" ]; then
             echo ""
-            echo -e "${CYN}Select a version:${RST}"
-            SELECTED_TAG=$(echo "$ALL_TAGS" | fzf \
-                --height=40% \
-                --reverse \
-                --border \
-                --prompt="Version > " \
-                --no-multi)
-            [ -z "$SELECTED_TAG" ] && SELECTED_TAG=$(echo "$ALL_TAGS" | head -n1)
+            echo -e "${GRN}Latest version: $LATEST_TAG${RST}"
+            echo ""
+            printf "Use latest? [Y/n] > "
+            read -r USE_LATEST < /dev/tty
+            USE_LATEST="$(echo "$USE_LATEST" | tr -d '\r\n')"
+            if [ "$USE_LATEST" = "n" ] || [ "$USE_LATEST" = "N" ] || [ "$USE_LATEST" = "no" ]; then
+                echo "$ALL_TAGS" | head -20
+                echo ""
+                printf "Enter version tag: "
+                read -r SELECTED_TAG < /dev/tty
+                [ -z "$SELECTED_TAG" ] && SELECTED_TAG="$LATEST_TAG"
+            else
+                SELECTED_TAG="$LATEST_TAG"
+            fi
         else
-            LATEST_TAG=$(echo "$ALL_TAGS" | head -n1)
-            echo -e "${GRN}Latest: $LATEST_TAG${RST}"
-            SELECTED_TAG="$LATEST_TAG"
+            err "No releases found."
         fi
 
         ARTIFACT_PREFIX="Solace"
@@ -529,19 +534,12 @@ if [ "$INSTALL_MODE" = "source" ]; then
     ALL_BRANCHES=$(git branch -r | sed 's|origin/||' | grep -v HEAD | sed 's/^ *//')
 
     echo ""
-    echo -e "${CYN}Select a branch:${RST}"
-    if command -v fzf >/dev/null 2>&1; then
-        SELECTED_BRANCH=$(echo "$ALL_BRANCHES" | fzf \
-            --height=40% \
-            --reverse \
-            --border \
-            --prompt="Branch > " \
-            --no-multi)
-    else
-        echo "$ALL_BRANCHES" | head -10
-        printf "Enter branch name [main] > "
-        read -r SELECTED_BRANCH < /dev/tty
-    fi
+    echo -e "${CYN}Available branches:${RST}"
+    echo "$ALL_BRANCHES" | head -20
+    echo ""
+    printf "Enter branch name [main] > "
+    read -r SELECTED_BRANCH < /dev/tty
+    SELECTED_BRANCH="$(echo "$SELECTED_BRANCH" | tr -d '\r\n')"
 
     [ -z "$SELECTED_BRANCH" ] && SELECTED_BRANCH="main"
     INSTALL_BRANCH="$SELECTED_BRANCH"
