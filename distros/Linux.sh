@@ -124,7 +124,20 @@ if [ "$1" = "eula" ]; then
     fi
     if [ ! -f "$EULA_FILE" ]; then
         clear
-        echo "Please start the server first from the admin panel to generate the EULA file."
+        echo "======================================="
+        echo "        MINECRAFT SERVER EULA"
+        echo "======================================="
+        echo ""
+        echo "[WARNING]: Agreeing to the EULA"
+        echo "without starting the server first will"
+        echo "NOT pre-download the files needed"
+        echo "for Buildplate Launcher."
+        echo ""
+        echo "Please start the server first from"
+        echo "the admin panel."
+        echo ""
+        echo "======================================="
+        echo ""
         printf "Press ENTER to exit..."
         read -r
         exit 1
@@ -134,9 +147,21 @@ if [ "$1" = "eula" ]; then
         exit 0
     fi
     clear
-    echo "Before starting the server, you must accept the End User License Agreement."
-    echo "Read it here: https://aka.ms/MinecraftEULA"
-    printf "Type YES to agree: "
+    echo "======================================="
+    echo "        MINECRAFT SERVER EULA"
+    echo "======================================="
+    echo ""
+    echo "Before starting the server, you must"
+    echo "accept the End User License Agreement."
+    echo ""
+    echo "Read it here:"
+    echo "https://aka.ms/MinecraftEULA"
+    echo ""
+    echo "Type YES to agree."
+    echo ""
+    echo "======================================="
+    echo ""
+    printf "Accept EULA > "
     read CONFIRM < /dev/tty
     CONFIRM="$(echo "$CONFIRM" | tr -d '\r\n')"
     if [ "$CONFIRM" = "YES" ]; then

@@ -91,9 +91,44 @@ check_deps() {
 if [ "$1" = "eula" ]; then
     EULA_ACTION="$2"; EULA_FILE="$SERVER_DIR/staticdata/server_template_dir/eula.txt"
     [ "$EULA_ACTION" = "--delete" ] && { rm -f "$EULA_FILE"; echo "[Solace]: Deleted."; exit 0; }
-    [ ! -f "$EULA_FILE" ] && { echo "Start server first to generate EULA."; read -r; exit 1; }
+    if [ ! -f "$EULA_FILE" ]; then
+        clear
+        echo "======================================="
+        echo "        MINECRAFT SERVER EULA"
+        echo "======================================="
+        echo ""
+        echo "[WARNING]: Agreeing to the EULA"
+        echo "without starting the server first will"
+        echo "NOT pre-download the files needed"
+        echo "for Buildplate Launcher."
+        echo ""
+        echo "Please start the server first from"
+        echo "the admin panel."
+        echo ""
+        echo "======================================="
+        echo ""
+        printf "Press ENTER to exit..."
+        read -r
+        exit 1
+    fi
     grep -q "eula=true" "$EULA_FILE" && { echo "[Solace]: Already accepted."; exit 0; }
-    printf "Type YES to agree: "; read CONFIRM < /dev/tty
+    clear
+    echo "======================================="
+    echo "        MINECRAFT SERVER EULA"
+    echo "======================================="
+    echo ""
+    echo "Before starting the server, you must"
+    echo "accept the End User License Agreement."
+    echo ""
+    echo "Read it here:"
+    echo "https://aka.ms/MinecraftEULA"
+    echo ""
+    echo "Type YES to agree."
+    echo ""
+    echo "======================================="
+    echo ""
+    printf "Accept EULA > "
+    read CONFIRM < /dev/tty
     CONFIRM="$(echo "$CONFIRM" | tr -d '\r\n')"
     if [ "$CONFIRM" = "YES" ]; then
         if grep -q "eula=false" "$EULA_FILE"; then sed -i 's/eula=false/eula=true/g' "$EULA_FILE"
