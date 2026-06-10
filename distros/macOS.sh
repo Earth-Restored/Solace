@@ -76,9 +76,6 @@ check_deps() {
     for cmd in java pwsh fzf; do
         if ! command -v "$cmd" >/dev/null 2>&1; then echo -e "  ${RED}✗${RST} $cmd"; missing=true; fi
     done
-    if [ "$INSTALL_MODE" = "source" ] && ! command -v dotnet >/dev/null 2>&1; then
-        echo -e "  ${RED}✗${RST} dotnet"; missing=true
-    fi
     $missing
 }
 
@@ -398,18 +395,6 @@ is_starting() {
     is_process_alive && ! is_running
 }
 
-center_text() {
-    local text="$1"
-    local plain=$(printf '%s' "$text" | sed 's/\x1b\[[0-9;]*m//g')
-    local len=${#plain}
-    local total=31
-    local offset=3
-    local left=$(( offset + (total - len) / 2 ))
-    [ $left -lt 0 ] && left=0
-    printf "%*s" $left ""
-    echo -e "$text"
-}
-
 pick_branch() {
     local prompt="${1:-Branch}"
     local sel=$(printf "main — Stable (recommended)\ndev — Unstable (may break your installation)" | fzf --height=20% --reverse --border --prompt="$prompt > " --no-multi)
@@ -427,28 +412,30 @@ while true; do
     printf '\033[H\033[J'; tput civis 2>/dev/null; show_banner
     LOCAL_IP=$(get_local_ip); [ -z "$LOCAL_IP" ] && LOCAL_IP="127.0.0.1"
     if is_running; then
-        center_text "  ${GRN}[RUNNING]${RST}"
-        center_text "  ${GRN}Admin Panel: http://${LOCAL_IP}:5000${RST}"
+        echo -e "  ${GRN}●${RST} ${GRN}[RUNNING]${RST}  |  http://${LOCAL_IP}:5000"
     elif is_starting; then
-        center_text "  ${YLW}[STARTING]${RST}"
-        center_text "  ${YLW}Admin Panel: http://${LOCAL_IP}:5000${RST}"
+        echo -e "  ${YLW}●${RST} ${YLW}[STARTING]${RST}  |  http://${LOCAL_IP}:5000"
     else
-        center_text "  ${RED}[STOPPED]${RST}"
+        echo -e "  ${RED}●${RST} ${RED}[STOPPED]${RST}"
     fi
+    echo -e "  ${BLU}─────────────────────────────────────────────${RST}"
     echo ""
-    center_text "${CYN}[1]${RST} Start/Stop Server"
-    center_text "${CYN}[2]${RST} Process Explorer"
-    center_text "${CYN}[3]${RST} Update Solace"
-    center_text "${CYN}[4]${RST} Settings"
-    center_text "${CYN}[5]${RST} Information"
-    center_text "${CYN}[6]${RST} Uninstall"
-    center_text "${CYN}[0]${RST} Exit"
+    echo -e "  ${BLU}┌─────────────────────────────────────────────┐${RST}"
+    echo -e "  ${BLU}│${RST} ${CYN}[1]${RST} Start/Stop Server                       ${BLU}│${RST}"
+    echo -e "  ${BLU}│${RST} ${CYN}[2]${RST} Process Explorer                        ${BLU}│${RST}"
+    echo -e "  ${BLU}│${RST} ${CYN}[3]${RST} Update Solace                           ${BLU}│${RST}"
+    echo -e "  ${BLU}│${RST} ${CYN}[4]${RST} Settings                                ${BLU}│${RST}"
+    echo -e "  ${BLU}│${RST} ${CYN}[5]${RST} Information                             ${BLU}│${RST}"
+    echo -e "  ${BLU}│${RST} ${CYN}[6]${RST} Uninstall                               ${BLU}│${RST}"
+    echo -e "  ${BLU}│${RST} ${CYN}[0]${RST} Exit                                    ${BLU}│${RST}"
+    echo -e "  ${BLU}└─────────────────────────────────────────────┘${RST}"
     echo ""
     if [ "$INSTALL_MODE" = "prebuilt" ]; then
-        center_text "${YLW}Solace TUI (Prebuilt - ${CURRENT_VERSION})${RST}"
+        echo -e "  ${YLW}Solace TUI (Prebuilt - ${CURRENT_VERSION})${RST}"
     else
-        center_text "${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
+        echo -e "  ${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
     fi
+    echo -e "  ${CYN}Choose an option:${RST}"
     read -t 2 -n 1 KEY < /dev/tty || true
     case "$KEY" in
         1) toggle_server ;; 2) process_viewer ;; 3) update_solace ;;
