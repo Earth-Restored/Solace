@@ -426,6 +426,7 @@ mkdir -p "$SOLACE_DIR"
 # ─── STEP 4A: PREBUILT PATH ────────────────────────────────
 
 if [ "$INSTALL_MODE" = "prebuilt" ]; then
+    clear && banner
     print_step "PREBUILT INSTALL"
 
     echo ""
@@ -524,6 +525,7 @@ fi
 # ─── STEP 4B: BUILD FROM SOURCE PATH ───────────────────────
 
 if [ "$INSTALL_MODE" = "source" ]; then
+    clear && banner
     print_step "BUILD FROM SOURCE"
     echo ""
     echo -e "${CYN}Select branch:${RST}"
@@ -552,6 +554,7 @@ if [ "$INSTALL_MODE" = "source" ]; then
         ok "Repository updated ($INSTALL_BRANCH)"
     else
         rm -rf "$SOURCE_DIR"
+        sudo -u "$CURRENT_USER" mkdir -p "$SOURCE_DIR"
         sudo -u "$CURRENT_USER" git clone --recurse-submodules -b "$INSTALL_BRANCH" "$GITHUB_URL" "$SOURCE_DIR"
         cd "$SOURCE_DIR"
         ok "Repository cloned ($INSTALL_BRANCH)"
