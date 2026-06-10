@@ -396,7 +396,7 @@ fi
 
 # ─── STEP 3: INSTALL METHOD CHOICE ─────────────────────────
 
-banner
+clear && banner
 
 print_step "INSTALL METHOD"
 echo ""
@@ -421,7 +421,7 @@ case "$METHOD_CHOICE" in
 esac
 echo ""
 
-mkdir -p "$SOLACE_DIR"
+sudo -u "$CURRENT_USER" mkdir -p "$SOLACE_DIR" 2>/dev/null || mkdir -p "$SOLACE_DIR"
 
 # ─── STEP 4A: PREBUILT PATH ────────────────────────────────
 
@@ -595,6 +595,9 @@ cd "$SERVER_DIR"
 cp *.json components/ 2>/dev/null || true
 mkdir -p logs/EventBusServer logs/ObjectStoreServer logs/ApiServer logs/TileRenderer
 ok "Server environment ready"
+
+chown -R "$CURRENT_USER" "$SOLACE_DIR" 2>/dev/null || true
+
 
 # ─── STEP 6: INSTALL SERVICE ───────────────────────────────
 
