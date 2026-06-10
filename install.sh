@@ -339,6 +339,7 @@ check_dep() {
 check_dep "java"   "Java 17+ JRE"
 check_dep "pwsh"   "PowerShell 7+"
 check_dep "curl"   "curl"
+check_dep "unzip"  "unzip"
 check_dep "git"    "git"
 check_dep "fzf"    "fzf"
 
@@ -374,6 +375,7 @@ if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
             java*)   install_java ;;
             pwsh*)   install_pwsh ;;
             curl*)   pkg_install curl ;;
+            unzip*)  pkg_install unzip ;;
             git*)    pkg_install git ;;
             fzf*)    pkg_install fzf ;;
             dotnet*) ;;
@@ -495,6 +497,9 @@ if [ "$INSTALL_MODE" = "prebuilt" ]; then
     fi
 
     print_sub "Extracting..."
+    if ! command -v unzip &>/dev/null; then
+        err "unzip is not installed — run the installer again to auto-install it"
+    fi
     if ! unzip -o server.zip >/dev/null 2>&1; then
         err "Extraction failed — downloaded file may be corrupted"
     fi
