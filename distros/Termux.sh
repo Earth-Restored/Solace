@@ -440,9 +440,9 @@ update_solace() {
         elif [ "$CHOICE" = "Select Version" ]; then
             echo "[Solace] Fetching releases..."
             local release_json
-            release_json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases")
+            release_json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
             local tags
-            tags=$(echo "$release_json" | grep '"tag_name"' | cut -d '"' -f4)
+            tags=$(echo "$release_json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//')
             local sel_tag
             sel_tag=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
             [ -z "$sel_tag" ] && continue
@@ -451,9 +451,9 @@ update_solace() {
             DISPLAY_TAG="$TAG"
         else
             local release_json
-            release_json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases")
+            release_json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
             local all_tags
-            all_tags=$(echo "$release_json" | grep '"tag_name"' | cut -d '"' -f4)
+            all_tags=$(echo "$release_json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//')
             local latest_tag
             latest_tag=$(echo "$all_tags" | grep -v "^dev-build$" | head -n1)
             [ -z "$latest_tag" ] && { echo "[ERROR] No releases found"; sleep 2; return; }
@@ -529,34 +529,39 @@ settings_menu() {
         case "$CHOICE" in
             "Back") return ;;
             "Switch Branch (re-download)")
-                echo "[Solace] Fetching releases..."
-                local release_json
-                release_json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases")
-                local tags
-                tags=$(echo "$release_json" | grep '"tag_name"' | cut -d '"' -f4)
-                local sel_tag
-                sel_tag=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
-                if [ -n "$sel_tag" ]; then
-                    force_stop_server
-                    URL="https://github.com/$GITHUB_REPO/releases/download/${sel_tag}/Solace-${RELEASE_ARCH}.zip"
-                    TMP_DIR="$(mktemp -d ~/Solace_update_XXXXXX)"
-                    cd "$TMP_DIR" || continue
-                    curl -L --fail "$URL" -o update.zip
-                    unzip -o update.zip >/dev/null 2>&1
-                    cp -r . "$SOLACE_DIR"/
-                    echo "$sel_tag" > "$VERSION_FILE"
-                    cat > "$SETTINGS_FILE" << JSONEOF
+                local sel
+                sel=$(pick_branch "Switch Branch") || break
+                force_stop_server
+                local tag
+                if [ "$sel" = "dev" ]; then
+                    tag="dev-build"
+                else
+                    echo "[Solace] Fetching releases..."
+                    local release_json
+                    release_json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
+                    tag=$(echo "$release_json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -v "^dev-build$" | head -n1)
+                fi
+                [ -z "$tag" ] && echo -e "${RED}[ERROR] No release found${RST}" && sleep 2 && break
+                local prefix="Solace"
+                [ "$sel" = "dev" ] && prefix="Solace-Dev"
+                URL="https://github.com/$GITHUB_REPO/releases/download/${tag}/${prefix}-${RELEASE_ARCH}.zip"
+                TMP_DIR="$(mktemp -d ~/Solace_update_XXXXXX)"
+                cd "$TMP_DIR" || continue
+                curl -L --fail "$URL" -o update.zip
+                unzip -o update.zip >/dev/null 2>&1
+                cp -r . "$SOLACE_DIR"/
+                cat > "$SETTINGS_FILE" << JSONEOF
 {
   "installMode": "prebuilt",
-  "branch": "main",
-  "version": "$sel_tag",
+  "branch": "$sel",
+  "version": "$tag",
   "updatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 JSONEOF
-                    rm -rf "$TMP_DIR"
-                    echo "[Solace] Switched to $sel_tag"
-                    sleep 2
-                fi
+                echo "$tag" > "$VERSION_FILE"
+                rm -rf "$TMP_DIR"
+                echo "[Solace] Switched to $sel ($tag)"
+                sleep 2
                 ;;
         esac
     done
@@ -628,6 +633,31 @@ is_starting() {
     is_process_alive && ! is_running
 }
 
+center_text() {
+    local text="$1"
+    local plain=$(printf '%s' "$text" | sed 's/\x1b\[[0-9;]*m//g')
+    local len=${#plain}
+    local total=31
+    local offset=3
+    local left=$(( offset + (total - len) / 2 ))
+    [ $left -lt 0 ] && left=0
+    printf "%*s" $left ""
+    echo -e "$text"
+}
+
+pick_branch() {
+    local prompt="${1:-Branch}"
+    local sel=$(printf "main — Stable (recommended)\ndev — Unstable (may break your installation)" | fzf --height=20% --reverse --border --prompt="$prompt > " --no-multi)
+    [ -z "$sel" ] && return 1
+    local branch=$(echo "$sel" | sed 's/ —.*//')
+    if [ "$branch" = "dev" ]; then
+        echo -e "${YLW}⚠  Dev builds are unstable and may break your server.${RST}"
+        local confirm=$(printf "No, cancel\nYes, continue anyway" | fzf --height=15% --reverse --border --prompt="Are you sure? > ")
+        [ "$confirm" != "Yes, continue anyway" ] && return 1
+    fi
+    echo "$branch"
+}
+
 load_settings
 
 while true; do
@@ -635,28 +665,28 @@ while true; do
 
     LOCAL_IP="127.0.0.1"
     if is_running; then
-        echo -e "    ${GRN}[RUNNING]${RST}"
-        echo -e "    Admin Panel: http://${LOCAL_IP}:5000"
+        center_text "  ${GRN}[RUNNING]${RST}"
+        center_text "  ${GRN}Admin Panel: http://${LOCAL_IP}:5000${RST}"
     elif is_starting; then
-        echo -e "    ${YLW}[STARTING]${RST}"
-        echo -e "    Admin Panel: http://${LOCAL_IP}:5000"
+        center_text "  ${YLW}[STARTING]${RST}"
+        center_text "  ${YLW}Admin Panel: http://${LOCAL_IP}:5000${RST}"
     else
-        echo -e "    ${RED}[STOPPED]${RST}"
+        center_text "  ${RED}[STOPPED]${RST}"
     fi
     echo ""
-    echo -e "    ${CYN}[1]${RST} Start/Stop Server"
-    echo -e "    ${CYN}[2]${RST} Process Explorer"
-    echo -e "    ${CYN}[3]${RST} Open Admin Panel"
-    echo -e "    ${CYN}[4]${RST} Update Solace"
-    echo -e "    ${CYN}[5]${RST} Settings"
-    echo -e "    ${CYN}[6]${RST} Information"
-    echo -e "    ${CYN}[7]${RST} Uninstall"
-    echo -e "    ${CYN}[0]${RST} Exit"
+    center_text "${CYN}[1]${RST} Start/Stop Server"
+    center_text "${CYN}[2]${RST} Process Explorer"
+    center_text "${CYN}[3]${RST} Open Admin Panel"
+    center_text "${CYN}[4]${RST} Update Solace"
+    center_text "${CYN}[5]${RST} Settings"
+    center_text "${CYN}[6]${RST} Information"
+    center_text "${CYN}[7]${RST} Uninstall"
+    center_text "${CYN}[0]${RST} Exit"
     echo ""
     if [ "$INSTALL_MODE" = "prebuilt" ]; then
-        echo -e "    ${YLW}Solace TUI (Prebuilt - ${CURRENT_VERSION})${RST}"
+        center_text "${YLW}Solace TUI (Prebuilt - ${CURRENT_VERSION})${RST}"
     else
-        echo -e "    ${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
+        center_text "${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
     fi
 
     read -t 2 -n 1 KEY < /dev/tty || true

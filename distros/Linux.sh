@@ -294,18 +294,21 @@ done
 update_prebuilt() {
     stop_server
     echo "[Solace] Fetching available releases..."
-    local tags=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases" | grep '"tag_name"' | cut -d '"' -f4)
+    local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
+    local tags=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//')
+    [ -z "$tags" ] && echo -e "${RED}[ERROR] Failed to fetch releases${RST}" && sleep 2 && return 1
     local sel=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
-    [ -z "$sel" ] && return
+    [ -z "$sel" ] && return 1
     local zip_name="Solace-linux-${ARCH_PROFILE}.zip"
-    local tmp=$(mktemp -d "/tmp/solace_update_XXXXXX")
-    cd "$tmp"
+    local tmp=$(mktemp -d "/tmp/solace_update_XXXXXX") || return 1
+    cd "$tmp" || return 1
     curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/${sel}/${zip_name}"
     unzip -o server.zip >/dev/null 2>&1
-    rm -rf "$SERVER_DIR"/*
     if [ -d "Solace-linux-${ARCH_PROFILE}" ]; then
+        rm -rf "$SERVER_DIR"/* 2>/dev/null || true
         mv "Solace-linux-${ARCH_PROFILE}/"* "$SERVER_DIR/" 2>/dev/null || true
     else
+        rm -rf "$SERVER_DIR"/* 2>/dev/null || true
         find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SERVER_DIR/" \; 2>/dev/null || true
     fi
     chmod -R +x "$SERVER_DIR/components/" 2>/dev/null || true
@@ -383,14 +386,12 @@ settings_menu() {
             "Back") return ;;
             "Switch Branch")
                 if [ -d "$SOURCE_DIR/.git" ]; then
+                    local sel
+                    sel=$(pick_branch "Switch Branch") || break
                     cd "$SOURCE_DIR"; git fetch --all 2>/dev/null || true
-                    local branches=$(git branch -r | sed 's|origin/||' | grep -v HEAD | sed 's/^ *//')
-                    local sel=$(echo "$branches" | fzf --height=40% --reverse --border --prompt="Branch > " --no-multi)
-                    if [ -n "$sel" ]; then git checkout "$sel"; git pull origin "$sel"; INSTALL_BRANCH="$sel"; rebuild_source; fi
+                    git checkout "$sel"; git pull origin "$sel"; INSTALL_BRANCH="$sel"; rebuild_source
                 else
-                    local tags=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases" | grep '"tag_name"' | cut -d '"' -f4)
-                    local sel=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
-                    [ -n "$sel" ] && update_prebuilt
+                    update_prebuilt
                 fi ;;
             "Rebuild from Source") [ -d "$SOURCE_DIR/.git" ] && rebuild_source ;;
             "Delete Source Folder")
@@ -405,16 +406,14 @@ JSONEOF
                 fi ;;
             "Switch to Prebuilt Mode")
                 CONFIRM=$(printf "Cancel\nSwitch to Prebuilt" | fzf --height=15% --reverse --border --prompt="Are you sure? > ")
-                if [ "$CONFIRM" = "Switch to Prebuilt" ]; then rm -rf "$SOURCE_DIR"; update_prebuilt; fi ;;
+                if [ "$CONFIRM" = "Switch to Prebuilt" ]; then
+                    update_prebuilt && rm -rf "$SOURCE_DIR"
+                fi ;;
             "Switch to Source Mode")
                 CONFIRM=$(printf "Cancel\nClone & Build" | fzf --height=15% --reverse --border --prompt="Are you sure? > ")
                 if [ "$CONFIRM" = "Clone & Build" ]; then
-                    local tmp=$(mktemp -d "/tmp/solace_source_XXXXXX")
-                    git clone --bare "$GITHUB_URL" "$tmp" >/dev/null 2>&1
-                    cd "$tmp" || continue
-                    local branches=$(git branch -r | sed 's|origin/||' | grep -v HEAD | sed 's/^ *//')
-                    local sel=$(echo "$branches" | fzf --height=40% --reverse --border --prompt="Branch > " --no-multi)
-                    [ -z "$sel" ] && sel="main"; rm -rf "$tmp"
+                    local sel
+                    sel=$(pick_branch "Clone Branch") || break
                     rm -rf "$SOURCE_DIR"; git clone --recurse-submodules -b "$sel" "$GITHUB_URL" "$SOURCE_DIR"
                     cd "$SOURCE_DIR"; local dotnet_root="$HOME/.dotnet"
                     env DOTNET_ROOT="$dotnet_root" PATH="$dotnet_root:$PATH" pwsh ./publish.ps1 --profiles "framework-dependent-linux-$ARCH_PROFILE"
@@ -476,30 +475,56 @@ is_starting() {
     is_process_alive && ! is_running
 }
 
+center_text() {
+    local text="$1"
+    local plain=$(printf '%s' "$text" | sed 's/\x1b\[[0-9;]*m//g')
+    local len=${#plain}
+    local total=31
+    local offset=3
+    local left=$(( offset + (total - len) / 2 ))
+    [ $left -lt 0 ] && left=0
+    printf "%*s" $left ""
+    echo -e "$text"
+}
+
+pick_branch() {
+    local prompt="${1:-Branch}"
+    local sel=$(printf "main — Stable (recommended)\ndev — Unstable (may break your installation)" | fzf --height=20% --reverse --border --prompt="$prompt > " --no-multi)
+    [ -z "$sel" ] && return 1
+    local branch=$(echo "$sel" | sed 's/ —.*//')
+    if [ "$branch" = "dev" ]; then
+        echo -e "${YLW}⚠  Dev builds are unstable and may break your server.${RST}"
+        local confirm=$(printf "No, cancel\nYes, continue anyway" | fzf --height=15% --reverse --border --prompt="Are you sure? > ")
+        [ "$confirm" != "Yes, continue anyway" ] && return 1
+    fi
+    echo "$branch"
+}
+
 while true; do
     printf '\033[H\033[J'; tput civis 2>/dev/null; show_banner
     LOCAL_IP=$(get_local_ip); [ -z "$LOCAL_IP" ] && LOCAL_IP="127.0.0.1"
     if is_running; then
-        echo -e "    ${GRN}[RUNNING]${RST}"
-        echo -e "    Admin Panel: http://${LOCAL_IP}:5000"
+        center_text "  ${GRN}[RUNNING]${RST}"
+        center_text "  ${GRN}Admin Panel: http://${LOCAL_IP}:5000${RST}"
     elif is_starting; then
-        echo -e "    ${YLW}[STARTING]${RST}"
-        echo -e "    Admin Panel: http://${LOCAL_IP}:5000"
+        center_text "  ${YLW}[STARTING]${RST}"
+        center_text "  ${YLW}Admin Panel: http://${LOCAL_IP}:5000${RST}"
     else
-        echo -e "    ${RED}[STOPPED]${RST}"
+        center_text "  ${RED}[STOPPED]${RST}"
     fi
     echo ""
-    echo -e "    ${CYN}[1]${RST} Start/Stop Server"
-    echo -e "    ${CYN}[2]${RST} Process Explorer"
-    echo -e "    ${CYN}[3]${RST} Update Solace"
-    echo -e "    ${CYN}[4]${RST} Settings"
-    echo -e "    ${CYN}[5]${RST} Information"
-    echo -e "    ${CYN}[6]${RST} Uninstall"
-    echo -e "    ${CYN}[0]${RST} Exit"; echo ""
+    center_text "${CYN}[1]${RST} Start/Stop Server"
+    center_text "${CYN}[2]${RST} Process Explorer"
+    center_text "${CYN}[3]${RST} Update Solace"
+    center_text "${CYN}[4]${RST} Settings"
+    center_text "${CYN}[5]${RST} Information"
+    center_text "${CYN}[6]${RST} Uninstall"
+    center_text "${CYN}[0]${RST} Exit"
+    echo ""
     if [ "$INSTALL_MODE" = "prebuilt" ]; then
-        echo -e "    ${YLW}Solace TUI (Prebuilt - ${CURRENT_VERSION})${RST}"
+        center_text "${YLW}Solace TUI (Prebuilt - ${CURRENT_VERSION})${RST}"
     else
-        echo -e "    ${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
+        center_text "${YLW}Solace TUI (${INSTALL_MODE} - ${INSTALL_BRANCH})${RST}"
     fi
     read -t 2 -n 1 KEY < /dev/tty || true
     case "$KEY" in
