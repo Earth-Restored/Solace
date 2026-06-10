@@ -328,42 +328,43 @@ first_start_checks() {
         return 1
     fi
 
-    if [ ! -f "$EULA_FILE" ]; then
-        clear
-        echo "======================================="
-        echo "           FIRST TIME SETUP"
-        echo "======================================="
-        echo ""
-        echo "After startup, create an account"
-        echo "using the admin panel and follow"
-        echo "steps 4-6 in the manual server"
-        echo "setup instructions."
-        echo ""
-        echo 'Use: "earth eula" after the setup.'
-        echo ""
-        CHOICE=$(printf "Continue\nBack" | fzf \
-            --height=15% --reverse --border --prompt="Continue Startup > ")
-        [ "$CHOICE" = "Continue" ] || return 1
-        return 0
-    fi
-
-    if grep -q "eula=false" "$EULA_FILE"; then
-        clear
-        echo "======================================="
-        echo "            EULA REQUIRED"
-        echo "======================================="
-        echo ""
-        echo "Please run:"
-        echo "earth eula"
-        echo ""
-        echo "to accept the Minecraft EULA"
-        echo "before starting the server."
-        echo ""
-        printf "Back\n" | fzf --height=15% --reverse --border --prompt="EULA > " >/dev/null
-        return 1
-    fi
-
     return 0
+}
+
+# ─── EULA CONFIRMATION ─────────────────────────
+
+eula_confirmation_loop() {
+    grep -q "eula=true" "$EULA_FILE" 2>/dev/null && return 0
+    [ ! -f "$EULA_FILE" ] && return 0
+
+    while true; do
+        clear; show_banner
+        section_title "EULA CONFIRMATION"
+        echo ""
+        echo "  Before starting the server, you must accept the"
+        echo "  End User License Agreement."
+        echo ""
+        echo "  Read it here:"
+        echo "  https://aka.ms/MinecraftEULA"
+        echo ""
+        CHOICE=$(printf "Yes, I agree\nNo, I deny" | fzf \
+            --height=20% --reverse --border --prompt="Accept EULA? > ")
+
+        if [ "$CHOICE" = "Yes, I agree" ]; then
+            sed -i 's/eula=false/eula=true/g' "$EULA_FILE" || echo "eula=true" >> "$EULA_FILE"
+            echo ""; echo "[Solace] EULA accepted."; sleep 1
+            return 0
+        fi
+
+        clear; show_banner
+        section_title "ARE YOU SURE?"
+        echo ""
+        echo "  You must accept the EULA to run the server."
+        echo ""
+        CHOICE2=$(printf "Go back\nYes, I deny" | fzf \
+            --height=20% --reverse --border --prompt="Confirm? > ")
+        [ "$CHOICE2" = "Yes, I deny" ] && return 1
+    done
 }
 
 # ─── PROCESS VIEWER ──────────────────────────────
@@ -670,6 +671,10 @@ while true; do
 
     read -t 2 -n 1 KEY < /dev/tty || true
 
+    if is_process_alive && [ -f "$EULA_FILE" ] && ! grep -q "eula=true" "$EULA_FILE" 2>/dev/null; then
+        eula_confirmation_loop
+    fi
+
     case "$KEY" in
         1)
             if is_process_alive; then
@@ -677,6 +682,9 @@ while true; do
                 [ "$CH" = "Yes" ] && stop_server
             else
                 first_start_checks && start_server
+            fi
+            if is_process_alive && [ -f "$EULA_FILE" ] && ! grep -q "eula=true" "$EULA_FILE" 2>/dev/null; then
+                eula_confirmation_loop
             fi
             ;;
         2) process_viewer ;;
