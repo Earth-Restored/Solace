@@ -35,9 +35,15 @@ update_self() {
     if [ -s "$TMP_PATH" ]; then
         chmod +x "$TMP_PATH"
         if ! cmp -s "$TMP_PATH" "$SELF_PATH"; then
-            mv "$TMP_PATH" "$SELF_PATH"
-            echo "[Solace] updated, restarting..."
-            exec "$SELF_PATH" "$@"
+            if command mv -f "$TMP_PATH" "$SELF_PATH" 2>/dev/null; then
+                echo "[Solace] updated, restarting..."
+                exec "$SELF_PATH" "$@"
+            else
+                echo "[Solace] updating at $SELF_PATH requires sudo..."
+                sudo mv -f "$TMP_PATH" "$SELF_PATH" || { echo "[Solace] update failed"; rm -f "$TMP_PATH"; return; }
+                echo "[Solace] updated, restarting..."
+                exec "$SELF_PATH" "$@"
+            fi
         else
             rm -f "$TMP_PATH"
         fi

@@ -26,8 +26,13 @@ update_self() {
     if [ -s "$TMP_PATH" ]; then
         chmod +x "$TMP_PATH"
         if ! cmp -s "$TMP_PATH" "$SELF_PATH"; then
-            mv "$TMP_PATH" "$SELF_PATH"
-            echo "[Solace] updated"
+            if command mv -f "$TMP_PATH" "$SELF_PATH" 2>/dev/null; then
+                echo "[Solace] updated"
+            else
+                echo "[Solace] updating at $SELF_PATH requires sudo..."
+                sudo mv -f "$TMP_PATH" "$SELF_PATH" || { echo "[Solace] update failed"; rm -f "$TMP_PATH"; return; }
+                echo "[Solace] updated"
+            fi
             if [ -n "$PROOT" ]; then
                 echo "Please exit proot environment and run the command again."
                 exit 0
