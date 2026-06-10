@@ -224,6 +224,23 @@ first_start_checks() {
         return 1
     fi
 
+    if [ ! -f "$EULA_FILE" ]; then
+        clear; show_banner
+        section_title "FIRST TIME SETUP"
+        echo ""
+        echo "  Please follow steps 4-7 in the manual"
+        echo "  server setup instructions."
+        echo ""
+        echo "  Read the full guide:"
+        echo "  https://github.com/cosmetide/Solace/blob/main/INSTALLATION.md"
+        echo ""
+        echo "  If you lose access to your admin account,"
+        echo "  you can reset it in:"
+        echo "  Settings → Reset Account Database"
+        echo ""
+        printf "Continue\n" | fzf --height=15% --reverse --border --prompt="Setup > " >/dev/null
+    fi
+
     return 0
 }
 
@@ -401,7 +418,7 @@ settings_menu() {
         if [ "$INSTALL_MODE" = "source" ] && [ -d "$SOURCE_DIR/.git" ]; then
             options+=("Rebuild from Source"); options+=("Delete Source Folder"); options+=("Switch to Prebuilt Mode")
         elif [ ! -d "$SOURCE_DIR/.git" ]; then options+=("Switch to Source Mode"); fi
-        options+=("Uninstall"); options+=("Back")
+        options+=("Reset Account Database"); options+=("Uninstall"); options+=("Back")
         CHOICE=$(printf "%s\n" "${options[@]}" | fzf --height=40% --reverse --border --prompt="Settings > " --no-multi)
         case "$CHOICE" in
             "Back") return ;;
@@ -448,6 +465,10 @@ JSONEOF
 JSONEOF
                     echo "source-build ($sel)" > "$VERSION_FILE"; echo "[Solace] Build complete"; sleep 2
                 fi ;;
+            "Reset Account Database")
+                rm -f "$SERVER_DIR/launcher/Data/app.db"
+                echo "[Solace] Account database reset."
+                sleep 2 ;;
             "Uninstall")
                 printf '\033[H\033[J'; show_banner
                 section_title "UNINSTALL"
