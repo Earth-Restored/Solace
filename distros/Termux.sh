@@ -561,23 +561,27 @@ while true; do
     clear; show_banner
     section_title "INFORMATION"
     echo
-    echo "Resourcepack:"
-    echo "  $SOLACE_DIR/staticdata/resourcepacks/vanilla.zip"
-    echo
-    echo "Solace Storage:"
-    echo "  Files are stored inside Ubuntu using proot-distro"
-    echo "  Enter Ubuntu with: proot-distro login ubuntu"
-    echo
-    echo "Admin Panel:"
-    echo "  http://127.0.0.1:5000"
-    echo
-    echo "MapTiler Setup:"
-    echo "  Create an API key at: https://cloud.maptiler.com/account/keys/"
-    echo
-    echo "APK:"
-    echo "  Patch your own Minecraft Earth app and set IP to 127.0.0.1"
-    echo
-    CHOICE=$(printf "Back" | fzf --height=10% --reverse --border --prompt="Info > ")
+    echo "  ── Setup Steps ──"
+    echo "  1. Start the server from the main menu"
+    echo "  2. Open the Admin Panel: http://127.0.0.1:5000"
+    echo "  3. Create an admin account"
+    echo "  4. Set the Server IP in Admin Panel → Config"
+    echo "  5. Get a MapTiler API key:"
+    echo "     https://cloud.maptiler.com/account/keys/"
+    echo "  6. Set the MapTiler key in Admin Panel → Config"
+    echo "     to render maps in-game"
+    echo ""
+    echo "  Resourcepack:"
+    echo "    $SOLACE_DIR/staticdata/resourcepacks/vanilla.zip"
+    echo ""
+    echo "  Solace Storage:"
+    echo "    Files are stored inside Ubuntu using proot-distro"
+    echo "    Enter Ubuntu with: proot-distro login ubuntu"
+    echo ""
+    echo "  APK:"
+    echo "    Patch your own Minecraft Earth app and set IP to 127.0.0.1"
+    echo ""
+    CHOICE=$(printf "Back" | fzf --height=15% --reverse --border --prompt="Info > ")
     [ "$CHOICE" = "Back" ] && return
 done
 }

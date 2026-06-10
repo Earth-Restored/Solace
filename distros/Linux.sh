@@ -251,8 +251,75 @@ toggle_server() {
         CH=$(printf "Yes\nNo" | fzf --height=20% --reverse --border --prompt="Stop server? > ")
         [ "$CH" = "Yes" ] && stop_server
     else
-        start_server
+        first_start_checks && start_server
     fi
+}
+
+open_admin_panel() {
+    xdg-open "http://127.0.0.1:5000" 2>/dev/null || \
+    echo "Open: http://127.0.0.1:5000"
+    sleep 2
+}
+
+EULA_FILE="$SERVER_DIR/staticdata/server_template_dir/eula.txt"
+RESOURCEPACK="$SERVER_DIR/staticdata/resourcepacks/vanilla.zip"
+
+first_start_checks() {
+    if [ ! -f "$RESOURCEPACK" ]; then
+        clear
+        echo "======================================="
+        echo "         RESOURCE PACK REQUIRED"
+        echo "======================================="
+        echo ""
+        echo "It seems that the resource packs"
+        echo "have not been installed yet."
+        echo ""
+        echo "Please refer to the Discord server"
+        echo "for the commands needed to download"
+        echo "the required resource packs."
+        echo ""
+        printf "Back\n" | fzf --height=15% --reverse --border --prompt="Resource Packs > " >/dev/null
+        return 1
+    fi
+
+    if [ ! -f "$EULA_FILE" ]; then
+        clear
+        echo "======================================="
+        echo "           FIRST TIME SETUP"
+        echo "======================================="
+        echo ""
+        echo "After starting the server, create an"
+        echo "account using the admin panel:"
+        echo "  http://127.0.0.1:5000"
+        echo ""
+        echo "Then follow steps 4-6 in the manual"
+        echo "server setup instructions."
+        echo ""
+        echo 'After setup, run: earth eula'
+        echo ""
+        CHOICE=$(printf "Continue\nBack" | fzf \
+            --height=15% --reverse --border --prompt="Continue Startup > ")
+        [ "$CHOICE" = "Continue" ] || return 1
+        return 0
+    fi
+
+    if grep -q "eula=false" "$EULA_FILE"; then
+        clear
+        echo "======================================="
+        echo "            EULA REQUIRED"
+        echo "======================================="
+        echo ""
+        echo "Please run:"
+        echo "  earth eula"
+        echo ""
+        echo "to accept the Minecraft EULA"
+        echo "before starting the server."
+        echo ""
+        printf "Back\n" | fzf --height=15% --reverse --border --prompt="EULA > " >/dev/null
+        return 1
+    fi
+
+    return 0
 }
 
 process_viewer() {
@@ -480,11 +547,23 @@ while true; do
     section_title "INFORMATION"
     echo "  Server: $SERVER_DIR"
     [ -d "$SOURCE_DIR" ] && echo "  Source: $SOURCE_DIR"
-    echo "  Admin Panel: http://127.0.0.1:5000"
-    echo "  Resourcepack: $SERVER_DIR/staticdata/resourcepacks/vanilla.zip"
+    echo ""
+    echo "  ── Setup Steps ──"
+    echo "  1. Start the server from the main menu"
+    echo "  2. Open the Admin Panel: http://127.0.0.1:5000"
+    echo "  3. Create an admin account"
+    echo "  4. Set the Server IP in Admin Panel → Config"
+    echo "  5. Get a MapTiler API key:"
+    echo "     https://cloud.maptiler.com/account/keys/"
+    echo "  6. Set the MapTiler key in Admin Panel → Config"
+    echo "     to render maps in-game"
+    echo ""
+    echo "  Resourcepack:"
+    echo "    $RESOURCEPACK"
+    echo ""
     echo "  Logs: $SERVER_DIR/logs/"
     echo ""
-    CHOICE=$(printf "Back" | fzf --height=10% --reverse --border --prompt="Info > ")
+    CHOICE=$(printf "Back" | fzf --height=15% --reverse --border --prompt="Info > ")
     [ "$CHOICE" = "Back" ] && return
 done
 }
@@ -547,9 +626,10 @@ while true; do
     echo -e "  ┌─────────────────────────────────────────────┐"
     echo -e "  │ ${CYN}[1]${RST} Start/Stop Server                       │"
     echo -e "  │ ${CYN}[2]${RST} Process Explorer                        │"
-    echo -e "  │ ${CYN}[3]${RST} Update Solace                           │"
-    echo -e "  │ ${CYN}[4]${RST} Settings                                │"
-    echo -e "  │ ${CYN}[5]${RST} Information                             │"
+    echo -e "  │ ${CYN}[3]${RST} Open Admin Panel                        │"
+    echo -e "  │ ${CYN}[4]${RST} Update Solace                           │"
+    echo -e "  │ ${CYN}[5]${RST} Settings                                │"
+    echo -e "  │ ${CYN}[6]${RST} Information                             │"
     echo -e "  │ ${CYN}[0]${RST} Exit                                    │"
     echo -e "  └─────────────────────────────────────────────┘"
     if [ "$INSTALL_MODE" = "prebuilt" ]; then
@@ -559,8 +639,8 @@ while true; do
     fi
     read -t 2 -n 1 KEY < /dev/tty || true
     case "$KEY" in
-        1) toggle_server ;; 2) process_viewer ;; 3) update_solace ;;
-        4) settings_menu ;; 5) info_panel ;;
+        1) toggle_server ;; 2) process_viewer ;; 3) open_admin_panel ;;
+        4) update_solace ;; 5) settings_menu ;; 6) info_panel ;;
         0|q) tput cnorm 2>/dev/null; clear; exit 0 ;;
     esac
 done
