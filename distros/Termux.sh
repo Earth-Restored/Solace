@@ -412,11 +412,11 @@ done
 
 update_solace() {
     load_settings
-    force_stop_server
     local branch
     branch=$(pick_branch "Update Branch") || return
     if [ "$branch" = "dev" ]; then
         echo -e "${YLW}Downloading dev build...${RST}"
+        force_stop_server
         local zip_name="Solace-Dev-${RELEASE_ARCH}.zip"
         local tmp=$(mktemp -d ~/Solace_update_XXXXXX) || return 1
         cd "$tmp" || return 1
@@ -444,6 +444,7 @@ JSONEOF
         [ -z "$tags" ] && echo -e "${RED}[ERROR] No releases found${RST}" && sleep 2 && return 1
         local sel=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
         [ -z "$sel" ] && return
+        force_stop_server
         local zip_name="Solace-${RELEASE_ARCH}.zip"
         local tmp=$(mktemp -d ~/Solace_update_XXXXXX) || return 1
         cd "$tmp" || return 1

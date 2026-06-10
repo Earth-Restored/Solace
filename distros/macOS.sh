@@ -288,13 +288,13 @@ done
 }
 
 update_prebuilt() {
-    stop_server
     echo "[Solace] Fetching available releases..."
     local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
     local tags=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//')
     [ -z "$tags" ] && echo -e "${RED}[ERROR] Failed to fetch releases${RST}" && sleep 2 && return 1
     local sel=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
     [ -z "$sel" ] && return 1
+    stop_server
     local zip_name="Solace-osx-${ARCH_PROFILE}.zip"
     local tmp=$(mktemp -d "/tmp/solace_update_XXXXXX") || return 1
     cd "$tmp" || return 1
@@ -318,11 +318,11 @@ JSONEOF
 
 update_solace() {
     load_settings
-    stop_server
     local branch
     branch=$(pick_branch "Update Branch") || return
     if [ "$branch" = "dev" ]; then
         echo -e "${YLW}Downloading dev build...${RST}"
+        stop_server
         local zip_name="Solace-Dev-osx-${ARCH_PROFILE}.zip"
         local tmp=$(mktemp -d "/tmp/solace_update_XXXXXX") || return 1
         cd "$tmp" || return 1
@@ -349,6 +349,7 @@ JSONEOF
         [ -z "$tags" ] && echo -e "${RED}[ERROR] No releases found${RST}" && sleep 2 && return 1
         local sel=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
         [ -z "$sel" ] && return
+        stop_server
         local zip_name="Solace-osx-${ARCH_PROFILE}.zip"
         local tmp=$(mktemp -d "/tmp/solace_update_XXXXXX") || return 1
         cd "$tmp" || return 1
@@ -374,6 +375,7 @@ JSONEOF
 rebuild_source() {
     if [ ! -d "$SOURCE_DIR/.git" ]; then echo -e "${RED}[ERROR] Source directory not found${RST}"; sleep 2; return; fi
     cd "$SOURCE_DIR"
+    rm -rf "$SOURCE_DIR/build"
     env DOTNET_ROOT="$HOME/.dotnet" PATH="$HOME/.dotnet:$PATH" pwsh ./publish.ps1 --profiles "framework-dependent-osx-$ARCH_PROFILE"
     local build_dir="$SOURCE_DIR/build/Release/framework-dependent-osx-$ARCH_PROFILE"
     if [ -d "$build_dir" ]; then
@@ -403,8 +405,9 @@ settings_menu() {
                 if [ -d "$SOURCE_DIR/.git" ]; then
                     local sel
                     sel=$(pick_branch "Switch Branch") || break
-                    cd "$SOURCE_DIR"; git fetch --all 2>/dev/null || true
-                    git checkout "$sel"; git pull origin "$sel"; INSTALL_BRANCH="$sel"; rebuild_source
+                    rm -rf "$SOURCE_DIR"
+                    git clone --recurse-submodules -b "$sel" "$GITHUB_URL" "$SOURCE_DIR"
+                    INSTALL_BRANCH="$sel"; rebuild_source
                 else
                     update_prebuilt
                 fi ;;
