@@ -32,8 +32,14 @@ Installed automatically if using the [Semi-automatic installation method](#semi-
 
 * Open your terminal and run the following command:
 
+#### Linux/MacOS:
 ```bash
-curl -sSl https://raw.githubusercontent.com/Earth-Restored/Solace/main/install.sh | bash
+sudo curl -sSl https://raw.githubusercontent.com/Earth-Restored/Solace/main/install.sh | bash
+```
+
+#### Termux:
+```bash
+sudo curl -sSl https://raw.githubusercontent.com/Earth-Restored/Solace/main/install.sh | bash
 ```
 
 * Wait until the command finishes
