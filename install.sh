@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -e
 
 RED='\033[1;31m'
 GRN='\033[1;32m'
@@ -446,8 +445,8 @@ if [ "$INSTALL_MODE" = "prebuilt" ]; then
 
     if [ "$INSTALL_BRANCH" = "main" ]; then
         print_sub "Fetching available releases..."
-        RELEASE_JSON=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases")
-        ALL_TAGS=$(echo "$RELEASE_JSON" | grep '"tag_name"' | cut -d '"' -f4)
+        RELEASE_JSON=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
+        ALL_TAGS=$(echo "$RELEASE_JSON" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -v "^dev-build$")
         LATEST_TAG=$(echo "$ALL_TAGS" | head -n1)
 
         if [ -n "$LATEST_TAG" ]; then
@@ -491,18 +490,24 @@ if [ "$INSTALL_MODE" = "prebuilt" ]; then
     TMP_DIR=$(mktemp -d "/tmp/solace_install_XXXXXX")
     cd "$TMP_DIR"
 
-    curl -L --progress-bar -o server.zip "$URL"
+    if ! curl -Lf --progress-bar -o server.zip "$URL"; then
+        err "Download failed — check your internet or the release URL"
+    fi
 
     print_sub "Extracting..."
-    unzip -o server.zip >/dev/null 2>&1
+    if ! unzip -o server.zip >/dev/null 2>&1; then
+        err "Extraction failed — downloaded file may be corrupted"
+    fi
 
     mkdir -p "$SERVER_DIR"
+    extracted=false
     if [ -d "Solace-linux-${ARCH_PROFILE}" ]; then
-        mv "Solace-linux-${ARCH_PROFILE}/"* "$SERVER_DIR/" 2>/dev/null || true
+        mv "Solace-linux-${ARCH_PROFILE}/"* "$SERVER_DIR/" 2>/dev/null && extracted=true
     elif [ -d "Solace-osx-${ARCH_PROFILE}" ]; then
-        mv "Solace-osx-${ARCH_PROFILE}/"* "$SERVER_DIR/" 2>/dev/null || true
-    else
-        find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SERVER_DIR/" \; 2>/dev/null || true
+        mv "Solace-osx-${ARCH_PROFILE}/"* "$SERVER_DIR/" 2>/dev/null && extracted=true
+    fi
+    if ! $extracted; then
+        find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SERVER_DIR/" \; 2>/dev/null
     fi
 
     chmod -R +x "$SERVER_DIR/components/" 2>/dev/null || true
@@ -680,10 +685,10 @@ print_step "INSTALLING EARTH COMMAND"
 
 if [ "$OS" = "Darwin" ]; then
     curl -fsSL "https://raw.githubusercontent.com/$GITHUB_REPO/refs/heads/main/distros/macOS.sh" \
-        -o /usr/local/bin/earth
+        -o /usr/local/bin/earth || err "Failed to download earth command"
 else
     curl -fsSL "https://raw.githubusercontent.com/$GITHUB_REPO/refs/heads/main/distros/Linux.sh" \
-        -o /usr/local/bin/earth
+        -o /usr/local/bin/earth || err "Failed to download earth command"
 fi
 chmod +x /usr/local/bin/earth
 ok "earth command installed (/usr/local/bin/earth)"
