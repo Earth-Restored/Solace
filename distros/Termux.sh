@@ -684,7 +684,11 @@ while true; do
         4) update_solace ;;
         5) settings_menu ;;
         6) info_panel ;;
-        0|q) tput cnorm 2>/dev/null; clear; break ;;
+         0|q)
+            CHOICE=$(printf "Cancel\nExit (server will stop!)" | fzf \
+                --height=20% --reverse --border --prompt="Exit? > ")
+            [ "$CHOICE" = "Exit (server will stop!)" ] || continue
+            tput cnorm 2>/dev/null; clear; break ;;
     esac
 done
 
