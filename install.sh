@@ -122,10 +122,12 @@ if [ -n "$TERMUX_VERSION" ] || echo "$PREFIX" | grep -q "com.termux"; then
             echo "[INFO] Latest main release: $SELECTED_TAG"
             ;;
     esac
-    print_step "3. CONFIGURING UBUNTU"
-    proot-distro login ubuntu -- bash << 'EOF'
-set -e
 
+    ZIP_NAME="${ARTIFACT_PREFIX}-linux-arm64.zip"
+    URL="https://github.com/$GITHUB_REPO/releases/download/${SELECTED_TAG}/${ZIP_NAME}"
+
+    print_step "3. CONFIGURING UBUNTU"
+    proot-distro login ubuntu -- bash << EOF
 echo "[1] System update"
 apt update -y
 
@@ -164,29 +166,15 @@ mkdir -p ~/Solace
 echo "[5] Downloading pre-compiled server"
 cd ~
 
-RELEASE_JSON=$(curl -s https://api.github.com/repos/cosmetide/Solace/releases)
-
-URL=$(echo "$RELEASE_JSON" \
-| grep -o '"browser_download_url": "[^"]*linux-arm64[^"]*"' \
-| cut -d '"' -f4 \
-| head -n1)
-
-TAG=$(echo "$RELEASE_JSON" \
-| grep '"tag_name"' \
-| head -n1 \
-| cut -d '"' -f4)
-
-if [ -z "$URL" ]; then
-    echo "[ERROR] No download URL found"
+if [ -z "$SELECTED_TAG" ]; then
+    echo "[ERROR] No release tag found"
     exit 1
 fi
 
-echo "[INFO] Latest build: $TAG"
-echo "[INFO] Downloading..."
-
-curl -L --progress-bar -o Solace-linux-arm64.zip "$URL"
-
-unzip -o Solace-linux-arm64.zip
+echo "[INFO] Downloading ${SELECTED_TAG}..."
+echo "[INFO] URL: $URL"
+curl -Lf --progress-bar -o "$ZIP_NAME" "$URL" || { echo "[ERROR] Download failed"; exit 1; }
+unzip -o "$ZIP_NAME" || { echo "[ERROR] Failed to extract archive"; exit 1; }
 rm -rf ~/Solace/*
 echo "$TAG" > ~/Solace/version.txt
 
