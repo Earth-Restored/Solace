@@ -66,11 +66,10 @@ banner
 #  TERMUX BRANCH
 # ─────────────────────────────────────────
 if [ -n "$TERMUX_VERSION" ] || echo "$PREFIX" | grep -q "com.termux"; then
-export DEBIAN_FRONTEND=noninteractive
-dpkg --configure -a >/dev/null 2>&1 || true
+    export DEBIAN_FRONTEND=noninteractive
+    dpkg --configure -a >/dev/null 2>&1 || true
 
-print_step "TERMUX DETECTED"
-
+    clear && banner
     print_step "1. CHECKING PROOT-DISTRO"
     if ! command -v proot-distro >/dev/null 2>&1; then
         pkg update -y
@@ -93,6 +92,34 @@ print_step "TERMUX DETECTED"
         ok "Ubuntu installed"
     fi
 
+    clear && banner
+    print_step "SELECT BRANCH"
+    echo ""
+    echo -e "${CYN}Select branch:${RST}"
+    echo ""
+    echo -e "  ${GRN}[1] Main (stable - recommended)${RST}"
+    echo -e "  ${YLW}[2] Dev (unstable - may break)${RST}"
+    echo ""
+    printf "Choice [1/2] > "
+    read -r BRANCH_CHOICE < /dev/tty
+    BRANCH_CHOICE="$(echo "$BRANCH_CHOICE" | tr -d '\r\n')"
+
+    ARTIFACT_PREFIX="Solace"
+    SELECTED_TAG=""
+    case "$BRANCH_CHOICE" in
+        2|dev|Dev)
+            ARTIFACT_PREFIX="Solace-Dev"
+            SELECTED_TAG="dev-build"
+            echo -e "${YLW}[INFO] Using Dev build${RST}"
+            ;;
+        *)
+            echo "[INFO] Fetching releases..."
+            RELEASE_JSON=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
+            SELECTED_TAG=$(echo "$RELEASE_JSON" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -v "^dev-build$" | head -n1)
+            [ -z "$SELECTED_TAG" ] && err "No releases found."
+            echo "[INFO] Latest main release: $SELECTED_TAG"
+            ;;
+    esac
     print_step "3. CONFIGURING UBUNTU"
     proot-distro login ubuntu -- bash << 'EOF'
 set -e

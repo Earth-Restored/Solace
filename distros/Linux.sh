@@ -392,7 +392,7 @@ update_prebuilt() {
 {"installMode":"prebuilt","branch":"main","version":"$sel","updatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
 JSONEOF
     cd /; rm -rf "$tmp"
-    echo "[Solace] Update complete ($sel)"; sleep 2
+    echo "[Solace] Update complete ($sel)"; sleep 5
 }
 
 update_solace() {
@@ -418,7 +418,7 @@ update_solace() {
 {"installMode":"prebuilt","branch":"dev","version":"dev-build","updatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
 JSONEOF
         cd /; rm -rf "$tmp"
-        echo "[Solace] Update complete (dev-build)"; sleep 2
+        echo "[Solace] Update complete (dev-build)"; sleep 5
     else
         echo "[Solace] Fetching available releases..."
         local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
@@ -445,7 +445,7 @@ JSONEOF
 {"installMode":"prebuilt","branch":"main","version":"$sel","updatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
 JSONEOF
         cd /; rm -rf "$tmp"
-        echo "[Solace] Update complete ($sel)"; sleep 2
+        echo "[Solace] Update complete ($sel)"; sleep 5
     fi
 }
 
@@ -538,7 +538,7 @@ JSONEOF
                         cd /; rm -rf "$tmp"
                         echo "[Solace] Switched to main ($tag)"
                     fi
-                    sleep 2
+                    sleep 5
                 fi ;;
             "Rebuild from Source") [ -d "$SOURCE_DIR/.git" ] && rebuild_source ;;
             "Delete Source Folder")

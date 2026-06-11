@@ -452,7 +452,7 @@ update_solace() {
 JSONEOF
         rm -rf "$tmp"
         echo "[Solace] Update complete (dev-build)"
-        sleep 2
+        sleep 5
     else
         echo "[Solace] Fetching available releases..."
         local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
@@ -480,7 +480,7 @@ JSONEOF
         echo "$sel" > "$VERSION_FILE"
         rm -rf "$tmp"
         echo "[Solace] Update complete ($sel)"
-        sleep 2
+        sleep 5
     fi
 }
 
@@ -552,7 +552,7 @@ JSONEOF
                 echo "$tag" > "$VERSION_FILE"
                 rm -rf "$TMP_DIR"
                 echo "[Solace] Switched to $sel ($tag)"
-                sleep 2
+                sleep 5
                 ;;
             "Reset Account Database")
                 printf '\033[H\033[J'; show_banner
