@@ -105,10 +105,12 @@ if [ -n "$TERMUX_VERSION" ] || echo "$PREFIX" | grep -q "com.termux"; then
     BRANCH_CHOICE="$(echo "$BRANCH_CHOICE" | tr -d '\r\n')"
 
     ARTIFACT_PREFIX="Solace"
+    INSTALL_BRANCH="main"
     SELECTED_TAG=""
     case "$BRANCH_CHOICE" in
         2|dev|Dev)
             ARTIFACT_PREFIX="Solace-Dev"
+            INSTALL_BRANCH="dev"
             SELECTED_TAG="dev-build"
             echo -e "${YLW}[INFO] Using Dev build${RST}"
             ;;
@@ -200,6 +202,15 @@ fi
 
 chmod -R +x ~/Solace/components/ 2>/dev/null || true
 
+cat > ~/Solace/settings.json << JSONEOF
+{
+  "installMode": "prebuilt",
+  "branch": "$INSTALL_BRANCH",
+  "version": "$SELECTED_TAG",
+  "updatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+JSONEOF
+
 echo "[6] Cleaning installer leftovers"
 rm -f ~/dotnet-install.sh
 rm -f ~/Solace-linux-arm64.zip
@@ -224,7 +235,7 @@ echo -e "  ${CYN}User:${RST}    $(whoami)"
 echo -e "  ${CYN}OS:${RST}      Termux (proot-distro ubuntu)"
 echo -e "  ${CYN}Arch:${RST}    $(uname -m)"
 echo -e "  ${CYN}Mode:${RST}    prebuilt"
-echo -e "  ${CYN}Branch:${RST}  main"
+echo -e "  ${CYN}Branch:${RST}  $INSTALL_BRANCH"
 echo -e "  ${CYN}Server:${RST}  ~/Solace"
 echo ""
 echo -e "${CYN}Next steps:${RST}"
