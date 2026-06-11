@@ -8,9 +8,9 @@ CYN='\033[1;36m'
 BLU='\033[1;34m'
 RST='\033[0m'
 
-REMOTE_URL="https://raw.githubusercontent.com/Earth-Restored/Solace/refs/heads/main/distros/Termux.sh"
+REMOTE_URL="https://raw.githubusercontent.com/cosmetide/Solace/refs/heads/main/distros/Termux.sh"
 SELF_PATH="$(realpath "$0")"
-GITHUB_REPO="Earth-Restored/Solace"
+GITHUB_REPO="cosmetide/Solace"
 GITHUB_URL="https://github.com/$GITHUB_REPO.git"
 
 RELEASE_ARCH="linux-arm64"
@@ -189,7 +189,7 @@ CYN='\033[1;36m'
 BLU='\033[1;34m'
 RST='\033[0m'
 
-GITHUB_REPO="Earth-Restored/Solace"
+GITHUB_REPO="cosmetide/Solace"
 GITHUB_URL="https://github.com/$GITHUB_REPO.git"
 
 DB=~/Solace/nohup.log
@@ -336,7 +336,7 @@ first_start_checks() {
         echo "  server setup instructions."
         echo ""
         echo "  Read the full guide:"
-        echo "  https://github.com/Earth-Restored/Solace/blob/main/INSTALLATION.md"
+        echo "  https://github.com/cosmetide/Solace/blob/main/INSTALLATION.md"
         echo ""
         echo "  If you lose access to your admin account,"
         echo "  you can reset it in:"
@@ -430,10 +430,8 @@ done
 
 update_solace() {
     load_settings
-    local branch
-    branch=$(pick_branch "Update Branch") || return
-    if [ "$branch" = "dev" ]; then
-        echo -e "${YLW}Downloading dev build...${RST}"
+    if [ "$INSTALL_BRANCH" = "dev" ]; then
+        echo -e "${YLW}Downloading latest developer build...${RST}"
         force_stop_server
         local zip_name="Solace-Dev-${RELEASE_ARCH}.zip"
         local tmp=$(mktemp -d ~/Solace_update_XXXXXX) || return 1
@@ -452,7 +450,7 @@ update_solace() {
   "updatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 JSONEOF
-        rm -rf "$TMP_DIR"
+        rm -rf "$tmp"
         echo "[Solace] Update complete (dev-build)"
         sleep 2
     else
@@ -667,7 +665,7 @@ pick_branch() {
     [ -z "$sel" ] && return 1
     local branch=$(echo "$sel" | sed 's/ —.*//')
     if [ "$branch" = "dev" ]; then
-        echo -e "${YLW}⚠  Dev builds are unstable and may break your server.${RST}"
+        echo -e "${YLW}⚠  Dev builds are unstable and may break your server.${RST}" >&2
         local confirm=$(printf "No, cancel\nYes, continue anyway" | fzf --height=15% --reverse --border --prompt="Are you sure? > ")
         [ "$confirm" != "Yes, continue anyway" ] && return 1
     fi

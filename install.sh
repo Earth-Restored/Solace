@@ -57,7 +57,7 @@ ok()   { echo -e "${GRN}[OK] $1${RST}"; }
 skip() { echo -e "${YLW}[SKIP] $1${RST}"; }
 err()  { echo -e "${RED}[ERROR] $1${RST}"; exit 1; }
 
-GITHUB_REPO="Earth-Restored/Solace"
+GITHUB_REPO="cosmetide/Solace"
 GITHUB_URL="https://github.com/$GITHUB_REPO.git"
 
 banner
@@ -135,7 +135,7 @@ mkdir -p ~/Solace
 echo "[5] Downloading pre-compiled server"
 cd ~
 
-RELEASE_JSON=$(curl -s https://api.github.com/repos/Earth-Restored/Solace/releases)
+RELEASE_JSON=$(curl -s https://api.github.com/repos/cosmetide/Solace/releases)
 
 URL=$(echo "$RELEASE_JSON" \
 | grep -o '"browser_download_url": "[^"]*linux-arm64[^"]*"' \
