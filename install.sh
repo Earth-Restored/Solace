@@ -57,7 +57,7 @@ ok()   { echo -e "${GRN}[OK] $1${RST}"; }
 skip() { echo -e "${YLW}[SKIP] $1${RST}"; }
 err()  { echo -e "${RED}[ERROR] $1${RST}"; exit 1; }
 
-GITHUB_REPO="cosmetide/Solace"
+GITHUB_REPO="Earth-Restored/Solace"
 GITHUB_URL="https://github.com/$GITHUB_REPO.git"
 
 banner
