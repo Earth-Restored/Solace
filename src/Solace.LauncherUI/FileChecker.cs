@@ -12,19 +12,24 @@ internal static class FileChecker
 {
     private static readonly HttpClient httpClient = new();
 
-    private static readonly string[] expectedStaticFiles = [
+    private static readonly string[] expectedStaticFiles =
+    [
         "catalog/itemEfficiencyCategories.json",
         "catalog/itemJournalGroups.json",
         "catalog/items.json",
         "catalog/nfc.json",
         "catalog/recipes.json",
         "catalog/recipes.json",
-        "server_jars/buildplate-connector-plugin-0.0.1-SNAPSHOT-jar-with-dependencies.jar",
-        "server_jars/fountain-0.0.1-SNAPSHOT-jar-with-dependencies.jar",
-        "server_template_dir/mods/fountain-0.0.1.jar",
-        "server_template_dir/mods/vienna-0.0.1.jar",
         "tile_renderer/tagMap1.json",
         "tile_renderer/tagMap2.json",
+    ];
+
+    private static readonly (string Template, Version MinimumVersion)[] expectedVersionedStaticFiles =
+    [
+        ("server_jars/buildplate-connector-plugin-{{version}}-SNAPSHOT-jar-with-dependencies.jar", BuildplateLauncher.MinimumBuildplateConnectorPluginVersion),
+        ("server_jars/fountain-{{version}}-SNAPSHOT-jar-with-dependencies.jar", BuildplateLauncher.MinimumFountainBridgeVersion),
+        ("server_template_dir/mods/fountain-{{version}}.jar", new Version(0, 0, 2)),
+        ("server_template_dir/mods/vienna-{{version}}.jar", new Version(0, 0, 1)),
     ];
 
     private static readonly string[] expectedStaticDirectories = [
@@ -70,9 +75,9 @@ internal static class FileChecker
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        foreach (string dir in expectedStaticDirectories)
+        foreach (var dir in expectedStaticDirectories)
         {
-            string fullDir = Path.GetFullPath(Path.Combine(Program.StaticDataDir, dir));
+            var fullDir = Path.GetFullPath(Path.Combine(Program.StaticDataDir, dir));
 
             if (!Directory.Exists(fullDir))
             {
@@ -81,14 +86,30 @@ internal static class FileChecker
             }
         }
 
-        foreach (string file in expectedStaticFiles)
+        foreach (var file in expectedStaticFiles)
         {
-            string fullFile = Path.GetFullPath(Path.Combine(Program.StaticDataDir, file));
+            var fullFile = Path.GetFullPath(Path.Combine(Program.StaticDataDir, file));
 
             if (!File.Exists(fullFile))
             {
                 logger.Error($"Static data file '{fullFile}' does not exist");
                 error = true;
+            }
+        }
+
+        foreach (var (template, minimumVersion) in expectedVersionedStaticFiles)
+        {
+            var fileName = Path.GetFileName(template);
+            var directory = Path.GetFullPath(Path.Combine(Program.StaticDataDir, Path.GetDirectoryName(template)!));
+
+            if (!File.TryFindCompatibleFile(directory, minimumVersion, fileName, out var path))
+            {
+                logger.Error("Static data file '{Path}' does not exist, is outdated, or unsupported. Minimum version is {MinimumVersion}", Path.GetFullPath(Path.Combine(Program.StaticDataDir, template)), minimumVersion);
+                error = true;
+            }
+            else
+            {
+                logger.Debug("Versioned static file found '{Path}'", path);
             }
         }
 

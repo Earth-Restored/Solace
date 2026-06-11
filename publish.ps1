@@ -26,7 +26,7 @@ function Invoke-ProjectPublish {
     }
 }
 
-git submodule update --init --remote --merge --recursive
+git submodule update --init --recursive
 
 $projects = "Solace.ApiServer", "Solace.Buildplate", "Solace.EventBus.Server", "Solace.ObjectStore.Server", "Solace.TappablesGenerator", "Solace.TileRenderer"
 
