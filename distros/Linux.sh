@@ -8,9 +8,9 @@ CYN='\033[1;36m'
 BLU='\033[1;34m'
 RST='\033[0m'
 
-REMOTE_URL="https://raw.githubusercontent.com/cosmetide/Solace/refs/heads/main/distros/Linux.sh"
+REMOTE_URL="https://raw.githubusercontent.com/Earth-Restored/Solace/refs/heads/main/distros/Linux.sh"
 SELF_PATH="$(realpath "$0")"
-GITHUB_REPO="cosmetide/Solace"
+GITHUB_REPO="Earth-Restored/Solace"
 GITHUB_URL="https://github.com/$GITHUB_REPO.git"
 
 SOLACE_DIR="$HOME/solace"
@@ -287,7 +287,7 @@ first_start_checks() {
         echo "  server setup instructions."
         echo ""
         echo "  Read the full guide:"
-        echo "  https://github.com/cosmetide/Solace/blob/main/INSTALLATION.md"
+        echo "  https://github.com/Earth-Restored/Solace/blob/main/INSTALLATION.md"
         echo ""
         echo "  If you lose access to your admin account,"
         echo "  you can reset it in:"
