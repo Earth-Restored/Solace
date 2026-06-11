@@ -468,8 +468,8 @@ rebuild_source() {
 }
 
 settings_menu() {
-    load_settings
     while true; do
+        load_settings
         clear; show_banner
         section_title "SETTINGS"
         echo -e "  ${CYN}Mode:${RST}    $INSTALL_MODE"

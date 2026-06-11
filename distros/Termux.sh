@@ -502,8 +502,8 @@ force_stop_server() {
 # ─── SETTINGS ────────────────────────────────────
 
 settings_menu() {
-    load_settings
     while true; do
+        load_settings
         clear; show_banner
         section_title "SETTINGS"
         echo ""
