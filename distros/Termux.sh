@@ -557,9 +557,23 @@ JSONEOF
                 sleep 2
                 ;;
             "Reset Account Database")
-                rm -f "$SOLACE_DIR/launcher/Data/app.db"
-                echo "[Solace] Account database reset."
-                sleep 2 ;;
+                printf '\033[H\033[J'; show_banner
+                section_title "RESET DATABASE"
+                echo "  If you have lost access to the first account"
+                echo "  and need to start fresh, you can reset the"
+                echo "  user database."
+                echo ""
+                echo "  This will remove ALL existing accounts and"
+                echo "  allow you to register a new primary admin"
+                echo "  account."
+                echo ""
+                CONFIRM=$(printf "No, cancel\nYes, reset database" | fzf \
+                    --height=20% --reverse --border --prompt="Reset? > ")
+                if [ "$CONFIRM" = "Yes, reset database" ]; then
+                    rm -f "$SOLACE_DIR/launcher/Data/app.db"
+                    echo "[Solace] Account database reset."
+                    sleep 2
+                fi ;;
             "Uninstall")
                 printf '\033[H\033[J'; show_banner
                 section_title "UNINSTALL"
