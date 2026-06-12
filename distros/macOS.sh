@@ -53,6 +53,8 @@ update_self() {
 
 update_self "$@"
 
+rm -rf ~/Solace_update_* ~/Solace-*.zip 2>/dev/null || true
+
 load_settings() {
     if [ -f "$SETTINGS_FILE" ]; then
         INSTALL_MODE=$(grep -o '"installMode": *"[^"]*"' "$SETTINGS_FILE" 2>/dev/null | cut -d'"' -f4)

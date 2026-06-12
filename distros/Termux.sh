@@ -203,6 +203,7 @@ VERSION_FILE="$SOLACE_DIR/version.txt"
 RELEASE_ARCH="linux-arm64"
 
 mkdir -p "$SOLACE_DIR"
+rm -rf ~/Solace_update_* ~/Solace-*.zip 2>/dev/null || true
 
 # ─── PROOT UTILITY FUNCTIONS ────────────────────────
 

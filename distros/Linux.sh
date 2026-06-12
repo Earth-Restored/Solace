@@ -54,6 +54,8 @@ update_self() {
 
 update_self "$@"
 
+rm -rf ~/Solace_update_* ~/Solace-*.zip 2>/dev/null || true
+
 # ─── UTILITY FUNCTIONS ────────────────────────────────────
 
 load_settings() {
