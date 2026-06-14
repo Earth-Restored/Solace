@@ -10,7 +10,6 @@ namespace Solace.ApiServer.Controllers.EarthApi;
 [ApiController]
 [ApiVersion("1.0")]
 [ApiVersion("1.1")]
-[Route("player/environment")]
 internal sealed partial class LocatorController : ControllerBase
 {
     private readonly ILogger<LocatorController> _logger;
@@ -21,7 +20,7 @@ internal sealed partial class LocatorController : ControllerBase
     }
 
     [HttpGet("player/environment")]
-    [HttpGet("/api/v1.1/player/environment")]
+    [HttpGet("api/v1.1/player/environment")]
     public ContentResult Get()
     {
         string protocol = Request.IsHttps ? "https://" : "http://";
