@@ -8,6 +8,9 @@ test/
 
 build/
 
+/src/*/data/*
+/src/*/staticdata/*
+
 .vscode/
 
 # dotenv files
