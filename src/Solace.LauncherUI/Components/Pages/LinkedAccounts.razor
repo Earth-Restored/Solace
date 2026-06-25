@@ -449,7 +449,7 @@
     private bool IsUploadingSkin { get; set; } = false;
     private string? SkinUploadErrorMessage { get; set; }
     private string? SkinUploadSuccessMessage { get; set; }
-    private const long MaxSkinFileSize = 512 * 1024; // 512 KB
+    private const long MaxSkinFileSize = 16 * 1024; // 16 KB
 
     private bool ShowPassword { get; set; } = false;
     private bool ShowLinkPassword { get; set; } = false;
@@ -600,12 +600,12 @@
             return;
         }
 
-        var account = await earthDb.Accounts.FirstAsync(account => account.Id == SelectedAccount.Id);
-        account.Username = username;
-
         try
         {
-            await earthDb.SaveChangesAsync();
+            await earthDb.Accounts
+                .Where(account => account.Id == SelectedAccount.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(account => account.Username, username));
         }
         catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation)
         {
@@ -640,14 +640,17 @@
         await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
         var account = await earthDb.Accounts.FirstAsync(account => account.Id == SelectedAccount.Id);
 
-        byte[] passwordSalt = new byte[16];
+        var passwordSalt = new byte[16];
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(passwordSalt);
 
-        account.PasswordHash = AccountConstants.HashPassword(password, passwordSalt);
-        account.PasswordSalt = passwordSalt;
+        var passwordHash = AccountConstants.HashPassword(password, passwordSalt);
 
-        await earthDb.SaveChangesAsync();
+        await earthDb.Accounts
+            .Where(account => account.Id == SelectedAccount.Id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(account => account.PasswordHash, passwordHash)
+                .SetProperty(account => account.PasswordSalt, passwordSalt));
 
         UpdateSuccessMessage = "Password successfully synchronized!";
         IsChangingPassword = false;
@@ -844,10 +847,12 @@
         SkinUploadSuccessMessage = null;
 
         var file = e.File;
-        if (file == null) return;
+        if (file is null)
+        {
+            return;
+        }
 
-        // Perform validation checks on content metadata headers
-        if (!file.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) && file.ContentType != "image/png")
+        if (!file.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) && file.ContentType is not "image/png")
         {
             SkinUploadErrorMessage = "Invalid format target. Only raw .png files are accepted.";
             SelectedSkinFile = null;
@@ -866,7 +871,10 @@
 
     private async Task UploadSkinAsync()
     {
-        if (SelectedSkinFile == null || SelectedAccount == null) return;
+        if (SelectedSkinFile is null || SelectedAccount is null)
+        {
+            return;
+        }
 
         IsUploadingSkin = true;
         SkinUploadErrorMessage = null;
@@ -874,36 +882,29 @@
 
         try
         {
-            // Read incoming pipeline data into safe RAM buffer blocks
             using var memoryStream = new MemoryStream();
             await SelectedSkinFile.OpenReadStream(MaxSkinFileSize).CopyToAsync(memoryStream);
             byte[] skinBytes = memoryStream.ToArray();
 
-            // --- Database Context Persist Processing Hook ---
             await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
-            var account = await earthDb.Accounts
-                .Include(a => a.Profile)
-                .FirstAsync(a => a.Id == SelectedAccount.Id);
 
-            /* * TODO: Hook up your binary save architecture.
-             * * Context A: File System Save Path
-             * var rootStorageDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "skins");
-             * await File.WriteAllBytesAsync(Path.Combine(rootStorageDir, $"{account.Id}.png"), skinBytes);
-             * * Context B: Entity Database Blob Sync
-             * account.Profile.SkinDataBlob = skinBytes;
-             * await earthDb.SaveChangesAsync();
-             */
+            await earthDb.Accounts
+                .Where(account => account.Id == SelectedAccount.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(account => account.SkinImageData, skinBytes));
 
-            await Task.Delay(350); // Small visual padding step for short processing delay status indicator
+            await Task.Delay(250);
 
             SkinUploadSuccessMessage = "Texture updated! Refreshing rendering canvas...";
             SelectedSkinFile = null;
 
             // Trigger your JSInterop component canvas redraw logic execution sequence down here
+
+            IsSkinModalVisible = false;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            Logger.LogError(ex, "Failed writing incoming file streams for runtime account entity reference ID: {AccountId}", SelectedAccount.Id);
+            Logger.LogError(exception, "Failed to update skin for player {AccountId}", SelectedAccount.Id);
             SkinUploadErrorMessage = "An unhandled exception block occurred syncing data structures backend.";
         }
         finally

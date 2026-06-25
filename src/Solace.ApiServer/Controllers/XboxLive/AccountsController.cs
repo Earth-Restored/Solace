@@ -59,6 +59,7 @@ internal sealed class AccountsController : LoginServerControllerBase
         var token = authUnion.A;
 
         var account = await _dbContext.Accounts
+            .Select(account => new { account.Id, account.Username, account.FirstName, account.LastName, account.CreatedDate, })
             .FirstOrDefaultAsync(account => account.Id == token.UserId, cancellationToken);
 
         if (account is null)

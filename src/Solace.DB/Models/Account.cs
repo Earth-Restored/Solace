@@ -30,6 +30,9 @@ public sealed class Account : IEntityWithId<Guid>, IVersionedEntity, IMergeable<
     [MaxLength(64)]
     public required byte[] PasswordHash { get; set; }
 
+    [MaxLength(16 * 1024)]
+    public byte[]? SkinImageData { get; set; } // .png
+
     public ProfileEF? Profile { get; set; }
 
     public ActivityLogEF? ActivityLog { get; set; }
