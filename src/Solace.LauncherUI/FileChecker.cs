@@ -28,7 +28,7 @@ internal static class FileChecker
     [
         ("server_jars/buildplate-connector-plugin-{{version}}-SNAPSHOT-jar-with-dependencies.jar", BuildplateLauncher.MinimumBuildplateConnectorPluginVersion),
         ("server_jars/fountain-{{version}}-SNAPSHOT-jar-with-dependencies.jar", BuildplateLauncher.MinimumFountainBridgeVersion),
-        ("server_template_dir/mods/fountain-{{version}}.jar", new Version(0, 0, 2)),
+        ("server_template_dir/mods/fountain-{{version}}.jar", new Version(0, 0, 1)),
         ("server_template_dir/mods/vienna-{{version}}.jar", new Version(0, 0, 1)),
     ];
 
