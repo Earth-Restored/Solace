@@ -13,7 +13,7 @@ internal static class BuildplateLauncher
 
     public const string ServerJarName = "fabric-server-mc.1.20.4-loader.0.15.10-launcher.1.0.1.jar";
 
-    public static readonly Version MinimumFountainBridgeVersion = new Version(0, 0, 1);
+    public static readonly Version MinimumFountainBridgeVersion = new Version(0, 0, 2);
     public static readonly Version MinimumBuildplateConnectorPluginVersion = new Version(0, 0, 1);
 
 #pragma warning disable IDE0060 // Remove unused parameter
