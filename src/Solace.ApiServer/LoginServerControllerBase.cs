@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Solace.ApiServer.Models;
 using Solace.ApiServer.Utils;
+using Solace.Common;
 
 namespace Solace.ApiServer;
 

@@ -33,6 +33,8 @@ public sealed class Account : IEntityWithId<Guid>, IVersionedEntity, IMergeable<
     [MaxLength(16 * 1024)]
     public byte[]? SkinImageData { get; set; } // .png
 
+    public bool IsSkinSlim { get; set; }
+
     public ProfileEF? Profile { get; set; }
 
     public ActivityLogEF? ActivityLog { get; set; }

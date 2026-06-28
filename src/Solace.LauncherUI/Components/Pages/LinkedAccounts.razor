@@ -340,6 +340,21 @@
                         }
 
                         <div class="d-flex flex-column gap-3 mt-1">
+
+                            <div>
+                                <label class="text-muted d-block mb-1" style="font-size: 0.75rem;">Model Type</label>
+                                <div class="btn-group w-100" role="group" aria-label="Skin model type">
+                                    <input type="radio" class="btn-check" name="skinType" id="typeAuto" checked="@(SelectedSkinType == JavaSkinProcessor.SkinType.Auto)" @onclick='() => SelectedSkinType = JavaSkinProcessor.SkinType.Auto' disabled="@IsUploadingSkin">
+                                    <label class="btn btn-outline-secondary btn-sm shadow-none" for="typeAuto" style="font-size: 0.75rem;">Auto</label>
+
+                                    <input type="radio" class="btn-check" name="skinType" id="typeWide" checked="@(SelectedSkinType == JavaSkinProcessor.SkinType.Wide)" @onclick='() => SelectedSkinType = JavaSkinProcessor.SkinType.Wide' disabled="@IsUploadingSkin">
+                                    <label class="btn btn-outline-secondary btn-sm shadow-none" for="typeWide" style="font-size: 0.75rem;">Wide</label>
+
+                                    <input type="radio" class="btn-check" name="skinType" id="typeSlim" checked="@(SelectedSkinType == JavaSkinProcessor.SkinType.Slim)" @onclick='() => SelectedSkinType = JavaSkinProcessor.SkinType.Slim' disabled="@IsUploadingSkin">
+                                    <label class="btn btn-outline-secondary btn-sm shadow-none" for="typeSlim" style="font-size: 0.75rem;">Slim</label>
+                                </div>
+                            </div>
+
                             <InputFile OnChange="HandleSkinFileSelection" accept=".png" class="form-control form-control-sm" disabled="@IsUploadingSkin" />
 
                             <div class="d-flex justify-content-end gap-2">
@@ -445,6 +460,7 @@
     private Solace.StaticData.StaticData staticData = new StaticData.StaticData(Program.StaticDataDir);
 
     private bool IsSkinModalVisible { get; set; } = false;
+    private JavaSkinProcessor.SkinType SelectedSkinType { get; set; } = JavaSkinProcessor.SkinType.Auto;
     private IBrowserFile? SelectedSkinFile { get; set; }
     private bool IsUploadingSkin { get; set; } = false;
     private string? SkinUploadErrorMessage { get; set; }
@@ -830,6 +846,7 @@
         SkinUploadErrorMessage = null;
         SkinUploadSuccessMessage = null;
         SelectedSkinFile = null;
+        SelectedSkinType = JavaSkinProcessor.SkinType.Auto;
         IsSkinModalVisible = true;
     }
 
@@ -882,16 +899,25 @@
 
         try
         {
-            using var memoryStream = new MemoryStream();
-            await SelectedSkinFile.OpenReadStream(MaxSkinFileSize).CopyToAsync(memoryStream);
-            byte[] skinBytes = memoryStream.ToArray();
+            await using var imageStream = SelectedSkinFile.OpenReadStream(MaxSkinFileSize);
+
+            var skinResult = await JavaSkinProcessor.Process(imageStream, SelectedSkinType);
+
+            if (!skinResult.IsB)
+            {
+                SkinUploadErrorMessage = skinResult.A;
+                return;
+            }
+
+            var (skinImageData, isSkinSlim) = skinResult.B;
 
             await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
 
             await earthDb.Accounts
                 .Where(account => account.Id == SelectedAccount.Id)
                 .ExecuteUpdateAsync(s => s
-                    .SetProperty(account => account.SkinImageData, skinBytes));
+                    .SetProperty(account => account.SkinImageData, skinImageData)
+                    .SetProperty(account => account.IsSkinSlim, isSkinSlim));
 
             await Task.Delay(250);
 
