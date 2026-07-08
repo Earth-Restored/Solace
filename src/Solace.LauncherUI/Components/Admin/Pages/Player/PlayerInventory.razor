@@ -35,7 +35,7 @@
         {
             await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
             _username = (await earthDb.Accounts
-                .AsNoTracking()
+                .Select(account => new { account.Id, account.Username, })
                 .FirstOrDefaultAsync(account => account.Id == AccountId))?.Username;
         }
         catch (Exception exception)

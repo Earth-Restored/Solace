@@ -51,8 +51,10 @@
     @if (SelectedAccount is not null)
     {
         <div class="row g-3">
-            <div class="col-md-5">
-                <div class="card shadow-sm h-100">
+            <div class="col-md-7 d-flex flex-column gap-3">
+
+                <!-- Settings Card -->
+                <div class="card shadow-sm">
                     <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
                         <h6 class="mb-0">Settings</h6>
                         <button class="btn btn-danger btn-sm py-0 px-2" @onclick="UnlinkCurrentAccount">Unlink</button>
@@ -117,57 +119,78 @@
                         }
                     </div>
                 </div>
-            </div>
 
-            <div class="col-md-7">
-                <div class="card shadow-sm border-left-primary h-100">
+                <!-- Statistics Card -->
+                <div class="card shadow-sm border-left-primary">
                     <div class="card-header bg-secondary text-white py-2">
                         <h6 class="mb-0">Statistics</h6>
                     </div>
                     <div class="card-body p-2 d-flex flex-column justify-content-center">
-
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="position-relative d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                                <svg width="50" height="50" viewBox="0 0 50 50" style="transform: rotate(-90deg); position: absolute; top: 0; left: 0;">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="position-relative d-inline-flex align-items-center justify-content-center" style="width: 45px; height: 45px; flex-shrink: 0;">
+                                <svg width="45" height="45" viewBox="0 0 50 50" style="transform: rotate(-90deg); position: absolute; top: 0; left: 0;">
                                     <circle cx="25" cy="25" r="20" stroke="#e6e6e6" stroke-width="4" fill="transparent" />
                                     <circle cx="25" cy="25" r="20" stroke="#28a745" stroke-width="4" fill="transparent" stroke-dasharray="125.66" stroke-dashoffset="@(125.66 - (125.66 * GetLevelProgressPercentage() / 100))" stroke-linecap="round" style="transition: stroke-dashoffset 0.3s ease;" />
                                 </svg>
                                 <div class="text-center d-flex flex-column align-items-center justify-content-center" style="z-index: 2;">
-                                    <span class="m-0 font-weight-bold text-dark">@SelectedAccount.Level</span>
+                                    <span class="m-0 font-weight-bold text-dark small">@SelectedAccount.Level</span>
                                 </div>
                             </div>
 
-                            <div class="row flex-grow-1 g-3">
-                                <div class="col-6">
-                                    <div class="d-flex justify-content-between mb-1 small">
+                            <div class="row flex-grow-1 g-2">
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between mb-0 extra-small" style="font-size: 0.75rem;">
                                         <span class="text-muted">XP (@GetLevelProgressPercentage().ToString("F0")%)</span>
                                         <span class="font-weight-bold">@SelectedAccount.Experience/@GetRequiredExperienceForNextLevel()</span>
                                     </div>
-                                    <div class="progress" style="height: 8px;">
+                                    <div class="progress" style="height: 6px;">
                                         <div class="progress-bar bg-success" role="progressbar" style="width: @GetLevelProgressPercentage()%;"></div>
                                     </div>
                                 </div>
-                                <div class="col-6">
-                                    <div class="d-flex justify-content-between mb-1 small">
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between mb-0 extra-small" style="font-size: 0.75rem;">
                                         <span class="text-danger"><i class="bi bi-heart"></i> HP</span>
                                         <span class="font-weight-bold">@SelectedAccount.Health/@SelectedAccount.MaxHealth</span>
                                     </div>
-                                    <div class="progress" style="height: 8px;">
+                                    <div class="progress" style="height: 6px;">
                                         <div class="progress-bar bg-danger" role="progressbar" style="width: @(((double)SelectedAccount.Health / SelectedAccount.MaxHealth) * 100)%;"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="mt-2 bg-light p-2 rounded border d-flex gap-4 align-items-center">
-                            <span class="text-muted small"><i class="bi bi-gem text-warning"></i> Rubies</span>
-                            <span class="small">Purchased: <strong class="text-primary">@SelectedAccount.PurchasedRubies</strong></span>
-                            <span class="small">Earned: <strong class="text-success">@SelectedAccount.EarnedRubies</strong></span>
+                        <div class="mt-2 bg-light p-1 px-2 rounded border d-flex justify-content-between align-items-center" style="font-size: 0.75rem;">
+                            <span class="text-muted"><i class="bi bi-gem text-warning"></i> Rubies</span>
+                            <div class="d-flex gap-3">
+                                <span>Purchased: <strong class="text-primary">@SelectedAccount.PurchasedRubies</strong></span>
+                                <span>Earned: <strong class="text-success">@SelectedAccount.EarnedRubies</strong></span>
+                            </div>
                         </div>
+                    </div>
+                </div>
 
+            </div>
+
+            <!-- Character Skin -->
+            <div class="col-md-5">
+                <div class="card shadow-sm h-100 text-center">
+                    <div class="card-header bg-secondary text-white py-2">
+                        <h6 class="mb-0">Character Skin</h6>
+                    </div>
+                    <div class="card-body p-2 d-flex flex-column align-items-center justify-content-between">
+                        <div class="border rounded bg-light d-flex align-items-center justify-content-center flex-grow-1 w-100" style="min-height: 260px; position: relative; overflow: hidden;">
+                            <div id="skin-3d-container" style="width: 100%; height: 100%;" class="d-flex flex-column align-items-center justify-content-center">
+                                <span class="text-muted" style="font-size: 0.7rem;">3D Preview</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm w-100 mt-2" @onclick="OpenSkinModal">
+                            <i class="bi bi-upload me-1"></i> Upload Skin
+                        </button>
                     </div>
                 </div>
             </div>
+
+
 
             <div class="col-12 mt-4">
                 <div class="card shadow-sm">
@@ -294,6 +317,65 @@
             </div>
         </div>
     }
+
+    @if (IsSkinModalVisible)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content shadow-lg">
+                    <div class="modal-header py-2 bg-light">
+                        <h6 class="modal-title font-weight-bold text-dark" style="font-size: 0.9rem;">Upload Custom Skin</h6>
+                        <button type="button" class="btn-close" @onclick="CloseSkinModal" disabled="@IsUploadingSkin"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <p class="text-muted mb-2" style="font-size: 0.75rem;">Select a standard Minecraft texture sheet <strong>.png</strong> file (64x64 or 64x32 pixels max 512KB).</p>
+
+                        @if (!string.IsNullOrEmpty(SkinUploadErrorMessage))
+                        {
+                            <div class="alert alert-danger py-1 px-2 mb-2 small" role="alert" style="font-size: 0.75rem;">@SkinUploadErrorMessage</div>
+                        }
+                        @if (!string.IsNullOrEmpty(SkinUploadSuccessMessage))
+                        {
+                            <div class="alert alert-success py-1 px-2 mb-2 small" role="alert" style="font-size: 0.75rem;">@SkinUploadSuccessMessage</div>
+                        }
+
+                        <div class="d-flex flex-column gap-3 mt-1">
+
+                            <div>
+                                <label class="text-muted d-block mb-1" style="font-size: 0.75rem;">Model Type</label>
+                                <div class="btn-group w-100" role="group" aria-label="Skin model type">
+                                    <input type="radio" class="btn-check" name="skinType" id="typeAuto" checked="@(SelectedSkinType == JavaSkinProcessor.SkinType.Auto)" @onclick='() => SelectedSkinType = JavaSkinProcessor.SkinType.Auto' disabled="@IsUploadingSkin">
+                                    <label class="btn btn-outline-secondary btn-sm shadow-none" for="typeAuto" style="font-size: 0.75rem;">Auto</label>
+
+                                    <input type="radio" class="btn-check" name="skinType" id="typeWide" checked="@(SelectedSkinType == JavaSkinProcessor.SkinType.Wide)" @onclick='() => SelectedSkinType = JavaSkinProcessor.SkinType.Wide' disabled="@IsUploadingSkin">
+                                    <label class="btn btn-outline-secondary btn-sm shadow-none" for="typeWide" style="font-size: 0.75rem;">Wide</label>
+
+                                    <input type="radio" class="btn-check" name="skinType" id="typeSlim" checked="@(SelectedSkinType == JavaSkinProcessor.SkinType.Slim)" @onclick='() => SelectedSkinType = JavaSkinProcessor.SkinType.Slim' disabled="@IsUploadingSkin">
+                                    <label class="btn btn-outline-secondary btn-sm shadow-none" for="typeSlim" style="font-size: 0.75rem;">Slim</label>
+                                </div>
+                            </div>
+
+                            <InputFile OnChange="HandleSkinFileSelection" accept=".png" class="form-control form-control-sm" disabled="@IsUploadingSkin" />
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseSkinModal" disabled="@IsUploadingSkin">Cancel</button>
+                                <button type="button" class="btn btn-primary btn-sm px-3" @onclick="UploadSkinAsync" disabled="@(SelectedSkinFile == null || IsUploadingSkin)">
+                                    @if (IsUploadingSkin)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    }
+                                    else
+                                    {
+                                        <span>Apply</span>
+                                    }
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -331,11 +413,9 @@
     public sealed class LinkAccountForm
     {
         [Required(ErrorMessage = "Username cannot be empty.")]
-        @* [StringLength(AccountConstants.UsernameLengthMax, MinimumLength = AccountConstants.UsernameLengthMin, ErrorMessage = $"Username must be between {AccountConstants.UsernameLengthMinStr} and {AccountConstants.UsernameLengthMaxStr} characters.")] *@
         public string Username { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Password cannot be empty.")]
-        @* [StringLength(AccountConstants.PasswordLengthMax, MinimumLength = AccountConstants.PasswordLengthMin, ErrorMessage = $"Password must be between {AccountConstants.PasswordLengthMinStr} and {AccountConstants.PasswordLengthMaxStr} characters.")] *@
         public string Password { get; set; } = string.Empty;
     }
 
@@ -378,6 +458,14 @@
     private bool IsChangingPassword { get; set; } = false;
     private bool IsLinkModalVisible { get; set; } = false;
     private Solace.StaticData.StaticData staticData = new StaticData.StaticData(Program.StaticDataDir);
+
+    private bool IsSkinModalVisible { get; set; } = false;
+    private JavaSkinProcessor.SkinType SelectedSkinType { get; set; } = JavaSkinProcessor.SkinType.Auto;
+    private IBrowserFile? SelectedSkinFile { get; set; }
+    private bool IsUploadingSkin { get; set; } = false;
+    private string? SkinUploadErrorMessage { get; set; }
+    private string? SkinUploadSuccessMessage { get; set; }
+    private const long MaxSkinFileSize = 16 * 1024; // 16 KB
 
     private bool ShowPassword { get; set; } = false;
     private bool ShowLinkPassword { get; set; } = false;
@@ -446,6 +534,11 @@
         IsChangingUsername = false;
         IsChangingPassword = false;
         ShowPassword = false;
+
+        SkinUploadErrorMessage = null;
+        SkinUploadSuccessMessage = null;
+        SelectedSkinFile = null;
+        IsSkinModalVisible = false;
 
         SelectedAccount = LinkedAccountsList.FirstOrDefault(a => a.Id == accountId);
         if (SelectedAccount is not null)
@@ -523,12 +616,12 @@
             return;
         }
 
-        var account = await earthDb.Accounts.FirstAsync(account => account.Id == SelectedAccount.Id);
-        account.Username = username;
-
         try
         {
-            await earthDb.SaveChangesAsync();
+            await earthDb.Accounts
+                .Where(account => account.Id == SelectedAccount.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(account => account.Username, username));
         }
         catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation)
         {
@@ -563,14 +656,17 @@
         await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
         var account = await earthDb.Accounts.FirstAsync(account => account.Id == SelectedAccount.Id);
 
-        byte[] passwordSalt = new byte[16];
+        var passwordSalt = new byte[16];
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(passwordSalt);
 
-        account.PasswordHash = AccountConstants.HashPassword(password, passwordSalt);
-        account.PasswordSalt = passwordSalt;
+        var passwordHash = AccountConstants.HashPassword(password, passwordSalt);
 
-        await earthDb.SaveChangesAsync();
+        await earthDb.Accounts
+            .Where(account => account.Id == SelectedAccount.Id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(account => account.PasswordHash, passwordHash)
+                .SetProperty(account => account.PasswordSalt, passwordSalt));
 
         UpdateSuccessMessage = "Password successfully synchronized!";
         IsChangingPassword = false;
@@ -743,5 +839,103 @@
 
         public required string ServerDataObjectId { get; set; }
         public required string PreviewObjectId { get; set; }
+    }
+
+    private void OpenSkinModal()
+    {
+        SkinUploadErrorMessage = null;
+        SkinUploadSuccessMessage = null;
+        SelectedSkinFile = null;
+        SelectedSkinType = JavaSkinProcessor.SkinType.Auto;
+        IsSkinModalVisible = true;
+    }
+
+    private void CloseSkinModal()
+    {
+        if (!IsUploadingSkin)
+        {
+            IsSkinModalVisible = false;
+        }
+    }
+
+    private void HandleSkinFileSelection(InputFileChangeEventArgs e)
+    {
+        SkinUploadErrorMessage = null;
+        SkinUploadSuccessMessage = null;
+
+        var file = e.File;
+        if (file is null)
+        {
+            return;
+        }
+
+        if (!file.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) && file.ContentType is not "image/png")
+        {
+            SkinUploadErrorMessage = "Invalid format target. Only raw .png files are accepted.";
+            SelectedSkinFile = null;
+            return;
+        }
+
+        if (file.Size > MaxSkinFileSize)
+        {
+            SkinUploadErrorMessage = "File size limit exceeded. Max scale: 512 KB.";
+            SelectedSkinFile = null;
+            return;
+        }
+
+        SelectedSkinFile = file;
+    }
+
+    private async Task UploadSkinAsync()
+    {
+        if (SelectedSkinFile is null || SelectedAccount is null)
+        {
+            return;
+        }
+
+        IsUploadingSkin = true;
+        SkinUploadErrorMessage = null;
+        SkinUploadSuccessMessage = null;
+
+        try
+        {
+            await using var imageStream = SelectedSkinFile.OpenReadStream(MaxSkinFileSize);
+
+            var skinResult = await JavaSkinProcessor.Process(imageStream, SelectedSkinType);
+
+            if (!skinResult.IsB)
+            {
+                SkinUploadErrorMessage = skinResult.A;
+                return;
+            }
+
+            var (skinImageData, isSkinSlim) = skinResult.B;
+
+            await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
+
+            await earthDb.Accounts
+                .Where(account => account.Id == SelectedAccount.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(account => account.SkinImageData, skinImageData)
+                    .SetProperty(account => account.IsSkinSlim, isSkinSlim));
+
+            await Task.Delay(250);
+
+            SkinUploadSuccessMessage = "Texture updated! Refreshing rendering canvas...";
+            SelectedSkinFile = null;
+
+            // Trigger your JSInterop component canvas redraw logic execution sequence down here
+
+            IsSkinModalVisible = false;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to update skin for player {AccountId}", SelectedAccount.Id);
+            SkinUploadErrorMessage = "An unhandled exception block occurred syncing data structures backend.";
+        }
+        finally
+        {
+            IsUploadingSkin = false;
+        }
     }
 }

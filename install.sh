@@ -10,11 +10,11 @@ RST='\033[0m'
 
 banner() {
     echo -e "${BLU}"
-    echo "   _____       __"
-    echo "  / ___/____  / /___ _________"
-    echo "  \__ \/ __ \/ / __ \`/ ___/ _ \\"
-    echo " ___/ / /_/ / / /_/ / /__/  __/"
-    echo "/____/\____/_/\__,_/\___/\___/"
+    echo "     _____       __"
+    echo "    / ___/____  / /___ _________"
+    echo "    \__ \/ __ \/ / __ \`/ ___/ _ \\"
+    echo "   ___/ / /_/ / / /_/ / /__/  __/"
+    echo "  /____/\____/_/\__,_/\___/\___/"
     echo -e "${RST}"
 }
 
@@ -60,7 +60,7 @@ err()  { echo -e "${RED}[ERROR] $1${RST}"; exit 1; }
 GITHUB_REPO="Earth-Restored/Solace"
 GITHUB_URL="https://github.com/$GITHUB_REPO.git"
 
-banner
+clear && banner
 
 # ─────────────────────────────────────────
 #  TERMUX BRANCH
@@ -69,7 +69,6 @@ if [ -n "$TERMUX_VERSION" ] || echo "$PREFIX" | grep -q "com.termux"; then
     export DEBIAN_FRONTEND=noninteractive
     dpkg --configure -a >/dev/null 2>&1 || true
 
-    clear && banner
     print_step "1. CHECKING PROOT-DISTRO"
     if ! command -v proot-distro >/dev/null 2>&1; then
         pkg update -y
@@ -127,7 +126,7 @@ if [ -n "$TERMUX_VERSION" ] || echo "$PREFIX" | grep -q "com.termux"; then
     URL="https://github.com/$GITHUB_REPO/releases/download/${SELECTED_TAG}/${ZIP_NAME}"
 
     print_step "3. CONFIGURING UBUNTU"
-    proot-distro login ubuntu -- bash << EOF
+    proot-distro login ubuntu -- bash << EOF 2>/dev/null
 echo "[1] System update"
 apt update -y
 
@@ -172,11 +171,12 @@ if [ -z "$SELECTED_TAG" ]; then
 fi
 
 echo "[INFO] Downloading ${SELECTED_TAG}..."
-echo "[INFO] URL: $URL"
-curl -Lf --progress-bar -o "$ZIP_NAME" "$URL" || { echo "[ERROR] Download failed"; exit 1; }
-unzip -o "$ZIP_NAME" || { echo "[ERROR] Failed to extract archive"; exit 1; }
+curl -L --progress-bar -o "$ZIP_NAME" "$URL" || { echo "[ERROR] Download failed"; exit 1; }
+echo -e "  ${GRN}✔${RST} Download complete"
+echo -ne "  ${BLU}>${RST} Extracting... "
+unzip -o "$ZIP_NAME" >/dev/null 2>&1 && echo -e "${GRN}done${RST}" || { echo -e "${RED}failed${RST}"; exit 1; }
 rm -rf ~/Solace/*
-echo "$TAG" > ~/Solace/version.txt
+echo "$SELECTED_TAG" > ~/Solace/version.txt
 
 if [ -d Solace-linux-arm64 ]; then
     mv Solace-linux-arm64/* ~/Solace/
@@ -493,25 +493,11 @@ if [ "$INSTALL_MODE" = "prebuilt" ]; then
         ALL_TAGS=$(echo "$RELEASE_JSON" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -v "^dev-build$")
         LATEST_TAG=$(echo "$ALL_TAGS" | head -n1)
 
-        if [ -n "$LATEST_TAG" ]; then
-            echo ""
-            echo -e "${GRN}Latest version: $LATEST_TAG${RST}"
-            echo ""
-            printf "Use latest? [Y/n] > "
-            read -r USE_LATEST < /dev/tty
-            USE_LATEST="$(echo "$USE_LATEST" | tr -d '\r\n')"
-            if [ "$USE_LATEST" = "n" ] || [ "$USE_LATEST" = "N" ] || [ "$USE_LATEST" = "no" ]; then
-                echo "$ALL_TAGS" | head -20
-                echo ""
-                printf "Enter version tag: "
-                read -r SELECTED_TAG < /dev/tty
-                [ -z "$SELECTED_TAG" ] && SELECTED_TAG="$LATEST_TAG"
-            else
-                SELECTED_TAG="$LATEST_TAG"
-            fi
-        else
+        if [ -z "$LATEST_TAG" ]; then
             err "No releases found."
         fi
+        SELECTED_TAG="$LATEST_TAG"
+        echo -e "${GRN}Latest version: $SELECTED_TAG${RST}"
 
         ARTIFACT_PREFIX="Solace"
         DISPLAY_TAG="$SELECTED_TAG"
@@ -534,9 +520,10 @@ if [ "$INSTALL_MODE" = "prebuilt" ]; then
     TMP_DIR=$(mktemp -d "/tmp/solace_install_XXXXXX")
     cd "$TMP_DIR"
 
-    if ! curl -Lf --progress-bar -o server.zip "$URL"; then
+    if ! curl -L --progress-bar -o server.zip "$URL"; then
         err "Download failed — check your internet or the release URL"
     fi
+    echo -e "  ${GRN}✔${RST} Download complete"
 
     print_sub "Extracting..."
     if ! command -v unzip &>/dev/null; then
