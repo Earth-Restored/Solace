@@ -120,7 +120,7 @@ else
 fi
 EOF
     chmod +x "$TMP_SCRIPT"
-    proot-distro login ubuntu --shared-tmp -- env EULA_ACTION="$EULA_ACTION" bash "$TMP_SCRIPT"
+    proot-distro login ubuntu --shared-tmp -- env EULA_ACTION="$EULA_ACTION" bash "$TMP_SCRIPT" 2>/dev/null
     rm -f "$TMP_SCRIPT"
     exit 0
 fi
@@ -178,7 +178,7 @@ fi
 
 # ─── MAIN DASHBOARD (runs inside proot-distro) ────────────
 
-proot-distro login ubuntu -- bash << 'DASHBOARD'
+proot-distro login ubuntu -- env SELF_PATH="$SELF_PATH" bash << 'DASHBOARD'
 #!/usr/bin/env bash
 
 RED='\033[1;31m'
@@ -203,6 +203,7 @@ VERSION_FILE="$SOLACE_DIR/version.txt"
 RELEASE_ARCH="linux-arm64"
 
 mkdir -p "$SOLACE_DIR"
+rm -rf ~/Solace_update_* ~/Solace-*.zip 2>/dev/null || true
 
 # ─── PROOT UTILITY FUNCTIONS ────────────────────────
 
@@ -431,13 +432,16 @@ done
 update_solace() {
     load_settings
     if [ "$INSTALL_BRANCH" = "dev" ]; then
+        local confirm
+        confirm=$(printf "Yes, continue\nNo, cancel" | fzf --height=20% --reverse --border --prompt="Dev builds are unstable. Continue? > ")
+        [ "$confirm" != "Yes, continue" ] && return
         echo -e "${YLW}Downloading latest developer build...${RST}"
         force_stop_server
         local zip_name="Solace-Dev-${RELEASE_ARCH}.zip"
         local tmp=$(mktemp -d ~/Solace_update_XXXXXX) || return 1
         cd "$tmp" || return 1
-        curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/dev-build/${zip_name}"
-        unzip -o server.zip >/dev/null 2>&1
+        curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/dev-build/${zip_name}" && echo -e "  ${GRN}✔${RST} Download complete"
+        echo -ne "  ${BLU}>${RST} Extracting... " && unzip -o server.zip >/dev/null 2>&1 && echo -e "${GRN}done${RST}" || { echo -e "${RED}failed${RST}"; return 1; }
         
         find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SOLACE_DIR/" \; 2>/dev/null || true
         chmod -R +x "$SOLACE_DIR/components/" 2>/dev/null || true
@@ -464,8 +468,9 @@ JSONEOF
         local zip_name="Solace-${RELEASE_ARCH}.zip"
         local tmp=$(mktemp -d ~/Solace_update_XXXXXX) || return 1
         cd "$tmp" || return 1
-        curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/${sel}/${zip_name}"
-        unzip -o server.zip >/dev/null 2>&1
+        echo -e "${YLW}Downloading $sel...${RST}"
+        curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/${sel}/${zip_name}" && echo -e "  ${GRN}✔${RST} Download complete"
+        echo -ne "  ${BLU}>${RST} Extracting... " && unzip -o server.zip >/dev/null 2>&1 && echo -e "${GRN}done${RST}" || { echo -e "${RED}failed${RST}"; return 1; }
         
         find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SOLACE_DIR/" \; 2>/dev/null || true
         chmod -R +x "$SOLACE_DIR/components/" 2>/dev/null || true
@@ -514,12 +519,12 @@ settings_menu() {
         echo "  Server: $SOLACE_DIR"
         echo ""
 
-        CHOICE=$(printf "Switch Branch (re-download)\nReset Account Database\nUninstall\nBack" | fzf \
+        CHOICE=$(printf "Switch Branch\nReset Account Database\nUninstall\nBack" | fzf \
             --height=20% --reverse --border --prompt="Settings > " --no-multi)
 
         case "$CHOICE" in
             "Back") return ;;
-            "Switch Branch (re-download)")
+            "Switch Branch")
                 local sel
                 sel=$(pick_branch "Switch Branch") || break
                 force_stop_server
@@ -538,8 +543,8 @@ settings_menu() {
                 URL="https://github.com/$GITHUB_REPO/releases/download/${tag}/${prefix}-${RELEASE_ARCH}.zip"
                 TMP_DIR="$(mktemp -d ~/Solace_update_XXXXXX)"
                 cd "$TMP_DIR" || continue
-                curl -L --fail "$URL" -o update.zip
-                unzip -o update.zip >/dev/null 2>&1
+                curl -L --progress-bar -o update.zip "$URL" && echo -e "  ${GRN}✔${RST} Download complete"
+                echo -ne "  ${BLU}>${RST} Extracting... " && unzip -o update.zip >/dev/null 2>&1 && echo -e "${GRN}done${RST}" || echo -e "${RED}failed${RST}"
                 cp -r . "$SOLACE_DIR"/
                 cat > "$SETTINGS_FILE" << JSONEOF
 {
@@ -580,9 +585,9 @@ JSONEOF
                 if [ "$CONFIRM" = "Yes, remove everything" ]; then
                     force_stop_server
                     rm -rf "$SOLACE_DIR"
-                    echo "[Solace] Uninstalled inside Ubuntu."
-                    echo "Run 'rm /data/data/com.termux/files/usr/bin/earth' to finish."
-                    sleep 3
+                    rm -f "$SELF_PATH"
+                    echo "[Solace] Uninstalled."
+                    sleep 2
                     exit 0
                 fi ;;
         esac
@@ -674,6 +679,176 @@ pick_branch() {
 
 load_settings
 
+check_update() {
+    [ "$INSTALL_BRANCH" = "dev" ] && return
+    local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=1")
+    local latest=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -v "^dev-build$" | head -n1)
+    [ -z "$latest" ] && return
+    local dismissed=$(grep -o '"dismissedUpdate": *"[^"]*"' "$SETTINGS_FILE" 2>/dev/null | cut -d'"' -f4)
+    [ "$dismissed" = "$latest" ] && return
+    [ "$latest" = "$CURRENT_VERSION" ] && return
+    local choice
+    choice=$(printf "Yes, update\nNo, don't show again" | fzf --height=20% --reverse --border --prompt="New version $latest available. Update now? > ")
+    if [ "$choice" = "Yes, update" ]; then
+        update_solace
+    else
+        if grep -q '"dismissedUpdate"' "$SETTINGS_FILE" 2>/dev/null; then
+            sed -i 's/"dismissedUpdate": *"[^"]*"/"dismissedUpdate": "'"$latest"'"/' "$SETTINGS_FILE"
+        else
+            sed -i '/"updatedAt"/i\  "dismissedUpdate": "'"$latest"'",' "$SETTINGS_FILE"
+        fi
+    fi
+}
+
+update_menu() {
+    while true; do
+        load_settings
+        printf '\033[H\033[J'; show_banner
+        section_title "UPDATE SOLACE"
+        echo ""
+        echo -e "  ${CYN}Mode:${RST}    $INSTALL_MODE"
+        echo -e "  ${CYN}Branch:${RST}  $INSTALL_BRANCH"
+        echo -e "  ${CYN}Version:${RST} $CURRENT_VERSION"
+        echo ""
+        if [ "$INSTALL_BRANCH" = "main" ]; then
+            echo -e "  ${CYN}[1]${RST} Download Release"
+        else
+            echo -e "  ${CYN}[1]${RST} Download Dev Build"
+        fi
+        echo -e "  ${CYN}[2]${RST} Switch Branch"
+        echo -e "  ${CYN}[0]${RST} Back"
+        echo ""
+        printf "Choice > "
+        read -r CHOICE < /dev/tty
+        CHOICE="$(echo "$CHOICE" | tr -d '\r\n')"
+        case "$CHOICE" in
+            1)
+                if [ "$INSTALL_BRANCH" = "main" ]; then
+                    echo "[Solace] Fetching releases..."
+                    local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
+                    local tags=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -v "^dev-build$")
+                    [ -z "$tags" ] && echo -e "${RED}[ERROR] No releases found${RST}" && sleep 2 && continue
+                    local sel=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
+                    [ -z "$sel" ] && continue
+                    local zip_name="Solace-${RELEASE_ARCH}.zip"
+                    local tmp=$(mktemp -d ~/Solace_update_XXXXXX) || { echo "Failed"; sleep 2; continue; }
+                    cd "$tmp" || continue
+                    force_stop_server
+                    echo -e "  ${BLU}>${RST} Downloading $sel ($zip_name)"
+                    curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/${sel}/${zip_name}"
+                    echo -e "  ${GRN}✔${RST} Download complete"
+                    echo -ne "  ${BLU}>${RST} Extracting... " && unzip -o server.zip >/dev/null 2>&1 && echo -e "${GRN}done${RST}" || { echo -e "${RED}failed${RST}"; sleep 2; continue; }
+                    local dir="Solace-${RELEASE_ARCH}"
+                    if [ -d "$dir" ]; then
+                        mv "$dir/"* "$SOLACE_DIR/" 2>/dev/null || true
+                    else
+                        find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SOLACE_DIR/" \; 2>/dev/null || true
+                    fi
+                    chmod -R +x "$SOLACE_DIR/components/" 2>/dev/null || true
+                    echo "$sel" > "$VERSION_FILE"
+                    cat > "$SETTINGS_FILE" << JSONEOF
+{
+  "installMode": "prebuilt",
+  "branch": "main",
+  "version": "$sel",
+  "updatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+JSONEOF
+                    cd /; rm -rf "$tmp"
+                    echo "[Solace] Update complete ($sel)"
+                    sleep 3
+                else
+                    local confirm=$(printf "Yes, continue\nNo, cancel" | fzf --height=20% --reverse --border --prompt="Dev builds are unstable. Continue? > ")
+                    [ "$confirm" != "Yes, continue" ] && continue
+                    local zip_name="Solace-Dev-${RELEASE_ARCH}.zip"
+                    local tmp=$(mktemp -d ~/Solace_update_XXXXXX) || { echo "Failed"; sleep 2; continue; }
+                    cd "$tmp" || continue
+                    force_stop_server
+                    echo -e "  ${BLU}>${RST} Downloading dev-build ($zip_name)"
+                    curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/dev-build/${zip_name}"
+                    echo -e "  ${GRN}✔${RST} Download complete"
+                    echo -ne "  ${BLU}>${RST} Extracting... " && unzip -o server.zip >/dev/null 2>&1 && echo -e "${GRN}done${RST}" || { echo -e "${RED}failed${RST}"; sleep 2; continue; }
+                    local dir="Solace-Dev-${RELEASE_ARCH}"
+                    if [ -d "$dir" ]; then
+                        mv "$dir/"* "$SOLACE_DIR/" 2>/dev/null || true
+                    else
+                        find . -maxdepth 1 -not -name 'server.zip' -not -name '.' -exec mv {} "$SOLACE_DIR/" \; 2>/dev/null || true
+                    fi
+                    chmod -R +x "$SOLACE_DIR/components/" 2>/dev/null || true
+                    echo "dev-build" > "$VERSION_FILE"
+                    cat > "$SETTINGS_FILE" << JSONEOF
+{
+  "installMode": "prebuilt",
+  "branch": "dev",
+  "version": "dev-build",
+  "updatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+JSONEOF
+                    cd /; rm -rf "$tmp"
+                    echo "[Solace] Update complete (dev-build)"
+                    sleep 3
+                fi ;;
+            2)
+                local sel
+                sel=$(pick_branch "Switch Branch") || continue
+                if [ "$sel" = "dev" ]; then
+                    local zip_name="Solace-Dev-${RELEASE_ARCH}.zip"
+                    local tmp=$(mktemp -d ~/Solace_update_XXXXXX) || continue
+                    cd "$tmp" || continue
+                    force_stop_server
+                    echo -e "  ${BLU}>${RST} Downloading dev-build ($zip_name)"
+                    curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/dev-build/${zip_name}"
+                    echo -e "  ${GRN}✔${RST} Download complete"
+                    echo -ne "  ${BLU}>${RST} Extracting... " && unzip -o server.zip >/dev/null 2>&1 && echo -e "${GRN}done${RST}" || { echo -e "${RED}failed${RST}"; continue; }
+                    local dir="Solace-Dev-${RELEASE_ARCH}"
+                    [ -d "$dir" ] && mv "$dir/"* "$SOLACE_DIR/" 2>/dev/null || true
+                    chmod -R +x "$SOLACE_DIR/components/" 2>/dev/null || true
+                    echo "dev-build" > "$VERSION_FILE"
+                    cat > "$SETTINGS_FILE" << JSONEOF
+{
+  "installMode": "prebuilt",
+  "branch": "dev",
+  "version": "dev-build",
+  "updatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+JSONEOF
+                    cd /; rm -rf "$tmp"
+                    echo "[Solace] Switched to dev (dev-build)"
+                else
+                    local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
+                    local tag=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -v "^dev-build$" | head -n1)
+                    [ -z "$tag" ] && echo -e "${RED}[ERROR] No release found${RST}" && sleep 2 && continue
+                    local zip_name="Solace-${RELEASE_ARCH}.zip"
+                    local tmp=$(mktemp -d ~/Solace_update_XXXXXX) || continue
+                    cd "$tmp" || continue
+                    force_stop_server
+                    echo -e "  ${BLU}>${RST} Downloading $tag ($zip_name)"
+                    curl -L --progress-bar -o server.zip "https://github.com/$GITHUB_REPO/releases/download/${tag}/${zip_name}"
+                    echo -e "  ${GRN}✔${RST} Download complete"
+                    echo -ne "  ${BLU}>${RST} Extracting... " && unzip -o server.zip >/dev/null 2>&1 && echo -e "${GRN}done${RST}" || { echo -e "${RED}failed${RST}"; continue; }
+                    local dir="Solace-${RELEASE_ARCH}"
+                    [ -d "$dir" ] && mv "$dir/"* "$SOLACE_DIR/" 2>/dev/null || true
+                    chmod -R +x "$SOLACE_DIR/components/" 2>/dev/null || true
+                    echo "$tag" > "$VERSION_FILE"
+                    cat > "$SETTINGS_FILE" << JSONEOF
+{
+  "installMode": "prebuilt",
+  "branch": "main",
+  "version": "$tag",
+  "updatedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+JSONEOF
+                    cd /; rm -rf "$tmp"
+                    echo "[Solace] Switched to main ($tag)"
+                fi
+                sleep 3 ;;
+            0|q) break ;;
+        esac
+    done
+}
+
+check_update
+
 while true; do
     printf '\033[H\033[J'; tput civis 2>/dev/null; show_banner
 
@@ -722,7 +897,7 @@ while true; do
             ;;
         2) process_viewer ;;
         3) open_admin_panel ;;
-        4) update_solace ;;
+         4) update_menu ;;
         5) settings_menu ;;
         6) info_panel ;;
          0|q)

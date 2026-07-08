@@ -11,6 +11,9 @@ publish/
 
 src/*/data/*
 
+/src/*/data/*
+/src/*/staticdata/*
+
 .vscode/
 
 # dotenv files

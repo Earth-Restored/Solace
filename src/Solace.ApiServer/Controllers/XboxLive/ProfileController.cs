@@ -121,6 +121,7 @@ internal sealed partial class ProfileController : LoginServerControllerBase
         }
 
         var account = await _dbContext.Accounts
+            .AsNoTracking()
             .FirstOrDefaultAsync(account => account.Id == token.UserId, cancellationToken);
 
         if (account is null)

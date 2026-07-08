@@ -29,6 +29,9 @@ namespace Solace.DB.Migrations
                     b.Property<string>("FirstName")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsSkinSlim")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("LastName")
                         .HasColumnType("TEXT");
 
@@ -44,6 +47,10 @@ namespace Solace.DB.Migrations
 
                     b.Property<string>("ProfilePictureUrl")
                         .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("SkinImageData")
+                        .HasMaxLength(16384)
+                        .HasColumnType("BLOB");
 
                     b.Property<string>("Username")
                         .HasColumnType("TEXT");

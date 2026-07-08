@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace Solace.ApiServer;
+namespace Solace.Common;
 
 // todo: use c# union when available
-internal readonly struct Union<TA, TB>
+public readonly struct Union<TA, TB>
     where TA : notnull
     where TB : notnull
 {

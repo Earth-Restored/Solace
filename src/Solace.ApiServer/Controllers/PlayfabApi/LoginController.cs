@@ -101,6 +101,7 @@ internal sealed partial class LoginController : SolaceControllerBase
         var userId = xboxToken.Data.UserId;
 
         var account = await _dbContext.Accounts
+            .Select(account => new { account.Id, account.CreatedDate, })
             .FirstOrDefaultAsync(account => account.Id == userId, cancellationToken);
 
         if (account is null)

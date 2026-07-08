@@ -1,0 +1,17 @@
+{
+  "ApiPort": 8080,
+  "EventBusPort": 5532,
+  "ObjectStorePort": 5396,
+  "IPv4": "192.168.x.x",
+  "EarthDatabaseConnectionString": "../data/earth.db",
+  "LiveDatabaseConnectionString": "../data/live.db",
+  "EnableTileRenderingLabel": true,
+  "TileDataSource": 0,
+  "TileDatabaseConnectionString": "Host=localhost;Username=mylogin;Password=mypass;Database=genoa_tile_data",
+  "GeneratePreviewOnImport": true,
+  "SkipFileChecks": false,
+  "StaticDataPath": "../staticdata",
+  "LauncherBuildplatePreview": false,
+  "OnlyAllowLocalLogin": false,
+  "BuildplateBasePort": 19132
+}

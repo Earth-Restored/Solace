@@ -94,6 +94,7 @@ internal sealed partial class LoginController : SolaceControllerBase
         LogLoginAttempt(username);
 
         var account = await _earthDb.Accounts
+            .AsNoTracking()
             .FirstOrDefaultAsync(account => account.Username == username, cancellationToken);
 
         if (account is null)
@@ -221,6 +222,7 @@ internal sealed partial class LoginController : SolaceControllerBase
         }
 
         var account = await _earthDb.Accounts
+            .AsNoTracking()
             .FirstOrDefaultAsync(account => account.Id == existingToken.Data.UserId, cancellationToken);
 
         if (account is null)
