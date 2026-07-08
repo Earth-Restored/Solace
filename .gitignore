@@ -9,8 +9,7 @@ test/
 build/
 publish/
 
-src/*/data/*
-
+/data/*
 /src/*/data/*
 /src/*/staticdata/*
 

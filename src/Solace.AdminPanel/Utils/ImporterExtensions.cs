@@ -49,7 +49,7 @@ internal static class ImporterExtensions
                 return null;
             }
 
-            var worldDataRaw = await importer.ObjectStoreClient.GetAsync(template.ServerDataObjectId);
+            using var worldDataRaw = await importer.ObjectStoreClient.GetStreamAsync(template.ServerDataObjectId, cancellationToken);
 
             if (worldDataRaw is null)
             {
@@ -57,11 +57,7 @@ internal static class ImporterExtensions
                 return null;
             }
 
-            WorldData? worldData;
-            using (var worldDataStream = new MemoryStream(worldDataRaw))
-            {
-                worldData = await WorldData.LoadFromZipAsync(worldDataStream, importer.Logger, cancellationToken);
-            }
+            WorldData? worldData  = await WorldData.LoadFromZipAsync(worldDataRaw, importer.Logger, cancellationToken);
 
             if (worldData is null)
             {
@@ -122,7 +118,7 @@ internal static class ImporterExtensions
                 return null;
             }
 
-            var worldDataRaw = await importer.ObjectStoreClient.GetAsync(buildplate.ServerDataObjectId);
+            using var worldDataRaw = await importer.ObjectStoreClient.GetStreamAsync(buildplate.ServerDataObjectId, cancellationToken);
 
             if (worldDataRaw is null)
             {
@@ -130,11 +126,7 @@ internal static class ImporterExtensions
                 return null;
             }
 
-            WorldData? worldData;
-            using (var worldDataStream = new MemoryStream(worldDataRaw))
-            {
-                worldData = await WorldData.LoadFromZipAsync(worldDataStream, importer.Logger, cancellationToken);
-            }
+            WorldData? worldData = await WorldData.LoadFromZipAsync(worldDataRaw, importer.Logger, cancellationToken);
 
             if (worldData is null)
             {

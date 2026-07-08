@@ -73,7 +73,7 @@ internal sealed partial class ShopController : SolaceControllerBase
                             break;
                         }
 
-                        byte[]? previewData = await _objectStore.GetAsync(buildplate.PreviewObjectId);
+                        using var previewData = await _objectStore.GetStreamAsync(buildplate.PreviewObjectId, cancellationToken);
 
                         if (previewData is null)
                         {
@@ -82,7 +82,9 @@ internal sealed partial class ShopController : SolaceControllerBase
                             break;
                         }
 
-                        string model = Encoding.ASCII.GetString(previewData);
+                        using var previewDataReader = new StreamReader(previewData, Encoding.ASCII);
+
+                        string model = await previewDataReader.ReadToEndAsync(cancellationToken);
 
                         //var itemFromMap = staticData.Catalog.ShopCatalog.Items.GetValueOrDefault(itemId);
 

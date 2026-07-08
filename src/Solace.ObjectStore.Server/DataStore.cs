@@ -14,7 +14,7 @@ internal sealed class DataStore
         }
     }
 
-    public async Task<string> StoreAsync(byte[] data)
+    public async Task<string> StoreAsync(Stream data, CancellationToken cancellationToken = default)
     {
         string id = Guid.NewGuid().ToString();
 
@@ -28,7 +28,8 @@ internal sealed class DataStore
 
         try
         {
-            await File.WriteAllBytesAsync(file.FullName, data);
+            using var fileStream = File.OpenWrite(file.FullName);
+            await data.CopyToAsync(fileStream, cancellationToken);
         }
         catch (IOException ex)
         {
@@ -39,17 +40,19 @@ internal sealed class DataStore
         return id;
     }
 
-    public async Task<byte[]?> LoadAsync(string id)
+    public async Task<(Stream? Stream, long Length)> LoadAsync(string id, CancellationToken cancellationToken = default)
     {
+        _ = cancellationToken;
+
         var file = new FileInfo(Path.Combine(_rootDirectory.FullName, id[..2], id));
         if (!file.Exists)
         {
-            return null;
+            return (null, 0);
         }
 
         try
         {
-            return await File.ReadAllBytesAsync(file.FullName);
+            return (File.OpenRead(file.FullName), file.Length);
         }
         catch (IOException ex)
         {
@@ -57,10 +60,17 @@ internal sealed class DataStore
         }
     }
 
-    public async Task DeleteAsync(string id)
+    public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
     {
+        _ = cancellationToken;
+
         var file = new FileInfo(Path.Combine(_rootDirectory.FullName, id[..2], id));
-        file.Delete();
+
+        if (file.Exists)
+        {
+            // throws if parent directory does not exist - guard with Exists
+            file.Delete();
+        }
     }
 
     internal sealed class DataStoreException : Exception

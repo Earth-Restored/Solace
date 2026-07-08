@@ -24,7 +24,7 @@ var eventBus = builder.AddProject<Projects.Solace_EventBus_Server>("event-bus")
 var objectStoreDataDirectory = Path.GetFullPath(builder.Configuration.GetValue<string>("ObjectStore:DataDirectory", "data"));
 
 var objectStore = builder.AddProject<Projects.Solace_ObjectStore_Server>("object-store")
-    .WithEndpoint(scheme: "tcp", name: "raw-tcp", env: "TCP_PORT")
+    .WithHttpEndpoint(name: "http")
     .WithEnvironment("DataDirectory", objectStoreDataDirectory);
 
 var staticDataPath = Path.GetFullPath(builder.Configuration["Shared:StaticDataPath"]!);

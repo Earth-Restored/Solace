@@ -229,14 +229,14 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
             return null;
         }
 
-        byte[]? serverData = await _objectStoreClient.GetAsync(buildplate.ServerDataObjectId);
+        var serverData = await _objectStoreClient.GetMemoryAsync(buildplate.ServerDataObjectId);
         if (serverData is null)
         {
             LogFailedToGetServerData(buildplate.ServerDataObjectId, buildplateId);
             return null;
         }
 
-        string serverDataBase64 = Convert.ToBase64String(serverData);
+        string serverDataBase64 = Convert.ToBase64String(serverData.Value.Span);
 
         return new BuildplateLoadResponse(serverDataBase64);
     }
@@ -254,14 +254,14 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
             return null;
         }
 
-        byte[]? serverData = await _objectStoreClient.GetAsync(sharedBuildplate.ServerDataObjectId);
+        var serverData = await _objectStoreClient.GetMemoryAsync(sharedBuildplate.ServerDataObjectId);
         if (serverData is null)
         {
             LogFailedToGetServerDataShared(sharedBuildplate.ServerDataObjectId, sharedBuildplateId);
             return null;
         }
 
-        string serverDataBase64 = Convert.ToBase64String(serverData);
+        string serverDataBase64 = Convert.ToBase64String(serverData.Value.Span);
 
         return new BuildplateLoadResponse(serverDataBase64);
     }
@@ -279,14 +279,14 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
             return null;
         }
 
-        byte[]? serverData = await _objectStoreClient.GetAsync(encounterBuildplate.ServerDataObjectId);
+        var serverData = await _objectStoreClient.GetMemoryAsync(encounterBuildplate.ServerDataObjectId);
         if (serverData is null)
         {
             LogFailedToGetServerDataEncounter(encounterBuildplate.ServerDataObjectId, encounterBuildplateId);
             return null;
         }
 
-        string serverDataBase64 = Convert.ToBase64String(serverData);
+        string serverDataBase64 = Convert.ToBase64String(serverData.Value.Span);
 
         return new BuildplateLoadResponse(serverDataBase64);
     }

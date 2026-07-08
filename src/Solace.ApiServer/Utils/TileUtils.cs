@@ -33,7 +33,7 @@ LogRenderingTile(logger);
 
         byte[] tilePng = Convert.FromBase64String(tilePng64);
 
-        var tileObjectId = await objectStore.StoreAsync(tilePng);
+        var tileObjectId = await objectStore.StoreAsync(tilePng, cancellationToken);
 
         if (string.IsNullOrEmpty(tileObjectId))
         {
@@ -57,16 +57,16 @@ LogRenderingTile(logger);
         return true;
     }
 
-    private static async Task<bool> TryWriteTileFromObject(string tileObjectId, Stream dest, ObjectStoreClient objectStoreClient, CancellationToken cancellationToken)
+    private static async Task<bool> TryWriteTileFromObject(string tileObjectId, Stream destination, ObjectStoreClient objectStoreClient, CancellationToken cancellationToken)
     {
-        byte[]? tilePng = await objectStoreClient.GetAsync(tileObjectId);
+        using var tilePng = await objectStoreClient.GetStreamAsync(tileObjectId, cancellationToken);
 
         if (tilePng is null)
         {
             return false;
         }
 
-        await dest.WriteAsync(tilePng, cancellationToken);
+        await tilePng.CopyToAsync(destination, cancellationToken);
 
         return true;
     }

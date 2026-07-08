@@ -55,7 +55,7 @@ public sealed partial class Importer : IAsyncDisposable
         return await StoreTemplate(templateId, name, preview, worldData, cancellationToken);
     }
 
-    public async Task<byte[]?> RegenerateTemplatePreviewAsync(Guid templateId, CancellationToken cancellationToken = default)
+    public async Task<Stream?> RegenerateTemplatePreviewAsync(Guid templateId, CancellationToken cancellationToken = default)
     {
         TemplateBuildplateEF? template;
         try
@@ -82,7 +82,7 @@ public sealed partial class Importer : IAsyncDisposable
             return null;
         }
 
-        var serverData = await ObjectStoreClient.GetAsync(template.ServerDataObjectId);
+        using var serverData = await ObjectStoreClient.GetStreamAsync(template.ServerDataObjectId, cancellationToken);
 
         if (serverData is null)
         {
@@ -90,11 +90,7 @@ public sealed partial class Importer : IAsyncDisposable
             return null;
         }
 
-        WorldData? worldData;
-        using (var ms = new MemoryStream(serverData))
-        {
-            worldData = await WorldData.LoadFromZipAsync(ms, Logger, cancellationToken);
-        }
+        var worldData = await WorldData.LoadFromZipAsync(serverData, Logger, cancellationToken);
 
         if (worldData is null)
         {
@@ -110,7 +106,7 @@ public sealed partial class Importer : IAsyncDisposable
             return null;
         }
 
-        string? newPreviewObjectId = await ObjectStoreClient.StoreAsync(preview);
+        string? newPreviewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
         if (newPreviewObjectId is null)
         {
             LogTemplatePreviewStoreFail(templateId);
@@ -127,7 +123,7 @@ public sealed partial class Importer : IAsyncDisposable
 
             if (!string.IsNullOrEmpty(oldPreviewObjectId))
             {
-                await ObjectStoreClient.DeleteAsync(oldPreviewObjectId);
+                await ObjectStoreClient.DeleteAsync(oldPreviewObjectId, cancellationToken);
                 LogDeletedOldTemplatePreview(templateId);
             }
 
@@ -136,7 +132,7 @@ public sealed partial class Importer : IAsyncDisposable
         catch (Exception exception)
         {
             LogTemplatePreviewSaveFail(exception, templateId);
-            await ObjectStoreClient.DeleteAsync(newPreviewObjectId);
+            await ObjectStoreClient.DeleteAsync(newPreviewObjectId, cancellationToken);
             return null;
         }
     }
@@ -203,12 +199,12 @@ public sealed partial class Importer : IAsyncDisposable
 
         if (!string.IsNullOrEmpty(template.ServerDataObjectId))
         {
-            await ObjectStoreClient.DeleteAsync(template.ServerDataObjectId);
+            await ObjectStoreClient.DeleteAsync(template.ServerDataObjectId, cancellationToken);
         }
 
         if (!string.IsNullOrEmpty(template.PreviewObjectId))
         {
-            await ObjectStoreClient.DeleteAsync(template.PreviewObjectId);
+            await ObjectStoreClient.DeleteAsync(template.PreviewObjectId, cancellationToken);
         }
 
         if (removeFromPlayers)
@@ -244,7 +240,7 @@ public sealed partial class Importer : IAsyncDisposable
             return null;
         }
 
-        byte[]? serverData = await ObjectStoreClient.GetAsync(template.ServerDataObjectId);
+        byte[]? serverData = await ObjectStoreClient.GetArrayAsync(template.ServerDataObjectId, cancellationToken);
 
         if (serverData is null)
         {
@@ -252,7 +248,7 @@ public sealed partial class Importer : IAsyncDisposable
             return null;
         }
 
-        var preview = await ObjectStoreClient.GetAsync(template.PreviewObjectId);
+        var preview = await ObjectStoreClient.GetStreamAsync(template.PreviewObjectId, cancellationToken);
 
         if (preview is null)
         {
@@ -269,8 +265,11 @@ public sealed partial class Importer : IAsyncDisposable
 
         if (!await StoreBuildplate(templateId, playerId, buidplateId, template, serverData, preview, cancellationToken))
         {
+            await preview.DisposeAsync();
             return null;
         }
+
+        await preview.DisposeAsync();
 
         return buidplateId;
     }
@@ -303,7 +302,7 @@ public sealed partial class Importer : IAsyncDisposable
             return false;
         }
 
-        var serverData = await ObjectStoreClient.GetAsync(buildplate.ServerDataObjectId);
+        using var serverData = await ObjectStoreClient.GetStreamAsync(buildplate.ServerDataObjectId, cancellationToken);
 
         if (serverData is null)
         {
@@ -311,11 +310,7 @@ public sealed partial class Importer : IAsyncDisposable
             return false;
         }
 
-        WorldData? worldData;
-        using (var ms = new MemoryStream(serverData))
-        {
-            worldData = await WorldData.LoadFromZipAsync(ms, Logger, cancellationToken);
-        }
+        WorldData? worldData = await WorldData.LoadFromZipAsync(serverData, Logger, cancellationToken);
 
         if (worldData is null)
         {
@@ -331,7 +326,7 @@ public sealed partial class Importer : IAsyncDisposable
             return false;
         }
 
-        string? newPreviewObjectId = await ObjectStoreClient.StoreAsync(preview);
+        string? newPreviewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
         if (newPreviewObjectId is null)
         {
             LogBuildplatePreviewStoreFail(accountId, buildplateId);
@@ -348,7 +343,7 @@ public sealed partial class Importer : IAsyncDisposable
 
             if (!string.IsNullOrEmpty(oldPreviewObjectId))
             {
-                await ObjectStoreClient.DeleteAsync(oldPreviewObjectId);
+                await ObjectStoreClient.DeleteAsync(oldPreviewObjectId, cancellationToken);
                 LogDeletedOldBuildplatePreview(accountId, buildplateId);
             }
 
@@ -357,7 +352,7 @@ public sealed partial class Importer : IAsyncDisposable
         catch (Exception exception)
         {
             LogBuildplatePreviewSaveFail(exception, accountId, buildplateId);
-            await ObjectStoreClient.DeleteAsync(newPreviewObjectId);
+            await ObjectStoreClient.DeleteAsync(newPreviewObjectId, cancellationToken);
             return false;
         }
     }
@@ -384,13 +379,13 @@ public sealed partial class Importer : IAsyncDisposable
             if (!string.IsNullOrEmpty(buildplate.ServerDataObjectId))
             {
                 LogDeletingServerDataObject(buildplate.ServerDataObjectId);
-                await ObjectStoreClient.DeleteAsync(buildplate.ServerDataObjectId);
+                await ObjectStoreClient.DeleteAsync(buildplate.ServerDataObjectId, cancellationToken);
             }
 
             if (!string.IsNullOrEmpty(buildplate.PreviewObjectId))
             {
                 LogDeletingPreviewObject(buildplate.PreviewObjectId);
-                await ObjectStoreClient.DeleteAsync(buildplate.PreviewObjectId);
+                await ObjectStoreClient.DeleteAsync(buildplate.PreviewObjectId, cancellationToken);
             }
 
             return true;
@@ -425,7 +420,7 @@ public sealed partial class Importer : IAsyncDisposable
         }
     }
 
-    private async Task<byte[]?> GeneratePreview(WorldData worldData)
+    private async Task<Stream?> GeneratePreview(WorldData worldData)
     {
         string? preview;
         if (EventBusClient is not null)
@@ -446,10 +441,10 @@ public sealed partial class Importer : IAsyncDisposable
             preview = null;
         }
 
-        return preview is not null ? Encoding.ASCII.GetBytes(preview) : null;
+        return preview is not null ? new MemoryStream(Encoding.ASCII.GetBytes(preview)) : null;
     }
 
-    private async Task<bool> StoreTemplate(Guid templateId, string name, byte[]? preview, WorldData worldData, CancellationToken cancellationToken)
+    private async Task<bool> StoreTemplate(Guid templateId, string name, Stream preview, WorldData worldData, CancellationToken cancellationToken)
     {
         TemplateBuildplateEF? template;
         try
@@ -517,7 +512,7 @@ public sealed partial class Importer : IAsyncDisposable
             LogTemplateNotFoundDebug(templateId);
 
             LogStoringTemplateWorldData();
-            string? serverDataObjectId = await ObjectStoreClient.StoreAsync(worldData.ServerData);
+            string? serverDataObjectId = await ObjectStoreClient.StoreAsync(worldData.ServerData, cancellationToken);
             if (serverDataObjectId is null)
             {
                 LogTemplateServerDataStoreFail(templateId);
@@ -525,7 +520,7 @@ public sealed partial class Importer : IAsyncDisposable
             }
 
             LogStoringTemplatePreview();
-            string? previewObjectId = await ObjectStoreClient.StoreAsync(preview);
+            string? previewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
             if (previewObjectId is null)
             {
                 LogTemplatePreviewStoreFail(templateId);
@@ -560,8 +555,8 @@ public sealed partial class Importer : IAsyncDisposable
             catch (Exception exception)
             {
                 LogTemplateSaveFail(exception, templateId);
-                await ObjectStoreClient.DeleteAsync(serverDataObjectId);
-                await ObjectStoreClient.DeleteAsync(previewObjectId);
+                await ObjectStoreClient.DeleteAsync(serverDataObjectId, cancellationToken);
+                await ObjectStoreClient.DeleteAsync(previewObjectId, cancellationToken);
                 return false;
             }
         }
@@ -569,10 +564,10 @@ public sealed partial class Importer : IAsyncDisposable
         return true;
     }
 
-    private async Task<bool> StoreBuildplate(Guid templateId, Guid accountId, Guid buildplateId, TemplateBuildplateEF template, byte[] serverData, byte[] preview, CancellationToken cancellationToken)
+    private async Task<bool> StoreBuildplate(Guid templateId, Guid accountId, Guid buildplateId, TemplateBuildplateEF template, byte[] serverData, Stream preview, CancellationToken cancellationToken)
     {
         LogStoringServerData();
-        string? serverDataObjectId = await ObjectStoreClient.StoreAsync(serverData);
+        string? serverDataObjectId = await ObjectStoreClient.StoreAsync(serverData, cancellationToken);
         if (serverDataObjectId is null)
         {
             LogBuildplateServerDataStoreFail(accountId, buildplateId);
@@ -580,11 +575,11 @@ public sealed partial class Importer : IAsyncDisposable
         }
 
         LogStoringPreview();
-        string? previewObjectId = await ObjectStoreClient.StoreAsync(preview);
+        string? previewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
         if (previewObjectId is null)
         {
             LogBuildplatePreviewStoreFail(accountId, buildplateId);
-            await ObjectStoreClient.DeleteAsync(serverDataObjectId);
+            await ObjectStoreClient.DeleteAsync(serverDataObjectId, cancellationToken);
             return false;
         }
 
@@ -614,8 +609,8 @@ public sealed partial class Importer : IAsyncDisposable
         catch (Exception exception)
         {
             LogBuildplateSaveFail(exception, accountId, buildplateId);
-            await ObjectStoreClient.DeleteAsync(serverDataObjectId);
-            await ObjectStoreClient.DeleteAsync(previewObjectId);
+            await ObjectStoreClient.DeleteAsync(serverDataObjectId, cancellationToken);
+            await ObjectStoreClient.DeleteAsync(previewObjectId, cancellationToken);
             return false;
         }
     }

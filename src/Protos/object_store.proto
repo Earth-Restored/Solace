@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+option csharp_namespace = "Solace.ObjectStore";
+
+package objectstore;
+
+service ObjectStoreService {
+    rpc StoreObject (stream StoreObjectRequest) returns (StoreObjectResponse);
+
+    rpc GetObject (GetObjectRequest) returns (stream GetObjectResponse);
+
+    rpc DeleteObject (DeleteObjectRequest) returns (DeleteObjectResponse);
+}
+
+message StoreObjectRequest {
+    bytes chunk_data = 1;
+}
+
+message StoreObjectResponse {
+    string id = 1;
+}
+
+message GetObjectRequest {
+    string id = 1;
+}
+
+message GetObjectResponse {
+    int64 total_length = 1; 
+    
+    bytes chunk_data = 2;
+}
+
+message DeleteObjectRequest{
+    string id = 1;
+}
+
+message DeleteObjectResponse {
+    bool success = 1;
+}

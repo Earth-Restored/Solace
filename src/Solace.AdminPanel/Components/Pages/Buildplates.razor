@@ -636,10 +636,10 @@
                 return;
             } *@
 
-            Stream fileStream;
+            MemoryStream fileStream;
             if (solaceFormat)
             {
-                var data = await ObjectStoreClient.GetAsync(_exportBp.ServerDataObjectId);
+                using var data = await ObjectStoreClient.GetStreamAsync(_exportBp.ServerDataObjectId);
 
                 if (data is null)
                 {
@@ -647,8 +647,8 @@
                     return;
                 }
 
-                var stream = new MemoryStream(data.Length);
-                stream.Write(data);
+                var stream = new MemoryStream((int)data.Length);
+                await data.CopyToAsync(stream);
                 stream.Position = 0;
 
                 using (var zip = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true))
@@ -670,7 +670,7 @@
             }
             else
             {
-                var data = await ObjectStoreClient.GetAsync(_exportBp.PreviewObjectId);
+                var data = await ObjectStoreClient.GetStreamAsync(_exportBp.PreviewObjectId);
 
                 if (data is null)
                 {
@@ -696,6 +696,8 @@
                     }
                 }
 
+                using var dataReader = new StreamReader(data, encoding: Encoding.UTF8, leaveOpen: false);
+
                 var buildplate = new MCeToJava.Models.MCE.Buildplate(
                     _exportBp.Id,
                     "",
@@ -706,7 +708,7 @@
                     1,
                     _exportBp.Id,
                     MCeToJava.Models.MCE.Buildplate.Gamemode.Survival,
-                    Encoding.UTF8.GetString(data),
+                    await dataReader.ReadToEndAsync(),
                     new BitcoderCZ.Maths.Vectors.int3(0, _exportBp.Offset, 0),
                     new MCeToJava.Models.MCE.Buildplate.Flat2(_exportBp.Size, _exportBp.Size),
                     _exportBp.BlocksPerMeter,

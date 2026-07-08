@@ -1,8 +1,10 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Solace.Common;
+using Solace.ObjectStore.Server.Services;
 using System.Diagnostics;
 using System.Runtime.Loader;
 
@@ -58,43 +60,29 @@ internal static partial class App
             };
         }
 
-        var builder = Host.CreateApplicationBuilder(args);
+        var builder = WebApplication.CreateSlimBuilder(args);
 
         builder.AddServiceDefaults();
+
+        builder.Services.AddGrpc();
 
         string dataDirectory = Path.GetFullPath(builder.Configuration.GetValue<string>("DataDirectory", "data/object_store"));
 
         builder.Services.AddSingleton<DataStore>(new DataStore(new DirectoryInfo(dataDirectory)));
-        builder.Services.AddSingleton<Server>();
-        builder.Services.AddSingleton<NetworkServer>(sp =>
-        {
-            var port = builder.Configuration.GetValue<int>("TCP_PORT", 5396);
 
-            var server = sp.GetRequiredService<Server>();
-            var networkServerLogger = sp.GetRequiredService<ILogger<NetworkServer>>();
+        using var app = builder.Build();
 
-            return new NetworkServer(server, port, networkServerLogger);
-        });
-
-        using var host = builder.Build();
-
-        var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
+        var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
         GlobalLoggerFactory.Initialize(loggerFactory);
 
         var logger = loggerFactory.CreateLogger(nameof(Program));
         LogDataStoragePath(logger, dataDirectory);
 
-        try
-        {
-            var server = host.Services.GetRequiredService<NetworkServer>();
-            await server.RunAsync();
-        }
-        catch (IOException exception)
-        {
-            LogFatalErrorDuringServerStartup(logger, exception);
-            loggerFactory.Dispose();
-            return 1;
-        }
+        app.MapGrpcService<ObjectStoreServiceImpl>();
+
+        app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
+
+        await app.RunAsync();
 
         return 0;
     }

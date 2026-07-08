@@ -195,15 +195,14 @@ internal static partial class App
 
         LogConnectedToEventBus(programLogger);
 
-        var objectStoreConnectionString = builder.Configuration["services:object-store:raw-tcp:0"];
+        var objectStoreConnectionString = builder.Configuration["services:object-store:http:0"];
         Debug.Assert(objectStoreConnectionString is not null);
-        var objectStoreUri = new Uri(objectStoreConnectionString);
 
         LogConnectingToObjectStore(programLogger);
         ObjectStoreClient objectStore;
         try
         {
-            objectStore = await ObjectStoreClient.ConnectAsync($"{objectStoreUri.Host}:{objectStoreUri.Port}");
+            objectStore = await ObjectStoreClient.ConnectAsync(objectStoreConnectionString, programLogger);
         }
         catch (ObjectStoreClientException exception)
         {

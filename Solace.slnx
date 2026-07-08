@@ -2,6 +2,7 @@
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
   </Folder>
+  <Folder Name="/src/" />
   <Project Path="src/Solace.AdminPanel/Solace.AdminPanel.csproj" />
   <Project Path="src/Solace.ApiServer/Solace.ApiServer.csproj" />
   <Project Path="src/Solace.AppHost/Solace.AppHost.csproj" />

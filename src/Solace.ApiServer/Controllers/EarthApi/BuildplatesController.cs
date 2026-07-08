@@ -58,14 +58,16 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
 
         OwnedBuildplate[] ownedBuildplates = await Task.WhenAll(buildplates.AsEnumerable().Select(async buildplate =>
         {
-            byte[]? previewData = await _objectStore.GetAsync(buildplate.PreviewObjectId);
+            using var previewData = await _objectStore.GetStreamAsync(buildplate.PreviewObjectId);
             if (previewData is null)
             {
                 LogBuildplatePreviewNotFound(buildplate.PreviewObjectId, buildplate.Id);
                 return null!;
             }
 
-            string model = Encoding.ASCII.GetString(previewData);
+            using var previewDataReader = new StreamReader(previewData, Encoding.ASCII);
+
+            string model = await previewDataReader.ReadToEndAsync();
             return new OwnedBuildplate(
                 buildplate.Id.ToString(),
                 "00000000-0000-0000-0000-000000000000",
@@ -141,14 +143,14 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             .AsNoTracking()
             .FirstOrNewAsync(hotbar => hotbar.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
 
-        byte[]? serverData = await _objectStore.GetAsync(buildplate.ServerDataObjectId);
+        using var serverData = await _objectStore.GetStreamAsync(buildplate.ServerDataObjectId, cancellationToken);
         if (serverData is null)
         {
             LogBuildplateServerDataNotFound(buildplate.ServerDataObjectId, buildplateId);
             return TypedResults.InternalServerError();
         }
 
-        string? sharedBuildplateServerDataObjectId = await _objectStore.StoreAsync(serverData);
+        string? sharedBuildplateServerDataObjectId = await _objectStore.StoreAsync(serverData, cancellationToken);
         if (sharedBuildplateServerDataObjectId is null)
         {
             LogSharedBuildplateServerDataStoreError(buildplateId);
@@ -197,7 +199,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
         catch (Exception ex)
         {
             LogSharedBuildplateDBStoreError(ex, buildplateId);
-            await _objectStore.DeleteAsync(sharedBuildplateServerDataObjectId);
+            await _objectStore.DeleteAsync(sharedBuildplateServerDataObjectId, cancellationToken);
             return TypedResults.InternalServerError();
         }
 
@@ -221,7 +223,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.NotFound();
         }
 
-        byte[]? serverData = await _objectStore.GetAsync(sharedBuildplate.ServerDataObjectId);
+        var serverData = await _objectStore.GetArrayAsync(sharedBuildplate.ServerDataObjectId, cancellationToken);
         if (serverData is null)
         {
             LogSharedBuildplateServerDataNotFound(sharedBuildplate.ServerDataObjectId, sharedBuildplateId);
