@@ -68,7 +68,7 @@ internal static partial class App
 
         string dataDirectory = Path.GetFullPath(builder.Configuration.GetValue<string>("DataDirectory", "data/object_store"));
 
-        builder.Services.AddSingleton<DataStore>(new DataStore(new DirectoryInfo(dataDirectory)));
+        builder.Services.AddSingleton(new DataStore(new DirectoryInfo(dataDirectory)));
 
         using var app = builder.Build();
 
@@ -92,7 +92,4 @@ internal static partial class App
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Using {Path} for data storage")]
     private static partial void LogDataStoragePath(ILogger logger, string Path);
-
-    [LoggerMessage(Level = LogLevel.Critical, Message = "Fatal error during server startup")]
-    private static partial void LogFatalErrorDuringServerStartup(ILogger logger, Exception exception);
 }

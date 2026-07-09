@@ -1,132 +1,112 @@
-﻿using Solace.Common.Utils;
+using Grpc.Core;
 
 namespace Solace.EventBus.Client;
 
-public sealed class RequestHandlerLister : IRequestHandlerLister
+public sealed class RequestHandler : IAsyncDisposable
 {
-    public Func<RequestHandlerRequest, Task<string?>>? OnRequest;
-    public Func<Task>? OnError;
-
-    public RequestHandlerLister(Func<RequestHandlerRequest, Task<string?>>? onRequest, Func<Task>? onError)
-    {
-        OnRequest = onRequest;
-        OnError = onError;
-    }
-
-    public Task<string?> OnRequestAsync(RequestHandlerRequest request)
-        => OnRequest?.Invoke(request) ?? Task.FromResult<string?>(null);
-
-    public Task OnErrorAsync()
-        => OnError?.Invoke() ?? Task.CompletedTask;
-}
-
-public interface IRequestHandlerLister
-{
-    Task<string?> OnRequestAsync(RequestHandlerRequest request);
-
-    Task OnErrorAsync();
-}
-
-public sealed class RequestHandlerRequest
-{
-    public long Timestamp { get; }
-    public string Type { get; }
-    public string Data { get; }
-
-    internal RequestHandlerRequest(long timestamp, string type, string data)
-    {
-        Timestamp = timestamp;
-        Type = type;
-        Data = data;
-    }
-}
-
-public sealed class RequestHandler
-{
-    private readonly EventBusClient _client;
-    private readonly int _channelId;
+    private readonly EventBusService.EventBusServiceClient _client;
     private readonly string _queueName;
-    private readonly IRequestHandlerLister _handler;
-    private volatile bool _closed;
+    private readonly Func<string, string, Task<string?>> _onRequest;
+    private readonly Func<Exception?, Task> _onError;
+    private AsyncDuplexStreamingCall<ClientMessage, ServerMessage>? _call;
 
-    internal RequestHandler(EventBusClient client, int channelId, string queueName, IRequestHandlerLister handler)
+    private CancellationTokenSource? _cts;
+    private Task? _loopTask;
+
+    private SemaphoreSlim? _semaphore;
+    private const int MaxDegreeOfParallelism = 4;
+
+    public RequestHandler(EventBusService.EventBusServiceClient client, string queueName, Func<string, string, Task<string?>> onRequest, Func<Exception?, Task> onError)
     {
         _client = client;
-        _channelId = channelId;
         _queueName = queueName;
-        _handler = handler;
+        _onRequest = onRequest;
+        _onError = onError;
     }
 
-    public async Task CloseAsync()
+    public async Task StartAsync()
     {
-        _closed = true;
-        _client.RemoveRequestHandler(_channelId);
-        await _client.SendMessageAsync(_channelId, "CLOSE");
-    }
+        _cts = new CancellationTokenSource();
+        _semaphore = new SemaphoreSlim(MaxDegreeOfParallelism);
 
-    internal async Task<bool> HandleMessageAsync(string message)
-    {
-        if (message == "ERR")
+        _call = _client.HandleRequests(cancellationToken: _cts.Token);
+
+        var safeStream = new SafeStreamWriter<ClientMessage>(_call.RequestStream);
+
+        await safeStream.WriteAsync(new ClientMessage { RegisterQueue = _queueName, });
+
+        _loopTask = Task.Run(async () =>
         {
-            await ErrorAsync();
-            await _handler.OnErrorAsync();
-            return true;
-        }
-
-        string[] fields = message.Split(':', 4);
-        if (fields.Length != 4)
-        {
-            return false;
-        }
-
-        if (!int.TryParse(fields[0], out int requestId) || requestId <= 0)
-        {
-            return false;
-        }
-
-        if (!long.TryParse(fields[1], out long timestamp) || timestamp < 0)
-        {
-            return false;
-        }
-
-        string type = fields[2];
-        string data = fields[3];
-
-        _ = ProcessRequestAsync(requestId, timestamp, type, data);
-
-        return true;
-    }
-
-    private async Task ProcessRequestAsync(int requestId, long timestamp, string type, string data)
-    {
-        try
-        {
-            string? response = await _handler.OnRequestAsync(new RequestHandlerRequest(timestamp, type, data));
-
-            if (!_closed)
+            try
             {
-                if (response != null)
+                await foreach (var serverMsg in _call.ResponseStream.ReadAllAsync(_cts.Token))
                 {
-                    await _client.SendMessageAsync(_channelId, $"REP {requestId}:{response}");
-                }
-                else
-                {
-                    await _client.SendMessageAsync(_channelId, $"NREP {requestId}");
+                    await _semaphore.WaitAsync(_cts.Token);
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var outData = await _onRequest(serverMsg.Type, serverMsg.Data);
+                            await safeStream.WriteAsync(new ClientMessage
+                            {
+                                Response = new HandlerResponse { CorrelationId = serverMsg.CorrelationId, Data = outData ?? "", Success = true, }
+                            });
+                        }
+                        catch (Exception exception)
+                        {
+                            await _onError(exception);
+
+                            try
+                            {
+                                await safeStream.WriteAsync(new ClientMessage
+                                {
+                                    Response = new HandlerResponse { CorrelationId = serverMsg.CorrelationId, Success = false, }
+                                });
+                            }
+                            catch
+                            {
+                            }
+                        }
+                        finally
+                        {
+                            _semaphore.Release();
+                        }
+                    });
                 }
             }
-        }
-        catch
-        {
-            if (!_closed)
+            catch (Exception exception) when (exception is not (OperationCanceledException or RpcException { StatusCode: StatusCode.Cancelled, }))
             {
-                await _client.SendMessageAsync(_channelId, $"NREP {requestId}");
+                await _onError(exception);
             }
-        }
+        });
     }
 
-    internal async Task ErrorAsync()
+    public async ValueTask DisposeAsync()
     {
-        _closed = true;
-        await _handler.OnErrorAsync();
+        if (_cts is not null)
+        {
+            _cts.Cancel();
+            try
+            {
+                if (_call is not null)
+                {
+                    await _call.RequestStream.CompleteAsync();
+                }
+
+                if (_loopTask is not null)
+                {
+                    await _loopTask;
+                }
+            }
+            catch
+            {
+            }
+
+            _call?.Dispose();
+            _cts.Dispose();
+        }
+
+        _semaphore?.Dispose();
     }
 }

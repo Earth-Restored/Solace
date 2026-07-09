@@ -16,29 +16,13 @@ namespace Solace.ObjectStore.Client;
 
 public sealed class ObjectStoreClient : IAsyncDisposable
 {
-    public sealed class ConnectException : ObjectStoreClientException
-    {
-        public ConnectException()
-            : base()
-        {
-        }
-
-        public ConnectException(string? message)
-            : base(message)
-        {
-        }
-
-        public ConnectException(string? message, Exception? cause)
-            : base(message, cause)
-        {
-        }
-    }
-
     private readonly GrpcChannel _channel;
     private readonly ObjectStoreService.ObjectStoreServiceClient _client;
 
     public static async Task<ObjectStoreClient> ConnectAsync(string connectionString, ILogger logger)
     {
+        _ = logger;
+
         var channel = GrpcChannel.ForAddress(connectionString);
         var client = new ObjectStoreService.ObjectStoreServiceClient(channel);
         

@@ -1,98 +1,88 @@
-﻿namespace Solace.EventBus.Client;
+using Grpc.Core;
 
-public sealed class SubscriberListener : ISubscriberListener
+namespace Solace.EventBus.Client;
+
+public sealed class Subscriber : IAsyncDisposable
 {
-    public Func<SubscriberEvent, Task>? OnEvent;
-    public Func<Task>? OnError;
+    private readonly EventBusService.EventBusServiceClient _client;
+    private readonly string _queueName;
+    private readonly Func<string, string, Task> _onEvent;
+    private readonly Func<Exception?, Task> _onError;
 
-    public SubscriberListener()
-    {
-    }
-    public SubscriberListener(Func<SubscriberEvent, Task>? onEvent = null, Func<Task>? onError = null)
-    {
-        OnEvent = onEvent;
-        OnError = onError;
-    }
+    private CancellationTokenSource? _cts;
+    private Task? _loopTask;
 
-    public Task OnEventAsync(SubscriberEvent @event)
-        => OnEvent?.Invoke(@event) ?? Task.CompletedTask;
+    private SemaphoreSlim? _semaphore;
+    private const int MaxDegreeOfParallelism = 4;
 
-    public Task OnErrorAsync()
-        => OnError?.Invoke() ?? Task.CompletedTask;
-}
-
-public interface ISubscriberListener
-{
-#pragma warning disable CA1716 // Identifiers should not match keywords
-    Task OnEventAsync(SubscriberEvent @event);
-#pragma warning restore CA1716 // Identifiers should not match keywords
-
-    Task OnErrorAsync();
-}
-
-public sealed class SubscriberEvent
-{
-    public long Timestamp { get; }
-    public string Type { get; }
-    public string Data { get; }
-
-    internal SubscriberEvent(long timestamp, string type, string data)
-    {
-        Timestamp = timestamp;
-        Type = type;
-        Data = data;
-    }
-}
-
-public sealed class Subscriber
-{
-    private readonly EventBusClient _client;
-    private readonly ISubscriberListener _listener;
-
-    internal int ChannelId { get; }
-    internal string QueueName { get; }
-
-    internal Subscriber(EventBusClient client, int channelId, string queueName, ISubscriberListener listener)
+    internal Subscriber(EventBusService.EventBusServiceClient client, string queueName, Func<string, string, Task> onEvent, Func<Exception?, Task> onError)
     {
         _client = client;
-        ChannelId = channelId;
-        QueueName = queueName;
-        _listener = listener;
+        _queueName = queueName;
+        _onEvent = onEvent;
+        _onError = onError;
     }
 
-    public async Task CloseAsync()
+    public Task StartAsync()
     {
-        _client.RemoveSubscriber(ChannelId);
-        await _client.SendMessageAsync(ChannelId, "CLOSE");
+        _cts = new CancellationTokenSource();
+        _semaphore = new SemaphoreSlim(MaxDegreeOfParallelism);
+
+        var streamCall = _client.Subscribe(new SubscribeRequest { QueueName = _queueName }, cancellationToken: _cts.Token);
+
+        _loopTask = Task.Run(async () =>
+        {
+            try
+            {
+                await foreach (var msg in streamCall.ResponseStream.ReadAllAsync(_cts.Token))
+                {
+                    await _semaphore.WaitAsync(_cts.Token);
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _onEvent(msg.Type, msg.Data);
+                        }
+                        catch (Exception exception)
+                        {
+                            await _onError(exception);
+                        }
+                        finally
+                        {
+                            _semaphore.Release();
+                        }
+                    });
+                }
+            }
+            catch (Exception exception) when (exception is not (OperationCanceledException or RpcException { StatusCode: StatusCode.Cancelled, }))
+            {
+                await _onError(exception);
+            }
+        });
+        return Task.CompletedTask;
     }
 
-    internal async Task<bool> HandleMessageAsync(string message)
+    public async ValueTask DisposeAsync()
     {
-        if (message == "ERR")
+        if (_cts is not null)
         {
-            await CloseAsync();
-            await _listener.OnErrorAsync();
-            return true;
+            _cts.Cancel();
+
+            if (_loopTask is not null)
+            {
+                try
+                {
+                    await _loopTask;
+                }
+                catch
+                {
+                }
+            }
+
+            _cts.Dispose();
         }
 
-        string[] fields = message.Split(':', 3);
-        if (fields.Length != 3)
-        {
-            return false;
-        }
-
-        if (!long.TryParse(fields[0], out long timestamp) || timestamp < 0)
-        {
-            return false;
-        }
-
-        string type = fields[1];
-        string data = fields[2];
-
-        await _listener.OnEventAsync(new SubscriberEvent(timestamp, type, data));
-        return true;
+        _semaphore?.Dispose();
     }
-
-    internal async Task ErrorAsync()
-        => await _listener.OnErrorAsync();
 }

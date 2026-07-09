@@ -1,8 +1,9 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Solace.Common;
+using Solace.EventBus.Server.Services;
 using System.Diagnostics;
 using System.Runtime.Loader;
 
@@ -58,45 +59,28 @@ internal static partial class App
             };
         }
 
-        var builder = Host.CreateApplicationBuilder(args);
+        var builder = WebApplication.CreateSlimBuilder(args);
 
         builder.AddServiceDefaults();
 
-        builder.Services.AddSingleton<Server>();
-        builder.Services.AddSingleton<NetworkServer>(sp =>
-        {
-            var port = builder.Configuration.GetValue<int>("TCP_PORT", 5532);
+        builder.Services.AddGrpc();
 
-            var server = sp.GetRequiredService<Server>();
-            var networkServerLogger = sp.GetRequiredService<ILogger<NetworkServer>>();
+        using var app = builder.Build();
 
-            return new NetworkServer(server, port, networkServerLogger);
-        });
-
-        using var host = builder.Build();
-
-        var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
+        var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
         GlobalLoggerFactory.Initialize(loggerFactory);
 
-        try
-        {
-            var server = host.Services.GetRequiredService<NetworkServer>();
-            await server.RunAsync();
-        }
-        catch (IOException exception)
-        {
-            var logger = loggerFactory.CreateLogger(nameof(Program));
-            LogFatalErrorDuringServerStartup(logger, exception);
-            loggerFactory.Dispose();
-            return 1;
-        }
+        var logger = loggerFactory.CreateLogger(nameof(Program));
+
+        app.MapGrpcService<EventBusServiceImpl>();
+
+        app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
+
+        await app.RunAsync();
 
         return 0;
     }
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "Unhandled exception")]
     private static partial void LogUnhandledException(ILogger logger, Exception? exception);
-
-    [LoggerMessage(Level = LogLevel.Critical, Message = "Fatal error during server startup")]
-    private static partial void LogFatalErrorDuringServerStartup(ILogger logger, Exception exception);
 }

@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+option csharp_namespace = "Solace.EventBus";
+
+package eventbus;
+
+service EventBusService {
+    rpc Publish (PublishRequest) returns (PublishResponse);
+    rpc Subscribe (SubscribeRequest) returns (stream EventMessage);
+    
+    rpc Request (RequestMessage) returns (ResponseMessage);
+    rpc HandleRequests (stream ClientMessage) returns (stream ServerMessage);
+}
+
+message PublishRequest {
+    string queue_name = 1;
+    string type = 2;
+    string data = 3;
+}
+
+message PublishResponse {
+    bool success = 1;
+}
+
+message SubscribeRequest {
+    string queue_name = 1;
+}
+
+message EventMessage {
+    string type = 1;
+    string data = 2;
+}
+
+message RequestMessage {
+    string queue_name = 1;
+    string type = 2;
+    string data = 3;
+}
+
+enum ResponseMessageStatus
+{
+    Success = 0;
+    NoHandlers = 1;
+    HandlerError = 2;
+    ServerError = 3;
+}
+
+message ResponseMessage {
+    string data = 1;
+    ResponseMessageStatus status = 2;
+    string error_message = 3;
+}
+
+message ClientMessage {
+    oneof payload {
+        string register_queue = 1;
+        HandlerResponse response = 2;
+    }
+}
+
+message HandlerResponse {
+    string correlation_id = 1;
+    string data = 2;
+    bool success = 3;
+}
+
+message ServerMessage {
+    string correlation_id = 1;
+    string type = 2;
+    string data = 3;
+}
