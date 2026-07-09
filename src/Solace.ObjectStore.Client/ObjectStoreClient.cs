@@ -39,19 +39,10 @@ public sealed class ObjectStoreClient : IAsyncDisposable
 
     public static async Task<ObjectStoreClient> ConnectAsync(string connectionString, ILogger logger)
     {
-        try
-        {
-            var channel = GrpcChannel.ForAddress(connectionString);
-            var client = new ObjectStoreService.ObjectStoreServiceClient(channel);
-            return new ObjectStoreClient(channel, client);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(connectionString);
-            logger.LogError(ex, "MEOW");
-            return null!;
-        }
-
+        var channel = GrpcChannel.ForAddress(connectionString);
+        var client = new ObjectStoreService.ObjectStoreServiceClient(channel);
+        
+        return new ObjectStoreClient(channel, client);
     }
 
     public ObjectStoreClient(GrpcChannel channel, ObjectStoreService.ObjectStoreServiceClient client)

@@ -53,7 +53,7 @@ internal sealed class WKBLineString : IWKBObject
             IsAntialias = false,
         };
 
-        using var path = new SKPath();
+        using var path = new SKPathBuilder();
 
         for (int i = 0; i < Points.Length; i++)
         {
@@ -69,6 +69,6 @@ internal sealed class WKBLineString : IWKBObject
             }
         }
 
-        canvas.DrawPath(path, paint);
+        canvas.DrawPath(path.Detach(), paint);
     }
 }

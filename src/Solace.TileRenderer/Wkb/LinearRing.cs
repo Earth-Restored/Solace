@@ -34,7 +34,7 @@ internal sealed class LinearRing
             IsAntialias = false,
         };
 
-        using var path = new SKPath();
+        using var path = new SKPathBuilder();
 
         for (int i = 0; i < Points.Length; i++)
         {
@@ -51,6 +51,6 @@ internal sealed class LinearRing
         }
 
         path.Close(); // Close the path to ensure polygon is sealed
-        canvas.DrawPath(path, paint);
+        canvas.DrawPath(path.Detach(), paint);
     }
 }
