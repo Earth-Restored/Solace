@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Solace.Common;
 using Solace.Common.Utils;
@@ -143,7 +144,17 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
         public bool Claimed { get; init; }
         public long? ClaimedOn { get; init; }
 
-        public DailyLoginToken(string date, Rewards rewards, bool claimed = false, long? claimedOn = null)
+        public DailyLoginToken(string date, Rewards rewards, bool claimed = false, DateTimeOffset? claimedOn = null)
+            : base(TypeE.DAILY_LOGIN)
+        {
+            Date = date;
+            Rewards = rewards;
+            Claimed = claimed;
+            ClaimedOn = claimedOn?.ToUnixTimeMilliseconds();
+        }
+
+        [JsonConstructor]
+        public DailyLoginToken(string date, Rewards rewards, long? claimedOn, bool claimed = false)
             : base(TypeE.DAILY_LOGIN)
         {
             Date = date;
@@ -152,6 +163,8 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
             ClaimedOn = claimedOn;
         }
 
+        [JsonIgnore, NotMapped] public DateTimeOffset? ClaimedOnDT => ClaimedOn is null ? null : DateTimeOffset.FromUnixTimeMilliseconds(ClaimedOn.Value);
+
         public override bool Equals(Token? other)
             => other is DailyLoginToken dailyLogin && Date == dailyLogin.Date && Rewards.Equals(dailyLogin.Rewards) && Claimed == dailyLogin.Claimed && ClaimedOn == dailyLogin.ClaimedOn;
 
@@ -159,7 +172,7 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
             => HashCode.Combine(Date, Rewards, Claimed, ClaimedOn);
 
         public override DailyLoginToken DeepCopy()
-            => new DailyLoginToken(Date, Rewards.DeepCopy(), Claimed, ClaimedOn);
+            => new DailyLoginToken(Date, Rewards.DeepCopy(), Claimed, ClaimedOnDT);
     }
 
     public sealed class Legacy : IEquatable<Legacy>

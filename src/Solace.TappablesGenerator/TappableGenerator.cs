@@ -10,10 +10,10 @@ internal sealed partial class TappableGenerator
     // TODO: make these configurable
     private const int MIN_COUNT = 1;
     private const int MAX_COUNT = 3;
-    private const long MIN_DURATION = 2 * 60 * 1000;
-    private const long MAX_DURATION = 5 * 60 * 1000;
-    private const long MIN_DELAY = 1 * 60 * 1000;
-    private const long MAX_DELAY = 2 * 60 * 1000;
+    private static readonly TimeSpan MIN_DURATION = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan MAX_DURATION = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan MIN_DELAY = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan MAX_DELAY = TimeSpan.FromMinutes(2);
 
     private readonly StaticData.StaticData _staticData;
 
@@ -31,10 +31,10 @@ internal sealed partial class TappableGenerator
         _random = new Random();
     }
 
-    public static long GetMaxTappableLifetime()
-        => MAX_DELAY + MAX_DURATION + 30 * 1000;
+    public TimeSpan GetMaxTappableLifetime()
+        => MAX_DELAY + MAX_DURATION + TimeSpan.FromSeconds(30);
 
-    public IEnumerable<Tappable> GenerateTappables(int tileX, int tileY, long currentTime)
+    public IEnumerable<Tappable> GenerateTappables(int tileX, int tileY, DateTimeOffset currentTime)
     {
         if (_staticData.TappablesConfig.Tappables.Length == 0)
         {
@@ -48,8 +48,8 @@ internal sealed partial class TappableGenerator
         Span<float> tileBounds = stackalloc float[4];
         for (; count > 0; count--)
         {
-            long spawnDelay = _random.NextInt64(MIN_DELAY, MAX_DELAY + 1);
-            long duration = _random.NextInt64(MIN_DURATION, MAX_DURATION + 1);
+            var spawnDelay = TimeSpan.FromTicks(_random.NextInt64(MIN_DELAY.Ticks, MAX_DELAY.Ticks + 1));
+            var duration = TimeSpan.FromTicks(_random.NextInt64(MIN_DURATION.Ticks, MAX_DURATION.Ticks + 1));
 
             TappablesConfig.TappableConfig tappableConfig = _staticData.TappablesConfig.Tappables[_random.Next(0, _staticData.TappablesConfig.Tappables.Length)];
 

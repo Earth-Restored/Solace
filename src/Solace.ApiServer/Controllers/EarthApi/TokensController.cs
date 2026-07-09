@@ -63,7 +63,7 @@ internal sealed class TokensController : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         var tokens = await _earthDb.Tokens
             .AsTracking()

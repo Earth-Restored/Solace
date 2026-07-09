@@ -40,7 +40,7 @@ internal sealed class TappablesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         await _tappablesManager.NotifyTileActiveAsync(accountId, lat, lon);
 
@@ -113,7 +113,7 @@ internal sealed class TappablesController : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         TappablesManager.Tappable? tappable = _tappablesManager.GetTappableWithId(tappableRequest.Id, tileId);
         if (tappable is null || !TappablesManager.IsTappableValidFor(tappable, requestStartedOn, tappableRequest.PlayerCoordinate.Latitude, tappableRequest.PlayerCoordinate.Longitude))

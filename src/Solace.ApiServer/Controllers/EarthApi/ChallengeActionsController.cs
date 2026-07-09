@@ -17,9 +17,9 @@ internal sealed class ChallengeActionsController : SolaceControllerBase
     [HttpPut("{challengeId}/modifyState")]
     public ContentHttpResult ModifyState(string challengeId)
     {
-        long now = HttpContext.GetTimestamp();
+        var now = HttpContext.GetTimestamp();
         var updates = new EarthApiResponse.UpdatesResponse();
-        updates.Map["challenges"] = (int)(now / 1000);
+        updates.Map["challenges"] = (int)now.ToUnixTimeSeconds();
 
         return EarthJson(new Dictionary<string, object?>
         {
@@ -52,9 +52,9 @@ internal sealed class ChallengeActionsController : SolaceControllerBase
     [HttpDelete("continuous/{id}/remove")]
     public ContentHttpResult RemoveContinuousChallenge(string id)
     {
-        long now = HttpContext.GetTimestamp();
+        var now = HttpContext.GetTimestamp();
         var updates = new EarthApiResponse.UpdatesResponse();
-        updates.Map["challenges"] = (int)(now / 1000);
+        updates.Map["challenges"] = (int)now.ToUnixTimeSeconds();
 
         return EarthJson(new Dictionary<string, object?>
         {

@@ -93,17 +93,16 @@ internal static partial class App
 
         LogLoadedStaticData(programLogger);
 
-        var eventBusConnectionString = builder.Configuration["services:event-bus:raw-tcp:0"];
+        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
         Debug.Assert(eventBusConnectionString is not null);
-        var eventBusUri = new Uri(eventBusConnectionString);
 
         LogConnectingToEventBus(programLogger);
         EventBusClient eventBusClient;
         try
         {
-            eventBusClient = await EventBusClient.ConnectAsync($"{eventBusUri.Host}:{eventBusUri.Port}");
+            eventBusClient = await EventBusClient.ConnectAsync(eventBusConnectionString, programLogger);
         }
-        catch (EventBusClientException exception)
+        catch (Exception exception)
         {
             LogConnectToEventBusError(programLogger, exception);
             loggerFactory.Dispose();
@@ -137,6 +136,7 @@ internal static partial class App
         }
         catch (IOException exception)
         {
+            Console.Error.WriteLine(exception.ToString());
             LogFatalErrorDuringServerStartup(programLogger, exception);
             loggerFactory.Dispose();
             return 1;

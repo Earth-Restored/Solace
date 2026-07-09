@@ -1,4 +1,6 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using Solace.Common;
 
 namespace Solace.DB.Models.Player.Workshop;
@@ -73,6 +75,8 @@ public sealed class CraftingSlotEF : ICloneable<CraftingSlotEF>
             : this(default!, default!, default!, default!, default!, default!, default!)
         {
         }
+
+        [JsonIgnore, NotMapped] public DateTimeOffset StartTimeDT => DateTimeOffset.FromUnixTimeMilliseconds(StartTime);
 
         public bool Equals(ActiveJobR? other)
              => other is not null && SessionId == other.SessionId && RecipeId == other.RecipeId && StartTime == other.StartTime && Input.SequenceEqual(other.Input) && TotalRounds == other.TotalRounds && CollectedRounds == other.CollectedRounds && FinishedEarly == other.FinishedEarly;

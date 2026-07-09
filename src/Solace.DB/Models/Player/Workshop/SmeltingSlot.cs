@@ -1,4 +1,6 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using Solace.Common;
 
 namespace Solace.DB.Models.Player.Workshop;
@@ -67,13 +69,15 @@ public sealed class SmeltingSlot : IEquatable<SmeltingSlot>, ICloneable<Smelting
         {
         }
 
+        [JsonIgnore, NotMapped] public DateTimeOffset StartTimeDT => DateTimeOffset.FromUnixTimeMilliseconds(StartTime);
+
         public ActiveJobR DeepCopy()
             => new ActiveJobR(SessionId, RecipeId, StartTime, Input.DeepCopy(), AddedFuel?.DeepCopy(), TotalRounds, CollectedRounds, FinishedEarly);
     }
 
     public sealed record Fuel(
         InputItem Item,
-        int BurnDuration,
+        int BurnDuration, // seconds
         int HeatPerSecond
     ) : ICloneable<Fuel>
     {
@@ -81,6 +85,8 @@ public sealed class SmeltingSlot : IEquatable<SmeltingSlot>, ICloneable<Smelting
             : this(default!, default!, default!)
         {
         }
+
+        [JsonIgnore, NotMapped] public TimeSpan BurnDurationTS => TimeSpan.FromSeconds(BurnDuration);
 
         public Fuel DeepCopy()
             => new Fuel(Item.DeepCopy(), BurnDuration, HeatPerSecond);

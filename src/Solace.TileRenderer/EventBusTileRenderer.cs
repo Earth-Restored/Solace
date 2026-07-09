@@ -23,7 +23,8 @@ internal sealed partial class EventBusTileRenderer : IAsyncDisposable
 
     public async Task RunAsync()
     {
-        await _eventBus.AddRequestHandlerAsync("tile", new RequestHandlerLister(async request =>
+        await _eventBus.AddRequestHandlerAsync("tile",
+        async request =>
         {
             if (request.Type == "renderTile")
             {
@@ -60,12 +61,12 @@ internal sealed partial class EventBusTileRenderer : IAsyncDisposable
             {
                 return null;
             }
-        }, async () =>
+        }, async exception =>
         {
-            LogEventBusSubscriberError();
+            LogEventBusSubscriberError(exception);
             await DisposeAsync();
             Environment.Exit(1);
-        }));
+        });
 
         LogStarted();
 
@@ -88,7 +89,7 @@ internal sealed partial class EventBusTileRenderer : IAsyncDisposable
     private partial void LogSendingRenderedTile();
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "Event bus subscriber error")]
-    private partial void LogEventBusSubscriberError();
+    private partial void LogEventBusSubscriberError(Exception? exception);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Started")]
     private partial void LogStarted();

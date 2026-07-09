@@ -65,6 +65,8 @@ internal static partial class App
 
         builder.Services.AddGrpc();
 
+        builder.Services.AddSingleton<EventBusServiceImpl.State>();
+
         using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();

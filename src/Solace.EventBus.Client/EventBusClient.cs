@@ -26,12 +26,15 @@ public sealed partial class EventBusClient : IAsyncDisposable
     }
 
     public async ValueTask DisposeAsync()
-        => _channel.Dispose();
+    {
+        await _channel.ShutdownAsync();
+        _channel.Dispose();
+    }
 
     public async Task<Publisher> AddPublisherAsync()
         => new Publisher(_client);
 
-    public async Task<Subscriber> AddSubscriberAsync(string queueName, Func<string, string, Task> onEvent, Func<Exception?, Task> onError)
+    public async Task<Subscriber> AddSubscriberAsync(string queueName, Func<SubscriberEvent, Task> onEvent, Func<Exception?, Task> onError)
     {
         var subscriber = new Subscriber(_client, queueName, onEvent, onError);
         await subscriber.StartAsync();
@@ -41,7 +44,7 @@ public sealed partial class EventBusClient : IAsyncDisposable
     public async Task<RequestSender> AddRequestSenderAsync()
         => new RequestSender(_client);
 
-    public async Task<RequestHandler> AddRequestHandlerAsync(string queueName, Func<string, string, Task<string?>> onRequest, Func<Exception?, Task> onError)
+    public async Task<RequestHandler> AddRequestHandlerAsync(string queueName, Func<RequestHandlerRequest, Task<string?>> onRequest, Func<Exception?, Task> onError)
     {
         var handler = new RequestHandler(_client, queueName, onRequest, onError);
         await handler.StartAsync();

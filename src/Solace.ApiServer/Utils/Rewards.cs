@@ -60,7 +60,7 @@ internal sealed class Rewards
         return this;
     }
 
-    public async Task ToRedeemQueryAsync(EarthDbContext.Results results, Guid accountId, long currentTime, StaticData.StaticData staticData)
+    public async Task ToRedeemQueryAsync(EarthDbContext.Results results, Guid accountId, DateTimeOffset currentTime, StaticData.StaticData staticData)
     {
         ProfileEF? profile = null;
         if (_rubies > 0 || _experiencePoints > 0)

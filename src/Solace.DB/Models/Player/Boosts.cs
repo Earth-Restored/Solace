@@ -1,4 +1,6 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using Solace.Common;
 using Solace.Common.Utils;
 
@@ -17,12 +19,12 @@ public sealed class BoostsEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
     public ActiveBoost? Get(Guid instanceId)
         => ActiveBoosts.FirstOrDefault(activeBoost => activeBoost is not null && activeBoost.InstanceId == instanceId);
 
-    public IEnumerable<ActiveBoost> Prune(long currentTime)
+    public IEnumerable<ActiveBoost> Prune(DateTimeOffset currentTime)
     {
         for (int index = 0; index < ActiveBoosts.Length; index++)
         {
             ActiveBoost? activeBoost = ActiveBoosts[index];
-            if (activeBoost is not null && activeBoost.StartTime + activeBoost.Duration < currentTime)
+            if (activeBoost is not null && activeBoost.StartTimeDT + activeBoost.DurationTS < currentTime)
             {
                 ActiveBoosts[index] = null;
                 yield return activeBoost;
@@ -55,6 +57,10 @@ public sealed class BoostsEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
         long Duration
     ) : ICloneable<ActiveBoost>
     {
+        [JsonIgnore, NotMapped] public DateTimeOffset StartTimeDT => DateTimeOffset.FromUnixTimeMilliseconds(StartTime);
+
+        [JsonIgnore, NotMapped] public TimeSpan DurationTS => TimeSpan.FromMilliseconds(Duration);
+
         public ActiveBoost DeepCopy()
             => new ActiveBoost(this);
 

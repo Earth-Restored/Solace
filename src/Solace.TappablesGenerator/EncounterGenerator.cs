@@ -9,11 +9,11 @@ internal sealed partial class EncounterGenerator
 {
     // TODO: make these configurable
     private const int CHANCE_PER_TILE = 4;
-    private const long MIN_DELAY = 1 * 60 * 1000;
-    private const long MAX_DELAY = 2 * 60 * 1000;
+    private static readonly TimeSpan MIN_DELAY = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan MAX_DELAY = TimeSpan.FromMinutes(2);
 
     private readonly StaticData.StaticData _staticData;
-    private readonly int _maxDuration;
+    private readonly TimeSpan _maxDuration;
 
     private readonly Random _random;
 
@@ -26,15 +26,15 @@ internal sealed partial class EncounterGenerator
             LogNoEncounterConfigsProvided(logger);
         }
 
-        _maxDuration = _staticData.EncountersConfig.Encounters.Select(encounterConfig => encounterConfig.Duration).DefaultIfEmpty().Max() * 1000;
+        _maxDuration = TimeSpan.FromSeconds(_staticData.EncountersConfig.Encounters.Select(encounterConfig => encounterConfig.Duration).DefaultIfEmpty().Max());
 
         _random = new Random();
     }
 
-    public long GetMaxEncounterLifetime()
-        => MAX_DELAY + _maxDuration + 30 * 1000;
+    public TimeSpan GetMaxEncounterLifetime()
+        => MAX_DELAY + _maxDuration + TimeSpan.FromSeconds(30 * 1000);
 
-    public Encounter[] GenerateEncounters(int tileX, int tileY, long currentTime)
+    public Encounter[] GenerateEncounters(int tileX, int tileY, DateTimeOffset currentTime)
     {
         if (_staticData.EncountersConfig.Encounters.Length == 0)
         {
@@ -45,7 +45,7 @@ internal sealed partial class EncounterGenerator
 #pragma warning disable CA5394 // Do not use insecure randomness - idc
         if (_random.Next(0, CHANCE_PER_TILE) == 0)
         {
-            long spawnDelay = _random.NextInt64(MIN_DELAY, MAX_DELAY + 1);
+            var spawnDelay = TimeSpan.FromTicks(_random.NextInt64(MIN_DELAY.Ticks, MAX_DELAY.Ticks + 1));
 
             EncountersConfig.EncounterConfig encounterConfig = _staticData.EncountersConfig.Encounters[_random.Next(0, _staticData.EncountersConfig.Encounters.Length)];
 #pragma warning restore CA5394 // Do not use insecure randomness
@@ -60,7 +60,7 @@ internal sealed partial class EncounterGenerator
                 lat,
                 lon,
                 currentTime + spawnDelay,
-                encounterConfig.Duration * 1000,
+                TimeSpan.FromSeconds(encounterConfig.Duration),
                 encounterConfig.Icon,
                 Encounter.RarityE.FromStaticData(encounterConfig.Rarity),
                 encounterConfig.EncounterBuildplateId

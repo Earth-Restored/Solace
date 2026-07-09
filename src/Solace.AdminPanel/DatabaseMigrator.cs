@@ -431,12 +431,12 @@ internal sealed partial class DatabaseMigrator
                     {
                         activityLog.Entries.Add(entry switch
                         {
-                            ActivityLogEF.Legacy.LevelUpEntry levelUp => new ActivityLogEF.LevelUpEntry(levelUp.Timestamp, levelUp.Level),
-                            ActivityLogEF.Legacy.TappableEntry tappable => new ActivityLogEF.TappableEntry(tappable.Timestamp, tappable.Rewards),
-                            ActivityLogEF.Legacy.JournalItemUnlockedEntry journalUnlock => new ActivityLogEF.JournalItemUnlockedEntry(journalUnlock.Timestamp, journalUnlock.ItemId),
-                            ActivityLogEF.Legacy.CraftingCompletedEntry craftingComplete => new ActivityLogEF.CraftingCompletedEntry(craftingComplete.Timestamp, craftingComplete.Rewards),
-                            ActivityLogEF.Legacy.SmeltingCompletedEntry smeltingComplete => new ActivityLogEF.SmeltingCompletedEntry(smeltingComplete.Timestamp, smeltingComplete.Rewards),
-                            ActivityLogEF.Legacy.BoostActivatedEntry boostActivated => new ActivityLogEF.BoostActivatedEntry(boostActivated.Timestamp, boostActivated.ItemId),
+                            ActivityLogEF.Legacy.LevelUpEntry levelUp => new ActivityLogEF.LevelUpEntry(levelUp.TimestampDT, levelUp.Level),
+                            ActivityLogEF.Legacy.TappableEntry tappable => new ActivityLogEF.TappableEntry(tappable.TimestampDT, tappable.Rewards),
+                            ActivityLogEF.Legacy.JournalItemUnlockedEntry journalUnlock => new ActivityLogEF.JournalItemUnlockedEntry(journalUnlock.TimestampDT, journalUnlock.ItemId),
+                            ActivityLogEF.Legacy.CraftingCompletedEntry craftingComplete => new ActivityLogEF.CraftingCompletedEntry(craftingComplete.TimestampDT, craftingComplete.Rewards),
+                            ActivityLogEF.Legacy.SmeltingCompletedEntry smeltingComplete => new ActivityLogEF.SmeltingCompletedEntry(smeltingComplete.TimestampDT, smeltingComplete.Rewards),
+                            ActivityLogEF.Legacy.BoostActivatedEntry boostActivated => new ActivityLogEF.BoostActivatedEntry(boostActivated.TimestampDT, boostActivated.ItemId),
                             _ => throw new UnreachableException(),
                         });
                     }

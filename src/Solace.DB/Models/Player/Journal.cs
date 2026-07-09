@@ -18,19 +18,21 @@ public sealed class JournalEF : IEntityWithId<Guid>, IVersionedEntity, IMergeabl
     public ItemJournalEntry? GetItem(Guid uuid)
         => Items.GetValueOrDefault(uuid);
 
-    public int AddCollectedItem(Guid uuid, long timestamp, int count)
+    public int AddCollectedItem(Guid uuid, DateTimeOffset timestamp, int count)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
+
+        var timestampMs = timestamp.ToUnixTimeMilliseconds();
 
         ItemJournalEntry? itemJournalEntry = Items.GetValueOrDefault(uuid);
         if (itemJournalEntry is null)
         {
-            Items[uuid] = new ItemJournalEntry(timestamp, timestamp, count);
+            Items[uuid] = new ItemJournalEntry(timestampMs, timestampMs, count);
             return 0;
         }
         else
         {
-            Items[uuid] = new ItemJournalEntry(itemJournalEntry.FirstSeen, itemJournalEntry.LastSeen, itemJournalEntry.AmountCollected + count);
+            Items[uuid] = new ItemJournalEntry(itemJournalEntry.FirstSeen, timestampMs, itemJournalEntry.AmountCollected + count);
             return itemJournalEntry.AmountCollected;
         }
     }

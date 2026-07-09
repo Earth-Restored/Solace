@@ -22,8 +22,8 @@ internal sealed class SeasonsController : SolaceControllerBase
     [HttpGet("seasons")]
     public ContentHttpResult GetSeason()
     {
-        long now = HttpContext.GetTimestamp();
-        DateTime endDate = DateTimeOffset.FromUnixTimeMilliseconds(now).UtcDateTime.Date.AddDays(30);
+        var now = HttpContext.GetTimestamp();
+        DateTime endDate = now.UtcDateTime.Date.AddDays(30);
         long endsAt = new DateTimeOffset(endDate, TimeSpan.Zero).ToUnixTimeMilliseconds();
 
         return EarthJson(new Dictionary<string, object>
@@ -31,7 +31,7 @@ internal sealed class SeasonsController : SolaceControllerBase
             ["activeSeasonId"] = ActiveSeasonId,
             ["seasonId"] = ActiveSeasonId,
             ["title"] = "Season 17",
-            ["startTimeUtc"] = TimeFormatter.FormatTime(now - 24 * 60 * 60 * 1000),
+            ["startTimeUtc"] = TimeFormatter.FormatTime(now - TimeSpan.FromDays(1)),
             ["endTimeUtc"] = TimeFormatter.FormatTime(endsAt),
             ["premiumPassOwned"] = true,
             ["currentTier"] = 1,
@@ -65,9 +65,9 @@ internal sealed class SeasonsController : SolaceControllerBase
     public Results<ContentHttpResult, BadRequest> SetActiveSeasonChallenge(string id)
     {
         string selectedChallengeId = string.IsNullOrWhiteSpace(id) ? DefaultActiveSeasonChallengeId : id;
-        long now = HttpContext.GetTimestamp();
+        var now = HttpContext.GetTimestamp();
         var updates = new EarthApiResponse.UpdatesResponse();
-        updates.Map["challenges"] = (int)(now / 1000);
+        updates.Map["challenges"] = (int)now.ToUnixTimeSeconds();
 
         return EarthJson(new Dictionary<string, object>
         {

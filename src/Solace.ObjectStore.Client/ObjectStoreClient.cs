@@ -168,7 +168,10 @@ public sealed class ObjectStoreClient : IAsyncDisposable
     }
 
     public async ValueTask DisposeAsync()
-        => _channel.Dispose();
+    {
+        await _channel.ShutdownAsync();
+        _channel.Dispose();
+    }
 
     private sealed class GetObjectStreamWrapper : Stream
     {

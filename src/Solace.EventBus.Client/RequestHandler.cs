@@ -6,7 +6,7 @@ public sealed class RequestHandler : IAsyncDisposable
 {
     private readonly EventBusService.EventBusServiceClient _client;
     private readonly string _queueName;
-    private readonly Func<string, string, Task<string?>> _onRequest;
+    private readonly Func<RequestHandlerRequest, Task<string?>> _onRequest;
     private readonly Func<Exception?, Task> _onError;
     private AsyncDuplexStreamingCall<ClientMessage, ServerMessage>? _call;
 
@@ -16,7 +16,7 @@ public sealed class RequestHandler : IAsyncDisposable
     private SemaphoreSlim? _semaphore;
     private const int MaxDegreeOfParallelism = 4;
 
-    public RequestHandler(EventBusService.EventBusServiceClient client, string queueName, Func<string, string, Task<string?>> onRequest, Func<Exception?, Task> onError)
+    public RequestHandler(EventBusService.EventBusServiceClient client, string queueName, Func<RequestHandlerRequest, Task<string?>> onRequest, Func<Exception?, Task> onError)
     {
         _client = client;
         _queueName = queueName;
@@ -47,7 +47,7 @@ public sealed class RequestHandler : IAsyncDisposable
                     {
                         try
                         {
-                            var outData = await _onRequest(serverMsg.Type, serverMsg.Data);
+                            var outData = await _onRequest(new RequestHandlerRequest(serverMsg.Timestamp.ToDateTimeOffset(), serverMsg.Type, serverMsg.Data));
                             await safeStream.WriteAsync(new ClientMessage
                             {
                                 Response = new HandlerResponse { CorrelationId = serverMsg.CorrelationId, Data = outData ?? "", Success = true, }
@@ -110,3 +110,5 @@ public sealed class RequestHandler : IAsyncDisposable
         _semaphore?.Dispose();
     }
 }
+
+public readonly record struct RequestHandlerRequest(DateTimeOffset Timestamp, string Type, string Data);

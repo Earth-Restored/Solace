@@ -7,8 +7,8 @@ internal sealed record Tappable(
     Guid Id,
     float Lat,
     float Lon,
-    long SpawnTime,
-    long ValidFor,
+    DateTimeOffset SpawnTime,
+    TimeSpan ValidFor,
     string Icon,
     RarityE Rarity,
     Item[] Items

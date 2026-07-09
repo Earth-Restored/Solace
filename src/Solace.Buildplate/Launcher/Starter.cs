@@ -47,7 +47,7 @@ internal sealed partial class Starter
         _loggerFactory = loggerFactory;
     }
 
-    public Instance? StartInstance(Guid instanceId, Guid? playerId, Guid buildplateId, Instance.BuildplateSource buildplateSource, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, long? shutdownTime)
+    public Instance? StartInstance(Guid instanceId, Guid? playerId, Guid buildplateId, Instance.BuildplateSource buildplateSource, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, DateTimeOffset? shutdownTime)
 	{
 		DirectoryInfo? baseDir = CreateInstanceBaseDir(instanceId);
 		if (baseDir is null)

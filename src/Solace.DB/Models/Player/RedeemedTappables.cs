@@ -16,11 +16,11 @@ public sealed class RedeemedTappablesEF : IEntityWithId<Guid>, IVersionedEntity,
     public bool IsRedeemed(Guid id)
         => Tappables.ContainsKey(id);
 
-    public void Add(Guid id, long expiresAt)
-        => Tappables[id] = expiresAt;
+    public void Add(Guid id, DateTimeOffset expiresAt)
+        => Tappables[id] = expiresAt.ToUnixTimeMilliseconds();
 
-    public void Prune(long currentTime)
-        => Tappables.RemoveAll(entry => entry.Value < currentTime);
+    public void Prune(DateTimeOffset currentTime)
+        => Tappables.RemoveAll(entry => entry.Value < currentTime.ToUnixTimeMilliseconds());
 
     public async Task MergeWith(RedeemedTappablesEF other, ValueMerger merger)
     {

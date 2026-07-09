@@ -7,12 +7,12 @@ namespace Solace.ApiServer.Utils;
 
 internal static class CraftingCalculator
 {
-    public static State CalculateState(long currentTime, CraftingSlotEF.ActiveJobR activeJob, Catalog catalog)
+    public static State CalculateState(DateTimeOffset currentTime, CraftingSlotEF.ActiveJobR activeJob, Catalog catalog)
     {
         Catalog.RecipesCatalogR.CraftingRecipe recipe = catalog.RecipesCatalog.Crafting.Where(craftingRecipe => craftingRecipe.Id == activeJob.RecipeId).First();
 
-        long roundDuration = recipe.Duration * 1000;
-        int completedRounds = activeJob.FinishedEarly ? activeJob.TotalRounds : int.Min((int)((currentTime - activeJob.StartTime) / roundDuration), activeJob.TotalRounds);
+        var roundDuration = TimeSpan.FromSeconds(recipe.Duration);
+        int completedRounds = activeJob.FinishedEarly ? activeJob.TotalRounds : int.Min((int)((currentTime - activeJob.StartTimeDT) / roundDuration), activeJob.TotalRounds);
         int availableRounds = completedRounds - activeJob.CollectedRounds;
 
         LinkedList<InputItem> input = [];
@@ -62,8 +62,8 @@ internal static class CraftingCalculator
             activeJob.TotalRounds,
             [.. input],
             new State.OutputItem(recipe.Output.ItemId, recipe.Output.Count),
-            activeJob.StartTime + roundDuration * (completedRounds + 1),
-            activeJob.StartTime + roundDuration * activeJob.TotalRounds,
+            activeJob.StartTimeDT + roundDuration * (completedRounds + 1),
+            activeJob.StartTimeDT + roundDuration * activeJob.TotalRounds,
             completedRounds == activeJob.TotalRounds
         );
     }
@@ -74,8 +74,8 @@ internal static class CraftingCalculator
         int TotalRounds,
         InputItem[] Input,
         State.OutputItem Output,
-        long NextCompletionTime,
-        long TotalCompletionTime,
+        DateTimeOffset NextCompletionTime,
+        DateTimeOffset TotalCompletionTime,
         bool Completed
     )
     {
@@ -86,29 +86,29 @@ internal static class CraftingCalculator
     }
 
     // TODO: make this configurable
-    public static FinishPrice CalculateFinishPrice(int remainingTime)
+    public static FinishPrice CalculateFinishPrice(TimeSpan remainingTime)
     {
-        if (remainingTime < 0)
+        if (remainingTime < TimeSpan.Zero)
         {
             throw new ArgumentException($"{nameof(remainingTime)} is negative.", nameof(remainingTime));
         }
 
-        int periods = remainingTime / 10000;
-        if (remainingTime % 10000 > 0)
+        int periods = (int)remainingTime.TotalSeconds / 10;
+        if ((int)remainingTime.TotalSeconds % 10 > 0)
         {
             periods = periods + 1;
         }
 
         int price = periods * 5;
-        int changesAt = (periods - 1) * 10000;
-        int validFor = remainingTime - changesAt;
+        var changesAt = TimeSpan.FromMilliseconds((periods - 1) * 10000);
+        var validFor = remainingTime - changesAt;
 
         return new FinishPrice(price, validFor);
     }
 
     internal sealed record FinishPrice(
         int Price,
-        int ValidFor
+        TimeSpan ValidFor
     );
 
     // TODO: make this configurable

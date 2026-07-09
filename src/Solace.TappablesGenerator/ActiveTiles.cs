@@ -9,7 +9,7 @@ namespace Solace.TappablesGenerator;
 internal sealed partial class ActiveTiles : IAsyncDisposable
 {
     private const int ACTIVE_TILE_RADIUS = 3;
-    private const long ACTIVE_TILE_EXPIRY_TIME = 2 * 60 * 1000;
+    private static readonly TimeSpan ACTIVE_TILE_EXPIRY_TIME = TimeSpan.FromMinutes(2);
 
     private readonly Dictionary<int, ActiveTile> _activeTiles = [];
     private IActiveTileListener? _activeTileListener;
@@ -26,7 +26,8 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
     {
         _activeTileListener = activeTileListener;
 
-        _requestHandler = await eventBusClient.AddRequestHandlerAsync("tappables", new RequestHandlerLister(async request =>
+        _requestHandler = await eventBusClient.AddRequestHandlerAsync("tappables",
+        async request =>
         {
             if (request.Type == "activeTile")
             {
@@ -41,7 +42,7 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
                     return null;
                 }
 
-                long currentTime = U.CurrentTimeMillis();
+                var currentTime = DateTimeOffset.UtcNow;
                 PruneActiveTiles(currentTime);
 
                 int sideLength = (ACTIVE_TILE_RADIUS * 2) + 1;
@@ -71,25 +72,25 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
                 return null;
             }
         },
-        async () =>
+        async exception =>
         {
-            LogEventBusSubscriberError();
+            LogEventBusSubscriberError(exception);
             Environment.Exit(333);
-        }));
+        });
     }
 
-    public IEnumerable<ActiveTile> GetActiveTiles(long currentTime)
+    public IEnumerable<ActiveTile> GetActiveTiles(DateTimeOffset currentTime)
         => _activeTiles.Values.Where(activeTile => currentTime < activeTile.LatestActiveTime + ACTIVE_TILE_EXPIRY_TIME);
 
     public async ValueTask DisposeAsync()
     {
         if (_requestHandler is not null)
         {
-            await _requestHandler.CloseAsync();
+            await _requestHandler.DisposeAsync();
         }
     }
 
-    private ActiveTile MarkTileActive(int tileX, int tileY, long currentTime)
+    private ActiveTile MarkTileActive(int tileX, int tileY, DateTimeOffset currentTime)
     {
         var activeTile = _activeTiles.GetValueOrDefault((tileX << 16) + tileY);
         if (activeTile is null)
@@ -107,13 +108,13 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
         return activeTile;
     }
 
-    private void PruneActiveTiles(long currentTime)
+    private void PruneActiveTiles(DateTimeOffset currentTime)
     {
         List<KeyValuePair<int, ActiveTile>> entriesToRemove = [];
 
         foreach (var item in _activeTiles)
         {
-            ActiveTile activeTile = item.Value;
+            var activeTile = item.Value;
             if (activeTile.LatestActiveTime + ACTIVE_TILE_EXPIRY_TIME <= currentTime)
             {
                 LogTileIsInactive(activeTile.TileX, activeTile.TileY);
@@ -134,8 +135,8 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
     internal sealed record ActiveTile(
         int TileX,
         int TileY,
-        long FirstActiveTime,
-        long LatestActiveTime
+        DateTimeOffset FirstActiveTime,
+        DateTimeOffset LatestActiveTime
     );
 
     private sealed record ActiveTileNotification(
@@ -173,7 +174,7 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
     private partial void LogCouldNotDeserialiseActiveTileNotificationEvent(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Event bus subscriber error")]
-    private partial void LogEventBusSubscriberError();
+    private partial void LogEventBusSubscriberError(Exception? exception);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Tile ({PosX}, {PosY}) is becoming active")]
     private partial void LogTileIsBecomingActive(int PosX, int PosY);

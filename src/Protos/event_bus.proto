@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 option csharp_namespace = "Solace.EventBus";
 
 package eventbus;
@@ -29,6 +31,7 @@ message SubscribeRequest {
 message EventMessage {
     string type = 1;
     string data = 2;
+    google.protobuf.Timestamp timestamp = 3;
 }
 
 message RequestMessage {
@@ -68,4 +71,5 @@ message ServerMessage {
     string correlation_id = 1;
     string type = 2;
     string data = 3;
+    google.protobuf.Timestamp timestamp = 4;
 }

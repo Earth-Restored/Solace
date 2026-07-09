@@ -176,17 +176,16 @@ internal static partial class App
         // init stuff that requires logger but needs to be injected
         var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
 
-        var eventBusConnectionString = builder.Configuration["services:event-bus:raw-tcp:0"];
+        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
         Debug.Assert(eventBusConnectionString is not null);
-        var eventBusUri = new Uri(eventBusConnectionString);
 
         LogConnectingToEventBus(programLogger);
         EventBusClient eventBus;
         try
         {
-            eventBus = await EventBusClient.ConnectAsync($"{eventBusUri.Host}:{eventBusUri.Port}");
+            eventBus = await EventBusClient.ConnectAsync(eventBusConnectionString, programLogger);
         }
-        catch (EventBusClientException exception)
+        catch (Exception exception)
         {
             LogConnectToEventBusError(programLogger, exception);
             loggerFactory.Dispose();
@@ -204,7 +203,7 @@ internal static partial class App
         {
             objectStore = await ObjectStoreClient.ConnectAsync(objectStoreConnectionString, programLogger);
         }
-        catch (ObjectStoreClientException exception)
+        catch (Exception exception)
         {
             LogConnectToObjectStoreError(programLogger, exception);
             loggerFactory.Dispose();

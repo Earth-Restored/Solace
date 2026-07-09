@@ -66,7 +66,7 @@ internal sealed class DailyGoodiesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
         string today = TodayUtc();
 
         var tokens = await _earthDB.Tokens

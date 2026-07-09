@@ -12,7 +12,7 @@ public sealed record InitialPlayerStateResponse(
     public sealed record BoostStatusEffect(
         BoostStatusEffect.TypeE Type,
         int Value,
-        long RemainingDuration
+        TimeSpan RemainingDuration
     )
     {
         [JsonConverter(typeof(JsonStringEnumConverter))]

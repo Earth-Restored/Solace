@@ -45,7 +45,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         // I know this is ugly, we're making changes to the database in response to a GET request, but if we don't then the client won't correctly update the player health bar in the UI
 
@@ -170,7 +170,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         Catalog.ItemsCatalogR.Item? item = _catalog.ItemsCatalog.GetItem(itemId);
 
@@ -242,7 +242,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
         }
         else
         {
-            boosts.ActiveBoosts[newIndex] = new BoostsEF.ActiveBoost(Guid.NewGuid(), itemId, requestStartedOn, item.BoostInfo.Duration);
+            boosts.ActiveBoosts[newIndex] = new BoostsEF.ActiveBoost(Guid.NewGuid(), itemId, requestStartedOn.ToUnixTimeMilliseconds(), item.BoostInfo.Duration);
             if (item.BoostInfo.Effects.Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.TypeE.HEALTH))
             {
                 // TODO: determine if we should add new player health straight away
@@ -274,7 +274,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         var boosts = await _earthDB.Boosts
             .AsTracking()
@@ -336,7 +336,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
         return EarthJson(null, new EarthApiResponse.UpdatesResponse(results));
     }
 
-    private static bool PruneBoostsAndUpdateProfile(BoostsEF boosts, ProfileEF profile, long currentTime, Catalog.ItemsCatalogR itemsCatalog)
+    private static bool PruneBoostsAndUpdateProfile(BoostsEF boosts, ProfileEF profile, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
     {
         bool profileChanged = false;
         var prunedBoosts = boosts.Prune(currentTime);

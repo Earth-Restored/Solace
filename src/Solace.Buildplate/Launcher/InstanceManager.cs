@@ -38,7 +38,7 @@ internal sealed partial class InstanceManager
         Guid BuildplateId,
         bool Night,
         InstanceType Type,
-        long ShutdownTime
+        DateTimeOffset ShutdownTime
     );
 
     private sealed record StartNotification(
@@ -62,7 +62,7 @@ internal sealed partial class InstanceManager
     {
         _publisher = await eventBusClient.AddPublisherAsync();
 
-        _requestHandler = await eventBusClient.AddRequestHandlerAsync("buildplates", new RequestHandlerLister(
+        _requestHandler = await eventBusClient.AddRequestHandlerAsync("buildplates",
             async request =>
             {
                 if (request.Type is "start")
@@ -92,7 +92,7 @@ internal sealed partial class InstanceManager
                     bool saveEnabled;
                     InventoryType inventoryType;
                     Instance.BuildplateSource buildplateSource;
-                    long? shutdownTime;
+                    DateTimeOffset? shutdownTime;
                     switch (startRequest.Type)
                     {
                         case InstanceType.BUILD:
@@ -229,11 +229,11 @@ internal sealed partial class InstanceManager
                     return null;
                 }
             },
-            async () =>
+            async exception =>
             {
-                LogEventBusRequestHandlerError();
+                LogEventBusRequestHandlerError(exception);
             }
-        ));
+        );
     }
 
     private void SendEventBusMessage(string type, string message)
@@ -253,7 +253,7 @@ internal sealed partial class InstanceManager
     {
         if (_requestHandler is not null)
         {
-            await _requestHandler.CloseAsync();
+            await _requestHandler.DisposeAsync();
         }
 
         _lock.Enter();
@@ -306,7 +306,7 @@ internal sealed partial class InstanceManager
     private partial void LogCouldNotGeneratePreviewForBuildplate();
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Event bus request handler error")]
-    private partial void LogEventBusRequestHandlerError();
+    private partial void LogEventBusRequestHandlerError(Exception? exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Event bus publisher error")]
     private partial void LogEventBusPublisherError();

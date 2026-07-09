@@ -7,8 +7,8 @@ internal sealed record Encounter(
     Guid Id,
     float Lat,
     float Lon,
-    long SpawnTime,
-    long ValidFor,
+    DateTimeOffset SpawnTime,
+    TimeSpan ValidFor,
     string Icon,
     Encounter.RarityE Rarity,
     string EncounterBuildplateId

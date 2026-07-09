@@ -19,7 +19,7 @@ else
 }
 
 var eventBus = builder.AddProject<Projects.Solace_EventBus_Server>("event-bus")
-    .WithEndpoint(scheme: "tcp", name: "raw-tcp", env: "TCP_PORT");
+    .WithHttpEndpoint(name: "http");
 
 var objectStoreDataDirectory = Path.GetFullPath(builder.Configuration.GetValue<string>("ObjectStore:DataDirectory", "data"));
 

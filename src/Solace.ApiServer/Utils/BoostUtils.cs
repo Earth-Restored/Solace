@@ -10,7 +10,7 @@ namespace Solace.ApiServer.Utils;
 
 internal static class BoostUtils
 {
-    public static IEnumerable<Catalog.ItemsCatalogR.Item.BoostInfoR.Effect> GetActiveEffects(BoostsEF boosts, long currentTime, Catalog.ItemsCatalogR itemsCatalog)
+    public static IEnumerable<Catalog.ItemsCatalogR.Item.BoostInfoR.Effect> GetActiveEffects(BoostsEF boosts, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
     {
         Dictionary<string, Catalog.ItemsCatalogR.Item.BoostInfoR> activeBoostsInfo = [];
         foreach (var activeBoost in boosts.ActiveBoosts)
@@ -20,7 +20,7 @@ internal static class BoostUtils
                 continue;
             }
 
-            if (activeBoost.StartTime + activeBoost.Duration < currentTime)
+            if (activeBoost.StartTimeDT + activeBoost.DurationTS < currentTime)
             {
                 continue;
             }
@@ -70,7 +70,7 @@ internal static class BoostUtils
         bool KeepXp
     );
 
-    public static StatModiferValues GetActiveStatModifiers(BoostsEF boosts, long currentTime, Catalog.ItemsCatalogR itemsCatalog)
+    public static StatModiferValues GetActiveStatModifiers(BoostsEF boosts, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
     {
         int maxPlayerHealth = 0;
         int attackMultiplier = 0;
@@ -139,7 +139,7 @@ internal static class BoostUtils
         );
     }
 
-    public static int GetMaxPlayerHealth(BoostsEF boosts, long currentTime, Catalog.ItemsCatalogR itemsCatalog)
+    public static int GetMaxPlayerHealth(BoostsEF boosts, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
         => 20 + (20 * BoostUtils.GetActiveStatModifiers(boosts, currentTime, itemsCatalog).MaxPlayerHealthMultiplier) / 100;
 
     public static Effect BoostEffectToApiResponse(Catalog.ItemsCatalogR.Item.BoostInfoR.Effect effect, long boostDuration)

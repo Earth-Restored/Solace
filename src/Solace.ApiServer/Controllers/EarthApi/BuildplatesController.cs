@@ -124,7 +124,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         var buildplate = await _earthDB.PlayerBuildplates
             .AsNoTracking()
@@ -164,10 +164,10 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             Offset = buildplate.Offset,
             Scale = buildplate.Scale,
             Night = buildplate.Night,
-            Created = requestStartedOn,
+            Created = requestStartedOn.ToUnixTimeMilliseconds(),
             BuildplateLastModifed = buildplate.LastModified,
             ServerDataObjectId = sharedBuildplateServerDataObjectId,
-            LastViewed = requestStartedOn,
+            LastViewed = requestStartedOn.ToUnixTimeMilliseconds(),
             NumberOfTimesViewed = 0,
         };
 
@@ -387,7 +387,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.NotFound();
         }
 
-        var instanceId = await _buildplateInstancesManager.RequestBuildplateInstance(accountId, null, buildplateId, type, 0, buildplate.Night);
+        var instanceId = await _buildplateInstancesManager.RequestBuildplateInstance(accountId, null, buildplateId, type, DateTimeOffset.MinValue, buildplate.Night);
         if (instanceId is null)
         {
             return TypedResults.InternalServerError();
@@ -420,7 +420,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.NotFound();
         }
 
-        var instanceId = await _buildplateInstancesManager.RequestBuildplateInstance(accountId, null, sharedBuildplateId, type, 0, sharedBuildplate.Night);
+        var instanceId = await _buildplateInstancesManager.RequestBuildplateInstance(accountId, null, sharedBuildplateId, type, DateTimeOffset.MinValue, sharedBuildplate.Night);
         if (instanceId is null)
         {
             return TypedResults.InternalServerError();

@@ -36,7 +36,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
     }
 
     internal async Task InitializeAsync(EventBusClient eventBusClient)
-        => _requestHandler = await eventBusClient.AddRequestHandlerAsync("buildplates", new RequestHandlerLister(
+        => _requestHandler = await eventBusClient.AddRequestHandlerAsync("buildplates",
             async request =>
             {
                 try
@@ -184,18 +184,18 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                     return null;
                 }
             },
-            async () =>
+            async exception =>
             {
-                LogBuildplatesEventBusRequestHandlerError();
+                LogBuildplatesEventBusRequestHandlerError(exception);
                 Environment.Exit(1);
             }
-        ));
+        );
 
     public async ValueTask DisposeAsync()
     {
         if (_requestHandler is not null)
         {
-            await _requestHandler.CloseAsync();
+            await _requestHandler.DisposeAsync();
         }
     }
 
@@ -291,7 +291,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
         return new BuildplateLoadResponse(serverDataBase64);
     }
 
-    private async Task<bool> HandleSaved(Guid instanceId, string dataBase64, long timestamp)
+    private async Task<bool> HandleSaved(Guid instanceId, string dataBase64, DateTimeOffset timestamp)
     {
         BuildplateInstancesManager.InstanceInfo? instanceInfo = _buildplateInstancesManager.GetInstanceInfo(instanceId);
         if (instanceInfo is null)
@@ -376,7 +376,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
 
             string oldServerDataObjectId = buildplate.ServerDataObjectId;
 
-            buildplate.LastModified = timestamp;
+            buildplate.LastModified = timestamp.ToUnixTimeMilliseconds();
             buildplate.ServerDataObjectId = serverDataObjectId;
 
             string oldPreviewObjectId;
@@ -557,7 +557,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
         return playerConnectedResponse;
     }
 
-    private async Task<PlayerDisconnectedResponse?> HandlePlayerDisconnected(Guid instanceId, PlayerDisconnectedRequest playerDisconnectedRequest, long timestamp)
+    private async Task<PlayerDisconnectedResponse?> HandlePlayerDisconnected(Guid instanceId, PlayerDisconnectedRequest playerDisconnectedRequest, DateTimeOffset timestamp)
     {
         BuildplateInstancesManager.InstanceInfo? instanceInfo = _buildplateInstancesManager.GetInstanceInfo(instanceId);
         if (instanceInfo is null)
@@ -648,7 +648,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
     }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-    private bool? HandlePlayerDead(Guid instanceId, Guid playerId, long currentTime)
+    private bool? HandlePlayerDead(Guid instanceId, Guid playerId, DateTimeOffset currentTime)
 #pragma warning restore IDE0060 // Remove unused parameter
     {
         BuildplateInstancesManager.InstanceInfo? instanceInfo = _buildplateInstancesManager.GetInstanceInfo(instanceId);
@@ -658,10 +658,11 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
     }
 
     private sealed record EffectInfo(
-        long EndTime,
+        DateTimeOffset EndTime,
         Catalog.ItemsCatalogR.Item.BoostInfoR.Effect Effect
     );
-    private async Task<InitialPlayerStateResponse?> HandleGetInitialPlayerState(Guid instanceId, Guid accountId, long currentTime)
+
+    private async Task<InitialPlayerStateResponse?> HandleGetInitialPlayerState(Guid instanceId, Guid accountId, DateTimeOffset currentTime)
     {
         BuildplateInstancesManager.InstanceInfo? instanceInfo = _buildplateInstancesManager.GetInstanceInfo(instanceId);
 
@@ -707,8 +708,8 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                 useHealth ? float.Min(profile.Health, maxHealth) : maxHealth,
                 [.. boosts.ActiveBoosts
                 .Where(activeBoost => activeBoost is not null)
-                .Where(activeBoost => activeBoost!.StartTime + activeBoost.Duration >= currentTime)
-                .SelectMany(activeBoost => _catalog.ItemsCatalog.GetItem(activeBoost!.ItemId)!.BoostInfo!.Effects.Select(effect => new EffectInfo(activeBoost.StartTime + activeBoost.Duration, effect)))
+                .Where(activeBoost => activeBoost!.StartTimeDT + activeBoost.DurationTS >= currentTime)
+                .SelectMany(activeBoost => _catalog.ItemsCatalog.GetItem(activeBoost!.ItemId)!.BoostInfo!.Effects.Select(effect => new EffectInfo(activeBoost.StartTimeDT + activeBoost.DurationTS, effect)))
                 .Where(effectInfo => effectInfo.Effect.Type is CICIBIEType.ADVENTURE_XP or CICIBIEType.DEFENSE or CICIBIEType.EATING or CICIBIEType.HEALTH or CICIBIEType.MINING_SPEED or CICIBIEType.STRENGTH)
                 .Select(effectInfo => new InitialPlayerStateResponse.BoostStatusEffect(
                     effectInfo.Effect.Type switch
@@ -755,7 +756,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
     }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-    private async Task<bool> HandleInventoryAdd(Guid instanceId, InventoryAddItemMessage inventoryAddItemMessage, long timestamp)
+    private async Task<bool> HandleInventoryAdd(Guid instanceId, InventoryAddItemMessage inventoryAddItemMessage, DateTimeOffset timestamp)
 #pragma warning restore IDE0060 // Remove unused parameter
     {
         Catalog.ItemsCatalogR.Item? catalogItem = _catalog.ItemsCatalog.GetItem(inventoryAddItemMessage.ItemId);
@@ -951,7 +952,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
     private partial void LogDatabaseErrorWhileHandlingRequest(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "Buildplates event bus request handler error")]
-    private partial void LogBuildplatesEventBusRequestHandlerError();
+    private partial void LogBuildplatesEventBusRequestHandlerError(Exception? exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "World data object {ServerDataObjectId} for buildplate {BuildplateId} could not be loaded from object store")]
     private partial void LogFailedToGetServerData(string ServerDataObjectId, Guid BuildplateId);

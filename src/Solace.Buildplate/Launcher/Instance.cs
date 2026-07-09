@@ -19,7 +19,7 @@ internal sealed partial class Instance
 {
     private const long HOST_PLAYER_CONNECT_TIMEOUT = 120_000;
 
-    public static Instance Run(EventBusClient eventBusClient, Guid? playerId, Guid buildplateId, BuildplateSource buildplateSource, Guid instanceId, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, long? shutdownTime, string publicAddress, int port, int serverInternalPort, string javaCmd, FileInfo fountainBridgeJar, DirectoryInfo serverTemplateDir, string fabricJarName, FileInfo connectorPluginJar, DirectoryInfo baseDir, string eventBusConnectionString, ILoggerFactory loggerFactory, ILogger logger)
+    public static Instance Run(EventBusClient eventBusClient, Guid? playerId, Guid buildplateId, BuildplateSource buildplateSource, Guid instanceId, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, DateTimeOffset? shutdownTime, string publicAddress, int port, int serverInternalPort, string javaCmd, FileInfo fountainBridgeJar, DirectoryInfo serverTemplateDir, string fabricJarName, FileInfo connectorPluginJar, DirectoryInfo baseDir, string eventBusConnectionString, ILoggerFactory loggerFactory, ILogger logger)
     {
         if (playerId is null && buildplateSource is BuildplateSource.PLAYER)
         {
@@ -44,7 +44,7 @@ internal sealed partial class Instance
     private readonly bool _night;
     private readonly bool _saveEnabled;
     private readonly InventoryType _inventoryType;
-    private readonly long? _shutdownTime;
+    private readonly DateTimeOffset? _shutdownTime;
 
     public readonly string PublicAddress;
     public readonly int Port;
@@ -81,7 +81,7 @@ internal sealed partial class Instance
 
     private volatile bool _hostPlayerConnected;
 
-    private Instance(EventBusClient eventBusClient, Guid? playerId, Guid buildplateId, BuildplateSource buildplateSource, Guid instanceId, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, long? shutdownTime, string publicAddress, int port, int serverInternalPort, string javaCmd, FileInfo fountainBridgeJar, DirectoryInfo serverTemplateDir, string fabricJarName, FileInfo connectorPluginJar, DirectoryInfo baseDir, string eventBusConnectionString, ILoggerFactory loggerFactory, ILogger logger)
+    private Instance(EventBusClient eventBusClient, Guid? playerId, Guid buildplateId, BuildplateSource buildplateSource, Guid instanceId, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, DateTimeOffset? shutdownTime, string publicAddress, int port, int serverInternalPort, string javaCmd, FileInfo fountainBridgeJar, DirectoryInfo serverTemplateDir, string fabricJarName, FileInfo connectorPluginJar, DirectoryInfo baseDir, string eventBusConnectionString, ILoggerFactory loggerFactory, ILogger logger)
     {
         _eventBusClient = eventBusClient;
 
@@ -203,27 +203,27 @@ internal sealed partial class Instance
 
             LogRunningServer();
 
-            _subscriber = await _eventBusClient.AddSubscriberAsync(_eventBusQueueName, new SubscriberListener(
+            _subscriber = await _eventBusClient.AddSubscriberAsync(_eventBusQueueName,
                 HandleConnectorEvent,
-                async () =>
+                async exception =>
                 {
-                    LogEventBusSubscriberError();
+                    LogEventBusSubscriberError(exception);
                     BeginShutdown();
                 }
-            ));
+            );
 
-            _requestHandler = await _eventBusClient.AddRequestHandlerAsync(_eventBusQueueName, new RequestHandlerLister(
+            _requestHandler = await _eventBusClient.AddRequestHandlerAsync(_eventBusQueueName,
                 async request =>
                 {
                     object? responseObject = await HandleConnectorRequest(request);
                     return responseObject is not null ? Json.Serialize(responseObject) : null;
                 },
-                async () =>
+                async exception =>
                 {
-                    LogEventBusRequestHandlerError();
+                    LogEventBusRequestHandlerError(exception);
                     BeginShutdown();
                 }
-            ));
+            );
 
             var @lock = await _subprocessLock.LockAsync(CancellationToken.None);
 
@@ -278,24 +278,22 @@ internal sealed partial class Instance
         {
             if (_subscriber is not null)
             {
-                await _subscriber.CloseAsync();
+                await _subscriber.DisposeAsync();
             }
 
             if (_requestHandler is not null)
             {
-                await _requestHandler.CloseAsync();
+                await _requestHandler.DisposeAsync();
             }
 
             if (_publisher is not null)
             {
-                await _publisher.FlushAsync();
-                await _publisher.CloseAsync();
+                await _publisher.DisposeAsync();
             }
 
             if (_requestSender is not null)
             {
-                await _requestSender.FlushAsync();
-                await _requestSender.CloseAsync();
+                await _requestSender.DisposeAsync();
             }
 
             CleanupBaseDir();
@@ -1044,17 +1042,17 @@ internal sealed partial class Instance
 
             if (_shutdownTime is { } shutdownTime)
             {
-                long currentTime = U.CurrentTimeMillis();
+                var currentTime = DateTimeOffset.UtcNow;
                 while (currentTime < shutdownTime)
                 {
-                    long duration = shutdownTime - currentTime;
-                    if (duration > 0)
+                    var duration = shutdownTime - currentTime;
+                    if (duration > TimeSpan.Zero)
                     {
-                        LogShutdownTimerProgress(duration);
-                        await Task.Delay(checked((int)(duration > 2000 ? (duration / 2) : duration)));
+                        LogShutdownTimerProgress((long)duration.TotalSeconds);
+                        await Task.Delay(checked((int)(duration.TotalMilliseconds > 2000 ? (duration.TotalMilliseconds / 2) : duration.TotalMilliseconds)));
                     }
 
-                    currentTime = U.CurrentTimeMillis();
+                    currentTime = DateTimeOffset.UtcNow;
                 }
             }
 
@@ -1172,10 +1170,10 @@ internal sealed partial class Instance
     private partial void LogRunningServer();
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Event bus subscriber error")]
-    private partial void LogEventBusSubscriberError();
+    private partial void LogEventBusSubscriberError(Exception? exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Event bus request handler error")]
-    private partial void LogEventBusRequestHandlerError();
+    private partial void LogEventBusRequestHandlerError(Exception? exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Server process has unexpectedly terminated with exit code {ExitCode}")]
     private partial void LogServerProcessUnexpectedExit(string ExitCode);
@@ -1303,7 +1301,7 @@ internal sealed partial class Instance
     [LoggerMessage(Level = LogLevel.Information, Message = "Host player has not connected yet, shutting down")]
     private partial void LogHostConnectTimerDone();
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Server will shut down in {DurationMiliseconds} milliseconds")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Server will shut down in {DurationMiliseconds} seconds")]
     private partial void LogShutdownTimerProgress(long DurationMiliseconds);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Shutdown time has been reached, shutting down")]

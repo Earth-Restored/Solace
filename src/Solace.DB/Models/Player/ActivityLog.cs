@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -84,12 +85,21 @@ public sealed class ActivityLogEF : IEntityWithId<Guid>, IVersionedEntity, IMerg
     {
         public long Timestamp { get; init; }
 
-        [JsonIgnore]
+        [JsonIgnore, NotMapped]
         public TypeE Type { get; init; }
+
+        [JsonIgnore, NotMapped]
+        public DateTimeOffset TimestampDT { get => DateTimeOffset.FromUnixTimeMilliseconds(Timestamp); init => Timestamp = value.ToUnixTimeMilliseconds(); }
 
         protected Entry(long timestamp, TypeE type)
         {
             Timestamp = timestamp;
+            Type = type;
+        }
+
+        protected Entry(DateTimeOffset timestamp, TypeE type)
+        {
+            TimestampDT = timestamp;
             Type = type;
         }
 
@@ -135,6 +145,13 @@ public sealed class ActivityLogEF : IEntityWithId<Guid>, IVersionedEntity, IMerg
     {
         public int Level { get; init; }
 
+        public LevelUpEntry(DateTimeOffset timestamp, int level)
+            : base(timestamp, TypeE.LEVEL_UP)
+        {
+            Level = level;
+        }
+
+        [JsonConstructor]
         public LevelUpEntry(long timestamp, int level)
             : base(timestamp, TypeE.LEVEL_UP)
         {
@@ -148,13 +165,20 @@ public sealed class ActivityLogEF : IEntityWithId<Guid>, IVersionedEntity, IMerg
             => HashCode.Combine(Timestamp, Level);
 
         public override LevelUpEntry DeepCopy()
-            => new LevelUpEntry(Timestamp, Level);
+            => new LevelUpEntry(TimestampDT, Level);
     }
 
     public sealed class TappableEntry : Entry
     {
         public Rewards Rewards { get; init; }
 
+        public TappableEntry(DateTimeOffset timestamp, Rewards rewards)
+            : base(timestamp, TypeE.TAPPABLE)
+        {
+            Rewards = rewards;
+        }
+
+        [JsonConstructor]
         public TappableEntry(long timestamp, Rewards rewards)
             : base(timestamp, TypeE.TAPPABLE)
         {
@@ -168,13 +192,20 @@ public sealed class ActivityLogEF : IEntityWithId<Guid>, IVersionedEntity, IMerg
             => HashCode.Combine(Timestamp, Rewards);
 
         public override TappableEntry DeepCopy()
-            => new TappableEntry(Timestamp, Rewards.DeepCopy());
+            => new TappableEntry(TimestampDT, Rewards.DeepCopy());
     }
 
     public sealed class JournalItemUnlockedEntry : Entry
     {
         public Guid ItemId { get; init; }
 
+        public JournalItemUnlockedEntry(DateTimeOffset timestamp, Guid itemId)
+            : base(timestamp, TypeE.JOURNAL_ITEM_UNLOCKED)
+        {
+            ItemId = itemId;
+        }
+
+        [JsonConstructor]
         public JournalItemUnlockedEntry(long timestamp, Guid itemId)
             : base(timestamp, TypeE.JOURNAL_ITEM_UNLOCKED)
         {
@@ -188,13 +219,20 @@ public sealed class ActivityLogEF : IEntityWithId<Guid>, IVersionedEntity, IMerg
             => HashCode.Combine(Timestamp, ItemId);
 
         public override JournalItemUnlockedEntry DeepCopy()
-            => new JournalItemUnlockedEntry(Timestamp, ItemId);
+            => new JournalItemUnlockedEntry(TimestampDT, ItemId);
     }
 
     public sealed class CraftingCompletedEntry : Entry
     {
         public Rewards Rewards { get; init; }
 
+        public CraftingCompletedEntry(DateTimeOffset timestamp, Rewards rewards)
+            : base(timestamp, TypeE.CRAFTING_COMPLETED)
+        {
+            Rewards = rewards;
+        }
+
+        [JsonConstructor]
         public CraftingCompletedEntry(long timestamp, Rewards rewards)
             : base(timestamp, TypeE.CRAFTING_COMPLETED)
         {
@@ -208,13 +246,20 @@ public sealed class ActivityLogEF : IEntityWithId<Guid>, IVersionedEntity, IMerg
             => HashCode.Combine(Timestamp, Rewards);
 
         public override CraftingCompletedEntry DeepCopy()
-            => new CraftingCompletedEntry(Timestamp, Rewards.DeepCopy());
+            => new CraftingCompletedEntry(TimestampDT, Rewards.DeepCopy());
     }
 
     public sealed class SmeltingCompletedEntry : Entry
     {
         public Rewards Rewards { get; init; }
 
+        public SmeltingCompletedEntry(DateTimeOffset timestamp, Rewards rewards)
+            : base(timestamp, TypeE.SMELTING_COMPLETED)
+        {
+            Rewards = rewards;
+        }
+
+        [JsonConstructor]
         public SmeltingCompletedEntry(long timestamp, Rewards rewards)
             : base(timestamp, TypeE.SMELTING_COMPLETED)
         {
@@ -228,13 +273,20 @@ public sealed class ActivityLogEF : IEntityWithId<Guid>, IVersionedEntity, IMerg
             => HashCode.Combine(Timestamp, Rewards);
 
         public override SmeltingCompletedEntry DeepCopy()
-            => new SmeltingCompletedEntry(Timestamp, Rewards.DeepCopy());
+            => new SmeltingCompletedEntry(TimestampDT, Rewards.DeepCopy());
     }
 
     public sealed class BoostActivatedEntry : Entry
     {
         public Guid ItemId { get; init; }
 
+        public BoostActivatedEntry(DateTimeOffset timestamp, Guid itemId)
+            : base(timestamp, TypeE.BOOST_ACTIVATED)
+        {
+            ItemId = itemId;
+        }
+
+        [JsonConstructor]
         public BoostActivatedEntry(long timestamp, Guid itemId)
             : base(timestamp, TypeE.BOOST_ACTIVATED)
         {
@@ -248,7 +300,7 @@ public sealed class ActivityLogEF : IEntityWithId<Guid>, IVersionedEntity, IMerg
             => HashCode.Combine(Timestamp, ItemId);
 
         public override BoostActivatedEntry DeepCopy()
-            => new BoostActivatedEntry(Timestamp, ItemId);
+            => new BoostActivatedEntry(TimestampDT, ItemId);
     }
 
     public sealed class Legacy : IEquatable<Legacy>
@@ -292,6 +344,9 @@ public sealed class ActivityLogEF : IEntityWithId<Guid>, IVersionedEntity, IMerg
 
             [JsonIgnore]
             public TypeE Type { get; init; }
+
+            [JsonIgnore]
+            public DateTimeOffset TimestampDT { get => DateTimeOffset.FromUnixTimeMilliseconds(Timestamp); init => Timestamp = value.ToUnixTimeMilliseconds(); }
 
             protected Entry(long timestamp, TypeE type)
             {

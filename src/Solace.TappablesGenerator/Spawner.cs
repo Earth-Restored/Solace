@@ -8,7 +8,7 @@ namespace Solace.TappablesGenerator;
 
 internal sealed partial class Spawner : IAsyncDisposable
 {
-    private const long SPAWN_INTERVAL = 15 * 1000;
+    private static readonly TimeSpan SPAWN_INTERVAL = TimeSpan.FromSeconds(15);
 
     private readonly ActiveTiles _activeTiles;
     private readonly TappableGenerator _tappableGenerator;
@@ -19,7 +19,7 @@ internal sealed partial class Spawner : IAsyncDisposable
 
     private readonly int _maxTappableLifetimeIntervals;
 
-    private long _spawnCycleTime;
+    private DateTimeOffset _spawnCycleTime;
     private int _spawnCycleIndex;
     private readonly Dictionary<int, int> _lastSpawnCycleForTile = [];
 
@@ -32,9 +32,9 @@ internal sealed partial class Spawner : IAsyncDisposable
 
         _logger = logger;
 
-        _maxTappableLifetimeIntervals = (int)(long.Max(TappableGenerator.GetMaxTappableLifetime(), _encounterGenerator.GetMaxEncounterLifetime()) / SPAWN_INTERVAL + 1);
+        _maxTappableLifetimeIntervals = (int)(long.Max((long)_tappableGenerator.GetMaxTappableLifetime().TotalMilliseconds, (long)_encounterGenerator.GetMaxEncounterLifetime().TotalMilliseconds) / (long)SPAWN_INTERVAL.TotalMilliseconds + 1);
 
-        _spawnCycleTime = U.CurrentTimeMillis();
+        _spawnCycleTime = DateTimeOffset.UtcNow;
         _spawnCycleIndex = _maxTappableLifetimeIntervals;
     }
 
@@ -43,10 +43,10 @@ internal sealed partial class Spawner : IAsyncDisposable
 
     public async Task RunAsync()
     {
-        long nextTime = U.CurrentTimeMillis() + SPAWN_INTERVAL;
+        var nextTime = DateTimeOffset.UtcNow + SPAWN_INTERVAL;
         while (true)
         {
-            await Task.Delay(Math.Max(0, (int)(nextTime - U.CurrentTimeMillis())));
+            await Task.Delay(Math.Max(0, (int)(nextTime - DateTimeOffset.UtcNow).TotalMilliseconds));
 
             nextTime += SPAWN_INTERVAL;
 
@@ -57,10 +57,10 @@ internal sealed partial class Spawner : IAsyncDisposable
     [Obsolete($"Use {nameof(SpawnTiles)} instead.")]
     public async Task SpawnTile(int tileX, int tileY)
     {
-        long spawnCycleTime = _spawnCycleTime;
-        int spawnCycleIndex = _spawnCycleIndex;
+        var spawnCycleTime = _spawnCycleTime;
+        var spawnCycleIndex = _spawnCycleIndex;
 
-        while (spawnCycleTime < U.CurrentTimeMillis())
+        while (spawnCycleTime < DateTimeOffset.UtcNow)
         {
             spawnCycleTime += SPAWN_INTERVAL;
             spawnCycleIndex++;
@@ -71,7 +71,7 @@ internal sealed partial class Spawner : IAsyncDisposable
         List<Encounter> encounters = [];
         DoSpawnCyclesForTile(tileX, tileY, spawnCycleTime, spawnCycleIndex, tappables, encounters);
 
-        long tappableCutoffTime = spawnCycleTime - SPAWN_INTERVAL;
+        var tappableCutoffTime = spawnCycleTime - SPAWN_INTERVAL;
         tappables.RemoveAll(tappable => tappable.SpawnTime + tappable.ValidFor < tappableCutoffTime);
         encounters.RemoveAll(encounter => encounter.SpawnTime + encounter.ValidFor < tappableCutoffTime);
 
@@ -80,10 +80,10 @@ internal sealed partial class Spawner : IAsyncDisposable
 
     public async Task SpawnTiles(IEnumerable<ActiveTiles.ActiveTile> activeTiles)
     {
-        long spawnCycleTime = _spawnCycleTime;
+        var spawnCycleTime = _spawnCycleTime;
         int spawnCycleIndex = _spawnCycleIndex;
 
-        while (spawnCycleTime < U.CurrentTimeMillis())
+        while (spawnCycleTime < DateTimeOffset.UtcNow)
         {
             spawnCycleTime += SPAWN_INTERVAL;
             spawnCycleIndex++;
@@ -96,7 +96,7 @@ internal sealed partial class Spawner : IAsyncDisposable
             DoSpawnCyclesForTile(activeTile.TileX, activeTile.TileY, spawnCycleTime, spawnCycleIndex, tappables, encounters);
         }
 
-        long tappableCutoffTime = spawnCycleTime - SPAWN_INTERVAL;
+        var tappableCutoffTime = spawnCycleTime - SPAWN_INTERVAL;
         tappables.RemoveAll(tappable => tappable.SpawnTime + tappable.ValidFor < tappableCutoffTime);
         encounters.RemoveAll(encounter => encounter.SpawnTime + encounter.ValidFor < tappableCutoffTime);
 
@@ -115,7 +115,7 @@ internal sealed partial class Spawner : IAsyncDisposable
     {
         var activeTiles = _activeTiles.GetActiveTiles(_spawnCycleTime);
 
-        while (_spawnCycleTime < U.CurrentTimeMillis())
+        while (_spawnCycleTime < DateTimeOffset.UtcNow)
         {
             _spawnCycleTime += SPAWN_INTERVAL;
             _spawnCycleIndex++;
@@ -128,7 +128,7 @@ internal sealed partial class Spawner : IAsyncDisposable
             DoSpawnCyclesForTile(activeTile.TileX, activeTile.TileY, _spawnCycleTime, _spawnCycleIndex, tappables, encounters);
         }
 
-        long tappableCutoffTime = _spawnCycleTime - SPAWN_INTERVAL;
+        var tappableCutoffTime = _spawnCycleTime - SPAWN_INTERVAL;
 
         tappables.RemoveAll(tappable => tappable.SpawnTime + tappable.ValidFor < tappableCutoffTime);
         encounters.RemoveAll(encounter => encounter.SpawnTime + encounter.ValidFor < tappableCutoffTime);
@@ -136,7 +136,7 @@ internal sealed partial class Spawner : IAsyncDisposable
         await SendSpawnedTappables(tappables, encounters);
     }
 
-    private void DoSpawnCyclesForTile(int tileX, int tileY, long spawnCycleTime, int spawnCycleIndex, List<Tappable> tappables, List<Encounter> encounters)
+    private void DoSpawnCyclesForTile(int tileX, int tileY, DateTimeOffset spawnCycleTime, int spawnCycleIndex, List<Tappable> tappables, List<Encounter> encounters)
     {
         int lastSpawnCycle = _lastSpawnCycleForTile.GetValueOrDefault((tileX << 16) + tileY);
         int cyclesToSpawn = Math.Min(spawnCycleIndex - lastSpawnCycle, _maxTappableLifetimeIntervals);
@@ -148,7 +148,7 @@ internal sealed partial class Spawner : IAsyncDisposable
         _lastSpawnCycleForTile[(tileX << 16) + tileY] = spawnCycleIndex;
     }
 
-    private void SpawnTappablesForTile(int tileX, int tileY, long currentTime, List<Tappable> tappables, List<Encounter> encounters)
+    private void SpawnTappablesForTile(int tileX, int tileY, DateTimeOffset currentTime, List<Tappable> tappables, List<Encounter> encounters)
     {
         tappables.AddRange(_tappableGenerator.GenerateTappables(tileX, tileY, currentTime));
         encounters.AddRange(_encounterGenerator.GenerateEncounters(tileX, tileY, currentTime));

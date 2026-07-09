@@ -60,7 +60,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         var craftingSlots = await _earthDb.CraftingSlots
             .AsNoTracking()
@@ -98,7 +98,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         var craftingSlots = await _earthDb.CraftingSlots
             .AsNoTracking()
@@ -116,7 +116,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         var smeltingSlots = await _earthDb.SmeltingSlots
             .AsNoTracking()
@@ -134,7 +134,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         StartRequestCrafting? startRequest = await Request.Body.AsJsonAsync<StartRequestCrafting>(cancellationToken);
         if (startRequest is null || startRequest.Multiplier < 1)
@@ -278,7 +278,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
         }
 
-        craftingSlot.ActiveJob = new CraftingSlot.ActiveJobR(startRequest.SessionId, recipe.Id, requestStartedOn, [.. inputItems.Select(inputItems1 => new CraftingSlot.InputRow([.. inputItems1]))], startRequest.Multiplier, 0, false);
+        craftingSlot.ActiveJob = new CraftingSlot.ActiveJobR(startRequest.SessionId, recipe.Id, requestStartedOn.ToUnixTimeMilliseconds(), [.. inputItems.Select(inputItems1 => new CraftingSlot.InputRow([.. inputItems1]))], startRequest.Multiplier, 0, false);
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
@@ -294,7 +294,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         StartRequestSmelting? startRequest = await Request.Body.AsJsonAsync<StartRequestSmelting>(cancellationToken);
         if (startRequest is null || startRequest.Multiplier < 1)
@@ -440,7 +440,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         hotbar.LimitToInventory(inventory);
 
-        smeltingSlot.ActiveJob = new SmeltingSlot.ActiveJobR(startRequest.SessionId, recipe.Id, requestStartedOn, input, fuel, startRequest.Multiplier, 0, false);
+        smeltingSlot.ActiveJob = new SmeltingSlot.ActiveJobR(startRequest.SessionId, recipe.Id, requestStartedOn.ToUnixTimeMilliseconds(), input, fuel, startRequest.Multiplier, 0, false);
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
@@ -456,7 +456,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         var craftingSlots = await _earthDb.CraftingSlots
             .AsTracking()
@@ -509,7 +509,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         var smeltingSlots = await _earthDb.SmeltingSlots
             .AsTracking()
@@ -573,7 +573,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         var craftingSlots = await _earthDb.CraftingSlots
             .AsTracking()
@@ -641,7 +641,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         var smeltingSlots = await _earthDb.SmeltingSlots
             .AsTracking()
@@ -728,7 +728,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         ExpectedPurchasePriceR? expectedPurchasePrice = await Request.Body.AsJsonAsync<ExpectedPurchasePriceR>(cancellationToken);
         if (expectedPurchasePrice is null || expectedPurchasePrice.ExpectedPurchasePrice < 0)
@@ -757,13 +757,13 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse());
         }
 
-        int remainingTime = (int)(state.TotalCompletionTime - requestStartedOn);
-        if (remainingTime < 0)
+        var remainingTime = state.TotalCompletionTime - requestStartedOn;
+        if (remainingTime < TimeSpan.Zero)
         {
             return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse());
         }
 
-        CraftingCalculator.FinishPrice finishPrice = CraftingCalculator.CalculateFinishPrice(remainingTime);
+        var finishPrice = CraftingCalculator.CalculateFinishPrice(remainingTime);
 
         if (expectedPurchasePrice.ExpectedPurchasePrice < finishPrice.Price)
         {
@@ -796,7 +796,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         ExpectedPurchasePriceR? expectedPurchasePrice = await Request.Body.AsJsonAsync<ExpectedPurchasePriceR>(cancellationToken);
         if (expectedPurchasePrice is null || expectedPurchasePrice.ExpectedPurchasePrice < 0)
@@ -825,13 +825,13 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse());
         }
 
-        int remainingTime = (int)(state.TotalCompletionTime - requestStartedOn);
-        if (remainingTime < 0)
+        var remainingTime = state.TotalCompletionTime - requestStartedOn;
+        if (remainingTime < TimeSpan.Zero)
         {
             return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse());
         }
 
-        SmeltingCalculator.FinishPrice finishPrice = SmeltingCalculator.CalculateFinishPrice(remainingTime);
+        var finishPrice = SmeltingCalculator.CalculateFinishPrice(remainingTime);
 
         if (expectedPurchasePrice.ExpectedPurchasePrice < finishPrice.Price)
         {
@@ -863,11 +863,11 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        int remainingTime;
+        TimeSpan remainingTime;
         try
         {
-            remainingTime = (int)TimeFormatter.ParseDuration(remainingTimeString.ToString());
-            if (remainingTime < 0)
+            remainingTime = TimeFormatter.ParseDuration(remainingTimeString.ToString());
+            if (remainingTime < TimeSpan.Zero)
             {
                 return TypedResults.BadRequest();
             }
@@ -877,7 +877,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        CraftingCalculator.FinishPrice finishPrice = CraftingCalculator.CalculateFinishPrice(remainingTime);
+        var finishPrice = CraftingCalculator.CalculateFinishPrice(remainingTime);
 
         return EarthJson(new FinishPrice(finishPrice.Price, 0, TimeFormatter.FormatDuration(finishPrice.ValidFor)));
     }
@@ -890,11 +890,11 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        int remainingTime;
+        TimeSpan remainingTime;
         try
         {
-            remainingTime = (int)TimeFormatter.ParseDuration(remainingTimeString.ToString());
-            if (remainingTime < 0)
+            remainingTime = TimeFormatter.ParseDuration(remainingTimeString.ToString());
+            if (remainingTime < TimeSpan.Zero)
             {
                 return TypedResults.BadRequest();
             }
@@ -1013,7 +1013,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse(results));
     }
 
-    private Types.Workshop.CraftingSlot CraftingSlotModelToResponseIncludingLocked(CraftingSlot craftingSlotModel, long currentTime, int streamVersion, int slotIndex)
+    private Types.Workshop.CraftingSlot CraftingSlotModelToResponseIncludingLocked(CraftingSlot craftingSlotModel, DateTimeOffset currentTime, int streamVersion, int slotIndex)
     {
         if (craftingSlotModel.Locked)
         {
@@ -1025,7 +1025,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
     }
 
-    private Types.Workshop.CraftingSlot CraftingSlotModelToResponse(CraftingSlot craftingSlotModel, long currentTime, int streamVersion)
+    private Types.Workshop.CraftingSlot CraftingSlotModelToResponse(CraftingSlot craftingSlotModel, DateTimeOffset currentTime, int streamVersion)
     {
         if (craftingSlotModel.Locked)
         {
@@ -1062,7 +1062,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
     }
 
-    private Types.Workshop.SmeltingSlot SmeltingSlotModelToResponseIncludingLocked(SmeltingSlot smeltingSlotModel, long currentTime, int streamVersion, int slotIndex)
+    private Types.Workshop.SmeltingSlot SmeltingSlotModelToResponseIncludingLocked(SmeltingSlot smeltingSlotModel, DateTimeOffset currentTime, int streamVersion, int slotIndex)
     {
         if (smeltingSlotModel.Locked)
         {
@@ -1074,7 +1074,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
     }
 
-    private Types.Workshop.SmeltingSlot SmeltingSlotModelToResponse(SmeltingSlot smeltingSlotModel, long currentTime, int streamVersion)
+    private Types.Workshop.SmeltingSlot SmeltingSlotModelToResponse(SmeltingSlot smeltingSlotModel, DateTimeOffset currentTime, int streamVersion)
     {
         if (smeltingSlotModel.Locked)
         {

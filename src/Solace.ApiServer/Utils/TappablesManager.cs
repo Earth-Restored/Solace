@@ -8,7 +8,7 @@ namespace Solace.ApiServer.Utils;
 
 internal sealed partial class TappablesManager : IAsyncDisposable
 {
-    private const long GRACE_PERIOD = 30000;
+    private static readonly TimeSpan GRACE_PERIOD = TimeSpan.FromSeconds(5);
 
     private Subscriber? _subscriber;
     private RequestSender? _requestSender;
@@ -26,13 +26,13 @@ internal sealed partial class TappablesManager : IAsyncDisposable
 
     internal async Task InitializeAsync(EventBusClient eventBusClient)
     {
-        _subscriber = await eventBusClient.AddSubscriberAsync("tappables", new SubscriberListener(
+        _subscriber = await eventBusClient.AddSubscriberAsync("tappables",
             HandleEvent,
-            async () =>
+            async exception =>
             {
-                LogTappablesEventBusSubscriberError();
+                LogTappablesEventBusSubscriberError(exception);
                 Environment.Exit(1);
-            }));
+            });
         _requestSender = await eventBusClient.AddRequestSenderAsync();
     }
 
@@ -118,7 +118,7 @@ internal sealed partial class TappablesManager : IAsyncDisposable
     }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-    public static bool IsTappableValidFor(Tappable tappable, long requestTime, float lat, float lon)
+    public static bool IsTappableValidFor(Tappable tappable, DateTimeOffset requestTime, float lat, float lon)
 #pragma warning restore IDE0060 // Remove unused parameter
     {
         if (tappable.SpawnTime - GRACE_PERIOD > requestTime || tappable.SpawnTime + tappable.ValidFor + GRACE_PERIOD <= requestTime)
@@ -134,7 +134,7 @@ internal sealed partial class TappablesManager : IAsyncDisposable
     // TODO: actually use this
 #pragma warning disable IDE0060 // Remove unused parameter
 #pragma warning disable CA1822 // Mark members as static
-    public bool IsEncounterValidFor(Encounter encounter, long requestTime, float lat, float lon)
+    public bool IsEncounterValidFor(Encounter encounter, DateTimeOffset requestTime, float lat, float lon)
 #pragma warning restore CA1822 // Mark members as static
 #pragma warning restore IDE0060 // Remove unused parameter
     {
@@ -152,9 +152,9 @@ internal sealed partial class TappablesManager : IAsyncDisposable
     {
         Debug.Assert(_requestSender is not null);
 
-        int tileX = XToTile(LonToX(lon));
-        int tileY = YToTile(LatToY(lat));
-        string? response = await _requestSender.RequestAsync("tappables", "activeTile", Json.Serialize(new ActiveTileNotification(tileX, tileY, accountId.ToString())));
+        var tileX = XToTile(LonToX(lon));
+        var tileY = YToTile(LatToY(lat));
+        var response = await _requestSender.RequestAsync("tappables", "activeTile", Json.Serialize(new ActiveTileNotification(tileX, tileY, accountId.ToString())));
         if (response is null)
         {
             LogActiveTileNotificationEventWasRejectedIgnored();
@@ -165,7 +165,7 @@ internal sealed partial class TappablesManager : IAsyncDisposable
     {
         if (_subscriber is not null)
         {
-            await _subscriber.CloseAsync();
+            await _subscriber.DisposeAsync();
         }
 
         if (_requestSender is not null)
@@ -248,24 +248,24 @@ internal sealed partial class TappablesManager : IAsyncDisposable
 
     private void AddTappable(Tappable tappable)
     {
-        string tileId = LocationToTileId(tappable.Lat, tappable.Lon);
+        var tileId = LocationToTileId(tappable.Lat, tappable.Lon);
         _tappables.ComputeIfAbsent(tileId, tileId1 => [])![tappable.Id] = tappable;
     }
 
     private void AddEncounter(Encounter encounter)
     {
-        string tileId = LocationToTileId(encounter.Lat, encounter.Lon);
+        var tileId = LocationToTileId(encounter.Lat, encounter.Lon);
         _encounters.ComputeIfAbsent(tileId, tileId1 => [])![encounter.Id] = encounter;
     }
 
-    private void Prune(long currentTime)
+    private void Prune(DateTimeOffset currentTime)
     {
         foreach (var tileTappables in _tappables.Values)
         {
             tileTappables.RemoveAll(entry =>
             {
-                Tappable tappable = entry.Value;
-                long expiresAt = tappable.SpawnTime + tappable.ValidFor;
+                var tappable = entry.Value;
+                var expiresAt = tappable.SpawnTime + tappable.ValidFor;
                 return expiresAt + GRACE_PERIOD <= currentTime;
             });
         }
@@ -276,8 +276,8 @@ internal sealed partial class TappablesManager : IAsyncDisposable
         {
             tileEncounters.RemoveAll(entry =>
             {
-                Encounter encounter = entry.Value;
-                long expiresAt = encounter.SpawnTime + encounter.ValidFor;
+                var encounter = entry.Value;
+                var expiresAt = encounter.SpawnTime + encounter.ValidFor;
                 return expiresAt + GRACE_PERIOD <= currentTime;
             });
         }
@@ -304,8 +304,8 @@ internal sealed partial class TappablesManager : IAsyncDisposable
         Guid Id,
         float Lat,
         float Lon,
-        long SpawnTime,
-        long ValidFor,
+        DateTimeOffset SpawnTime,
+        TimeSpan ValidFor,
         string Icon,
         Tappable.RarityE Rarity,
         Tappable.Item[] Items
@@ -331,8 +331,8 @@ internal sealed partial class TappablesManager : IAsyncDisposable
         Guid Id,
         float Lat,
         float Lon,
-        long SpawnTime,
-        long ValidFor,
+        DateTimeOffset SpawnTime,
+        TimeSpan ValidFor,
         string Icon,
         Encounter.RarityE Rarity,
         Guid EncounterBuildplateId
@@ -350,7 +350,7 @@ internal sealed partial class TappablesManager : IAsyncDisposable
     }
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "Tappables event bus subscriber error")]
-    private partial void LogTappablesEventBusSubscriberError();
+    private partial void LogTappablesEventBusSubscriberError(Exception? exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Active tile notification event was rejected/ignored")]
     private partial void LogActiveTileNotificationEventWasRejectedIgnored();

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Globalization;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
@@ -11,9 +12,22 @@ namespace Solace.EventBus.Server.Services;
 
 internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServiceBase
 {
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<Guid, SafeStreamWriter<EventMessage>>> _subscribers = [];
+    // EventBusServiceImpl is not registered as singleton - created per request
+    internal sealed class State
+    {
+        public ConcurrentDictionary<string, ConcurrentDictionary<Guid, SafeStreamWriter<EventMessage>>> Subscribers { get; } = [];
+        public ConcurrentDictionary<string, ImmutableArray<HandlerConnection>> Handlers { get; } = [];
+        public Lock HandlersLock { get; } = new();
 
-    private sealed class HandlerConnection : IDisposable
+        public ObjectPool<List<Task>> TaskListPool { get; } = ObjectPool.Create(new ListPooledObjectPolicy<Task>() { InitialCapacity = 4, });
+
+        private long _requestCounter;
+
+        public long GetAndIncrementRequestCounter()
+            => Interlocked.Increment(ref _requestCounter);
+    }
+
+    internal sealed class HandlerConnection : IDisposable
     {
         public required SafeStreamWriter<ServerMessage> Writer { get; init; }
 
@@ -23,31 +37,27 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
             => Writer.Dispose();
     }
 
-    private readonly ConcurrentDictionary<string, ImmutableArray<HandlerConnection>> _handlers = [];
-    private readonly Lock _handlersLock = new();
-
-    private readonly ObjectPool<List<Task>> _taskListPool = ObjectPool.Create(new ListPooledObjectPolicy<Task>() { InitialCapacity = 4, });
-
-    private long _requestCounter;
+    private readonly State _state;
 
     private readonly ILogger<EventBusServiceImpl> _logger;
 
-    public EventBusServiceImpl(ILogger<EventBusServiceImpl> logger)
+    public EventBusServiceImpl(State state, ILogger<EventBusServiceImpl> logger)
     {
         _logger = logger;
+        _state = state;
     }
 
     public override async Task<PublishResponse> Publish(PublishRequest request, ServerCallContext context)
     {
         LogPublishingMessage(_logger, request.QueueName, request.Type);
 
-        if (_subscribers.TryGetValue(request.QueueName, out var queueSubscribers))
+        if (_state.Subscribers.TryGetValue(request.QueueName, out var queueSubscribers))
         {
-            var tasks = _taskListPool.Get();
+            var tasks = _state.TaskListPool.Get();
 
             try
             {
-                var message = new EventMessage { Type = request.Type, Data = request.Data, };
+                var message = new EventMessage { Type = request.Type, Data = request.Data, Timestamp = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow), };
 
                 foreach (var kvp in queueSubscribers)
                 {
@@ -58,7 +68,7 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
             }
             finally
             {
-                _taskListPool.Return(tasks);
+                _state.TaskListPool.Return(tasks);
             }
 
             static async Task SendEventAsync(ILogger logger, ConcurrentDictionary<Guid, SafeStreamWriter<EventMessage>> queue, KeyValuePair<Guid, SafeStreamWriter<EventMessage>> kvp, EventMessage message)
@@ -84,20 +94,20 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
         LogSubscriberConnected(_logger, request.QueueName, id);
 
         using var safeWriter = new SafeStreamWriter<EventMessage>(responseStream);
-        _subscribers.GetOrAdd(request.QueueName, static _ => new())[id] = safeWriter;
+        _state.Subscribers.GetOrAdd(request.QueueName, static _ => new())[id] = safeWriter;
 
         await context.CancellationToken.AsTask()
             .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
         LogSubscriberDisconnected(_logger, request.QueueName, id);
 
-        if (_subscribers.TryGetValue(request.QueueName, out var queue))
+        if (_state.Subscribers.TryGetValue(request.QueueName, out var queue))
         {
             queue.TryRemove(id, out _);
 
             if (queue.IsEmpty)
             {
-                _subscribers.TryRemove(new(request.QueueName, queue));
+                _state.Subscribers.TryRemove(new(request.QueueName, queue));
             }
         }
     }
@@ -105,7 +115,7 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
     public override async Task<ResponseMessage> Request(RequestMessage request, ServerCallContext context)
     {
         HandlerConnection? targetHandler = null;
-        if (_handlers.TryGetValue(request.QueueName, out var registered) && !registered.IsDefaultOrEmpty)
+        if (_state.Handlers.TryGetValue(request.QueueName, out var registered) && !registered.IsDefaultOrEmpty)
         {
             targetHandler = registered[Random.Shared.Next(registered.Length)];
         }
@@ -116,7 +126,7 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
             return new ResponseMessage { Status = ResponseMessageStatus.NoHandlers, ErrorMessage = "No active handlers.", };
         }
 
-        var correlationId = Interlocked.Increment(ref _requestCounter).ToString(CultureInfo.InvariantCulture);
+        var correlationId = _state.GetAndIncrementRequestCounter().ToString(CultureInfo.InvariantCulture);
         var tcs = new TaskCompletionSource<HandlerResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
         targetHandler.PendingRequests[correlationId] = tcs;
 
@@ -128,7 +138,8 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
             {
                 CorrelationId = correlationId,
                 Type = request.Type,
-                Data = request.Data
+                Data = request.Data,
+                Timestamp = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
             });
 
             var response = await tcs.Task.WaitAsync(context.CancellationToken);
@@ -165,14 +176,14 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
                 if (message.PayloadCase == ClientMessage.PayloadOneofCase.RegisterQueue)
                 {
                     var queue = message.RegisterQueue;
-                    LogRegisteringHandlerQueue(_logger, queue);
 
-                    lock (_handlersLock)
+                    lock (_state.HandlersLock)
                     {
-                        var current = _handlers.GetValueOrDefault(queue, []);
+                        var current = _state.Handlers.GetValueOrDefault(queue, []);
                         if (!current.Contains(connection))
                         {
-                            _handlers[queue] = current.Add(connection);
+                            _state.Handlers[queue] = current.Add(connection);
+                            LogRegisteringHandlerQueue(_logger, queue);
                         }
                     }
 
@@ -204,21 +215,21 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
         {
             LogCleaningUpHandlerConnection(_logger, registeredQueues.Count);
 
-            lock (_handlersLock)
+            lock (_state.HandlersLock)
             {
                 foreach (var queue in registeredQueues)
                 {
-                    if (_handlers.TryGetValue(queue, out var current))
+                    if (_state.Handlers.TryGetValue(queue, out var current))
                     {
                         var updated = current.Remove(connection);
 
                         if (updated.IsEmpty)
                         {
-                            _handlers.TryRemove(queue, out _);
+                            _state.Handlers.TryRemove(queue, out _);
                         }
                         else
                         {
-                            _handlers[queue] = updated;
+                            _state.Handlers[queue] = updated;
                         }
                     }
                 }

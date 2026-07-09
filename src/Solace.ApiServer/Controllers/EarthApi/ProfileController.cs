@@ -38,7 +38,7 @@ internal sealed class ProfileController : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         var profile = await _earthDB.Profiles
             .AsNoTracking()

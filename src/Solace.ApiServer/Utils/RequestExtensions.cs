@@ -6,7 +6,7 @@ internal static class RequestExtensions
 
     extension(HttpContext context)
     {
-        public long GetTimestamp()
-            => ((DateTimeOffset)context.Items[TimestampKey]!).ToUnixTimeMilliseconds();
+        public DateTimeOffset GetTimestamp()
+            => (DateTimeOffset)context.Items[TimestampKey]!;
     }
 }

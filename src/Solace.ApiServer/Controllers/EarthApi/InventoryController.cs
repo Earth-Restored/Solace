@@ -167,7 +167,7 @@ internal sealed class InventoryController : SolaceControllerBase
         }
 
         // request.timestamp
-        long requestStartedOn = HttpContext.GetTimestamp();
+        var requestStartedOn = HttpContext.GetTimestamp();
 
         Catalog.ItemsCatalogR.Item? item = _catalog.ItemsCatalog.GetItem(itemId);
 
