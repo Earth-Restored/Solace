@@ -11,7 +11,7 @@ builder.AddDockerComposeEnvironment("solace-prod")
     })
     .WithDashboard(dashboard =>
     {
-        dashboard.WithHostPort(80)
+        dashboard.WithHostPort(5000)
             .WithForwardedHeaders(enabled: true);
     })
     .ConfigureComposeFile(file =>
