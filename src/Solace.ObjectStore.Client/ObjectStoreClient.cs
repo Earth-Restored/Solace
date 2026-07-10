@@ -18,6 +18,7 @@ public sealed class ObjectStoreClient : IAsyncDisposable
 {
     private readonly GrpcChannel _channel;
     private readonly ObjectStoreService.ObjectStoreServiceClient _client;
+    private readonly ILogger _logger;
 
     public static async Task<ObjectStoreClient> ConnectAsync(string connectionString, ILogger logger)
     {
@@ -25,14 +26,15 @@ public sealed class ObjectStoreClient : IAsyncDisposable
 
         var channel = GrpcChannel.ForAddress(connectionString);
         var client = new ObjectStoreService.ObjectStoreServiceClient(channel);
-        
-        return new ObjectStoreClient(channel, client);
+
+        return new ObjectStoreClient(channel, client, logger);
     }
 
-    public ObjectStoreClient(GrpcChannel channel, ObjectStoreService.ObjectStoreServiceClient client)
+    public ObjectStoreClient(GrpcChannel channel, ObjectStoreService.ObjectStoreServiceClient client, ILogger logger)
     {
         _channel = channel;
         _client = client;
+        _logger = logger;
     }
 
     public async Task<string?> StoreAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)

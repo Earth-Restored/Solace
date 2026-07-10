@@ -192,7 +192,7 @@ public static partial class BedrockBlocks
             => obj is BlockNameAndState other && Name.Equals(other.Name, StringComparison.Ordinal) && State.SequenceEqual(other.State);
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Duplicate Bedrock block name/state '{Name}'")]
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Duplicate Bedrock block name/state '{Name}'")]
     private static partial void LogDuplicateBedrockBlockNameState(ILogger logger, string Name);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Duplicate Bedrock block ID '{Id}'")]

@@ -202,7 +202,7 @@ internal static partial class App
                 manager.FeatureProviders.Add(new InternalControllerFeatureProvider());
             });
 
-        var app = builder.Build();
+        await using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
         GlobalLoggerFactory.Initialize(loggerFactory);
@@ -263,7 +263,7 @@ internal static partial class App
             using (var scope = app.Services.CreateScope())
             {
                 // make sure Data dir exists
-                Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "Data"));
+                Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "data"));
                 // Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), Path.GetDirectoryName(Settings.Instance.EarthDatabaseConnectionString)!));
 
                 var appDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

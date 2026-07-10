@@ -70,13 +70,24 @@ internal static partial class App
 
         builder.Services.AddSingleton(new DataStore(new DirectoryInfo(dataDirectory)));
 
-        using var app = builder.Build();
+        await using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
         GlobalLoggerFactory.Initialize(loggerFactory);
 
         var logger = loggerFactory.CreateLogger(nameof(Program));
         LogDataStoragePath(logger, dataDirectory);
+        try
+        {
+            var testPath = Path.Combine(dataDirectory, $".write_test_{Guid.NewGuid():N}");
+            File.WriteAllText(testPath, "test");
+            File.Delete(testPath);
+        }
+        catch (Exception ex)
+        {
+            logger.LogCritical(ex, "Object store data directory '{Path}' is not writable by the process. Check bind-mount ownership and permissions.", dataDirectory);
+            return 2;
+        }
 
         app.MapGrpcService<ObjectStoreServiceImpl>();
 

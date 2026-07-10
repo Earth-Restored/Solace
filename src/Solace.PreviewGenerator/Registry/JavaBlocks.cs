@@ -468,7 +468,7 @@ public static partial class JavaBlocks
     [LoggerMessage(Level = LogLevel.Debug, Message = "Ignoring Java block '{Name}'")]
     private static partial void LogIgnoringJavaBlock(ILogger logger, string Name);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Cannot find Bedrock block for Java block '{Name}'")]
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Cannot find Bedrock block for Java block '{Name}'")]
     private static partial void LogCannotFindBedrockBlockForJavaBlock(ILogger logger, Exception exception, string Name);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Duplicate Java non-vanilla block name '{BaseName}'")]

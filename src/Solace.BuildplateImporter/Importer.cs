@@ -511,7 +511,12 @@ public sealed partial class Importer : IAsyncDisposable
             LogTemplateNotFoundDebug(templateId);
 
             LogStoringTemplateWorldData();
-            string? serverDataObjectId = await ObjectStoreClient.StoreAsync(worldData.ServerData, cancellationToken);
+            string? serverDataObjectId;
+            await using (var serverDataStream = new MemoryStream(worldData.ServerData))
+            {
+                serverDataObjectId = await ObjectStoreClient.StoreAsync(serverDataStream, cancellationToken);
+            }
+            
             if (serverDataObjectId is null)
             {
                 LogTemplateServerDataStoreFail(templateId);
@@ -566,7 +571,12 @@ public sealed partial class Importer : IAsyncDisposable
     private async Task<bool> StoreBuildplate(Guid templateId, Guid accountId, Guid buildplateId, TemplateBuildplateEF template, byte[] serverData, Stream preview, CancellationToken cancellationToken)
     {
         LogStoringServerData();
-        string? serverDataObjectId = await ObjectStoreClient.StoreAsync(serverData, cancellationToken);
+        string? serverDataObjectId;
+        await using (var serverDataStream = new MemoryStream(serverData))
+        {
+            serverDataObjectId = await ObjectStoreClient.StoreAsync(serverDataStream, cancellationToken);
+        }
+
         if (serverDataObjectId is null)
         {
             LogBuildplateServerDataStoreFail(accountId, buildplateId);

@@ -13,6 +13,8 @@ publish/
 /src/*/data/*
 /src/*/staticdata/*
 
+/src/Solace.AppHost/aspire-output/*
+
 .vscode/
 
 # dotenv files

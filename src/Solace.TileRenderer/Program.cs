@@ -72,7 +72,7 @@ internal static partial class App
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().TileDataSource);
         builder.Services.AddSingleton<EventBusTileRenderer>();
 
-        var app = builder.Build();
+        using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
         GlobalLoggerFactory.Initialize(loggerFactory);

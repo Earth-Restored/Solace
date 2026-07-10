@@ -187,6 +187,8 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
             async exception =>
             {
                 LogBuildplatesEventBusRequestHandlerError(exception);
+                Console.Error.WriteLine(exception);
+                Console.Error.Flush();
                 Environment.Exit(1);
             }
         );

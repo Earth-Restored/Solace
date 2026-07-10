@@ -71,7 +71,7 @@ internal static partial class App
         builder.Services.AddSingleton<ActiveTiles>();
         builder.Services.AddSingleton<Spawner>();
 
-        var app = builder.Build();
+        using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
         GlobalLoggerFactory.Initialize(loggerFactory);

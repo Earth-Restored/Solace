@@ -75,6 +75,8 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
         async exception =>
         {
             LogEventBusSubscriberError(exception);
+            Console.Error.WriteLine(exception);
+            Console.Error.Flush();
             Environment.Exit(333);
         });
     }

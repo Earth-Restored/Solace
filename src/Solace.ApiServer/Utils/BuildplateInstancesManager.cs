@@ -29,6 +29,8 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
             async exception =>
             {
                 LogBuildplatesEventBusSubscriberError(exception);
+                Console.Error.WriteLine(exception);
+                Console.Error.Flush();
                 Environment.Exit(1);
             }
         );

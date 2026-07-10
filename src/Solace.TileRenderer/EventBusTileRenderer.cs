@@ -64,6 +64,8 @@ internal sealed partial class EventBusTileRenderer : IAsyncDisposable
         }, async exception =>
         {
             LogEventBusSubscriberError(exception);
+            Console.Error.WriteLine(exception);
+            Console.Error.Flush();
             await DisposeAsync();
             Environment.Exit(1);
         });

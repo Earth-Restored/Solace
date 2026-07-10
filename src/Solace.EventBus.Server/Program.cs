@@ -67,7 +67,7 @@ internal static partial class App
 
         builder.Services.AddSingleton<EventBusServiceImpl.State>();
 
-        using var app = builder.Build();
+        await using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
         GlobalLoggerFactory.Initialize(loggerFactory);

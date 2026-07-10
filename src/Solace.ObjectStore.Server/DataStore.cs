@@ -31,6 +31,11 @@ internal sealed class DataStore
             using var fileStream = File.OpenWrite(file.FullName);
             await data.CopyToAsync(fileStream, cancellationToken);
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            file.Delete();
+            throw new DataStoreException($"Permission denied writing object file '{file.FullName}'", ex);
+        }
         catch (IOException ex)
         {
             file.Delete();

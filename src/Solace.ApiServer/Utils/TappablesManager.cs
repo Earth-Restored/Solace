@@ -31,6 +31,8 @@ internal sealed partial class TappablesManager : IAsyncDisposable
             async exception =>
             {
                 LogTappablesEventBusSubscriberError(exception);
+                Console.Error.WriteLine(exception);
+                Console.Error.Flush();
                 Environment.Exit(1);
             });
         _requestSender = await eventBusClient.AddRequestSenderAsync();

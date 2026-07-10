@@ -26,7 +26,6 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
         try
         {
             using var writerStream = pipe.Writer.AsStream();
-
             await foreach (var request in requestStream.ReadAllAsync(context.CancellationToken))
             {
                 await pipe.Writer.WriteAsync(request.ChunkData.Memory, context.CancellationToken);
@@ -42,7 +41,21 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
             throw new RpcException(new Status(StatusCode.Internal, "Object upload failed mid-stream."));
         }
 
-        var id = await storeTask;
+        string id;
+        try
+        {
+            id = await storeTask;
+        }
+        catch (DataStore.DataStoreException ex)
+        {
+            _logger.LogCritical(ex, "Failed to store object to data store: {Message}", ex.Message);
+            throw new RpcException(new Status(StatusCode.Internal, "Object store failed to write object: " + ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogCritical(ex, "Unexpected failure while storing object");
+            throw new RpcException(new Status(StatusCode.Internal, "Object store failed while storing object."));
+        }
 
         LogStoreObjectSuccess(id);
 
