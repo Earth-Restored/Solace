@@ -50,6 +50,7 @@ foreach ($PublishProfile in $Profiles) {
         "src/Solace.Buildplate"         = "components/buildplate-launcher"
         "src/Solace.ApiServer"          = "components/api-server"
         "src/Solace.Locator"            = "components/locator"
+        "src/Solace.Cdn"                = "components/cdn"
         "src/Solace.TappablesGenerator" = "components/tappable-generator"
         "src/Solace.TileRenderer"       = "components/tile-renderer"
         "src/Solace.AdminPanel"         = "components/admin-panel"

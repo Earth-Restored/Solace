@@ -7,7 +7,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
+#if USE_SHARED_LIBS
 using System.Runtime.Loader;
+#endif
 
 namespace Solace.Buildplate.Launcher;
 

@@ -18,6 +18,7 @@
     <ProjectReference Include="../Solace.AdminPanel/Solace.AdminPanel.csproj" />
     <ProjectReference Include="../Solace.ApiServer/Solace.ApiServer.csproj" />
     <ProjectReference Include="../Solace.Buildplate/Solace.Buildplate.csproj" />
+    <ProjectReference Include="../Solace.Cdn/Solace.Cdn.csproj" />
     <ProjectReference Include="../Solace.EventBus.Server/Solace.EventBus.Server.csproj" />
     <ProjectReference Include="../Solace.Locator/Solace.Locator.csproj" />
     <ProjectReference Include="../Solace.ObjectStore.Server/Solace.ObjectStore.Server.csproj" />

@@ -5,7 +5,9 @@ using Microsoft.Extensions.Logging;
 using Solace.Common;
 using Solace.EventBus.Server.Services;
 using System.Diagnostics;
+#if USE_SHARED_LIBS
 using System.Runtime.Loader;
+#endif
 
 namespace Solace.EventBus.Server;
 

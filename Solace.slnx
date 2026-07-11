@@ -8,6 +8,7 @@
   <Project Path="src/Solace.BuildplateRenderer/Solace.BuildplateRenderer.csproj" />
   <Project Path="src/Solace.Buildplate/Solace.Buildplate.csproj" />
   <Project Path="src/Solace.BuildplateImporter/Solace.BuildplateImporter.csproj" />
+  <Project Path="src/Solace.Cdn/Solace.Cdn.csproj" />
   <Project Path="src/Solace.Common/Solace.Common.csproj" />
   <Project Path="src/Solace.DB/Solace.DB.csproj" />
   <Project Path="src/Solace.DB.Postgres/Solace.DB.Postgres.csproj" />

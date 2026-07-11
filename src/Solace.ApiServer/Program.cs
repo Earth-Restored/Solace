@@ -14,7 +14,9 @@ using Solace.ApiServer.Authentication;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.HttpOverrides;
 using System.Reflection;
+#if USE_SHARED_LIBS
 using System.Runtime.Loader;
+#endif
 
 namespace Solace.ApiServer;
 

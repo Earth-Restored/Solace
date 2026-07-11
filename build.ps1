@@ -33,6 +33,7 @@ Publish-Project -Path "src/Solace.ObjectStore.Server" -Output "build/components/
 Publish-Project -Path "src/Solace.Buildplate" -Output "build/components/buildplate-launcher"
 Publish-Project -Path "src/Solace.ApiServer" -Output "build/components/api-server"
 Publish-Project -Path "src/Solace.Locator" -Output "build/components/locator"
+Publish-Project -Path "src/Solace.Cdn" -Output "build/components/cdn"
 Publish-Project -Path "src/Solace.TappablesGenerator" -Output "build/components/tappable-generator"
 Publish-Project -Path "src/Solace.TileRenderer" -Output "build/components/tile-renderer"
 Publish-Project -Path "src/Solace.AdminPanel" -Output "build/components/admin-panel"

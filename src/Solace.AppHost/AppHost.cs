@@ -1,4 +1,3 @@
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Configuration;
 using Solace.AppHost;
 
@@ -100,7 +99,7 @@ var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate>("buildpl
 var apiPort = builder.Configuration.GetValue<int>("ApiServer:Port", 8088);
 
 var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
-    .WithHttpEndpoint(port: apiPort, targetPort: apiPort, name: "http")
+    .WithHttpEndpoint(port: apiPort, name: "http")
     .WithEndpoint("http", endpoint =>
     {
         endpoint.TargetHost = "*";
@@ -126,6 +125,8 @@ var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
             ReadOnly = true,
         });
 
+        service.Environment["StaticDataPath"] = "/app/static-data";
+
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
         {
             Name = "dataprotection-keys-volume",
@@ -134,8 +135,6 @@ var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
             Target = "/home/app/.aspnet/DataProtection-Keys",
             ReadOnly = false,
         });
-
-        service.Environment["StaticDataPath"] = "/app/static-data";
     });
 
 if (earthDbUseSqlite)
@@ -147,6 +146,31 @@ else
     apiServer.WithEnvironment("DatabaseProvider", "Postgres");
 }
 
+var cdnPort = builder.Configuration.GetValue<int>("Cdn:Port", 8089);
+
+var cdn = builder.AddProject<Projects.Solace_Cdn>("cdn")
+    .WithHttpEndpoint(port: cdnPort, name: "http")
+    .WithEndpoint("http", endpoint =>
+    {
+        endpoint.TargetHost = "*";
+    })
+    .WithEnvironment("StaticDataPath", staticDataPath)
+    .PublishAsDockerComposeService((resource, service) =>
+    {
+        service.Ports = [$"{cdnPort}:{cdnPort}"];
+
+        service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
+        {
+            Name = "static-data-volume",
+            Type = "bind",
+            Source = staticDataPath,
+            Target = "/app/static-data",
+            ReadOnly = true,
+        });
+
+        service.Environment["StaticDataPath"] = "/app/static-data";
+    });
+
 var locatorPort = builder.Configuration.GetValue<int>("Locator:Port", 8088);
 
 var locator = builder.AddProject<Projects.Solace_Locator>("locator")
@@ -157,6 +181,8 @@ var locator = builder.AddProject<Projects.Solace_Locator>("locator")
     })
     .WithReference(apiServer)
     .WaitFor(apiServer)
+    .WithReference(cdn)
+    .WaitFor(cdn)
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.Ports = [$"{locatorPort}:{locatorPort}"];

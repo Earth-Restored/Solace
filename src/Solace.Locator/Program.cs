@@ -1,8 +1,11 @@
 using System.Diagnostics;
 using System.Net;
 using System.Runtime.CompilerServices;
+#if USE_SHARED_LIBS
 using System.Runtime.Loader;
+#endif
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.HttpOverrides;
 
 internal static class Program
 {
@@ -42,7 +45,17 @@ internal sealed partial class App
             options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default);
         });
 
-        var app = builder.Build();
+        using var app = builder.Build();
+
+        var forwardedHeadersOptions = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+        };
+
+        forwardedHeadersOptions.KnownIPNetworks.Clear();
+        forwardedHeadersOptions.KnownProxies.Clear();
+
+        app.UseForwardedHeaders(forwardedHeadersOptions);
 
         // app.UseHttpsRedirection();
 
@@ -52,16 +65,23 @@ internal sealed partial class App
 
         var apiServerPort = apiServerUri.Port;
 
+        var cdnConnectionString = builder.Configuration["services:cdn:http:0"];
+        Debug.Assert(cdnConnectionString is not null);
+        var cdnUri = new Uri(cdnConnectionString);
+
+        var cdnPort = cdnUri.Port;
+
         EarthApiResponse LocatorHandler(HttpContext context, ILogger<App> logger)
         {
             var protocol = context.Request.IsHttps ? "https://" : "http://";
-            var baseServerIP = $"{protocol}{context.Request.Host.Host}:{apiServerPort}";
+            var apiServerIP = $"{protocol}{context.Request.Host.Host}:{apiServerPort}";
+            var cdnIP = $"{protocol}{context.Request.Host.Host}:{cdnPort}";
 
-            Logs.LogLocatorIssued(logger, context.Connection.RemoteIpAddress, baseServerIP);
+            Logs.LogLocatorIssued(logger, context.Connection.RemoteIpAddress, apiServerIP);
 
             return new EarthApiResponse(new LocatorResponse(new()
             {
-                ["production"] = new LocatorResponse.Environment(baseServerIP, baseServerIP + "/cdn", "20CA2"),
+                ["production"] = new LocatorResponse.Environment(apiServerIP, cdnIP, "20CA2"),
             },
             new()
             {

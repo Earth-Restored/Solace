@@ -24,7 +24,9 @@ using Solace.ObjectStore.Client;
 using System.Diagnostics;
 using System.Reflection;
 using Solace.EventBus.Client;
+#if USE_SHARED_LIBS
 using System.Runtime.Loader;
+#endif
 
 namespace Solace.AdminPanel;
 

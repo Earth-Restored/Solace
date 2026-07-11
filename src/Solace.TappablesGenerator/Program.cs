@@ -5,7 +5,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Solace.Common;
+#if USE_SHARED_LIBS
 using System.Runtime.Loader;
+#endif
 
 namespace Solace.TappablesGenerator;
 

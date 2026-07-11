@@ -8,7 +8,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using Solace.Common;
 using Microsoft.Extensions.DependencyInjection;
+#if USE_SHARED_LIBS
 using System.Runtime.Loader;
+#endif
 
 namespace Solace.TileRenderer;
 

@@ -6,8 +6,9 @@ using Microsoft.Extensions.Logging;
 using Solace.Common;
 using Solace.ObjectStore.Server.Services;
 using System.Diagnostics;
+#if USE_SHARED_LIBS
 using System.Runtime.Loader;
-
+#endif
 namespace Solace.ObjectStore.Server;
 
 internal static class Program

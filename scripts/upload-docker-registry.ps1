@@ -76,6 +76,7 @@ $projects = @(
     [pscustomobject]@{ProjectName='Solace.ObjectStore.Server';PackageName='object-store'}
     [pscustomobject]@{ProjectName='Solace.Buildplate';PackageName='buildplate-launcher'}
     [pscustomobject]@{ProjectName='Solace.ApiServer';PackageName='api-server'}
+    [pscustomobject]@{ProjectName='Solace.Cdn';PackageName='cdn'}
     [pscustomobject]@{ProjectName='Solace.Locator';PackageName='locator'}
     [pscustomobject]@{ProjectName='Solace.TappablesGenerator';PackageName='tappable-generator'}
     [pscustomobject]@{ProjectName='Solace.TileRenderer';PackageName='tile-renderer'}
