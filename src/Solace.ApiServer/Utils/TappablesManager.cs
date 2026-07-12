@@ -291,16 +291,16 @@ internal sealed partial class TappablesManager : IAsyncDisposable
         => $"{XToTile(LonToX(lon))}_{YToTile(LatToY(lat))}";
 
     private static double LonToX(double lon)
-        => (1.0 + MathE.ToRadians(lon) / Math.PI) / 2.0;
+        => (1.0 + double.DegreesToRadians(lon) / double.Pi) / 2.0;
 
     private static double LatToY(double lat)
-        => (1.0 - Math.Log(Math.Tan(MathE.ToRadians(lat)) + 1.0 / Math.Cos(MathE.ToRadians(lat))) / Math.PI) / 2.0;
+        => (1.0 - double.Log(double.Tan(double.DegreesToRadians(lat)) + 1.0 / double.Cos(double.DegreesToRadians(lat))) / double.Pi) / 2.0;
 
     private static int XToTile(double x)
-        => (int)Math.Floor(x * (1 << 16));
+        => (int)double.Floor(x * (1 << 16));
 
     private static int YToTile(double y)
-        => (int)Math.Floor(y * (1 << 16));
+        => (int)double.Floor(y * (1 << 16));
 
     internal sealed record Tappable(
         Guid Id,

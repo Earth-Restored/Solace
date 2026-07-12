@@ -242,7 +242,7 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
         }
     }
 
-    [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "Publishing message to queue '{QueueName}' with type '{MessageType}'")]
+    [LoggerMessage(EventId = 1, Level = LogLevel.Debug, Message = "Publishing message to queue '{QueueName}' with type '{MessageType}'")]
     private static partial void LogPublishingMessage(ILogger logger, string queueName, string messageType);
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Warning, Message = "Failed to write to subscriber '{SubscriberId}'. Removing from subscribers queue")]

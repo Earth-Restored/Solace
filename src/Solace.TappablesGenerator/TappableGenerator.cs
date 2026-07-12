@@ -114,10 +114,10 @@ internal sealed partial class TappableGenerator
     }
 
     private static float XToLon(float x)
-        => (float)MathE.ToDegrees((x * 2.0d - 1.0d) * double.Pi);
+        => (float)double.RadiansToDegrees((x * 2.0d - 1.0d) * double.Pi);
 
     private static float YToLat(float y)
-        => (float)MathE.ToDegrees(double.Atan(double.Sinh((1.0d - y * 2.0d) * double.Pi)));
+        => (float)double.RadiansToDegrees(double.Atan(double.Sinh((1.0d - y * 2.0d) * double.Pi)));
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "No tappable configs provided")]
     private static partial void LogNoTappableConfigsProvided(ILogger logger);

@@ -112,6 +112,7 @@ var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
     .WaitFor(objectStore)
     .WithEnvironmentFromSection(builder.Configuration, "ApiServer:Authentication", "ApiServer:")
     .WithEnvironment("StaticDataPath", staticDataPath)
+    .WithEnvironment("DatabaseProvider", earthDbUseSqlite ? "Sqlite" : "Postgres")
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.Ports = [$"{apiPort}:{apiPort}"];
@@ -137,15 +138,6 @@ var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
         });
     });
 
-if (earthDbUseSqlite)
-{
-    apiServer.WithEnvironment("DatabaseProvider", "Sqlite");
-}
-else
-{
-    apiServer.WithEnvironment("DatabaseProvider", "Postgres");
-}
-
 var cdnPort = builder.Configuration.GetValue<int>("Cdn:Port", 8089);
 
 var cdn = builder.AddProject<Projects.Solace_Cdn>("cdn")
@@ -154,7 +146,14 @@ var cdn = builder.AddProject<Projects.Solace_Cdn>("cdn")
     {
         endpoint.TargetHost = "*";
     })
+    .WithReference(db)
+    .WaitFor(db)
+    .WithReference(eventBus)
+    .WaitFor(eventBus)
+    .WithReference(objectStore)
+    .WaitFor(objectStore)
     .WithEnvironment("StaticDataPath", staticDataPath)
+    .WithEnvironment("DatabaseProvider", earthDbUseSqlite ? "Sqlite" : "Postgres")
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.Ports = [$"{cdnPort}:{cdnPort}"];
@@ -206,29 +205,29 @@ var tappableGenerator = builder.AddProject<Projects.Solace_TappablesGenerator>("
         service.Environment["StaticDataPath"] = "/app/static-data";
     });
 
-var anyTileDataSources = builder.Configuration.GetSection("TileRenderer:TileSource").AsEnumerable().Any(item => !string.IsNullOrWhiteSpace(item.Value));
+// var anyTileDataSources = builder.Configuration.GetSection("TileRenderer:TileSource").AsEnumerable().Any(item => !string.IsNullOrWhiteSpace(item.Value));
 
-if (anyTileDataSources)
-{
-    var tileRenderer = builder.AddProject<Projects.Solace_TileRenderer>("tile-renderer")
-        .WithReference(eventBus)
-        .WaitFor(eventBus)
-        .WithEnvironment("StaticDataPath", staticDataPath)
-        .WithEnvironmentFromSection(builder.Configuration, "TileRenderer:TileSource", "TileRenderer:")
-        .PublishAsDockerComposeService((resource, service) =>
+// if (anyTileDataSources)
+// {
+var tileRenderer = builder.AddProject<Projects.Solace_TileRenderer>("tile-renderer")
+    .WithReference(eventBus)
+    .WaitFor(eventBus)
+    .WithEnvironment("StaticDataPath", staticDataPath)
+    .WithEnvironmentFromSection(builder.Configuration, "TileRenderer:TileSource", "TileRenderer:")
+    .PublishAsDockerComposeService((resource, service) =>
+    {
+        service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
         {
-            service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
-            {
-                Name = "static-data-volume",
-                Type = "bind",
-                Source = staticDataPath,
-                Target = "/app/static-data",
-                ReadOnly = true,
-            });
-
-            service.Environment["StaticDataPath"] = "/app/static-data";
+            Name = "static-data-volume",
+            Type = "bind",
+            Source = staticDataPath,
+            Target = "/app/static-data",
+            ReadOnly = true,
         });
-}
+
+        service.Environment["StaticDataPath"] = "/app/static-data";
+    });
+// }
 
 var adminPanelPort = builder.Configuration.GetValue<int>("AdminPanel:Port", 5000);
 

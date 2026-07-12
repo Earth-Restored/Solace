@@ -1,19 +1,22 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Collections.Immutable;
+using System.Globalization;
+using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using NetTopologySuite.IO.VectorTiles.Mapbox;
+using Solace.TileRenderer.Vector;
 using Solace.TileRenderer.Wkb;
 
 namespace Solace.TileRenderer;
 
-internal sealed partial class MaptilerTileDataSource : ITileDataSource
+internal sealed partial class OpenMapTilesDataSource : ITileDataSource
 {
-    private readonly string _apiKey;
+    private readonly CompositeFormat _tilesUrl;
     private readonly int _maxZoom;
     private readonly HttpClient _httpClient;
 
-    public MaptilerTileDataSource(string apiKey, int maxZoom, HttpClient? httpClient)
+    public OpenMapTilesDataSource(CompositeFormat tilesUrl, int maxZoom, HttpClient? httpClient)
     {
-        _apiKey = apiKey;
+        _tilesUrl = tilesUrl;
         _maxZoom = maxZoom;
         _httpClient = httpClient ?? new HttpClient();
     }
@@ -32,14 +35,14 @@ internal sealed partial class MaptilerTileDataSource : ITileDataSource
             zoom = _maxZoom;
         }
 
-        var response = await _httpClient.GetAsync($"https://api.maptiler.com/tiles/v3/{zoom}/{tileX}/{tileY}.pbf?key={_apiKey}", cancellationToken);
+        var response = await _httpClient.GetAsync(string.Format(CultureInfo.InvariantCulture, _tilesUrl, zoom, tileX, tileY), cancellationToken);
         response.EnsureSuccessStatusCode();
 
         try
         {
             var reader = new MapboxTileReader();
 
-            var tileDefinition = new NetTopologySuite.IO.VectorTiles.Tiles.Tile(tileX, tileY, zoom);
+            var tileDefinition = new Vector.Tile(tileX, tileY, zoom);
 
             var tile = reader.Read(await response.Content.ReadAsStreamAsync(cancellationToken), tileDefinition);
 
@@ -128,7 +131,7 @@ internal sealed partial class MaptilerTileDataSource : ITileDataSource
     public void Dispose()
         => _httpClient.Dispose();
 
-    public sealed record TilesResponse([property: JsonPropertyName("maxzoom")] int? MaxZoom);
+    public sealed record TilesResponse([property: JsonPropertyName("tiles")] ImmutableArray<string> TileUrls, [property: JsonPropertyName("maxzoom")] int? MaxZoom);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Error while converting map data")]
     private static partial void LogErrorConvertingMapData(ILogger logger, Exception ex);

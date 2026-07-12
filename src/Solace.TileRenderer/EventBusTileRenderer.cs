@@ -73,10 +73,7 @@ internal sealed partial class EventBusTileRenderer : IAsyncDisposable
 
         LogStarted();
 
-        while (true)
-        {
-            await Task.Delay(1000);
-        }
+        await Task.Delay(Timeout.Infinite);
     }
 
     public async ValueTask DisposeAsync()

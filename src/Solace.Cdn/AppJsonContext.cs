@@ -1,13 +1,13 @@
 using System.Text.Json.Serialization;
+using Solace.Cdn.Utils;
 
-namespace Solace.TileRenderer;
+namespace Solace.Cdn;
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     PropertyNameCaseInsensitive = true
 )]
-[JsonSerializable(typeof(OpenMapTilesDataSource.TilesResponse))]
-[JsonSerializable(typeof(RenderTileRequest))]
+[JsonSerializable(typeof(TileUtils.RenderTileRequest))]
 internal sealed partial class AppJsonContext : JsonSerializerContext
 {
 }

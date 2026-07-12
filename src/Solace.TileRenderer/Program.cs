@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using Solace.Common;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
@@ -82,29 +83,29 @@ internal static partial class App
         var programLogger = loggerFactory.CreateLogger(nameof(App));
 
         ITileDataSource tileDataSource;
-        if (!string.IsNullOrWhiteSpace(builder.Configuration["TileSource:MapTilerApiKey"]))
+        if (!string.IsNullOrWhiteSpace(builder.Configuration["TileSource:TileJsonUrl"]))
         {
-            LogVerifyingMaptilerApiKey(programLogger);
+            LogGettingTileSourceInfo(programLogger);
 
-            var maptilerApiKey = builder.Configuration["TileSource:MapTilerApiKey"];
-            Debug.Assert(maptilerApiKey is not null);
+            var infoUrl = builder.Configuration["TileSource:TileJsonUrl"];
+            Debug.Assert(infoUrl is not null);
 
             var httpClient = new HttpClient();
             HttpResponseMessage response;
             try
             {
-                response = await httpClient.GetAsync($"https://api.maptiler.com/tiles/v3/tiles.json?key={maptilerApiKey}");
+                response = await httpClient.GetAsync(infoUrl);
             }
             catch (HttpRequestException exception)
             {
-                LogCouldNotConnectToMaptilerApi(programLogger, exception);
+                LogCouldNotConnectToTileSource(programLogger, exception);
                 loggerFactory.Dispose();
                 return 3;
             }
 
             if (!response.IsSuccessStatusCode)
             {
-                LogMaptilerApiKeyNotValid(programLogger, response.StatusCode);
+                LogCouldNotGetTileSourceInfo(programLogger, response.StatusCode);
                 loggerFactory.Dispose();
                 return 4;
             }
@@ -112,19 +113,29 @@ internal static partial class App
             var tilesResponse = await JsonSerializer.DeserializeAsync(response.Content.ReadAsStream(), AppJsonContext.Default.TilesResponse);
 
             int maxZoom;
-            if (tilesResponse is null || tilesResponse.MaxZoom is null)
+            if (tilesResponse is null or { MaxZoom: null, })
             {
-                maxZoom = 15;
-                LogInvalidMaptilerResponse(programLogger, maxZoom);
+                maxZoom = 14;
+                LogMissingMaxZoom(programLogger, maxZoom);
             }
             else
             {
                 maxZoom = tilesResponse.MaxZoom.Value;
             }
 
-            tileDataSource = new MaptilerTileDataSource(maptilerApiKey, maxZoom, httpClient);
+            if (tilesResponse is null or { TileUrls: { IsDefaultOrEmpty: true, }, })
+            {
+                LogNoTileUrl(programLogger);
+                return 5;
+            }
 
-            LogVerifiedMaptilerApiKey(programLogger);
+            var tileSourceUrl = tilesResponse.TileUrls.First();
+
+            var tileSourceUrlFormat = CompositeFormat.Parse(tileSourceUrl.Replace("{z}", "{0}").Replace("{x}", "{1}").Replace("{y}", "{2}"));
+
+            tileDataSource = new OpenMapTilesDataSource(tileSourceUrlFormat, maxZoom, httpClient);
+
+            LogUsingTileUrl(programLogger, tileSourceUrl, maxZoom);
         }
         else if (!string.IsNullOrWhiteSpace(builder.Configuration["TileSource:TileDatabaseConnectionString"]))
         {
@@ -148,7 +159,7 @@ internal static partial class App
                 }
 
                 loggerFactory.Dispose();
-                return 5;
+                return 6;
             }
 
             LogConnectedToTileDatabase(programLogger);
@@ -157,7 +168,7 @@ internal static partial class App
         {
             LogNoTileDataSourceProvided(programLogger);
             loggerFactory.Dispose();
-            return 6;
+            return 7;
         }
 
         LogLoadingStaticData(programLogger);
@@ -170,7 +181,7 @@ internal static partial class App
         {
             LogLoadStaticDataError(programLogger, exception);
             loggerFactory.Dispose();
-            return 3;
+            return 8;
         }
 
         LogLoadedStaticData(programLogger);
@@ -188,7 +199,7 @@ internal static partial class App
         {
             LogConnectToEventBusError(programLogger, exception);
             loggerFactory.Dispose();
-            return 4;
+            return 9;
         }
 
         LogConnectedToEventBus(programLogger);
@@ -208,7 +219,7 @@ internal static partial class App
         {
             LogFatalErrorDuringServerStartup(programLogger, exception);
             loggerFactory.Dispose();
-            return 1;
+            return 10;
         }
 
         return 0;
@@ -224,20 +235,23 @@ internal static partial class App
     [LoggerMessage(Level = LogLevel.Critical, Message = "Unhandled exception")]
     private static partial void LogUnhandledException(ILogger logger, Exception? exception);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Verifying maptiler api key")]
-    private static partial void LogVerifyingMaptilerApiKey(ILogger logger);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Getting tile source info")]
+    private static partial void LogGettingTileSourceInfo(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Critical, Message = "Could not connect to maptiler api")]
-    private static partial void LogCouldNotConnectToMaptilerApi(ILogger logger, Exception exception);
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Could not connect to tile source")]
+    private static partial void LogCouldNotConnectToTileSource(ILogger logger, Exception exception);
 
-    [LoggerMessage(Level = LogLevel.Critical, Message = "Maptiler api key not valid, response status code: {StatusCode}")]
-    private static partial void LogMaptilerApiKeyNotValid(ILogger logger, System.Net.HttpStatusCode StatusCode);
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Could not get tile source info, response status code: {StatusCode}")]
+    private static partial void LogCouldNotGetTileSourceInfo(ILogger logger, System.Net.HttpStatusCode StatusCode);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Invalid maptiler response, using default max zoom: {MaxZoom}")]
-    private static partial void LogInvalidMaptilerResponse(ILogger logger, int MaxZoom);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Max zoom level not in tile source info, using default max zoom: {MaxZoom}")]
+    private static partial void LogMissingMaxZoom(ILogger logger, int MaxZoom);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Verified maptiler api key")]
-    private static partial void LogVerifiedMaptilerApiKey(ILogger logger);
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Tile source info does not contain any tile urls")]
+    private static partial void LogNoTileUrl(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Using url '{Url}', max zoom: {MaxZoom}")]
+    private static partial void LogUsingTileUrl(ILogger logger, string Url, int MaxZoom);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Connecting to tile database")]
     private static partial void LogConnectingToTileDatabase(ILogger logger);

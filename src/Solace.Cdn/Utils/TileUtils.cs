@@ -1,14 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Solace.Common;
 using Solace.DB;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 
-namespace Solace.ApiServer.Utils;
+namespace Solace.Cdn.Utils;
 
 internal static partial class TileUtils
 {
-    public static async Task<bool> TryWriteTile(int tileX, int tileY, Stream dest, EarthDbContext earthDb, EventBusClient eventBus, ObjectStoreClient objectStore, ILogger logger, CancellationToken cancellationToken)
+    public static async Task<bool> TryWriteTile(int tileX, int tileY, int zoom, Stream dest, EarthDbContext earthDb, EventBusClient eventBus, ObjectStoreClient objectStore, ILogger logger, CancellationToken cancellationToken)
     {
         ulong dbPos = ToDbPos(tileX, tileY);
 
@@ -21,11 +22,11 @@ internal static partial class TileUtils
             return await TryWriteTileFromObject(tile.ObjectStoreId, dest, objectStore, cancellationToken);
         }
 
-LogRenderingTile(logger);
+        LogRenderingTile(logger);
         await using var requestSender = await eventBus.AddRequestSenderAsync();
-        string? tilePng64 = await requestSender.RequestAsync("tile", "renderTile", Json.Serialize(new RenderTileRequest(tileX, tileY, 16)));
+        string? tilePng64 = await requestSender.RequestAsync("tile", "renderTile", JsonSerializer.Serialize(new RenderTileRequest(tileX, tileY, zoom),AppJsonContext.Default.RenderTileRequest));
 
-        if (tilePng64 is null)
+        if (string.IsNullOrEmpty(tilePng64))
         {
             LogTileRetreiveFail(logger);
             return false;
@@ -74,7 +75,7 @@ LogRenderingTile(logger);
     private static ulong ToDbPos(int tileX, int tileY)
         => unchecked((ulong)((long)tileX | ((long)tileY << 32)));
 
-    private sealed record RenderTileRequest(int TileX, int TileY, int Zoom);
+    internal sealed record RenderTileRequest(int TileX, int TileY, int Zoom);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Rendering tile")]
     private static partial void LogRenderingTile(ILogger logger);

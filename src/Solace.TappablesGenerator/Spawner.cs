@@ -159,12 +159,12 @@ internal sealed partial class Spawner : IAsyncDisposable
     {
         Debug.Assert(_publisher is not null);
 
-        if (!await _publisher.PublishAsync("tappables", "tappableSpawn", JsonSerializer.Serialize(tappables, AppJsonContext.Default.Tappable)))
+        if (!await _publisher.PublishAsync("tappables", "tappableSpawn", JsonSerializer.Serialize(tappables, AppJsonContext.Default.ListTappable)))
         {
             LogEventBusServerRejectedTappableSpawnEvent();
         }
 
-        if (!await _publisher.PublishAsync("tappables", "encounterSpawn", JsonSerializer.Serialize(encounters, AppJsonContext.Default.Encounter)))
+        if (!await _publisher.PublishAsync("tappables", "encounterSpawn", JsonSerializer.Serialize(encounters, AppJsonContext.Default.ListEncounter)))
         {
             LogEventBusServerRejectedEncounterSpawnEvent();
         }
