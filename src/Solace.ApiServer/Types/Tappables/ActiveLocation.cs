@@ -16,7 +16,7 @@ internal sealed record ActiveLocation(
     ActiveLocation.EncounterMetadataR? EncounterMetadata
 )
 {
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<TypeE>))]
     internal enum TypeE
     {
 #pragma warning disable CA1707 // Identifiers should not contain underscores
@@ -45,7 +45,7 @@ internal sealed record ActiveLocation(
     )
     {
         // TODO: what do these actually do?
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<EncounterTypeE>))]
         internal enum EncounterTypeE
         {
             [JsonStringEnumMemberName("None")] NONE,
@@ -65,7 +65,7 @@ internal sealed record ActiveLocation(
 #pragma warning restore CA1707 // Identifiers should not contain underscores
         }
 
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<AnchorStateE>))]
         internal enum AnchorStateE
         {
             [JsonStringEnumMemberName("Off")] OFF,

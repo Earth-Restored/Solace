@@ -19,7 +19,8 @@ function CheckDockerRegistryLogin {
     if ($LASTEXITCODE -eq 0) {
         Write-Verbose "Successfully authenticated to $Registry."
         return $true
-    } else {
+    }
+    else {
         Write-Verbose "Registry rejected the stored token (or none was found). Reason:`n$loginOutput"
         return $false
     }
@@ -50,13 +51,39 @@ function DockerRegistryLogin {
 
 function Push-Project {
     param(
-        [Parameter(Mandatory=$true)][string]$ProjectName,
-        [Parameter(Mandatory=$true)][string]$PackageName,
+        [Parameter(Mandatory = $true)][string]$ProjectName,
+        [Parameter(Mandatory = $true)][string]$PackageName,
+        [Parameter(Mandatory = $true)][bool]$AOT,
         [string]$Username = $script:Username,
         [string]$Registry = $script:Registry
     )
 
-    dotnet publish "src/$ProjectName/$ProjectName.csproj" -c Release /t:PublishContainer -p:ContainerRegistry=$Registry -p:"ContainerRepository=$Username/solace-$PackageName" -p:ContainerImageTag=latest
+    $arguments = @(
+        "publish", "src/$ProjectName/$ProjectName.csproj",
+        "-c", "Release",
+        "/p:DebuggerSupport=false",
+        "/p:EnableUnsafeBinaryFormatterSerialization=false",
+        "/p:EnableUnsafeUTF7Encoding=false",
+        "/p:EventSourceSupport=false",
+        "/p:HttpActivityPropagationSupport=false",
+        "/p:InvariantGlobalization=true",
+        "/p:MetadataUpdaterSupport=false",
+        "/t:PublishContainer",
+        "-p:ContainerRegistry=$Registry",
+        "-p:ContainerRepository=$Username/solace-$PackageName",
+        "-p:ContainerImageTag=latest"
+    )
+
+    if ($AOT) {
+        $arguments += @(
+            "/p:PublishAot=true",
+            "/p:PublishTrimmed=true",
+            "/p:EnableTrimAnalyzer=true",
+            "/p:TrimmerRemoveSymbols=true"
+        )
+    }
+
+    dotnet @arguments
 }
 
 Write-Information "Checking existing Docker authentication for $Registry..."
@@ -64,7 +91,8 @@ $isLoggedIn = CheckDockerRegistryLogin -Registry $Registry
 
 if ($isLoggedIn) {
     Write-Host "Already authenticated to $Registry. No action needed." -ForegroundColor Cyan
-} else {
+}
+else {
     Write-Information "Active session not found or invalid."
     DockerRegistryLogin -Registry $Registry -Username $Username
 }
@@ -72,20 +100,20 @@ if ($isLoggedIn) {
 Push-Location ./../
 
 $projects = @(
-    [pscustomobject]@{ProjectName='Solace.EventBus.Server';PackageName='event-bus'}
-    [pscustomobject]@{ProjectName='Solace.ObjectStore.Server';PackageName='object-store'}
-    [pscustomobject]@{ProjectName='Solace.Buildplate';PackageName='buildplate-launcher'}
-    [pscustomobject]@{ProjectName='Solace.ApiServer';PackageName='api-server'}
-    [pscustomobject]@{ProjectName='Solace.Cdn';PackageName='cdn'}
-    [pscustomobject]@{ProjectName='Solace.Locator';PackageName='locator'}
-    [pscustomobject]@{ProjectName='Solace.TappablesGenerator';PackageName='tappable-generator'}
-    [pscustomobject]@{ProjectName='Solace.TileRenderer';PackageName='tile-renderer'}
-    [pscustomobject]@{ProjectName='Solace.AdminPanel';PackageName='admin-panel'}
+    [pscustomobject]@{ProjectName = 'Solace.EventBus.Server'; PackageName = 'event-bus'; AOT = $true }
+    [pscustomobject]@{ProjectName = 'Solace.ObjectStore.Server'; PackageName = 'object-store'; AOT = $true }
+    [pscustomobject]@{ProjectName = 'Solace.Buildplate'; PackageName = 'buildplate-launcher'; AOT = $false }
+    [pscustomobject]@{ProjectName = 'Solace.ApiServer'; PackageName = 'api-server'; AOT = $false }
+    [pscustomobject]@{ProjectName = 'Solace.Cdn'; PackageName = 'cdn'; AOT = $true }
+    [pscustomobject]@{ProjectName = 'Solace.Locator'; PackageName = 'locator'; AOT = $true }
+    [pscustomobject]@{ProjectName = 'Solace.TappablesGenerator'; PackageName = 'tappable-generator'; AOT = $true }
+    [pscustomobject]@{ProjectName = 'Solace.TileRenderer'; PackageName = 'tile-renderer'; AOT = $true }
+    [pscustomobject]@{ProjectName = 'Solace.AdminPanel'; PackageName = 'admin-panel'; AOT = $false }
 )
 
 try {
     foreach ($project in $projects) {
-        Push-Project -ProjectName $project.ProjectName -PackageName $project.PackageName
+        Push-Project -ProjectName $project.ProjectName -PackageName $project.PackageName -AOT $project.AOT
     }
 }
 finally {

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Solace.Common;
 using Solace.Common.Utils;
@@ -158,12 +159,12 @@ internal sealed partial class Spawner : IAsyncDisposable
     {
         Debug.Assert(_publisher is not null);
 
-        if (!await _publisher.PublishAsync("tappables", "tappableSpawn", Json.Serialize(tappables)))
+        if (!await _publisher.PublishAsync("tappables", "tappableSpawn", JsonSerializer.Serialize(tappables, AppJsonContext.Default.Tappable)))
         {
             LogEventBusServerRejectedTappableSpawnEvent();
         }
 
-        if (!await _publisher.PublishAsync("tappables", "encounterSpawn", Json.Serialize(encounters)))
+        if (!await _publisher.PublishAsync("tappables", "encounterSpawn", JsonSerializer.Serialize(encounters, AppJsonContext.Default.Encounter)))
         {
             LogEventBusServerRejectedEncounterSpawnEvent();
         }

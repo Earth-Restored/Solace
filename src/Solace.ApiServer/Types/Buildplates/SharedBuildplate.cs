@@ -19,7 +19,7 @@ internal sealed record SharedBuildplate(
         int Order
     )
     {
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<TypeE>))]
         internal enum TypeE
         {
             [JsonStringEnumMemberName("Survival")] SURVIVAL,

@@ -15,7 +15,7 @@ public sealed record InitialPlayerStateResponse(
         TimeSpan RemainingDuration
     )
     {
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<TypeE>))]
         public enum TypeE
         {
 #pragma warning disable CA1707 // Identifiers should not contain underscores

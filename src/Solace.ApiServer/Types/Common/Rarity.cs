@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Solace.ApiServer.Types.Common;
 
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter<Rarity>))]
 internal enum Rarity
 {
     [JsonStringEnumMemberName("Common")] COMMON,

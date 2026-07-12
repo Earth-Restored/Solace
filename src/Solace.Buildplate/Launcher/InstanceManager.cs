@@ -22,7 +22,7 @@ internal sealed partial class InstanceManager
 
     private readonly Lock _lock = new Lock();
 
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<InstanceType>))]
     private enum InstanceType
     {
         BUILD,

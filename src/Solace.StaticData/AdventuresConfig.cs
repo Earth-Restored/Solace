@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Solace.Common;
 
@@ -34,7 +35,7 @@ public sealed class AdventuresConfig
                 }
 
                 using var stream = File.OpenRead(buildplatesFile);
-                AdventureBuildplatesFile? buildplates = Json.Deserialize<AdventureBuildplatesFile>(stream);
+                var buildplates = JsonSerializer.Deserialize(stream, AppJsonContext.Default.AdventureBuildplatesFile);
                 Debug.Assert(buildplates is not null);
 
                 _buildplatesByFolder[folder] = [.. buildplates.Buildplates
@@ -93,7 +94,7 @@ public sealed class AdventuresConfig
         }
 
         using var stream = File.OpenRead(spawnConfigFile);
-        AdventureSpawnConfig? spawnConfig = Json.Deserialize<AdventureSpawnConfig>(stream);
+        var spawnConfig = JsonSerializer.Deserialize(stream, AppJsonContext.Default.AdventureSpawnConfig);
         Debug.Assert(spawnConfig is not null);
         return spawnConfig;
     }
@@ -142,27 +143,27 @@ public sealed class AdventuresConfig
     public sealed record AdventureCrystalType(
         string Folder,
         string Icon,
-        AdventureCrystalType.RarityE Rarity,
+        AdventureCrystalType.AdventureCrystalRarity Rarity,
         int PickWeight
     )
     {
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public enum RarityE
+        [JsonConverter(typeof(JsonStringEnumConverter<AdventureCrystalRarity>))]
+        public enum AdventureCrystalRarity
         {
             COMMON,
             UNCOMMON,
             RARE,
             EPIC,
             LEGENDARY,
-            OOBE
+            OOBE,
         }
     }
 
-    private sealed record AdventureBuildplatesFile(
+    internal sealed record AdventureBuildplatesFile(
         AdventureBuildplate[] Buildplates
     );
 
-    private sealed record AdventureBuildplate(
+    internal sealed record AdventureBuildplate(
         string TemplateId,
         int Weight
     );

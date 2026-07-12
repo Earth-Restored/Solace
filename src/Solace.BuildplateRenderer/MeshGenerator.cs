@@ -75,7 +75,7 @@ public sealed class BuildplateMeshGenerator
             }
         }
 
-        int3 worldOffset = new int3(0, -worldData.Offset / 2, 0);
+        var worldOffset = new int3(0, -worldData.Offset / 2, 0);
 
         foreach (var subChunk in subChunkCache.Values)
         {

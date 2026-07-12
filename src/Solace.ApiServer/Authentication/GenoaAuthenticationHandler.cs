@@ -11,7 +11,8 @@ using System.Text.Encodings.Web;
 namespace Solace.ApiServer.Authentication;
 
 public sealed class GenoaAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
-{public const string DataProtectionPurpose = "Solace.Genoa.AuthTokens";
+{
+    public const string DataProtectionPurpose = "Solace.Genoa.AuthTokens";
 
     private readonly ITimeLimitedDataProtector _protector;
 
@@ -43,7 +44,7 @@ public sealed class GenoaAuthenticationHandler : AuthenticationHandler<Authentic
             return AuthenticateResult.Fail("Missing Authorization Header");
         }
 
-       string? encryptedToken;
+        string? encryptedToken;
         try
         {
             if (!Request.Headers.TryGetValue("Authorization", out StringValues authorization))

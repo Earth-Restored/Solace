@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using SkiaSharp;
 using Solace.Common;
 using Solace.EventBus.Client;
@@ -26,12 +27,12 @@ internal sealed partial class EventBusTileRenderer : IAsyncDisposable
         await _eventBus.AddRequestHandlerAsync("tile",
         async request =>
         {
-            if (request.Type == "renderTile")
+            if (request.Type is "renderTile")
             {
                 RenderTileRequest getTile;
                 try
                 {
-                    getTile = Json.Deserialize<RenderTileRequest>(request.Data)!;
+                    getTile = JsonSerializer.Deserialize(request.Data, AppJsonContext.Default.RenderTileRequest)!;
                 }
                 catch (Exception exception)
                 {

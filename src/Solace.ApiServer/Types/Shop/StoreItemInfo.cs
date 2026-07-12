@@ -15,18 +15,18 @@ internal sealed record StoreItemInfo(
     Guid? FeaturedItem
 )
 {
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<StoreItemTypeE>))]
     internal enum StoreItemTypeE
     {
         Buildplates,
-        Items
+        Items,
     }
 
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<StoreItemStatus>))]
     internal enum StoreItemStatus
     {
         Found,
         NotFound,
-        NotModified
+        NotModified,
     }
 }

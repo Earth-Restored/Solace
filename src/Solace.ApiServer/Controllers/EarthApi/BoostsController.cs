@@ -101,9 +101,9 @@ internal sealed partial class BoostsController : SolaceControllerBase
         {
             if (!activeBoostInfo.BoostInfo.TriggeredOnDeath)
             {
-                foreach (Catalog.ItemsCatalogR.Item.BoostInfoR.Effect effect in activeBoostInfo.BoostInfo.Effects)
+                foreach (Catalog.ItemsCatalogR.Item.BoostEffect effect in activeBoostInfo.BoostInfo.Effects)
                 {
-                    if (effect.Activation != Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.ActivationE.TIMED)
+                    if (effect.Activation != Catalog.ItemsCatalogR.Item.BoostEffectActivation.TIMED)
                     {
                         LogUnexpectedBoostActivation(activeBoostInfo.ActiveBoost.ItemId, effect.Activation);
                         continue;
@@ -115,9 +115,9 @@ internal sealed partial class BoostsController : SolaceControllerBase
             else
             {
                 var effects = new List<Effect>(activeBoostInfo.BoostInfo.Effects.Length);
-                foreach (Catalog.ItemsCatalogR.Item.BoostInfoR.Effect effect in activeBoostInfo.BoostInfo.Effects)
+                foreach (Catalog.ItemsCatalogR.Item.BoostEffect effect in activeBoostInfo.BoostInfo.Effects)
                 {
-                    if (effect.Activation is not Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.ActivationE.TRIGGERED)
+                    if (effect.Activation is not Catalog.ItemsCatalogR.Item.BoostEffectActivation.TRIGGERED)
                     {
                         LogUnexpectedBoostActivation(activeBoostInfo.ActiveBoost.ItemId, effect.Activation);
                         continue;
@@ -174,7 +174,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         Catalog.ItemsCatalogR.Item? item = _catalog.ItemsCatalog.GetItem(itemId);
 
-        if (item is null || item.BoostInfo is null || item.BoostInfo.Type is not Catalog.ItemsCatalogR.Item.BoostInfoR.TypeE.POTION)
+        if (item is null || item.BoostInfo is null || item.BoostInfo.Type is not Catalog.ItemsCatalogR.Item.BoostInfoType.POTION)
         {
             return TypedResults.BadRequest();
         }
@@ -243,7 +243,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
         else
         {
             boosts.ActiveBoosts[newIndex] = new BoostsEF.ActiveBoost(Guid.NewGuid(), itemId, requestStartedOn.ToUnixTimeMilliseconds(), item.BoostInfo.Duration);
-            if (item.BoostInfo.Effects.Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.TypeE.HEALTH))
+            if (item.BoostInfo.Effects.Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostEffectType.HEALTH))
             {
                 // TODO: determine if we should add new player health straight away
                 profileChanged = true;
@@ -313,7 +313,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             }
         }
 
-        if (item.BoostInfo.Effects.Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.TypeE.HEALTH))
+        if (item.BoostInfo.Effects.Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostEffectType.HEALTH))
         {
             profileChanged = true;
             int maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _catalog.ItemsCatalog);
@@ -340,7 +340,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
     {
         bool profileChanged = false;
         var prunedBoosts = boosts.Prune(currentTime);
-        if (prunedBoosts.SelectMany(activeBoost => itemsCatalog.GetItem(activeBoost.ItemId)!.BoostInfo!.Effects).Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.TypeE.HEALTH))
+        if (prunedBoosts.SelectMany(activeBoost => itemsCatalog.GetItem(activeBoost.ItemId)!.BoostInfo!.Effects).Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostEffectType.HEALTH))
         {
             profileChanged = true;
         }
@@ -356,5 +356,5 @@ internal sealed partial class BoostsController : SolaceControllerBase
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Active boost {ItemId} has effect with activation {ActivationType}")]
-    private partial void LogUnexpectedBoostActivation(Guid ItemId, Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.ActivationE ActivationType);
+    private partial void LogUnexpectedBoostActivation(Guid ItemId, Catalog.ItemsCatalogR.Item.BoostEffectActivation ActivationType);
 }

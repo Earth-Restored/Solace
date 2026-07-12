@@ -471,7 +471,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
         return EarthJson(buildplateInstance);
     }
 
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<Source>))]
     private enum Source
     {
         PLAYER,

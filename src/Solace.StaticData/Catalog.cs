@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Solace.Common;
 
@@ -45,7 +46,7 @@ public sealed class Catalog
         {
             using (var stream = File.OpenRead(file))
             {
-                Item[]? items = Json.Deserialize<Item[]>(stream);
+                var items = JsonSerializer.Deserialize(stream, AppJsonContext.Default.ItemArray);
 
                 Debug.Assert(items is not null);
 
@@ -79,6 +80,7 @@ public sealed class Catalog
         public bool TryGetItem(Guid id, [MaybeNullWhen(false)] out Item item)
             => itemsById.TryGetValue(id, out item);
 
+        [JsonSerializable(typeof(Item), TypeInfoPropertyName = "ItemCatalogItem")]
         public sealed record Item(
             Guid Id,
             string Name,
@@ -100,7 +102,7 @@ public sealed class Catalog
             Item.ExperienceR Experience
         )
         {
-            [JsonConverter(typeof(JsonStringEnumConverter))]
+            [JsonConverter(typeof(JsonStringEnumConverter<TypeE>))]
             public enum TypeE
             {
 #pragma warning disable CA1707 // Identifiers should not contain underscores
@@ -114,7 +116,7 @@ public sealed class Catalog
 #pragma warning restore CA1707 // Identifiers should not contain underscores
             }
 
-            [JsonConverter(typeof(JsonStringEnumConverter))]
+            [JsonConverter(typeof(JsonStringEnumConverter<CategoryE>))]
             public enum CategoryE
             {
 #pragma warning disable CA1707 // Identifiers should not contain underscores
@@ -138,7 +140,7 @@ public sealed class Catalog
 #pragma warning restore CA1707 // Identifiers should not contain underscores
             }
 
-            [JsonConverter(typeof(JsonStringEnumConverter))]
+            [JsonConverter(typeof(JsonStringEnumConverter<RarityE>))]
             public enum RarityE
             {
                 COMMON,
@@ -149,7 +151,7 @@ public sealed class Catalog
                 OOBE,
             }
 
-            [JsonConverter(typeof(JsonStringEnumConverter))]
+            [JsonConverter(typeof(JsonStringEnumConverter<UseTypeE>))]
             public enum UseTypeE
             {
 #pragma warning disable CA1707 // Identifiers should not contain underscores
@@ -198,58 +200,56 @@ public sealed class Catalog
             public sealed record BoostInfoR(
                 string Name,
                 int? Level,
-                BoostInfoR.TypeE Type,
+                BoostInfoType Type,
                 bool CanBeRemoved,
                 long Duration,
                 bool TriggeredOnDeath,
-                BoostInfoR.Effect[] Effects
-            )
+                BoostEffect[] Effects
+            );
+
+            public sealed record BoostEffect(
+                   BoostEffectType Type,
+                   int Value,
+                   Guid[] ApplicableItemIds,
+                   BoostEffectActivation Activation
+               );
+
+            [JsonConverter(typeof(JsonStringEnumConverter<BoostEffectType>))]
+            public enum BoostEffectType
             {
-                [JsonConverter(typeof(JsonStringEnumConverter))]
-                public enum TypeE
-                {
 #pragma warning disable CA1707 // Identifiers should not contain underscores
-                    POTION,
-                    INVENTORY_ITEM
+                ADVENTURE_XP,
+                CRAFTING,
+                DEFENSE,
+                EATING,
+                HEALING,
+                HEALTH,
+                ITEM_XP,
+                MINING_SPEED,
+                RETENTION_BACKPACK,
+                RETENTION_HOTBAR,
+                RETENTION_XP,
+                SMELTING,
+                STRENGTH,
+                TAPPABLE_RADIUS,
 #pragma warning restore CA1707 // Identifiers should not contain underscores
-                }
+            }
 
-                public record Effect(
-                    Effect.TypeE Type,
-                    int Value,
-                    Guid[] ApplicableItemIds,
-                    Effect.ActivationE Activation
-                )
-                {
-                    [JsonConverter(typeof(JsonStringEnumConverter))]
-                    public enum TypeE
-                    {
+            [JsonConverter(typeof(JsonStringEnumConverter<BoostEffectActivation>))]
+            public enum BoostEffectActivation
+            {
+                INSTANT,
+                TIMED,
+                TRIGGERED,
+            }
+
+            [JsonConverter(typeof(JsonStringEnumConverter<BoostInfoType>))]
+            public enum BoostInfoType
+            {
 #pragma warning disable CA1707 // Identifiers should not contain underscores
-                        ADVENTURE_XP,
-                        CRAFTING,
-                        DEFENSE,
-                        EATING,
-                        HEALING,
-                        HEALTH,
-                        ITEM_XP,
-                        MINING_SPEED,
-                        RETENTION_BACKPACK,
-                        RETENTION_HOTBAR,
-                        RETENTION_XP,
-                        SMELTING,
-                        STRENGTH,
-                        TAPPABLE_RADIUS
+                POTION,
+                INVENTORY_ITEM
 #pragma warning restore CA1707 // Identifiers should not contain underscores
-                    }
-
-                    [JsonConverter(typeof(JsonStringEnumConverter))]
-                    public enum ActivationE
-                    {
-                        INSTANT,
-                        TIMED,
-                        TRIGGERED
-                    }
-                }
             }
 
             public sealed record JournalEntryR(
@@ -260,7 +260,7 @@ public sealed class Catalog
                 string? Sound
             )
             {
-                [JsonConverter(typeof(JsonStringEnumConverter))]
+                [JsonConverter(typeof(JsonStringEnumConverter<BiomeE>))]
                 public enum BiomeE
                 {
 #pragma warning disable CA1707 // Identifiers should not contain underscores
@@ -283,17 +283,17 @@ public sealed class Catalog
                     SUNFLOWER_PLAINS,
                     SWAMP,
                     TAIGA,
-                    WARM_OCEAN
+                    WARM_OCEAN,
 #pragma warning restore CA1707 // Identifiers should not contain underscores
                 }
 
-                [JsonConverter(typeof(JsonStringEnumConverter))]
+                [JsonConverter(typeof(JsonStringEnumConverter<BehaviorE>))]
                 public enum BehaviorE
                 {
                     NONE,
                     PASSIVE,
                     HOSTILE,
-                    NEUTRAL
+                    NEUTRAL,
                 }
             }
 
@@ -314,7 +314,7 @@ public sealed class Catalog
         {
             using (var stream = File.OpenRead(file))
             {
-                EfficiencyCategory[]? efficiencyCategories = Json.Deserialize<EfficiencyCategory[]>(stream);
+                var efficiencyCategories = JsonSerializer.Deserialize(stream, AppJsonContext.Default.EfficiencyCategoryArray);
 
                 Debug.Assert(efficiencyCategories is not null);
 
@@ -357,7 +357,7 @@ public sealed class Catalog
         {
             using (var stream = File.OpenRead(file))
             {
-                JournalGroup[]? groups = Json.Deserialize<JournalGroup[]>(File.ReadAllText(file));
+                var groups = JsonSerializer.Deserialize(File.ReadAllText(file), AppJsonContext.Default.JournalGroupArray);
 
                 Debug.Assert(groups is not null);
                 Groups = ImmutableCollectionsMarshal.AsImmutableArray(groups);
@@ -379,7 +379,7 @@ public sealed class Catalog
             }
         }
 
-        public record JournalGroup(
+        public sealed record JournalGroup(
             string Id,
             string Name,
             JournalGroup.ParentCollectionE ParentCollection,
@@ -387,14 +387,14 @@ public sealed class Catalog
             string? DefaultSound
         )
         {
-            [JsonConverter(typeof(JsonStringEnumConverter))]
+            [JsonConverter(typeof(JsonStringEnumConverter<ParentCollectionE>))]
             public enum ParentCollectionE
             {
 #pragma warning disable CA1707 // Identifiers should not contain underscores
                 BLOCKS,
                 ITEMS_CRAFTED,
                 ITEMS_SMELTED,
-                MOBS
+                MOBS,
 #pragma warning restore CA1707 // Identifiers should not contain underscores
             }
         }
@@ -408,7 +408,7 @@ public sealed class Catalog
         private readonly Dictionary<Guid, CraftingRecipe> craftingRecipesById = [];
         private readonly Dictionary<Guid, SmeltingRecipe> smeltingRecipesById = [];
 
-        private sealed record RecipesCatalogFile(
+        internal sealed record RecipesCatalogFile(
             CraftingRecipe[] Crafting,
             SmeltingRecipe[] Smelting
         );
@@ -418,7 +418,7 @@ public sealed class Catalog
             RecipesCatalogFile? recipesCatalogFile;
             using (var stream = File.OpenRead(file))
             {
-                recipesCatalogFile = Json.Deserialize<RecipesCatalogFile>(stream);
+                recipesCatalogFile = JsonSerializer.Deserialize(stream, AppJsonContext.Default.RecipesCatalogFile);
             }
 
             Debug.Assert(recipesCatalogFile is not null);
@@ -464,35 +464,35 @@ public sealed class Catalog
         public sealed record CraftingRecipe(
             Guid Id,
             int Duration,
-            CraftingRecipe.CategoryE Category,
+            CraftingRecipeCategory Category,
             CraftingRecipe.Ingredient[] Ingredients,
             CraftingRecipe.OutputR Output,
             CraftingRecipe.ReturnItem[] ReturnItems
         )
         {
-            [JsonConverter(typeof(JsonStringEnumConverter))]
-            public enum CategoryE
-            {
-                CONSTRUCTION,
-                EQUIPMENT,
-                ITEMS,
-                NATURE
-            }
-
             public sealed record Ingredient(
                 int Count,
                 Guid[] PossibleItemIds
             );
 
-            public record OutputR(
+            public sealed record OutputR(
                 Guid ItemId,
                 int Count
             );
 
-            public record ReturnItem(
+            public sealed record ReturnItem(
                 Guid ItemId,
                 int Count
             );
+        }
+
+        [JsonConverter(typeof(JsonStringEnumConverter<CraftingRecipeCategory>))]
+        public enum CraftingRecipeCategory
+        {
+            CONSTRUCTION,
+            EQUIPMENT,
+            ITEMS,
+            NATURE
         }
 
         public sealed record SmeltingRecipe(
@@ -506,7 +506,7 @@ public sealed class Catalog
 
     public sealed class NFCBoostsCatalogR
     {
-        private sealed record NFCBoostsCatalogFile(
+        internal sealed record NFCBoostsCatalogFile(
             NFCBoost[] MiniFigs
         );
 
@@ -517,7 +517,7 @@ public sealed class Catalog
             NFCBoostsCatalogFile? nfcBoostsCatalogFile;
             using (var stream = File.OpenRead(file))
             {
-                nfcBoostsCatalogFile = Json.Deserialize<NFCBoostsCatalogFile>(stream);
+                nfcBoostsCatalogFile = JsonSerializer.Deserialize(stream, AppJsonContext.Default.NFCBoostsCatalogFile);
             }
 
             MiniFigs = nfcBoostsCatalogFile?.MiniFigs ?? [];

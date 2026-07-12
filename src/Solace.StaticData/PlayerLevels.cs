@@ -1,5 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Solace.Common;
 
 namespace Solace.StaticData;
@@ -18,7 +20,7 @@ public sealed class PlayerLevels
             {
                 using (var stream = File.OpenRead(file))
                 {
-                    var level = Json.Deserialize<Level>(stream);
+                    var level = JsonSerializer.Deserialize(stream, AppJsonContext.Default.Level);
 
                     Debug.Assert(level is not null);
 
@@ -49,13 +51,12 @@ public sealed class PlayerLevels
     public sealed record Level(
         int ExperienceRequired,
         int Rubies,
-        Level.Item[] Items,
+        LevelItem[] Items,
         string[] Buildplates
-    )
-    {
-        public sealed record Item(
-            Guid Id,
-            int Count
-        );
-    }
+    );
+
+    public sealed record LevelItem(
+        Guid Id,
+        int Count
+    );
 }

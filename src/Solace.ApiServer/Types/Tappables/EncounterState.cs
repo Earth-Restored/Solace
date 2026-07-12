@@ -6,7 +6,7 @@ internal sealed record EncounterState(
     EncounterState.ActiveEncounterStateE ActiveEncounterState
 )
 {
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<ActiveEncounterStateE>))]
     internal enum ActiveEncounterStateE
     {
         [JsonStringEnumMemberName("Pristine")] PRISTINE,

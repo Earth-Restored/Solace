@@ -323,7 +323,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
         InstanceType Type
     );
 
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<InstanceType>))]
     internal enum InstanceType
     {
 #pragma warning disable CA1707 // Identifiers should not contain underscores

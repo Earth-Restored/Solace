@@ -31,7 +31,9 @@ internal sealed partial class TappableGenerator
         _random = new Random();
     }
 
+#pragma warning disable CA1822 // Mark members as static
     public TimeSpan GetMaxTappableLifetime()
+#pragma warning restore CA1822 // Mark members as static
         => MAX_DELAY + MAX_DURATION + TimeSpan.FromSeconds(30);
 
     public IEnumerable<Tappable> GenerateTappables(int tileX, int tileY, DateTimeOffset currentTime)
@@ -75,16 +77,16 @@ internal sealed partial class TappableGenerator
                 throw new InvalidOperationException();
             }
 
-            var items = new List<Tappable.Item>(dropSet.Items.Length);
+            var items = new List<TappableItem>(dropSet.Items.Length);
 
             foreach (var itemId in dropSet.Items)
             {
                 TappablesConfig.TappableConfig.ItemCount itemCount = tappableConfig.ItemCounts[itemId];
-                items.Add(new Tappable.Item(itemId, _random.Next(itemCount.Min, itemCount.Max + 1)));
+                items.Add(new TappableItem(itemId, _random.Next(itemCount.Min, itemCount.Max + 1)));
 #pragma warning restore CA5394 // Do not use insecure randomness
             }
 
-            var rarity = Tappable.RarityE.FromStaticData(items.Max(item => _staticData.Catalog.ItemsCatalog.GetItem(item.Id)!.Rarity));
+            var rarity = TappableRarity.FromStaticData(items.Max(item => _staticData.Catalog.ItemsCatalog.GetItem(item.Id)!.Rarity));
 
             var tappable = new Tappable(
                 Guid.CreateVersion7(),

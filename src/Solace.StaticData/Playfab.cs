@@ -28,7 +28,7 @@ public sealed class Playfab
 
                 using (var stream = File.OpenRead(file))
                 {
-                    var tab = JsonSerializer.Deserialize<Tab>(stream);
+                    var tab = JsonSerializer.Deserialize(stream, AppJsonContext.Default.Tab);
 
                     Debug.Assert(tab is not null);
 
@@ -51,7 +51,7 @@ public sealed class Playfab
 
                 using (var stream = File.OpenRead(file))
                 {
-                    var item = JsonSerializer.Deserialize<Item>(stream);
+                    var item = JsonSerializer.Deserialize(stream, AppJsonContext.Default.PlayfabItem);
 
                     Debug.Assert(item is not null);
 
@@ -100,7 +100,7 @@ public sealed class Playfab
         }
     }
 
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<ContentType>))]
     public enum ContentType
     {
         Durable,
@@ -138,7 +138,7 @@ public sealed class Playfab
             IReadOnlyList<string> Values
         );
 
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<Rarity>))]
         public enum Rarity
         {
             None,
@@ -149,7 +149,7 @@ public sealed class Playfab
             Legendary,
         }
 
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<BuidplateSize>))]
         public enum BuidplateSize
         {
             Small,
@@ -225,7 +225,7 @@ public sealed class Playfab
             Guid ComponentId
         );
 
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<ColumnType>))]
         public enum ColumnType
         {
             Rectangle,

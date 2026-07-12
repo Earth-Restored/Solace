@@ -110,7 +110,7 @@ internal sealed partial class SigninController : SolaceControllerBase
         }
 
         // TODO: make the time configurable
-        string authToken = _protector.Protect(userId.ToString(), TimeSpan.FromHours(1));
+        var authToken = _protector.Protect(userId.ToString(), TimeSpan.FromHours(1));
 
         return EarthJson(new Dictionary<string, object?>()
         {

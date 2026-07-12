@@ -4,10 +4,10 @@
 namespace Solace.Buildplate.Connector.Model;
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter<InventoryType>))]
 public enum InventoryType
 {
     SYNCED,
     DISCARD,
-    BACKPACK
+    BACKPACK,
 }

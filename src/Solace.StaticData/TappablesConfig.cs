@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Text.Json;
 using Solace.Common;
 
 namespace Solace.StaticData;
@@ -22,7 +23,7 @@ public sealed class TappablesConfig
 
                 using (var stream = File.OpenRead(file))
                 {
-                    var tappable = Json.Deserialize<TappableConfig>(stream);
+                    var tappable = JsonSerializer.Deserialize(stream, AppJsonContext.Default.TappableConfig);
 
                     Debug.Assert(tappable is not null);
 
@@ -57,18 +58,18 @@ public sealed class TappablesConfig
         }
     }
 
-    public record TappableConfig(
+    public sealed record TappableConfig(
         string Icon,
         TappableConfig.DropSetR[] DropSets,
         Dictionary<Guid, TappableConfig.ItemCount> ItemCounts
     )
     {
-        public record DropSetR(
+        public sealed record DropSetR(
             Guid[] Items,
             int Chance
         );
 
-        public record ItemCount(
+        public sealed record ItemCount(
             int Min,
             int Max
         );

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Solace.Common;
 using Solace.Common.Utils;
@@ -29,12 +30,12 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
         _requestHandler = await eventBusClient.AddRequestHandlerAsync("tappables",
         async request =>
         {
-            if (request.Type == "activeTile")
+            if (request.Type is "activeTile")
             {
                 ActiveTileNotification activeTileNotification;
                 try
                 {
-                    activeTileNotification = Json.Deserialize<ActiveTileNotification>(request.Data)!;
+                    activeTileNotification = JsonSerializer.Deserialize(request.Data, AppJsonContext.Default.ActiveTileNotification)!;
                 }
                 catch (Exception exception)
                 {
@@ -141,7 +142,7 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
         DateTimeOffset LatestActiveTime
     );
 
-    private sealed record ActiveTileNotification(
+    internal sealed record ActiveTileNotification(
         int X,
         int Y,
         string PlayerId

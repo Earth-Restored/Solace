@@ -46,14 +46,14 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
         {
             id = await storeTask;
         }
-        catch (DataStore.DataStoreException ex)
+        catch (DataStore.DataStoreException exception)
         {
-            _logger.LogCritical(ex, "Failed to store object to data store: {Message}", ex.Message);
-            throw new RpcException(new Status(StatusCode.Internal, "Object store failed to write object: " + ex.Message));
+            LogFailedToSstoreObjectToDataStore(exception);
+            throw new RpcException(new Status(StatusCode.Internal, "Object store failed to write object: " + exception.Message));
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            _logger.LogCritical(ex, "Unexpected failure while storing object");
+            LogUnexpectedFailureWhileStoringObject(exception);
             throw new RpcException(new Status(StatusCode.Internal, "Object store failed while storing object."));
         }
 
@@ -118,6 +118,12 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
             Success = true,
         };
     }
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Failed to store object to data store")]
+    private partial void LogFailedToSstoreObjectToDataStore(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Unexpected failure while storing object")]
+    private partial void LogUnexpectedFailureWhileStoringObject(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Stored new object '{Id}'")]
     private partial void LogStoreObjectSuccess(string Id);

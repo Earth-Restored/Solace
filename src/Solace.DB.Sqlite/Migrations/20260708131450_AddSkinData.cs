@@ -2,21 +2,20 @@
 
 #nullable disable
 
-namespace Solace.DB.Migrations
+namespace Solace.DB.Migrations;
+
+/// <inheritdoc />
+public partial class AddSkinData : Migration
 {
     /// <inheritdoc />
-    public partial class AddSkinData : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
 
-        }
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
 
-        }
     }
 }

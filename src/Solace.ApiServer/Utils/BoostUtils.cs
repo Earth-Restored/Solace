@@ -3,14 +3,14 @@ using Solace.ApiServer.Types.Common;
 using Solace.DB.Models.Player;
 using Solace.StaticData;
 
-using CICIBIEActivation = Solace.StaticData.Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.ActivationE;
-using CICIBIEType = Solace.StaticData.Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.TypeE;
+using CICIBIEActivation = Solace.StaticData.Catalog.ItemsCatalogR.Item.BoostEffectActivation;
+using CICIBIEType = Solace.StaticData.Catalog.ItemsCatalogR.Item.BoostEffectType;
 
 namespace Solace.ApiServer.Utils;
 
 internal static class BoostUtils
 {
-    public static IEnumerable<Catalog.ItemsCatalogR.Item.BoostInfoR.Effect> GetActiveEffects(BoostsEF boosts, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
+    public static IEnumerable<Catalog.ItemsCatalogR.Item.BoostEffect> GetActiveEffects(BoostsEF boosts, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
     {
         Dictionary<string, Catalog.ItemsCatalogR.Item.BoostInfoR> activeBoostsInfo = [];
         foreach (var activeBoost in boosts.ActiveBoosts)
@@ -142,7 +142,7 @@ internal static class BoostUtils
     public static int GetMaxPlayerHealth(BoostsEF boosts, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
         => 20 + (20 * BoostUtils.GetActiveStatModifiers(boosts, currentTime, itemsCatalog).MaxPlayerHealthMultiplier) / 100;
 
-    public static Effect BoostEffectToApiResponse(Catalog.ItemsCatalogR.Item.BoostInfoR.Effect effect, long boostDuration)
+    public static Effect BoostEffectToApiResponse(Catalog.ItemsCatalogR.Item.BoostEffect effect, long boostDuration)
     {
         string effectTypeString = effect.Type switch
         {

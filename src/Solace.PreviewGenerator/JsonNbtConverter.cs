@@ -54,7 +54,7 @@ internal sealed class JsonNbtConverter
 
     public abstract class JsonNbtTag
     {
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<TypeE>))]
         public enum TypeE
         {
             [JsonStringEnumMemberName("compound")] Compound,
@@ -62,7 +62,7 @@ internal sealed class JsonNbtConverter
             [JsonStringEnumMemberName("int")] Int,
             [JsonStringEnumMemberName("byte")] Byte,
             [JsonStringEnumMemberName("float")] Float,
-            [JsonStringEnumMemberName("string")] String
+            [JsonStringEnumMemberName("string")] String,
         }
 
         public readonly TypeE Type;

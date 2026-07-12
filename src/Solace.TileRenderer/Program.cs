@@ -109,17 +109,17 @@ internal static partial class App
                 return 4;
             }
 
-            var json = await JsonSerializer.DeserializeAsync<JsonObject>(response.Content.ReadAsStream());
+            var tilesResponse = await JsonSerializer.DeserializeAsync(response.Content.ReadAsStream(), AppJsonContext.Default.TilesResponse);
 
             int maxZoom;
-            if (json is null || !json.TryGetPropertyValue("maxzoom", out JsonNode? maxZoomNode) || maxZoomNode is not JsonValue maxZoomValue || maxZoomValue.GetValueKind() != JsonValueKind.Number)
+            if (tilesResponse is null || tilesResponse.MaxZoom is null)
             {
                 maxZoom = 15;
                 LogInvalidMaptilerResponse(programLogger, maxZoom);
             }
             else
             {
-                maxZoom = maxZoomValue.GetValue<int>();
+                maxZoom = tilesResponse.MaxZoom.Value;
             }
 
             tileDataSource = new MaptilerTileDataSource(maptilerApiKey, maxZoom, httpClient);

@@ -313,14 +313,14 @@ internal sealed partial class TappablesManager : IAsyncDisposable
         Tappable.Item[] Items
     )
     {
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<RarityE>))]
         internal enum RarityE
         {
             COMMON,
             UNCOMMON,
             RARE,
             EPIC,
-            LEGENDARY
+            LEGENDARY,
         }
 
         internal sealed record Item(
@@ -340,14 +340,14 @@ internal sealed partial class TappablesManager : IAsyncDisposable
         Guid EncounterBuildplateId
     )
     {
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<RarityE>))]
         internal enum RarityE
         {
             COMMON,
             UNCOMMON,
             RARE,
             EPIC,
-            LEGENDARY
+            LEGENDARY,
         }
     }
 

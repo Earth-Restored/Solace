@@ -84,9 +84,9 @@ internal static partial class App
             File.WriteAllText(testPath, "test");
             File.Delete(testPath);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            logger.LogCritical(ex, "Object store data directory '{Path}' is not writable by the process. Check bind-mount ownership and permissions.", dataDirectory);
+            LogDataDirectoryNotWritable(logger, exception, dataDirectory);
             return 2;
         }
 
@@ -104,4 +104,7 @@ internal static partial class App
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Using {Path} for data storage")]
     private static partial void LogDataStoragePath(ILogger logger, string Path);
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Object store data directory '{Path}' is not writable by the process. Check bind-mount ownership and permissions")]
+    private static partial void LogDataDirectoryNotWritable(ILogger logger, Exception exception, string Path);
 }

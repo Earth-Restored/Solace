@@ -9,7 +9,7 @@ using Solace.DB.Models.Player;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 using Solace.StaticData;
-using CICIBIEType = Solace.StaticData.Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.TypeE;
+using CICIBIEType = Solace.StaticData.Catalog.ItemsCatalogR.Item.BoostEffectType;
 using Microsoft.EntityFrameworkCore;
 using Solace.DB.Utils;
 
@@ -661,7 +661,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
 
     private sealed record EffectInfo(
         DateTimeOffset EndTime,
-        Catalog.ItemsCatalogR.Item.BoostInfoR.Effect Effect
+        Catalog.ItemsCatalogR.Item.BoostEffect Effect
     );
 
     private async Task<InitialPlayerStateResponse?> HandleGetInitialPlayerState(Guid instanceId, Guid accountId, DateTimeOffset currentTime)

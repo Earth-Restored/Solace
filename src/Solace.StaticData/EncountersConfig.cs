@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Solace.Common;
 
@@ -23,7 +24,7 @@ public sealed class EncountersConfig
 
                 using (var stream = File.OpenRead(file))
                 {
-                    var encounter = Json.Deserialize<EncounterConfig>(stream);
+                    var encounter = JsonSerializer.Deserialize(stream, AppJsonContext.Default.EncounterConfig);
 
                     Debug.Assert(encounter is not null);
 
@@ -39,21 +40,20 @@ public sealed class EncountersConfig
         }
     }
 
-    public record EncounterConfig(
+    public sealed record EncounterConfig(
         string Icon,
-        EncounterConfig.RarityE Rarity,
+        EncounterRarity Rarity,
         string EncounterBuildplateId,
         int Duration
-    )
+    );
+
+    [JsonConverter(typeof(JsonStringEnumConverter<EncounterRarity>))]
+    public enum EncounterRarity
     {
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public enum RarityE
-        {
-            COMMON,
-            UNCOMMON,
-            RARE,
-            EPIC,
-            LEGENDARY
-        }
+        COMMON,
+        UNCOMMON,
+        RARE,
+        EPIC,
+        LEGENDARY,
     }
 }

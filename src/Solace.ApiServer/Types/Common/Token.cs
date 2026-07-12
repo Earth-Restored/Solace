@@ -11,7 +11,7 @@ internal sealed record Token(
     Token.LifetimeE Lifetime
 )
 {
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<Type>))]
     internal enum Type
     {
 #pragma warning disable CA1707 // Identifiers should not contain underscores
@@ -22,17 +22,17 @@ internal sealed record Token(
         [JsonStringEnumMemberName("item.unlocked")]
         JOURNAL_ITEM_UNLOCKED,
         [JsonStringEnumMemberName("daily.login")]
-        DAILY_LOGIN
+        DAILY_LOGIN,
 #pragma warning restore CA1707 // Identifiers should not contain underscores
     }
 
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<LifetimeE>))]
     internal enum LifetimeE
     {
         [JsonStringEnumMemberName("Persistent")]
         PERSISTENT,
         [JsonStringEnumMemberName("Transient")]
-        TRANSIENT
+        TRANSIENT,
     }
 }
 

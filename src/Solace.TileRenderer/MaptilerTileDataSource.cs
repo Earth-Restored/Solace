@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using NetTopologySuite.IO.VectorTiles.Mapbox;
 using Solace.TileRenderer.Wkb;
 
@@ -126,6 +127,8 @@ internal sealed partial class MaptilerTileDataSource : ITileDataSource
 
     public void Dispose()
         => _httpClient.Dispose();
+
+    public sealed record TilesResponse([property: JsonPropertyName("maxzoom")] int? MaxZoom);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Error while converting map data")]
     private static partial void LogErrorConvertingMapData(ILogger logger, Exception ex);

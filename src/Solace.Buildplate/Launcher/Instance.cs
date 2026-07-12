@@ -1128,12 +1128,12 @@ internal sealed partial class Instance
         string ServerDataBase64
     );
 
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<BuildplateSource>))]
     internal enum BuildplateSource
     {
         PLAYER,
         SHARED,
-        ENCOUNTER
+        ENCOUNTER,
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Starting for player {PlayerId} buildplate {BuildplateId} (survival = {SurvivalEnabled}, saveEnabled = {SaveEnabled}, inventoryType = {InventoryType})")]

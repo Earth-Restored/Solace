@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>TappablesGenerator</AssemblyName>
+    <PublishTrimmed>true</PublishTrimmed>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
   <Target Name="MoveDependenciesToShared" AfterTargets="Publish" Condition="'$(UseSharedLibs)' == 'true'">
@@ -92,11 +95,11 @@
     </None>
   </ItemGroup>
 
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
-		<DefineConstants>WIN64;$(DefineConstants)</DefineConstants>
-	</PropertyGroup>
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
-		<DefineConstants>WIN64;$(DefineConstants)</DefineConstants>
-	</PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+    <DefineConstants>WIN64;$(DefineConstants)</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <DefineConstants>WIN64;$(DefineConstants)</DefineConstants>
+  </PropertyGroup>
 
 </Project>

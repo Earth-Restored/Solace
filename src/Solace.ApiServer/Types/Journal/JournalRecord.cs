@@ -23,7 +23,7 @@ internal sealed record JournalRecord(
         Dictionary<string, string> Properties
     )
     {
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<Type>))]
         internal enum Type
         {
 #pragma warning disable CA1707 // Identifiers should not contain underscores

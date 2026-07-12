@@ -82,12 +82,12 @@ public readonly struct BlockElementRotationJson
     public float? Angle { get; init; }
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter<Axis>))]
 public enum Axis
 {
     [JsonStringEnumMemberName("x")] X,
     [JsonStringEnumMemberName("y")] Y,
-    [JsonStringEnumMemberName("z")] Z
+    [JsonStringEnumMemberName("z")] Z,
 }
 
 public sealed class BlockElement
@@ -180,7 +180,7 @@ public sealed class BlockFace
     public int TintIndex { get; init; } = -1;
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter<DirectionJson>))]
 public enum DirectionJson
 {
     [JsonStringEnumMemberName("down")] Down,

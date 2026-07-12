@@ -2,9 +2,9 @@
 
 namespace Solace.ApiServer.Types.Buildplates;
 
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter<SurfaceOrientation>))]
 internal enum SurfaceOrientation
 {
     [JsonStringEnumMemberName("Horizontal")] HORIZONTAL,
-    [JsonStringEnumMemberName("Vertical")] VERTICAL    // TODO: unverified
+    [JsonStringEnumMemberName("Vertical")] VERTICAL,   // TODO: unverified
 }

@@ -2,39 +2,38 @@
 
 #nullable disable
 
-namespace Solace.DB.Postgres.Migrations
+namespace Solace.DB.Postgres.Migrations;
+
+/// <inheritdoc />
+public partial class AddSkinData : Migration
 {
     /// <inheritdoc />
-    public partial class AddSkinData : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.AddColumn<bool>(
-                name: "IsSkinSlim",
-                table: "Accounts",
-                type: "boolean",
-                nullable: false,
-                defaultValue: false);
+        migrationBuilder.AddColumn<bool>(
+            name: "IsSkinSlim",
+            table: "Accounts",
+            type: "boolean",
+            nullable: false,
+            defaultValue: false);
 
-            migrationBuilder.AddColumn<byte[]>(
-                name: "SkinImageData",
-                table: "Accounts",
-                type: "bytea",
-                maxLength: 16384,
-                nullable: true);
-        }
+        migrationBuilder.AddColumn<byte[]>(
+            name: "SkinImageData",
+            table: "Accounts",
+            type: "bytea",
+            maxLength: 16384,
+            nullable: true);
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "IsSkinSlim",
-                table: "Accounts");
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.DropColumn(
+            name: "IsSkinSlim",
+            table: "Accounts");
 
-            migrationBuilder.DropColumn(
-                name: "SkinImageData",
-                table: "Accounts");
-        }
+        migrationBuilder.DropColumn(
+            name: "SkinImageData",
+            table: "Accounts");
     }
 }
