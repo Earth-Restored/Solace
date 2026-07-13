@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Globalization;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
@@ -85,7 +86,7 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
             }
         }
 
-        return new PublishResponse { Success = true };
+        return new PublishResponse { Success = true, };
     }
 
     public override async Task Subscribe(SubscribeRequest request, IServerStreamWriter<EventMessage> responseStream, ServerCallContext context)
@@ -123,7 +124,7 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
         if (targetHandler is null)
         {
             LogNoActiveHandlers(_logger, request.QueueName);
-            return new ResponseMessage { Status = ResponseMessageStatus.NoHandlers, ErrorMessage = "No active handlers.", };
+            return new ResponseMessage { Status = ResponseMessage.Types.Status.NoHandlers, ErrorMessage = "No active handlers.", };
         }
 
         var correlationId = _state.GetAndIncrementRequestCounter().ToString(CultureInfo.InvariantCulture);
@@ -143,7 +144,22 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
             });
 
             var response = await tcs.Task.WaitAsync(context.CancellationToken);
-            return new ResponseMessage { Status = response.Success ? ResponseMessageStatus.Success : ResponseMessageStatus.HandlerError, Data = response.Data };
+            if (response.Status is HandlerResponse.Types.Status.NotHandled)
+            {
+                // todo: retry different handler
+            }
+
+            return new ResponseMessage
+            {
+                Status = response.Status switch
+                {
+                    HandlerResponse.Types.Status.Success => ResponseMessage.Types.Status.Success,
+                    HandlerResponse.Types.Status.NotHandled => ResponseMessage.Types.Status.NoHandlers,
+                    HandlerResponse.Types.Status.Error => ResponseMessage.Types.Status.HandlerError,
+                    _ => throw new UnreachableException(),
+                },
+                Data = response.Data,
+            };
         }
         catch (OperationCanceledException)
         {
@@ -155,7 +171,7 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
         {
             LogRequestFailed(_logger, correlationId, exception.Message, exception);
             targetHandler.PendingRequests.TryRemove(correlationId, out _);
-            return new ResponseMessage { Status = ResponseMessageStatus.ServerError, ErrorMessage = exception.Message, };
+            return new ResponseMessage { Status = ResponseMessage.Types.Status.ServerError, ErrorMessage = exception.Message, };
         }
     }
 

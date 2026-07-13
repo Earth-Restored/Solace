@@ -15,8 +15,8 @@ public sealed class RequestSender : IAsyncDisposable
             {
                 return task.Result.Status switch
                 {
-                    ResponseMessageStatus.Success => task.Result.Data,
-                    ResponseMessageStatus.NoHandlers => null,
+                    ResponseMessage.Types.Status.Success => task.Result.Data,
+                    ResponseMessage.Types.Status.NoHandlers => null,
 #pragma warning disable CA2201 // Do not raise reserved exception types
                     _ => throw new Exception(task.Result.ErrorMessage),
 #pragma warning restore CA2201 // Do not raise reserved exception types

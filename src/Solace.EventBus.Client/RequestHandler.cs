@@ -50,7 +50,7 @@ public sealed class RequestHandler : IAsyncDisposable
                             var outData = await _onRequest(new RequestHandlerRequest(serverMsg.Timestamp.ToDateTimeOffset(), serverMsg.Type, serverMsg.Data));
                             await safeStream.WriteAsync(new ClientMessage
                             {
-                                Response = new HandlerResponse { CorrelationId = serverMsg.CorrelationId, Data = outData ?? "", Success = true, }
+                                Response = new HandlerResponse { CorrelationId = serverMsg.CorrelationId, Data = outData ?? "", Status = outData is null ? HandlerResponse.Types.Status.NotHandled : HandlerResponse.Types.Status.Success, }
                             });
                         }
                         catch (Exception exception)
@@ -61,7 +61,7 @@ public sealed class RequestHandler : IAsyncDisposable
                             {
                                 await safeStream.WriteAsync(new ClientMessage
                                 {
-                                    Response = new HandlerResponse { CorrelationId = serverMsg.CorrelationId, Success = false, }
+                                    Response = new HandlerResponse { CorrelationId = serverMsg.CorrelationId, Status = HandlerResponse.Types.Status.Error, }
                                 });
                             }
                             catch
