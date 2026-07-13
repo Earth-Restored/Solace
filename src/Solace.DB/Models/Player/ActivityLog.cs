@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Solace.Common;
 using Solace.Common.Utils;
@@ -478,3 +479,33 @@ public sealed class ActivityLogEF : IEntityWithId<Guid>, IVersionedEntity, IMerg
         }
     }
 }
+
+#region Converter
+public sealed class ActivityLogValueConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<List<ActivityLogEF.Entry>, string>
+{
+    public ActivityLogValueConverter() : base(
+        v => JsonSerializer.Serialize(v, DbJsonContext.Default.ListEntry),
+        v => JsonSerializer.Deserialize(v, DbJsonContext.Default.ListEntry) ?? new List<ActivityLogEF.Entry>())
+    {
+    }
+}
+
+public sealed class ActivityLogListValueComparer : Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<List<ActivityLogEF.Entry>>
+{
+    public ActivityLogListValueComparer() : base(
+        (a, b) => CompareLists(a, b),
+        a => GetListHashCode(a),
+        a => SnapshotList(a))
+    {
+    }
+
+    public static bool CompareLists(List<ActivityLogEF.Entry>? a, List<ActivityLogEF.Entry>? b)
+        => a == b || (a != null && b != null && a.SequenceEqual(b, ActivityLogEF.Entry.Comparer.Instance));
+
+    public static int GetListHashCode(List<ActivityLogEF.Entry> a)
+        => a.Aggregate(0, (h, v) => HashCode.Combine(h, ActivityLogEF.Entry.Comparer.Instance.GetHashCode(v)));
+
+    public static List<ActivityLogEF.Entry> SnapshotList(List<ActivityLogEF.Entry> a)
+        => [.. a.Select(item => item.DeepCopy())];
+}
+#endregion

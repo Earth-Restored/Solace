@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Solace.Common;
@@ -14,10 +15,14 @@ namespace Solace.DB;
 
 public sealed class EarthDbContext : DbContext
 {
+#pragma warning disable IL2026
+#pragma warning disable IL3050
     public EarthDbContext(DbContextOptions<EarthDbContext> options)
         : base(options)
     {
     }
+#pragma warning restore IL3050
+#pragma warning restore IL2026
 
     public DbSet<Account> Accounts { get; set; }
 
@@ -53,40 +58,6 @@ public sealed class EarthDbContext : DbContext
 
     public DbSet<Secret> Secrets { get; set; }
 
-    public static EarthDbContext CreateSqliteFromPath(string path)
-        => CreateFromConnection("Data Source=" + Path.GetFullPath(path), "Sqlite");
-
-    public static EarthDbContext CreateFromConnection(string connectionString, string provider)
-    {
-        var optionsBuilder = new DbContextOptionsBuilder<EarthDbContext>();
-        ConfigureBuilder(optionsBuilder, connectionString, provider);
-
-        return new EarthDbContext(optionsBuilder.Options);
-    }
-
-    public static void ConfigureBuilder(DbContextOptionsBuilder optionsBuilder, string connectionString, string provider)
-    {
-        switch (provider)
-        {
-            case "Postgres":
-                optionsBuilder.UseNpgsql(connectionString, x =>
-                {
-                    x.MigrationsAssembly("Solace.DB.Postgres");
-                });
-                break;
-            case "Sqlite":
-                optionsBuilder.UseSqlite(connectionString, x =>
-                {
-                    x.MigrationsAssembly("Solace.DB.Sqlite");
-                });
-                break;
-            default:
-                throw new ArgumentException($"Unknown db provider '{provider}'.", nameof(provider));
-        }
-
-        optionsBuilder.AddInterceptors(new VersioningInterceptor());
-    }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -105,6 +76,13 @@ public sealed class EarthDbContext : DbContext
         modelBuilder.Entity<Account>()
             .HasIndex(a => a.Username)
             .IsUnique();
+
+        modelBuilder.Entity<Account>(entity =>
+        {
+            entity.Property(e => e.PasswordSalt).HasMaxLength(16);
+            entity.Property(e => e.PasswordHash).HasMaxLength(64);
+            entity.Property(e => e.SkinImageData).HasMaxLength(16 * 1024);
+        });
 
         modelBuilder.Entity<Account>()
             .HasOne(a => a.Profile)
@@ -195,63 +173,39 @@ public sealed class EarthDbContext : DbContext
         // activity log
         modelBuilder.Entity<ActivityLogEF>()
             .Property(x => x.Entries)
-            .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<List<ActivityLogEF.Entry>>(v, (JsonSerializerOptions)null!)
-                    ?? new List<ActivityLogEF.Entry>()
-            )
-            .Metadata.SetValueComparer(new ListValueComparer<ActivityLogEF.Entry>(ActivityLogEF.Entry.Comparer.Instance));
+            .HasConversion<ActivityLogValueConverter>()
+            .Metadata.SetValueComparer(new ActivityLogListValueComparer());
 
         // boosts
         modelBuilder.Entity<BoostsEF>()
             .Property(x => x.ActiveBoosts)
-            .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<BoostsEF.ActiveBoost?[]>(v, (JsonSerializerOptions)null!)
-                    ?? new BoostsEF.ActiveBoost?[5]
-            )
-            .Metadata.SetValueComparer(new ArrayValueComparer<BoostsEF.ActiveBoost>(BoostsEF.ActiveBoost.Comparer.Instance));
+            .HasConversion<ActiveBoostValueConverter>()
+            .Metadata.SetValueComparer(new ActiveBoostArrayValueComparer());
 
         // hotbar
         modelBuilder.Entity<HotbarEF>()
             .Property(x => x.Items)
-            .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<HotbarEF.Item?[]>(v, (JsonSerializerOptions)null!)
-                    ?? new HotbarEF.Item?[7]
-            )
-            .Metadata.SetValueComparer(new ArrayValueComparer<HotbarEF.Item>(HotbarEF.Item.Comparer.Instance));
+            .HasConversion<HotbarValueConverter>()
+            .Metadata.SetValueComparer(new HotbarArrayValueComparer());
 
         // inventory
         modelBuilder.Ignore<NonStackableItemInstance>();
 
         modelBuilder.Entity<InventoryEF>()
             .Property(x => x.StackableItemsData)
-            .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<Dictionary<Guid, int>>(v, (JsonSerializerOptions)null!)
-                    ?? new Dictionary<Guid, int>()
-            )
-            .Metadata.SetValueComparer(new DictionaryGuidIntValueComparer());
+            .HasConversion<StackableItemValueConverter>()
+            .Metadata.SetValueComparer(new StackableItemDictionaryValueComparer());
 
         modelBuilder.Entity<InventoryEF>()
             .Property(x => x.NonStackableItemsData)
-            .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<Dictionary<Guid, Dictionary<Guid, NonStackableItemInstance>>>(v, (JsonSerializerOptions)null!)
-                    ?? new Dictionary<Guid, Dictionary<Guid, NonStackableItemInstance>>()
-            )
-            .Metadata.SetValueComparer(new NestedDictionaryValueComparer());
+            .HasConversion<NonStackableItemValueConverter>()
+            .Metadata.SetValueComparer(new NonStackableItemDictionaryValueComparer());
 
         // journal
         modelBuilder.Entity<JournalEF>()
             .Property(x => x.Items)
-            .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<Dictionary<Guid, JournalEF.ItemJournalEntry>>(v, (JsonSerializerOptions)null!)
-                    ?? new Dictionary<Guid, JournalEF.ItemJournalEntry>()
-            )
-            .Metadata.SetValueComparer(new DictionaryGuidTValueComparer<JournalEF.ItemJournalEntry>(JournalEF.ItemJournalEntry.Comparer.Instance));
+            .HasConversion<JournalValueConverter>()
+            .Metadata.SetValueComparer(new JournalDictionaryValueComparer());
 
         // redeemed tappables
         modelBuilder.Entity<RedeemedTappablesEF>()
@@ -260,48 +214,32 @@ public sealed class EarthDbContext : DbContext
         // tokens
         modelBuilder.Entity<TokensEF>()
             .Property(x => x.Tokens)
-            .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<Dictionary<string, TokensEF.Token>>(v, (JsonSerializerOptions)null!)
-                    ?? new Dictionary<string, TokensEF.Token>()
-            )
-            .Metadata.SetValueComparer(new DictionaryStringTValueComparer<TokensEF.Token>(TokensEF.Token.Comparer.Instance));
+            .HasConversion<TokenValueConverter>()
+            .Metadata.SetValueComparer(new TokenDictionaryValueComparer());
 
         // crafting slots
-        modelBuilder.Ignore<CraftingSlotEF.ActiveJobR>();
+        modelBuilder.Ignore<CraftingSlotEF.ActiveCraftingJob>();
 
         modelBuilder.Entity<CraftingSlotsEF>()
             .Property(x => x.Slots)
-            .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<CraftingSlotEF[]>(v, (JsonSerializerOptions)null!)
-                    ?? new CraftingSlotEF[3]
-            )
-            .Metadata.SetValueComparer(new ArrayValueComparer<CraftingSlotEF>(CraftingSlotEF.Comparer.Instance));
+            .HasConversion<CraftingSlotValueConverter>()
+            .Metadata.SetValueComparer(new CraftingSlotArrayValueComparer());
 
         // smelting slots
-        modelBuilder.Ignore<SmeltingSlot.ActiveJobR>();
+        modelBuilder.Ignore<SmeltingSlot.ActiveSmeltingJob>();
         modelBuilder.Ignore<SmeltingSlot.BurningR>();
         modelBuilder.Ignore<SmeltingSlot.Fuel>();
 
         modelBuilder.Entity<SmeltingSlotsEF>()
             .Property(x => x.Slots)
-            .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<SmeltingSlot[]>(v, (JsonSerializerOptions)null!)
-                    ?? new SmeltingSlot[3]
-            )
-            .Metadata.SetValueComparer(new ArrayValueComparer<SmeltingSlot>(SmeltingSlot.Comparer.Instance));
+            .HasConversion<SmeltingSlotValueConverter>()
+            .Metadata.SetValueComparer(new SmeltingSlotArrayValueComparer());
 
         // shared buildplates
         modelBuilder.Entity<SharedBuildplateEF>()
             .Property(x => x.Hotbar)
-            .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null!),
-                v => JsonSerializer.Deserialize<SharedBuildplateEF.HotbarItem?[]>(v, (JsonSerializerOptions)null!)
-                    ?? new SharedBuildplateEF.HotbarItem?[7]
-            )
-            .Metadata.SetValueComparer(new ArrayValueComparer<SharedBuildplateEF.HotbarItem>(SharedBuildplateEF.HotbarItem.Comparer.Instance));
+            .HasConversion<SBHotbarValueConverter>()
+            .Metadata.SetValueComparer(new SBHotbarArrayValueComparer());
     }
 
     public async Task ClearAsync(CancellationToken cancellationToken = default)
@@ -404,315 +342,5 @@ public sealed class EarthDbContext : DbContext
 
         [DisallowNull]
         public int? Tokens { get; set; }
-    }
-}
-
-// todo: clean this up
-public sealed class ListValueComparer<T> : ValueComparer<List<T>>
-    where T : IEquatable<T>, ICloneable<T>
-{
-    public ListValueComparer(IEqualityComparer<T> equalityComparer)
-        : base(
-            (c1, c2) => c1 == c2 || (c1 != null && c2 != null && c1.SequenceEqual(c2, equalityComparer)),
-            c => c != null ? c.Aggregate(0, (h, v) => HashCode.Combine(h, equalityComparer.GetHashCode(v))) : 0,
-            c => new List<T>(c.Select(item => item.DeepCopy())))
-    {
-    }
-}
-
-public sealed class DictionaryStringTValueComparer<TValue> : ValueComparer<Dictionary<string, TValue>>
-    where TValue : ICloneable<TValue>
-{
-    public DictionaryStringTValueComparer(IEqualityComparer<TValue> equalityComparer)
-        : base(
-            (d1, d2) => DictionariesEqual(d1, d2, equalityComparer),
-            d => ComputeHashCode(d, equalityComparer),
-            d => new Dictionary<string, TValue>(d.Select(item => new KeyValuePair<string, TValue>(item.Key, item.Value.DeepCopy()))))
-    {
-    }
-
-    private static bool DictionariesEqual(Dictionary<string, TValue>? d1, Dictionary<string, TValue>? d2, IEqualityComparer<TValue> equalityComparer)
-    {
-        if (d1 == d2)
-        {
-            return true;
-        }
-
-        if (d1 == null || d2 == null)
-        {
-            return false;
-        }
-
-        if (d1.Count != d2.Count)
-        {
-            return false;
-        }
-
-        foreach (var kvp in d1)
-        {
-            if (!d2.TryGetValue(kvp.Key, out var value2))
-            {
-                return false;
-            }
-
-            if (!equalityComparer.Equals(kvp.Value, value2))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static int ComputeHashCode(Dictionary<string, TValue>? d, IEqualityComparer<TValue> equalityComparer)
-    {
-        if (d == null)
-        {
-            return 0;
-        }
-
-        var hash = new HashCode();
-        foreach (var kvp in d.OrderBy(x => x.Key, StringComparer.Ordinal))
-        {
-            hash.Add(kvp.Key);
-            hash.Add(kvp.Value, equalityComparer);
-        }
-
-        return hash.ToHashCode();
-    }
-}
-
-public sealed class DictionaryGuidTValueComparer<TValue> : ValueComparer<Dictionary<Guid, TValue>>
-    where TValue : ICloneable<TValue>
-{
-    public DictionaryGuidTValueComparer(IEqualityComparer<TValue> equalityComparer)
-        : base(
-            (d1, d2) => DictionariesEqual(d1, d2, equalityComparer),
-            d => ComputeHashCode(d, equalityComparer),
-            d => new Dictionary<Guid, TValue>(d.Select(item => new KeyValuePair<Guid, TValue>(item.Key, item.Value.DeepCopy()))))
-    {
-    }
-
-    private static bool DictionariesEqual(Dictionary<Guid, TValue>? d1, Dictionary<Guid, TValue>? d2, IEqualityComparer<TValue> equalityComparer)
-    {
-        if (d1 == d2)
-        {
-            return true;
-        }
-
-        if (d1 == null || d2 == null)
-        {
-            return false;
-        }
-
-        if (d1.Count != d2.Count)
-        {
-            return false;
-        }
-
-        foreach (var kvp in d1)
-        {
-            if (!d2.TryGetValue(kvp.Key, out var value2))
-            {
-                return false;
-            }
-
-            if (!equalityComparer.Equals(kvp.Value, value2))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static int ComputeHashCode(Dictionary<Guid, TValue>? d, IEqualityComparer<TValue> equalityComparer)
-    {
-        if (d == null)
-        {
-            return 0;
-        }
-
-        var hash = new HashCode();
-        foreach (var kvp in d.OrderBy(x => x.Key))
-        {
-            hash.Add(kvp.Key);
-            hash.Add(kvp.Value, equalityComparer);
-        }
-
-        return hash.ToHashCode();
-    }
-}
-
-public sealed class DictionaryGuidIntValueComparer : ValueComparer<Dictionary<Guid, int>>
-{
-    public DictionaryGuidIntValueComparer()
-        : base(
-            (d1, d2) => DictionariesEqual(d1, d2),
-            d => ComputeHashCode(d),
-            d => new Dictionary<Guid, int>(d.Select(item => new KeyValuePair<Guid, int>(item.Key, item.Value))))
-    {
-    }
-
-    private static bool DictionariesEqual(Dictionary<Guid, int>? d1, Dictionary<Guid, int>? d2)
-    {
-        if (d1 == d2)
-        {
-            return true;
-        }
-
-        if (d1 == null || d2 == null)
-        {
-            return false;
-        }
-
-        if (d1.Count != d2.Count)
-        {
-            return false;
-        }
-
-        foreach (var kvp in d1)
-        {
-            if (!d2.TryGetValue(kvp.Key, out var value2))
-            {
-                return false;
-            }
-
-            if (kvp.Value != value2)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static int ComputeHashCode(Dictionary<Guid, int>? d)
-    {
-        if (d == null)
-        {
-            return 0;
-        }
-
-        var hash = new HashCode();
-        foreach (var kvp in d.OrderBy(x => x.Key))
-        {
-            hash.Add(kvp.Key);
-            hash.Add(kvp.Value);
-        }
-
-        return hash.ToHashCode();
-    }
-}
-
-public sealed class NestedDictionaryValueComparer : ValueComparer<Dictionary<Guid, Dictionary<Guid, NonStackableItemInstance>>>
-{
-    public NestedDictionaryValueComparer()
-        : base(
-            (d1, d2) => OuterDictionariesEqual(d1, d2),
-            d => ComputeOuterHashCode(d),
-            d => d.ToDictionary(x => x.Key, x => new Dictionary<Guid, NonStackableItemInstance>(x.Value.Select(item => new KeyValuePair<Guid, NonStackableItemInstance>(item.Key, item.Value.DeepCopy())))))
-    {
-    }
-
-    private static bool OuterDictionariesEqual(Dictionary<Guid, Dictionary<Guid, NonStackableItemInstance>>? d1, Dictionary<Guid, Dictionary<Guid, NonStackableItemInstance>>? d2)
-    {
-        if (d1 == d2)
-        {
-            return true;
-        }
-
-        if (d1 == null || d2 == null)
-        {
-            return false;
-        }
-
-        if (d1.Count != d2.Count)
-        {
-            return false;
-        }
-
-        foreach (var kvp in d1)
-        {
-            if (!d2.TryGetValue(kvp.Key, out var innerDict2))
-            {
-                return false;
-            }
-
-            if (!InnerDictionariesEqual(kvp.Value, innerDict2))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static bool InnerDictionariesEqual(Dictionary<Guid, NonStackableItemInstance>? d1, Dictionary<Guid, NonStackableItemInstance>? d2)
-    {
-        if (d1 == d2)
-        {
-            return true;
-        }
-
-        if (d1 == null || d2 == null)
-        {
-            return false;
-        }
-
-        if (d1.Count != d2.Count)
-        {
-            return false;
-        }
-
-        foreach (var kvp in d1)
-        {
-            if (!d2.TryGetValue(kvp.Key, out var item2))
-            {
-                return false;
-            }
-
-            if (!kvp.Value.Equals(item2))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static int ComputeOuterHashCode(Dictionary<Guid, Dictionary<Guid, NonStackableItemInstance>>? d)
-    {
-        if (d == null)
-        {
-            return 0;
-        }
-
-        var hash = new HashCode();
-        foreach (var kvp in d.OrderBy(x => x.Key))
-        {
-            hash.Add(kvp.Key);
-            foreach (var innerKvp in kvp.Value.OrderBy(x => x.Key))
-            {
-                hash.Add(innerKvp.Key);
-                hash.Add(innerKvp.Value);
-            }
-        }
-
-        return hash.ToHashCode();
-    }
-}
-
-public sealed class ArrayValueComparer<T> : ValueComparer<T[]>
-    where T : class, ICloneable<T>
-{
-    public ArrayValueComparer(IEqualityComparer<T> equalityComparer)
-        : base(
-            (a1, a2) => a1 == a2 || (a1 != null && a2 != null && a1.SequenceEqual(a2, equalityComparer)),
-            a => a != null ? a.Aggregate(0, (h, v) => HashCode.Combine(h, equalityComparer.GetHashCode(v))) : 0,
-#pragma warning disable CS8619 // Nullability of reference types in value doesn't match target type.
-            a => a != null ? a.Select(item => item == null ? null : item.DeepCopy()).ToArray() : Array.Empty<T>())
-#pragma warning restore CS8619 // Nullability of reference types in value doesn't match target type.
-    {
     }
 }

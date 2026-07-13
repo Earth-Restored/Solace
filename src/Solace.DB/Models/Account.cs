@@ -24,13 +24,13 @@ public sealed class Account : IEntityWithId<Guid>, IVersionedEntity, IMergeable<
 
     public string? LastName { get; set; }
 
-    [MaxLength(16)]
+    // [MaxLength(16)]
     public required byte[] PasswordSalt { get; set; }
 
-    [MaxLength(64)]
+    // [MaxLength(64)]
     public required byte[] PasswordHash { get; set; }
 
-    [MaxLength(16 * 1024)]
+    // [MaxLength(16 * 1024)]
     public byte[]? SkinImageData { get; set; } // .png
 
     public bool IsSkinSlim { get; set; }
@@ -93,10 +93,10 @@ public sealed class Account : IEntityWithId<Guid>, IVersionedEntity, IMergeable<
 
         public string? LastName { get; set; }
 
-        [MaxLength(16)]
+        // [MaxLength(16)]
         public required byte[] PasswordSalt { get; set; }
 
-        [MaxLength(64)]
+        // [MaxLength(64)]
         public required byte[] PasswordHash { get; set; }
     }
 }

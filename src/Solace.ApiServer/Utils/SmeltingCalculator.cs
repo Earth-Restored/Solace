@@ -7,7 +7,7 @@ namespace Solace.ApiServer.Utils;
 
 internal static class SmeltingCalculator
 {
-    public static State CalculateState(DateTimeOffset currentTime, SmeltingSlot.ActiveJobR activeJob, SmeltingSlot.BurningR? burning, Catalog catalog)
+    public static State CalculateState(DateTimeOffset currentTime, SmeltingSlot.ActiveSmeltingJob activeJob, SmeltingSlot.BurningR? burning, Catalog catalog)
     {
         Catalog.RecipesCatalogR.SmeltingRecipe? recipe = catalog.RecipesCatalog.GetSmeltingRecipe(activeJob.RecipeId);
         Debug.Assert(recipe is not null);

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Solace.Cdn.Utils;
 using Solace.Common;
 using Solace.DB;
+using Solace.DB.Common;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 

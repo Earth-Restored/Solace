@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>Cdn</AssemblyName>
+    <PublishTrimmed>true</PublishTrimmed>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
@@ -41,6 +43,7 @@
     <ProjectReference Include="../Solace.ServiceDefaults/Solace.ServiceDefaults.csproj" />
     <ProjectReference Include="../Solace.DB.Postgres/Solace.DB.Postgres.csproj" />
     <ProjectReference Include="../Solace.DB.Sqlite/Solace.DB.Sqlite.csproj" />
+    <ProjectReference Include="../Solace.DB.Common/Solace.DB.Common.csproj" />
     <ProjectReference Include="../Solace.DB/Solace.DB.csproj" />
     <ProjectReference Include="../Solace.EventBus.Client/Solace.EventBus.Client.csproj" />
     <ProjectReference Include="../Solace.ObjectStore.Client/Solace.ObjectStore.Client.csproj" />

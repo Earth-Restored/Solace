@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Solace.Common;
 using Solace.Common.Utils;
@@ -276,3 +277,72 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
         }
     }
 }
+
+#region Converter
+public sealed class TokenValueConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<Dictionary<string, TokensEF.Token>, string>
+{
+    public TokenValueConverter() : base(
+        v => JsonSerializer.Serialize(v, DbJsonContext.Default.DictionaryStringToken),
+        v => JsonSerializer.Deserialize(v, DbJsonContext.Default.DictionaryStringToken) ?? new Dictionary<string, TokensEF.Token>())
+    {
+    }
+}
+
+public sealed class TokenDictionaryValueComparer : Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<Dictionary<string, TokensEF.Token>>
+{
+    public TokenDictionaryValueComparer() : base(
+        (a, b) => CompareDictionaries(a, b),
+        a => GetArrayHashCode(a),
+        a => SnapshotDictionary(a))
+    {
+    }
+
+    public static bool CompareDictionaries(Dictionary<string, TokensEF.Token>? a, Dictionary<string, TokensEF.Token>? b)
+    {
+         if (a == b)
+        {
+            return true;
+        }
+
+        if (a == null || b == null)
+        {
+            return false;
+        }
+
+        if (a.Count != b.Count)
+        {
+            return false;
+        }
+
+        foreach (var kvp in a)
+        {
+            if (!b.TryGetValue(kvp.Key, out var value2))
+            {
+                return false;
+            }
+
+            if (!TokensEF.Token.Comparer.Instance.Equals(kvp.Value, value2))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static int GetArrayHashCode(Dictionary<string, TokensEF.Token> a)
+    {
+        var hash = new HashCode();
+        foreach (var kvp in a.OrderBy(x => x.Key, StringComparer.Ordinal))
+        {
+            hash.Add(kvp.Key);
+            hash.Add(kvp.Value, TokensEF.Token.Comparer.Instance);
+        }
+
+        return hash.ToHashCode();
+    }
+
+    public static Dictionary<string, TokensEF.Token> SnapshotDictionary(Dictionary<string, TokensEF.Token> a)
+        => new Dictionary<string, TokensEF.Token>(a.Select(item => new KeyValuePair<string, TokensEF.Token>(item.Key, item.Value.DeepCopy())));
+}
+#endregion

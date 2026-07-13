@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using BitcoderCZ.Utils;
 using Solace.Common;
 using Solace.Common.Utils;
@@ -141,3 +142,74 @@ public sealed class HotbarEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
         );
     }
 }
+
+#region Converter
+public sealed class HotbarValueConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<HotbarEF.Item?[], string>
+{
+    public HotbarValueConverter() : base(
+        v => JsonSerializer.Serialize(v, DbJsonContext.Default.ItemArray),
+        v => JsonSerializer.Deserialize(v, DbJsonContext.Default.ItemArray) ?? new HotbarEF.Item?[7])
+    {
+    }
+}
+
+public sealed class HotbarArrayValueComparer : Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<HotbarEF.Item?[]>
+{
+    public HotbarArrayValueComparer() : base(
+        (a, b) => CompareArrays(a, b),
+        a => GetArrayHashCode(a),
+        a => SnapshotArray(a))
+    {
+    }
+
+    public static bool CompareArrays(HotbarEF.Item?[]? a, HotbarEF.Item?[]? b)
+    {
+        if (ReferenceEquals(a, b))
+        {
+            return true;
+        }
+
+        if (a is null || b is null)
+        {
+            return false;
+        }
+
+        if (a.Length != b.Length)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < a.Length; i++)
+        {
+            if (!HotbarEF.Item.Comparer.Instance.Equals(a[i], b[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static int GetArrayHashCode(HotbarEF.Item?[] a)
+    {
+        var hash = new HashCode();
+        foreach (var item in a)
+        {
+            hash.Add(item is not null ? HotbarEF.Item.Comparer.Instance.GetHashCode(item) : 0);
+        }
+
+        return hash.ToHashCode();
+    }
+
+    public static HotbarEF.Item?[] SnapshotArray(HotbarEF.Item?[] a)
+    {
+        var clone = new HotbarEF.Item?[a.Length];
+        for (int i = 0; i < a.Length; i++)
+        {
+            clone[i] = a[i]?.DeepCopy();
+        }
+
+        return clone;
+    }
+}
+#endregion

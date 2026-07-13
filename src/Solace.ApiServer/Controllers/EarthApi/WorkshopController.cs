@@ -278,7 +278,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
         }
 
-        craftingSlot.ActiveJob = new CraftingSlot.ActiveJobR(startRequest.SessionId, recipe.Id, requestStartedOn.ToUnixTimeMilliseconds(), [.. inputItems.Select(inputItems1 => new CraftingSlot.InputRow([.. inputItems1]))], startRequest.Multiplier, 0, false);
+        craftingSlot.ActiveJob = new CraftingSlot.ActiveCraftingJob(startRequest.SessionId, recipe.Id, requestStartedOn.ToUnixTimeMilliseconds(), [.. inputItems.Select(inputItems1 => new CraftingSlot.InputRow([.. inputItems1]))], startRequest.Multiplier, 0, false);
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
@@ -440,7 +440,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         hotbar.LimitToInventory(inventory);
 
-        smeltingSlot.ActiveJob = new SmeltingSlot.ActiveJobR(startRequest.SessionId, recipe.Id, requestStartedOn.ToUnixTimeMilliseconds(), input, fuel, startRequest.Multiplier, 0, false);
+        smeltingSlot.ActiveJob = new SmeltingSlot.ActiveSmeltingJob(startRequest.SessionId, recipe.Id, requestStartedOn.ToUnixTimeMilliseconds(), input, fuel, startRequest.Multiplier, 0, false);
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
@@ -481,8 +481,8 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             }
             else
             {
-                CraftingSlot.ActiveJobR activeJob = craftingSlot.ActiveJob;
-                craftingSlot.ActiveJob = new CraftingSlot.ActiveJobR(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.TotalRounds, activeJob.CollectedRounds + state.AvailableRounds, activeJob.FinishedEarly);
+                CraftingSlot.ActiveCraftingJob activeJob = craftingSlot.ActiveJob;
+                craftingSlot.ActiveJob = new CraftingSlot.ActiveCraftingJob(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.TotalRounds, activeJob.CollectedRounds + state.AvailableRounds, activeJob.FinishedEarly);
             }
         }
 
@@ -545,8 +545,8 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             }
             else
             {
-                SmeltingSlot.ActiveJobR activeJob = smeltingSlot.ActiveJob;
-                smeltingSlot.ActiveJob = new SmeltingSlot.ActiveJobR(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.AddedFuel, activeJob.TotalRounds, activeJob.CollectedRounds + state.AvailableRounds, activeJob.FinishedEarly);
+                SmeltingSlot.ActiveSmeltingJob activeJob = smeltingSlot.ActiveJob;
+                smeltingSlot.ActiveJob = new SmeltingSlot.ActiveSmeltingJob(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.AddedFuel, activeJob.TotalRounds, activeJob.CollectedRounds + state.AvailableRounds, activeJob.FinishedEarly);
             }
         }
 
@@ -775,8 +775,8 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse());
         }
 
-        CraftingSlot.ActiveJobR activeJob = craftingSlot.ActiveJob;
-        craftingSlot.ActiveJob = new CraftingSlot.ActiveJobR(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.TotalRounds, activeJob.CollectedRounds, true);
+        CraftingSlot.ActiveCraftingJob activeJob = craftingSlot.ActiveJob;
+        craftingSlot.ActiveJob = new CraftingSlot.ActiveCraftingJob(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.TotalRounds, activeJob.CollectedRounds, true);
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
@@ -843,8 +843,8 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse());
         }
 
-        SmeltingSlot.ActiveJobR activeJob = smeltingSlot.ActiveJob;
-        smeltingSlot.ActiveJob = new SmeltingSlot.ActiveJobR(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.AddedFuel, activeJob.TotalRounds, activeJob.CollectedRounds, true);
+        SmeltingSlot.ActiveSmeltingJob activeJob = smeltingSlot.ActiveJob;
+        smeltingSlot.ActiveJob = new SmeltingSlot.ActiveSmeltingJob(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.AddedFuel, activeJob.TotalRounds, activeJob.CollectedRounds, true);
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
@@ -1032,7 +1032,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             throw new ArgumentException($"{nameof(craftingSlotModel)} is locked.", nameof(craftingSlotModel));
         }
 
-        CraftingSlot.ActiveJobR? activeJob = craftingSlotModel.ActiveJob;
+        CraftingSlot.ActiveCraftingJob? activeJob = craftingSlotModel.ActiveJob;
         if (activeJob is not null)
         {
             CraftingCalculator.State state = CraftingCalculator.CalculateState(currentTime, activeJob, _staticData.Catalog);
@@ -1081,7 +1081,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             throw new ArgumentException($"{nameof(smeltingSlotModel)} is locked.", nameof(smeltingSlotModel));
         }
 
-        SmeltingSlot.ActiveJobR? activeJob = smeltingSlotModel.ActiveJob;
+        SmeltingSlot.ActiveSmeltingJob? activeJob = smeltingSlotModel.ActiveJob;
         if (activeJob is not null)
         {
             SmeltingCalculator.State state = SmeltingCalculator.CalculateState(currentTime, activeJob, smeltingSlotModel.Burning, _staticData.Catalog);

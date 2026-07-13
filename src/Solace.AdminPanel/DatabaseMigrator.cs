@@ -316,7 +316,7 @@ internal sealed partial class DatabaseMigrator
                         {
                             ActiveJob = job is null
                                 ? null
-                                : new CraftingSlotEF.ActiveJobR(
+                                : new CraftingSlotEF.ActiveCraftingJob(
                                     job.SessionId,
                                     job.RecipeId,
                                     job.StartTime,
@@ -352,7 +352,7 @@ internal sealed partial class DatabaseMigrator
 
                         smeltingSlots.Slots[i] = new SmeltingSlot()
                         {
-                            ActiveJob = job is null ? null : new SmeltingSlot.ActiveJobR(
+                            ActiveJob = job is null ? null : new SmeltingSlot.ActiveSmeltingJob(
                                 job.SessionId,
                                 job.RecipeId,
                                 job.StartTime,

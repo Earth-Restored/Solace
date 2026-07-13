@@ -1,4 +1,5 @@
-﻿using Solace.Common.Utils;
+﻿using System.Text.Json;
+using Solace.Common.Utils;
 
 namespace Solace.DB.Models.Player.Workshop;
 
@@ -63,3 +64,74 @@ public sealed class SmeltingSlotsEF : IEntityWithId<Guid>, IVersionedEntity, IMe
         }
     }
 }
+
+#region Converter
+public sealed class SmeltingSlotValueConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<SmeltingSlot[], string>
+{
+    public SmeltingSlotValueConverter() : base(
+        v => JsonSerializer.Serialize(v, DbJsonContext.Default.SmeltingSlotArray),
+        v => JsonSerializer.Deserialize(v, DbJsonContext.Default.SmeltingSlotArray) ?? new SmeltingSlot[3] { new SmeltingSlot(), new SmeltingSlot(), new SmeltingSlot() })
+    {
+    }
+}
+
+public sealed class SmeltingSlotArrayValueComparer : Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<SmeltingSlot[]>
+{
+    public SmeltingSlotArrayValueComparer() : base(
+        (a, b) => CompareArrays(a, b),
+        a => GetArrayHashCode(a),
+        a => SnapshotArray(a))
+    {
+    }
+
+    public static bool CompareArrays(SmeltingSlot[]? a, SmeltingSlot[]? b)
+    {
+        if (ReferenceEquals(a, b))
+        {
+            return true;
+        }
+
+        if (a is null || b is null)
+        {
+            return false;
+        }
+
+        if (a.Length != b.Length)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < a.Length; i++)
+        {
+            if (!SmeltingSlot.Comparer.Instance.Equals(a[i], b[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static int GetArrayHashCode(SmeltingSlot[] a)
+    {
+        var hash = new HashCode();
+        foreach (var item in a)
+        {
+            hash.Add(item is not null ? SmeltingSlot.Comparer.Instance.GetHashCode(item) : 0);
+        }
+
+        return hash.ToHashCode();
+    }
+
+    public static SmeltingSlot[] SnapshotArray(SmeltingSlot[] a)
+    {
+        var clone = new SmeltingSlot[a.Length];
+        for (int i = 0; i < a.Length; i++)
+        {
+            clone[i] = a[i].DeepCopy();
+        }
+
+        return clone;
+    }
+}
+#endregion

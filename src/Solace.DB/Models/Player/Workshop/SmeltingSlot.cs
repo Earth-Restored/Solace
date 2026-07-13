@@ -7,7 +7,7 @@ namespace Solace.DB.Models.Player.Workshop;
 
 public sealed class SmeltingSlot : IEquatable<SmeltingSlot>, ICloneable<SmeltingSlot>
 {
-    public ActiveJobR? ActiveJob { get; set; }
+    public ActiveSmeltingJob? ActiveJob { get; set; }
 
     public BurningR? Burning { get; set; }
 
@@ -52,7 +52,7 @@ public sealed class SmeltingSlot : IEquatable<SmeltingSlot>, ICloneable<Smelting
             => HashCode.Combine(obj.ActiveJob, obj.Burning, obj.Locked);
     }
 
-    public sealed record ActiveJobR(
+    public sealed record ActiveSmeltingJob(
         string SessionId,
         Guid RecipeId,
         long StartTime,
@@ -61,18 +61,18 @@ public sealed class SmeltingSlot : IEquatable<SmeltingSlot>, ICloneable<Smelting
         int TotalRounds,
         int CollectedRounds,
         bool FinishedEarly
-    ) : ICloneable<ActiveJobR>
+    ) : ICloneable<ActiveSmeltingJob>
     {
         // efcore json needs this
-        private ActiveJobR()
+        private ActiveSmeltingJob()
             : this(default!, default!, default!, default!, default!, default!, default!, default!)
         {
         }
 
         [JsonIgnore, NotMapped] public DateTimeOffset StartTimeDT => DateTimeOffset.FromUnixTimeMilliseconds(StartTime);
 
-        public ActiveJobR DeepCopy()
-            => new ActiveJobR(SessionId, RecipeId, StartTime, Input.DeepCopy(), AddedFuel?.DeepCopy(), TotalRounds, CollectedRounds, FinishedEarly);
+        public ActiveSmeltingJob DeepCopy()
+            => new ActiveSmeltingJob(SessionId, RecipeId, StartTime, Input.DeepCopy(), AddedFuel?.DeepCopy(), TotalRounds, CollectedRounds, FinishedEarly);
     }
 
     public sealed record Fuel(

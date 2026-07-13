@@ -1,7 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Solace.Common.Utils;
 using Solace.DB.Models.Common;
+
+using StackableItemData = System.Collections.Generic.Dictionary<System.Guid, int>;
+using NonStackableItemData = System.Collections.Generic.Dictionary<System.Guid, System.Collections.Generic.Dictionary<System.Guid, Solace.DB.Models.Common.NonStackableItemInstance>>;
 
 namespace Solace.DB.Models.Player;
 
@@ -14,10 +18,10 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
     public Account Account { get; set; } = null!;
 
     // id to count
-    public Dictionary<Guid, int> StackableItemsData { get; set; } = [];
+    public StackableItemData StackableItemsData { get; set; } = [];
 
     // id to (instanceId to instance)
-    public Dictionary<Guid, Dictionary<Guid, NonStackableItemInstance>> NonStackableItemsData { get; set; } = [];
+    public NonStackableItemData NonStackableItemsData { get; set; } = [];
 
     [JsonIgnore, NotMapped]
     public IEnumerable<StackableItem> StackableItems => StackableItemsData.Select(item => new StackableItem(item.Key, item.Value));
@@ -225,3 +229,179 @@ public sealed class InventoryEF : IEntityWithId<Guid>, IVersionedEntity, IMergea
         }
     }
 }
+
+#region Converter
+public sealed class StackableItemValueConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<StackableItemData, string>
+{
+    public StackableItemValueConverter() : base(
+        v => JsonSerializer.Serialize(v, DbJsonContext.Default.DictionaryGuidInt32),
+        v => JsonSerializer.Deserialize(v, DbJsonContext.Default.DictionaryGuidInt32) ?? new StackableItemData())
+    {
+    }
+}
+
+public sealed class StackableItemDictionaryValueComparer : Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<StackableItemData>
+{
+    public StackableItemDictionaryValueComparer() : base(
+        (a, b) => CompareDictionaries(a, b),
+        a => GetArrayHashCode(a),
+        a => SnapshotDictionary(a))
+    {
+    }
+
+    public static bool CompareDictionaries(StackableItemData? a, StackableItemData? b)
+    {
+         if (a == b)
+        {
+            return true;
+        }
+
+        if (a == null || b == null)
+        {
+            return false;
+        }
+
+        if (a.Count != b.Count)
+        {
+            return false;
+        }
+
+        foreach (var kvp in a)
+        {
+            if (!b.TryGetValue(kvp.Key, out var value2))
+            {
+                return false;
+            }
+
+            if (kvp.Value != value2)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static int GetArrayHashCode(StackableItemData a)
+    {
+        var hash = new HashCode();
+        foreach (var kvp in a.OrderBy(x => x.Key))
+        {
+            hash.Add(kvp.Key);
+            hash.Add(kvp.Value);
+        }
+
+        return hash.ToHashCode();
+    }
+
+    public static StackableItemData SnapshotDictionary(StackableItemData a)
+        => new(a.Select(item => new KeyValuePair<Guid, int>(item.Key, item.Value)));
+}
+
+public sealed class NonStackableItemValueConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<NonStackableItemData, string>
+{
+    public NonStackableItemValueConverter() : base(
+        v => JsonSerializer.Serialize(v, DbJsonContext.Default.DictionaryGuidDictionaryGuidNonStackableItemInstance),
+        v => JsonSerializer.Deserialize(v, DbJsonContext.Default.DictionaryGuidDictionaryGuidNonStackableItemInstance) ?? new NonStackableItemData())
+    {
+    }
+}
+
+public sealed class NonStackableItemDictionaryValueComparer : Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<NonStackableItemData>
+{
+    public NonStackableItemDictionaryValueComparer()
+        : base(
+            (d1, d2) => OuterDictionariesEqual(d1, d2),
+            d => ComputeOuterHashCode(d),
+            d => d.ToDictionary(x => x.Key, x => new Dictionary<Guid, NonStackableItemInstance>(x.Value.Select(item => new KeyValuePair<Guid, NonStackableItemInstance>(item.Key, item.Value.DeepCopy())))))
+    {
+    }
+
+    public static bool OuterDictionariesEqual(NonStackableItemData? d1, NonStackableItemData? d2)
+    {
+        if (d1 == d2)
+        {
+            return true;
+        }
+
+        if (d1 == null || d2 == null)
+        {
+            return false;
+        }
+
+        if (d1.Count != d2.Count)
+        {
+            return false;
+        }
+
+        foreach (var kvp in d1)
+        {
+            if (!d2.TryGetValue(kvp.Key, out var innerDict2))
+            {
+                return false;
+            }
+
+            if (!InnerDictionariesEqual(kvp.Value, innerDict2))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static bool InnerDictionariesEqual(Dictionary<Guid, NonStackableItemInstance>? d1, Dictionary<Guid, NonStackableItemInstance>? d2)
+    {
+        if (d1 == d2)
+        {
+            return true;
+        }
+
+        if (d1 == null || d2 == null)
+        {
+            return false;
+        }
+
+        if (d1.Count != d2.Count)
+        {
+            return false;
+        }
+
+        foreach (var kvp in d1)
+        {
+            if (!d2.TryGetValue(kvp.Key, out var item2))
+            {
+                return false;
+            }
+
+            if (!kvp.Value.Equals(item2))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static int ComputeOuterHashCode(NonStackableItemData? d)
+    {
+        if (d == null)
+        {
+            return 0;
+        }
+
+        var hash = new HashCode();
+        foreach (var kvp in d.OrderBy(x => x.Key))
+        {
+            hash.Add(kvp.Key);
+            foreach (var innerKvp in kvp.Value.OrderBy(x => x.Key))
+            {
+                hash.Add(innerKvp.Key);
+                hash.Add(innerKvp.Value);
+            }
+        }
+
+        return hash.ToHashCode();
+    }
+}
+#endregion

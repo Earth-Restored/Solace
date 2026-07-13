@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Solace.Common;
 using Solace.Common.Utils;
@@ -162,3 +163,74 @@ public sealed class SharedBuildplateEF : IEntityWithId<Guid>, IMergeable<SharedB
         }
     }
 }
+
+#region Converter
+public sealed class SBHotbarValueConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<SharedBuildplateEF.HotbarItem?[], string>
+{
+    public SBHotbarValueConverter() : base(
+        v => JsonSerializer.Serialize(v, DbJsonContext.Default.HotbarItemArray),
+        v => JsonSerializer.Deserialize(v, DbJsonContext.Default.HotbarItemArray) ?? new SharedBuildplateEF.HotbarItem?[7])
+    {
+    }
+}
+
+public sealed class SBHotbarArrayValueComparer : Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<SharedBuildplateEF.HotbarItem?[]>
+{
+    public SBHotbarArrayValueComparer() : base(
+        (a, b) => CompareArrays(a, b),
+        a => GetArrayHashCode(a),
+        a => SnapshotArray(a))
+    {
+    }
+
+    public static bool CompareArrays(SharedBuildplateEF.HotbarItem?[]? a, SharedBuildplateEF.HotbarItem?[]? b)
+    {
+        if (ReferenceEquals(a, b))
+        {
+            return true;
+        }
+
+        if (a is null || b is null)
+        {
+            return false;
+        }
+
+        if (a.Length != b.Length)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < a.Length; i++)
+        {
+            if (!SharedBuildplateEF.HotbarItem.Comparer.Instance.Equals(a[i], b[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static int GetArrayHashCode(SharedBuildplateEF.HotbarItem?[] a)
+    {
+        var hash = new HashCode();
+        foreach (var item in a)
+        {
+            hash.Add(item is not null ? SharedBuildplateEF.HotbarItem.Comparer.Instance.GetHashCode(item) : 0);
+        }
+
+        return hash.ToHashCode();
+    }
+
+    public static SharedBuildplateEF.HotbarItem?[] SnapshotArray(SharedBuildplateEF.HotbarItem?[] a)
+    {
+        var clone = new SharedBuildplateEF.HotbarItem?[a.Length];
+        for (int i = 0; i < a.Length; i++)
+        {
+            clone[i] = a[i]?.DeepCopy();
+        }
+
+        return clone;
+    }
+}
+#endregion

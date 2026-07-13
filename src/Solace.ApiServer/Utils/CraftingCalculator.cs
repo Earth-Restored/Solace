@@ -7,7 +7,7 @@ namespace Solace.ApiServer.Utils;
 
 internal static class CraftingCalculator
 {
-    public static State CalculateState(DateTimeOffset currentTime, CraftingSlotEF.ActiveJobR activeJob, Catalog catalog)
+    public static State CalculateState(DateTimeOffset currentTime, CraftingSlotEF.ActiveCraftingJob activeJob, Catalog catalog)
     {
         Catalog.RecipesCatalogR.CraftingRecipe recipe = catalog.RecipesCatalog.Crafting.Where(craftingRecipe => craftingRecipe.Id == activeJob.RecipeId).First();
 

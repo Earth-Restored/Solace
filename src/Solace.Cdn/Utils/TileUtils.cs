@@ -9,13 +9,17 @@ namespace Solace.Cdn.Utils;
 
 internal static partial class TileUtils
 {
+    private static readonly Func<EarthDbContext, ulong, CancellationToken, Task<DB.Models.Global.Tile?>> GetTileByIdAsync =
+        EF.CompileAsyncQuery((EarthDbContext context, ulong id, CancellationToken ct) =>
+            context.Tiles
+                .AsNoTracking()
+                .FirstOrDefault(tile => tile.Id == id));
+
     public static async Task<bool> TryWriteTile(int tileX, int tileY, int zoom, Stream dest, EarthDbContext earthDb, EventBusClient eventBus, ObjectStoreClient objectStore, ILogger logger, CancellationToken cancellationToken)
     {
         ulong dbPos = ToDbPos(tileX, tileY);
 
-        var tile = await earthDb.Tiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(tile => tile.Id == dbPos, cancellationToken: cancellationToken);
+        var tile = await GetTileByIdAsync(earthDb, dbPos, cancellationToken);
 
         if (tile is not null)
         {

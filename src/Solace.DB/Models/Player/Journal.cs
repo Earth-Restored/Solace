@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Solace.Common;
 using Solace.Common.Utils;
@@ -127,3 +128,72 @@ public sealed class JournalEF : IEntityWithId<Guid>, IVersionedEntity, IMergeabl
         );
     }
 }
+
+#region Converter
+public sealed class JournalValueConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<Dictionary<Guid, JournalEF.ItemJournalEntry>, string>
+{
+    public JournalValueConverter() : base(
+        v => JsonSerializer.Serialize(v, DbJsonContext.Default.DictionaryGuidItemJournalEntry),
+        v => JsonSerializer.Deserialize(v, DbJsonContext.Default.DictionaryGuidItemJournalEntry) ?? new Dictionary<Guid, JournalEF.ItemJournalEntry>())
+    {
+    }
+}
+
+public sealed class JournalDictionaryValueComparer : Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<Dictionary<Guid, JournalEF.ItemJournalEntry>>
+{
+    public JournalDictionaryValueComparer() : base(
+        (a, b) => CompareDictionaries(a, b),
+        a => GetArrayHashCode(a),
+        a => SnapshotDictionary(a))
+    {
+    }
+
+    public static bool CompareDictionaries(Dictionary<Guid, JournalEF.ItemJournalEntry>? a, Dictionary<Guid, JournalEF.ItemJournalEntry>? b)
+    {
+         if (a == b)
+        {
+            return true;
+        }
+
+        if (a == null || b == null)
+        {
+            return false;
+        }
+
+        if (a.Count != b.Count)
+        {
+            return false;
+        }
+
+        foreach (var kvp in a)
+        {
+            if (!b.TryGetValue(kvp.Key, out var value2))
+            {
+                return false;
+            }
+
+            if (!JournalEF.ItemJournalEntry.Comparer.Instance.Equals(kvp.Value, value2))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static int GetArrayHashCode(Dictionary<Guid, JournalEF.ItemJournalEntry> a)
+    {
+        var hash = new HashCode();
+        foreach (var kvp in a.OrderBy(x => x.Key))
+        {
+            hash.Add(kvp.Key);
+            hash.Add(kvp.Value, JournalEF.ItemJournalEntry.Comparer.Instance);
+        }
+
+        return hash.ToHashCode();
+    }
+
+    public static Dictionary<Guid, JournalEF.ItemJournalEntry> SnapshotDictionary(Dictionary<Guid, JournalEF.ItemJournalEntry> a)
+        => new(a.Select(item => new KeyValuePair<Guid, JournalEF.ItemJournalEntry>(item.Key, item.Value.DeepCopy())));
+}
+#endregion
