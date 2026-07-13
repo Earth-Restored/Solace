@@ -5,6 +5,7 @@ using System.Runtime.Loader;
 #endif
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Solace.Cdn.Utils;
 using Solace.Common;
 using Solace.DB;
@@ -121,6 +122,13 @@ internal sealed partial class App
 
         startupDeps.EventBus = eventBus;
         startupDeps.ObjectStore = objectStore;
+
+        using (var scope = app.Services.CreateScope())
+        {
+            var earthDb = scope.ServiceProvider.GetRequiredService<EarthDbContext>();
+            
+            _ = earthDb.Model.GetRelationalModel();
+        }
 
         app.Run();
 

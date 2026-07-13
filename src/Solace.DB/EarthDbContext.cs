@@ -172,21 +172,34 @@ public sealed class EarthDbContext : DbContext
 
         // activity log
         modelBuilder.Entity<ActivityLogEF>()
-            .Property(x => x.Entries)
-            .HasConversion<ActivityLogValueConverter>()
-            .Metadata.SetValueComparer(new ActivityLogListValueComparer());
+            .OwnsMany(x => x.Entries, config =>
+            {
+                config.ToJson();
+                config.HasDiscriminator<string>("type")
+                    .HasValue<LevelUpEntry>("LEVEL_UP")
+                    .HasValue<TappableEntry>("TAPPABLE")
+                    .HasValue<JournalItemUnlockedEntry>("JOURNAL_ITEM_UNLOCKED")
+                    .HasValue<CraftingCompletedEntry>("CRAFTING_COMPLETED")
+                    .HasValue<SmeltingCompletedEntry>("SMELTING_COMPLETED")
+                    .HasValue<BoostActivatedEntry>("BOOST_ACTIVATED");
+            });
+            // .Property(x => x.Entries)
+            // .HasConversion<ActivityLogValueConverter>()
+            // .Metadata.SetValueComparer(new ActivityLogListValueComparer());
 
         // boosts
         modelBuilder.Entity<BoostsEF>()
-            .Property(x => x.ActiveBoosts)
-            .HasConversion<ActiveBoostValueConverter>()
-            .Metadata.SetValueComparer(new ActiveBoostArrayValueComparer());
+            .OwnsMany(x => x.ActiveBoosts, config => config.ToJson());
+            // .Property(x => x.ActiveBoosts)
+            // .HasConversion<ActiveBoostValueConverter>()
+            // .Metadata.SetValueComparer(new ActiveBoostArrayValueComparer());
 
         // hotbar
         modelBuilder.Entity<HotbarEF>()
-            .Property(x => x.Items)
-            .HasConversion<HotbarValueConverter>()
-            .Metadata.SetValueComparer(new HotbarArrayValueComparer());
+            .OwnsMany(x => x.Items, config => config.ToJson());
+            // .Property(x => x.Items)
+            // .HasConversion<HotbarValueConverter>()
+            // .Metadata.SetValueComparer(new HotbarArrayValueComparer());
 
         // inventory
         modelBuilder.Ignore<NonStackableItemInstance>();
@@ -221,9 +234,10 @@ public sealed class EarthDbContext : DbContext
         modelBuilder.Ignore<CraftingSlotEF.ActiveCraftingJob>();
 
         modelBuilder.Entity<CraftingSlotsEF>()
-            .Property(x => x.Slots)
-            .HasConversion<CraftingSlotValueConverter>()
-            .Metadata.SetValueComparer(new CraftingSlotArrayValueComparer());
+            .OwnsMany(x => x.Slots, config => config.ToJson());
+            // .Property(x => x.Slots)
+            // .HasConversion<CraftingSlotValueConverter>()
+            // .Metadata.SetValueComparer(new CraftingSlotArrayValueComparer());
 
         // smelting slots
         modelBuilder.Ignore<SmeltingSlot.ActiveSmeltingJob>();
@@ -231,15 +245,17 @@ public sealed class EarthDbContext : DbContext
         modelBuilder.Ignore<SmeltingSlot.Fuel>();
 
         modelBuilder.Entity<SmeltingSlotsEF>()
-            .Property(x => x.Slots)
-            .HasConversion<SmeltingSlotValueConverter>()
-            .Metadata.SetValueComparer(new SmeltingSlotArrayValueComparer());
+            .OwnsMany(x => x.Slots, config => config.ToJson());
+            // .Property(x => x.Slots)
+            // .HasConversion<SmeltingSlotValueConverter>()
+            // .Metadata.SetValueComparer(new SmeltingSlotArrayValueComparer());
 
         // shared buildplates
         modelBuilder.Entity<SharedBuildplateEF>()
-            .Property(x => x.Hotbar)
-            .HasConversion<SBHotbarValueConverter>()
-            .Metadata.SetValueComparer(new SBHotbarArrayValueComparer());
+            .OwnsMany(x => x.Hotbar, config => config.ToJson());
+            // .Property(x => x.Hotbar)
+            // .HasConversion<SBHotbarValueConverter>()
+            // .Metadata.SetValueComparer(new SBHotbarArrayValueComparer());
     }
 
     public async Task ClearAsync(CancellationToken cancellationToken = default)

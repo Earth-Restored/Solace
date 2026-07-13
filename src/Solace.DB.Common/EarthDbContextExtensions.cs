@@ -23,18 +23,20 @@ public static class EarthDbContextExtensions
             switch (provider)
             {
                 case "Postgres":
-                    optionsBuilder.UseModel(Solace.DB.CompiledModels.Postgres.EarthDbContextModel.Instance);
                     optionsBuilder.UseNpgsql(connectionString, x =>
                     {
                         x.MigrationsAssembly("Solace.DB.Postgres");
                     });
+
+                    optionsBuilder.UseModel(CompiledModels.Postgres.EarthDbContextModel.Instance);
                     break;
                 case "Sqlite":
-                    // optionsBuilder.UseModel(CompiledModels.Sqlite.EarthDbContextModel.Instance);
                     optionsBuilder.UseSqlite(connectionString, x =>
                     {
                         x.MigrationsAssembly("Solace.DB.Sqlite");
                     });
+
+                    // optionsBuilder.UseModel(CompiledModels.Sqlite.EarthDbContextModel.Instance);
                     break;
                 default:
                     throw new ArgumentException($"Unknown db provider '{provider}'.", nameof(provider));
