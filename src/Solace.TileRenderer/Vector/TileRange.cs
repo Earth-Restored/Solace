@@ -326,7 +326,7 @@ public sealed class TileRange : IEnumerable<Tile?>
     /// <summary>
     /// Tile range center first enumerable.
     /// </summary>
-    private class TileRangeCenterFirst : IEnumerable<Tile?>
+    private sealed class TileRangeCenterFirst : IEnumerable<Tile?>
     {
         private readonly TileRange _tileRange;
 

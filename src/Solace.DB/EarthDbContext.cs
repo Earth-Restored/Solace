@@ -86,7 +86,7 @@ public sealed class EarthDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         // triggers
-        // bug when compiling - The given key 'EntityType: TokenEF Abstract' was not present in the dictionary.
+        // todo: bug when compiling - The given key 'EntityType: TokenEF Abstract' was not present in the dictionary.
         // modelBuilder.Entity<ProfileEF>(entity =>
         // {
         //     entity.ToTable("Profiles", tb => tb.HasTrigger("trg_profiles_version"));
@@ -126,7 +126,7 @@ public sealed class EarthDbContext : DbContext
         // {
         //     entity.ToTable("JournalEntries", tb => tb.HasTrigger("trg_journal_entries_version"));
         // });
-        
+
         // todo: challenges once implemented
 
         // modelBuilder.Entity<TokenEF>(entity =>
@@ -356,16 +356,21 @@ public sealed class EarthDbContext : DbContext
 
     public async Task ClearAsync(CancellationToken cancellationToken = default)
     {
-        await Accounts.ExecuteDeleteAsync(cancellationToken);
+        var ctx = this;  // todo: bug - needed for compiled queries - https://github.com/dotnet/efcore/issues/35887
+        var cancellationTokenL = cancellationToken;
 
-        await EncounterBuildplates.ExecuteDeleteAsync(cancellationToken);
-        await TemplateBuildplates.ExecuteDeleteAsync(cancellationToken);
-        await Tiles.ExecuteDeleteAsync(cancellationToken);
+        await ctx.Accounts.ExecuteDeleteAsync(cancellationTokenL);
+
+        await ctx.EncounterBuildplates.ExecuteDeleteAsync(cancellationTokenL);
+        await ctx.TemplateBuildplates.ExecuteDeleteAsync(cancellationTokenL);
+        await ctx.Tiles.ExecuteDeleteAsync(cancellationTokenL);
     }
 
     public async Task EnsureAccountExists(Guid id)
     {
-        if (await Accounts.AnyAsync(account => account.Id == id))
+        var ctx = this;  // todo: bug - needed for compiled queries - https://github.com/dotnet/efcore/issues/35887
+
+        if (await ctx.Accounts.AnyAsync(account => account.Id == id))
         {
             return;
         }
@@ -373,10 +378,11 @@ public sealed class EarthDbContext : DbContext
         await InitAccountAndAddToDb(id);
     }
 
-    public async Task<Account> GetOrCreateAccount(Guid id, Func<IQueryable<Account>, IQueryable<Account>> queryFunc)
+    public async Task<Account> GetOrCreateAccount(Guid id)
     {
-        var account = await queryFunc(Accounts)
-            .FirstOrDefaultAsync(account => account.Id == id);
+        var ctx = this;  // todo: bug - needed for compiled queries - https://github.com/dotnet/efcore/issues/35887
+
+        var account = await ctx.Accounts.FirstOrDefaultAsync(account => account.Id == id);
 
         if (account is not null)
         {
@@ -406,7 +412,9 @@ public sealed class EarthDbContext : DbContext
         account.CraftingSlots = new CraftingSlotsEF() { Id = id, Account = account, };
         account.SmeltingSlots = new SmeltingSlotsEF() { Id = id, Account = account, };
 
-        Accounts.Add(account);
+        var ctx = this;  // todo: bug - needed for compiled queries - https://github.com/dotnet/efcore/issues/35887
+
+        ctx.Accounts.Add(account);
 
         await SaveChangesAsync();
 
@@ -513,9 +521,13 @@ public sealed class ResultsEF
 
         public async Task<ResultsEF> BuildAsync(EarthDbContext earthDb, Guid accountId, CancellationToken cancellationToken = default)
         {
-            var versions = await earthDb.AccountVersions
+            // todo: bug - needed for compiled queries - https://github.com/dotnet/efcore/issues/35887
+            var earthDbL = earthDb;
+            var accountIdL = accountId;
+
+            var versions = await earthDbL.AccountVersions
                 .AsNoTracking()
-                .FirstAsync(versions => versions.Id == accountId, cancellationToken);
+                .FirstAsync(versions => versions.Id == accountIdL, cancellationToken);
 
             return Build(versions);
         }

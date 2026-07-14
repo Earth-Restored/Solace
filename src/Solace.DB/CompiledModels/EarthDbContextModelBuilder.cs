@@ -18,7 +18,7 @@ namespace Solace.DB.CompiledModels
     public partial class EarthDbContextModel
     {
         private EarthDbContextModel()
-            : base(skipDetectChanges: false, modelId: new Guid("f70ebbe5-aee7-485e-b041-70ef9a2de0ec"), entityTypeCount: 38)
+            : base(skipDetectChanges: false, modelId: new Guid("356e5103-57c1-4c5d-9ee8-c68ce760786d"), entityTypeCount: 38)
         {
         }
 
