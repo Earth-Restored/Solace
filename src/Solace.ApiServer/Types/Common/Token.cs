@@ -1,5 +1,6 @@
 ﻿
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 
 namespace Solace.ApiServer.Types.Common;
@@ -40,13 +41,13 @@ internal static class TokenTypeExtensions
 {
     extension(Token.Type)
     {
-        public static Token.Type FromDb(DB.Models.Player.TokensEF.Token.TypeE type)
-            => type switch
+        public static Token.Type FromDb(DB.Models.Player.TokenEF token)
+            => token switch
             {
-                DB.Models.Player.TokensEF.Token.TypeE.LEVEL_UP => Token.Type.LEVEL_UP,  
-                DB.Models.Player.TokensEF.Token.TypeE.JOURNAL_ITEM_UNLOCKED => Token.Type.JOURNAL_ITEM_UNLOCKED,
-                DB.Models.Player.TokensEF.Token.TypeE.DAILY_LOGIN => Token.Type.DAILY_LOGIN,
-                _ => throw new InvalidEnumArgumentException(nameof(type), (int)type, typeof(DB.Models.Player.TokensEF.Token.TypeE)),  
+                DB.Models.Player.LevelUpTokenEF => Token.Type.LEVEL_UP,  
+                DB.Models.Player.JournalItemUnlockedTokenEF => Token.Type.JOURNAL_ITEM_UNLOCKED,
+                DB.Models.Player.DailyLoginTokenEF => Token.Type.DAILY_LOGIN,
+                _ => throw new UnreachableException(),
             };
     }
 }

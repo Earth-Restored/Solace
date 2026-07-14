@@ -76,7 +76,7 @@ public sealed partial class Importer : IAsyncDisposable
             return null;
         }
 
-        if (string.IsNullOrEmpty(template.ServerDataObjectId))
+        if (Guid.IsNullOrZero(template.ServerDataObjectId))
         {
             LogTemplateNoAssociatedServerData(templateId);
             return null;
@@ -106,7 +106,7 @@ public sealed partial class Importer : IAsyncDisposable
             return null;
         }
 
-        string? newPreviewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
+        var newPreviewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
         if (newPreviewObjectId is null)
         {
             LogTemplatePreviewStoreFail(templateId);
@@ -115,13 +115,13 @@ public sealed partial class Importer : IAsyncDisposable
 
         var oldPreviewObjectId = template.PreviewObjectId;
 
-        template.PreviewObjectId = newPreviewObjectId;
+        template.PreviewObjectId = newPreviewObjectId.Value;
 
         try
         {
             await EarthDB.SaveChangesAsync(cancellationToken);
 
-            if (!string.IsNullOrEmpty(oldPreviewObjectId))
+            if (!Guid.IsNullOrZero(oldPreviewObjectId))
             {
                 await ObjectStoreClient.DeleteAsync(oldPreviewObjectId, cancellationToken);
                 LogDeletedOldTemplatePreview(templateId);
@@ -132,7 +132,7 @@ public sealed partial class Importer : IAsyncDisposable
         catch (Exception exception)
         {
             LogTemplatePreviewSaveFail(exception, templateId);
-            await ObjectStoreClient.DeleteAsync(newPreviewObjectId, cancellationToken);
+            await ObjectStoreClient.DeleteAsync(newPreviewObjectId.Value, cancellationToken);
             return null;
         }
     }
@@ -197,12 +197,12 @@ public sealed partial class Importer : IAsyncDisposable
             return false;
         }
 
-        if (!string.IsNullOrEmpty(template.ServerDataObjectId))
+        if (!Guid.IsNullOrZero(template.ServerDataObjectId))
         {
             await ObjectStoreClient.DeleteAsync(template.ServerDataObjectId, cancellationToken);
         }
 
-        if (!string.IsNullOrEmpty(template.PreviewObjectId))
+        if (!Guid.IsNullOrZero(template.PreviewObjectId))
         {
             await ObjectStoreClient.DeleteAsync(template.PreviewObjectId, cancellationToken);
         }
@@ -296,7 +296,7 @@ public sealed partial class Importer : IAsyncDisposable
             return false;
         }
 
-        if (string.IsNullOrEmpty(buildplate.ServerDataObjectId))
+        if (Guid.IsNullOrZero(buildplate.ServerDataObjectId))
         {
             LogBuildplateNoAssociatedServerData(accountId, buildplateId);
             return false;
@@ -326,7 +326,7 @@ public sealed partial class Importer : IAsyncDisposable
             return false;
         }
 
-        string? newPreviewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
+        var newPreviewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
         if (newPreviewObjectId is null)
         {
             LogBuildplatePreviewStoreFail(accountId, buildplateId);
@@ -335,13 +335,13 @@ public sealed partial class Importer : IAsyncDisposable
 
         var oldPreviewObjectId = buildplate.PreviewObjectId;
 
-        buildplate.PreviewObjectId = newPreviewObjectId;
+        buildplate.PreviewObjectId = newPreviewObjectId.Value;
 
         try
         {
             await EarthDB.SaveChangesAsync(cancellationToken);
 
-            if (!string.IsNullOrEmpty(oldPreviewObjectId))
+            if (!Guid.IsNullOrZero(oldPreviewObjectId))
             {
                 await ObjectStoreClient.DeleteAsync(oldPreviewObjectId, cancellationToken);
                 LogDeletedOldBuildplatePreview(accountId, buildplateId);
@@ -352,7 +352,7 @@ public sealed partial class Importer : IAsyncDisposable
         catch (Exception exception)
         {
             LogBuildplatePreviewSaveFail(exception, accountId, buildplateId);
-            await ObjectStoreClient.DeleteAsync(newPreviewObjectId, cancellationToken);
+            await ObjectStoreClient.DeleteAsync(newPreviewObjectId.Value, cancellationToken);
             return false;
         }
     }
@@ -376,13 +376,13 @@ public sealed partial class Importer : IAsyncDisposable
             EarthDB.PlayerBuildplates.Remove(buildplate);
             await EarthDB.SaveChangesAsync(cancellationToken);
 
-            if (!string.IsNullOrEmpty(buildplate.ServerDataObjectId))
+            if (!Guid.IsNullOrZero(buildplate.ServerDataObjectId))
             {
                 LogDeletingServerDataObject(buildplate.ServerDataObjectId);
                 await ObjectStoreClient.DeleteAsync(buildplate.ServerDataObjectId, cancellationToken);
             }
 
-            if (!string.IsNullOrEmpty(buildplate.PreviewObjectId))
+            if (!Guid.IsNullOrZero(buildplate.PreviewObjectId))
             {
                 LogDeletingPreviewObject(buildplate.PreviewObjectId);
                 await ObjectStoreClient.DeleteAsync(buildplate.PreviewObjectId, cancellationToken);
@@ -511,12 +511,12 @@ public sealed partial class Importer : IAsyncDisposable
             LogTemplateNotFoundDebug(templateId);
 
             LogStoringTemplateWorldData();
-            string? serverDataObjectId;
+            Guid? serverDataObjectId;
             await using (var serverDataStream = new MemoryStream(worldData.ServerData))
             {
                 serverDataObjectId = await ObjectStoreClient.StoreAsync(serverDataStream, cancellationToken);
             }
-            
+
             if (serverDataObjectId is null)
             {
                 LogTemplateServerDataStoreFail(templateId);
@@ -524,7 +524,7 @@ public sealed partial class Importer : IAsyncDisposable
             }
 
             LogStoringTemplatePreview();
-            string? previewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
+            Guid? previewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
             if (previewObjectId is null)
             {
                 LogTemplatePreviewStoreFail(templateId);
@@ -545,10 +545,10 @@ public sealed partial class Importer : IAsyncDisposable
                 Name = name,
                 Size = worldData.Size,
                 Offset = worldData.Offset,
-                Scale = scale,
+                BlocksPerMeter = scale,
                 Night = worldData.Night,
-                ServerDataObjectId = serverDataObjectId,
-                PreviewObjectId = previewObjectId,
+                ServerDataObjectId = serverDataObjectId.Value,
+                PreviewObjectId = previewObjectId.Value,
             };
 
             try
@@ -559,8 +559,8 @@ public sealed partial class Importer : IAsyncDisposable
             catch (Exception exception)
             {
                 LogTemplateSaveFail(exception, templateId);
-                await ObjectStoreClient.DeleteAsync(serverDataObjectId, cancellationToken);
-                await ObjectStoreClient.DeleteAsync(previewObjectId, cancellationToken);
+                await ObjectStoreClient.DeleteAsync(serverDataObjectId.Value, cancellationToken);
+                await ObjectStoreClient.DeleteAsync(previewObjectId.Value, cancellationToken);
                 return false;
             }
         }
@@ -571,8 +571,8 @@ public sealed partial class Importer : IAsyncDisposable
     private async Task<bool> StoreBuildplate(Guid templateId, Guid accountId, Guid buildplateId, TemplateBuildplateEF template, byte[] serverData, Stream preview, CancellationToken cancellationToken)
     {
         LogStoringServerData();
-        string? serverDataObjectId;
-        await using (var serverDataStream = new MemoryStream(serverData))
+        Guid? serverDataObjectId;
+        using (var serverDataStream = new MemoryStream(serverData))
         {
             serverDataObjectId = await ObjectStoreClient.StoreAsync(serverDataStream, cancellationToken);
         }
@@ -584,17 +584,17 @@ public sealed partial class Importer : IAsyncDisposable
         }
 
         LogStoringPreview();
-        string? previewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
+        var previewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
         if (previewObjectId is null)
         {
             LogBuildplatePreviewStoreFail(accountId, buildplateId);
-            await ObjectStoreClient.DeleteAsync(serverDataObjectId, cancellationToken);
+            await ObjectStoreClient.DeleteAsync(serverDataObjectId.Value, cancellationToken);
             return false;
         }
 
         try
         {
-            long lastModified = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var lastModified = DateTimeOffset.UtcNow;
 
             EarthDB.PlayerBuildplates.Add(new BuildplateEF()
             {
@@ -604,11 +604,11 @@ public sealed partial class Importer : IAsyncDisposable
                 Name = template.Name,
                 Size = template.Size,
                 Offset = template.Offset,
-                Scale = template.Scale,
+                BlocksPerMeter = template.BlocksPerMeter,
                 Night = template.Night,
                 LastModified = lastModified,
-                ServerDataObjectId = template.ServerDataObjectId,
-                PreviewObjectId = template.PreviewObjectId,
+                ServerDataObjectId = serverDataObjectId.Value,
+                PreviewObjectId = previewObjectId.Value,
             });
 
             await EarthDB.SaveChangesAsync(cancellationToken);
@@ -618,8 +618,8 @@ public sealed partial class Importer : IAsyncDisposable
         catch (Exception exception)
         {
             LogBuildplateSaveFail(exception, accountId, buildplateId);
-            await ObjectStoreClient.DeleteAsync(serverDataObjectId, cancellationToken);
-            await ObjectStoreClient.DeleteAsync(previewObjectId, cancellationToken);
+            await ObjectStoreClient.DeleteAsync(serverDataObjectId.Value, cancellationToken);
+            await ObjectStoreClient.DeleteAsync(previewObjectId.Value, cancellationToken);
             return false;
         }
     }
@@ -706,10 +706,10 @@ public sealed partial class Importer : IAsyncDisposable
     private partial void LogGeneratePreviewSkippedNotConnected();
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Deleting world data object '{ServerDataObjectId}'")]
-    private partial void LogDeletingServerDataObject(string ServerDataObjectId);
+    private partial void LogDeletingServerDataObject(Guid ServerDataObjectId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Deleting preview object '{PreviewObjectId}'")]
-    private partial void LogDeletingPreviewObject(string PreviewObjectId);
+    private partial void LogDeletingPreviewObject(Guid PreviewObjectId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Template '{TemplateId}' already exists")]
     private partial void LogTemplateAlreadyExists(Guid TemplateId);

@@ -18,6 +18,9 @@ public static class TimeFormatter
     public static string FormatDuration(TimeSpan timeSpan)
         => $"{(int)timeSpan.TotalHours}:{timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}";
 
+    public static DateTimeOffset ParseTime(string time)
+        => DateTimeOffset.Parse(time, CultureInfo.InvariantCulture);
+
     public static TimeSpan ParseDuration(string duration)
     {
         string[] parts = duration.Split(':');

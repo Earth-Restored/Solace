@@ -49,10 +49,12 @@ internal sealed class TappablesController : SolaceControllerBase
 
         var redeemedTappables = await _earthDB.RedeemedTappables
             .AsNoTracking()
-            .FirstOrNewAsync(redeemedTappables => redeemedTappables.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .Where (rt => rt.AccountId == accountId)
+            .Select(rt => rt.TappableId)
+            .ToHashSetAsync(cancellationToken);
 
         IEnumerable<ActiveLocation> activeLocationTappables = tappables
-            .Where(tappable => tappable.SpawnTime + tappable.ValidFor > requestStartedOn && !redeemedTappables.IsRedeemed(tappable.Id))
+            .Where(tappable => tappable.SpawnTime + tappable.ValidFor > requestStartedOn && !redeemedTappables.Contains(tappable.Id))
             .Select(tappable => new ActiveLocation(
                 tappable.Id,
                 TappablesManager.LocationToTileId(tappable.Lat, tappable.Lon),
@@ -121,15 +123,11 @@ internal sealed class TappablesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var redeemedTappables = await _earthDB.RedeemedTappables
-            .AsTracking()
-            .FirstOrNewAsync(redeemedTappables => redeemedTappables.Id == accountId, cancellationToken: cancellationToken);
-
         var boosts = await _earthDB.Boosts
             .AsNoTracking()
-            .FirstOrNewAsync(boosts => boosts.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .FirstAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
 
-        if (redeemedTappables.IsRedeemed(tappable.Id))
+        if (await _earthDB.RedeemedTappables.AnyAsync(rd => rd.AccountId == accountId && rd.TappableId == tappable.Id, cancellationToken))
         {
             return TypedResults.BadRequest();
         }
@@ -172,14 +170,16 @@ internal sealed class TappablesController : SolaceControllerBase
 
         rewards.AddRubies(1); // TODO
 
-        redeemedTappables.Add(tappable.Id, tappable.SpawnTime + tappable.ValidFor);
-        redeemedTappables.Prune(requestStartedOn);
+        _earthDB.RedeemedTappables.Add(new RedeemedTappableEF {AccountId = accountId, TappableId = tappable.Id, ExpiresAt =tappable.SpawnTime + tappable.ValidFor, });
+        await _earthDB.SaveChangesAsync(cancellationToken);
+        
+        await RedeemedTappableUtils.PruneAsync(_earthDB, requestStartedOn, cancellationToken);
 
         await _earthDB.SaveChangesAsync(cancellationToken);
-        var results = new EarthDbContext.Results(_earthDB);
+        var results = new ResultsEF.Builder();
 
-        await ActivityLogUtils.AddEntryAsync(results, accountId, new ActivityLogEF.TappableEntry(requestStartedOn, rewards.ToDBRewardsModel()));
-        await rewards.ToRedeemQueryAsync(results, accountId, requestStartedOn, _staticData);
+        await ActivityLogUtils.AddEntryAsync(_earthDB, results, accountId, new TappableEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
+        await rewards.ToRedeemQueryAsync(_earthDB, results, accountId, requestStartedOn, _staticData, cancellationToken);
 
         return EarthJson(new Dictionary<string, object?>()
         {
@@ -190,7 +190,7 @@ internal sealed class TappablesController : SolaceControllerBase
                 Token.LifetimeE.PERSISTENT
             ) },
             { "updates", null }
-        }, new EarthApiResponse.UpdatesResponse(results));
+        }, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDB, accountId, cancellationToken)));
     }
 
     [HttpPost("multiplayer/encounters/state")]

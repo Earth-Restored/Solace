@@ -229,7 +229,7 @@ internal sealed class CatalogResponseCacheService
                     TimeFormatter.FormatDuration(item.BoostInfo.Duration),
                     true,
                     item.BoostInfo.Level,
-                    [.. item.BoostInfo.Effects.Select(effect => BoostUtils.BoostEffectToApiResponse(effect, item.BoostInfo.Duration))],
+                    [.. item.BoostInfo.Effects.Select(effect => BoostUtils.BoostEffectToApiResponse(effect, TimeSpan.FromMilliseconds(item.BoostInfo.Duration)))],
                     item.BoostInfo.TriggeredOnDeath ? "Death" : null,
                     null
                 );

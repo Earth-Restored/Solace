@@ -20,7 +20,7 @@ internal static class BoostUtils
                 continue;
             }
 
-            if (activeBoost.StartTimeDT + activeBoost.DurationTS < currentTime)
+            if (activeBoost.StartTime + activeBoost.Duration < currentTime)
             {
                 continue;
             }
@@ -142,7 +142,7 @@ internal static class BoostUtils
     public static int GetMaxPlayerHealth(BoostsEF boosts, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
         => 20 + (20 * BoostUtils.GetActiveStatModifiers(boosts, currentTime, itemsCatalog).MaxPlayerHealthMultiplier) / 100;
 
-    public static Effect BoostEffectToApiResponse(Catalog.ItemsCatalogR.Item.BoostEffect effect, long boostDuration)
+    public static Effect BoostEffectToApiResponse(Catalog.ItemsCatalogR.Item.BoostEffect effect, TimeSpan boostDuration)
     {
         string effectTypeString = effect.Type switch
         {

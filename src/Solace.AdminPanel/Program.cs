@@ -16,7 +16,6 @@ using Microsoft.Extensions.Options;
 using Solace.Common;
 using Solace.Common.Utils;
 using Solace.DB;
-using Solace.DB.Common;
 using Solace.AdminPanel.Components;
 using Solace.AdminPanel.Components.Account;
 using Solace.AdminPanel.Data;
@@ -90,18 +89,15 @@ internal static partial class App
         builder.AddServiceDefaults();
 
         var earthDbConnectionString = builder.Configuration.GetConnectionString("EarthDb");
-        var earthDbProvider = builder.Configuration["DatabaseProvider"];
 
         bool isEFTooling = Assembly.GetEntryAssembly()?.GetName().Name == "ef";
 
         if (isEFTooling)
         {
-            earthDbProvider ??= "Sqlite";
             earthDbConnectionString ??= "Data Source=dummy.db";
         }
 
         Debug.Assert(earthDbConnectionString is not null);
-        Debug.Assert(earthDbProvider is not null);
 
         builder.Services.AddSingleton<StartupDependencies>();
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
@@ -184,7 +180,7 @@ internal static partial class App
             options.UseSqlite(adminPanelConnectionString));
 
         builder.Services.AddDbContextFactory<EarthDbContext>(options =>
-            EarthDbContext.ConfigureBuilder(options, earthDbConnectionString, earthDbProvider));
+            EarthDbContext.ConfigureBuilder(options, earthDbConnectionString));
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
         builder.Services.AddIdentityCore<ApplicationUser>(options =>

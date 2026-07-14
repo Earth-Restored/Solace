@@ -4,7 +4,6 @@ using Solace.ApiServer.Utils;
 using Solace.BuildplateImporter;
 using Solace.Common;
 using Solace.DB;
-using Solace.DB.Common;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 using Solace.StaticData;
@@ -78,18 +77,15 @@ internal static partial class App
         builder.AddServiceDefaults();
 
         var earthDbConnectionString = builder.Configuration.GetConnectionString("EarthDb");
-        var earthDbProvider = builder.Configuration["DatabaseProvider"];
 
         bool isEFTooling = Assembly.GetEntryAssembly()?.GetName().Name == "ef";
 
         if (isEFTooling)
         {
-            earthDbProvider ??= "Sqlite";
             earthDbConnectionString ??= "Data Source=dummy.db";
         }
 
         Debug.Assert(earthDbConnectionString is not null);
-        Debug.Assert(earthDbProvider is not null);
 
         builder.Services.AddSingleton<StartupDependencies>();
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
@@ -128,7 +124,7 @@ internal static partial class App
             .AddScheme<AuthenticationSchemeOptions, GenoaAuthenticationHandler>("GenoaAuth", null);
 
         builder.Services.AddDbContextFactory<EarthDbContext>(options =>
-            EarthDbContext.ConfigureBuilder(options, earthDbConnectionString, earthDbProvider));
+            EarthDbContext.ConfigureBuilder(options, earthDbConnectionString));
 
         await using var app = builder.Build();
 

@@ -10,6 +10,7 @@ namespace Solace.ApiServer.Controllers.EarthApi;
 [Route("1/api/v{version:apiVersion}")]
 internal sealed class TutorialController : SolaceControllerBase
 {
+    // todo: surely only 1 is needed
     [HttpGet("player/tutorial")]
     [HttpGet("player/tutorials")]
     [HttpGet("player/oobe")]
@@ -39,6 +40,7 @@ internal sealed class TutorialController : SolaceControllerBase
             ["available"] = Array.Empty<string>()
         });
 
+    // todo: surely only 1 is needed
     [HttpPost("player/tutorial")]
     [HttpPost("player/tutorials")]
     [HttpPost("player/tutorial/{tutorialId}")]

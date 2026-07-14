@@ -377,7 +377,7 @@
                     Name = dbBuildplate.Name,
                     Size = dbBuildplate.Size,
                     Offset = dbBuildplate.Offset,
-                    BlocksPerMeter = dbBuildplate.Scale,
+                    BlocksPerMeter = dbBuildplate.BlocksPerMeter,
                     IsNight = dbBuildplate.Night,
                     ServerDataObjectId = dbBuildplate.ServerDataObjectId,
                     PreviewObjectId = dbBuildplate.PreviewObjectId,
@@ -501,7 +501,7 @@
                 .FirstAsync(template => template.Id == bp.Id);
 
             template.Name = bp.Name;
-            template.Scale = bp.BlocksPerMeter;
+            template.BlocksPerMeter = bp.BlocksPerMeter;
 
             await earthDb.SaveChangesAsync();
 
@@ -759,8 +759,8 @@
         public int Offset { get; set; }
         public bool IsNight { get; set; }
 
-        public required string ServerDataObjectId { get; set; }
-        public required string PreviewObjectId { get; set; }
+        public required Guid ServerDataObjectId { get; set; }
+        public required Guid PreviewObjectId { get; set; }
 
         // Change Tracking
         private string? _originalName;

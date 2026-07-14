@@ -3,7 +3,7 @@
 @using System.Linq
 @using Solace.Common.Utils
 @using Solace.DB
-@using Solace.DB.Models.Common
+@using Solace.DB.Models.Player
 @using Item = Solace.StaticData.Catalog.ItemsCatalogR.Item;
 @inject IDbContextFactory<EarthDbContext> EarthDbFactory
 @inject IConfiguration Configuration
@@ -423,45 +423,53 @@
         try
         {
             await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
-            var inventory = await earthDb.Inventories
-                .AsNoTracking()
-                .FirstOrDefaultAsync();
 
-            if (inventory is null)
-            {
-                return;
-            }
+            var stackables = await earthDb.StackableItems
+                .AsNoTracking()
+                .Where(i => i.AccountId == AccountId)
+                .ToListAsync();
+
+            var nonStackables = await earthDb.NonStackableItems
+                .AsNoTracking()
+                .Where(i => i.AccountId == AccountId)
+                .ToListAsync();
 
             var catalog = StaticData.Catalog.ItemsCatalog;
 
-            foreach (var (itemId, itemCount) in inventory.StackableItemsData)
+            foreach (var stackable in stackables)
             {
-                var item = catalog.GetItem(itemId);
+                var item = catalog.GetItem(stackable.ItemId);
                 if (item is null)
                 {
                     continue;
                 }
 
-                FullInventory.Add(new InventorySlot() { BaseItem = item, Count = itemCount });
+                FullInventory.Add(new InventorySlot()
+                {
+                    BaseItem = item,
+                    Count = stackable.Count,
+                });
             }
 
-            foreach (var (itemId, instances) in inventory.NonStackableItemsData)
+            foreach (var nonStackable in nonStackables)
             {
-                var item = catalog.GetItem(itemId);
+                var item = catalog.GetItem(nonStackable.ItemId);
                 if (item is null)
                 {
                     continue;
                 }
 
-                foreach (var (instanceId, instance) in instances)
+                FullInventory.Add(new InventorySlot()
                 {
-                    FullInventory.Add(new InventorySlot() { BaseItem = item, CurrentWear = instance.Wear, InstanceId = instanceId });
-                }
+                    BaseItem = item,
+                    CurrentWear = nonStackable.Wear,
+                    InstanceId = nonStackable.InstanceId,
+                });
             }
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            Logger.LogError(ex, "Failed to load inventory data for AccountId {AccountId}", AccountId);
+            Logger.LogError(exception, "Failed to load inventory data for AccountId {AccountId}", AccountId);
         }
     }
 
@@ -524,40 +532,31 @@
         }
 
         await using var db = await EarthDbFactory.CreateDbContextAsync();
-        var inv = await db.Inventories.FirstOrDefaultAsync();
+        var itemId = SelectedItemToAdd.Id;
 
-        if (inv != null)
+        if (SelectedItemToAdd.Stackable)
         {
-            var itemId = SelectedItemToAdd.Id;
+            var existingItem = await db.StackableItems
+                .FirstOrDefaultAsync(i => i.AccountId == AccountId && i.ItemId == itemId);
 
-            if (SelectedItemToAdd.Stackable)
+            if (existingItem is not null)
             {
-                if (inv.StackableItemsData.ContainsKey(itemId))
-                {
-                    inv.StackableItemsData[itemId] += AddItemCount;
-                }
-                else
-                {
-                    inv.StackableItemsData[itemId] = AddItemCount;
-                }
+                existingItem.Count += AddItemCount;
             }
             else
             {
-                if (!inv.NonStackableItemsData.ContainsKey(itemId))
-                {
-                    inv.NonStackableItemsData[itemId] = new();
-                }
-
-                for (int i = 0; i < AddItemCount; i++)
-                {
-                    var newInstanceId = Guid.NewGuid();
-                    inv.NonStackableItemsData[itemId][newInstanceId] = new NonStackableItemInstance(newInstanceId, 0);
-                }
+                db.StackableItems.Add(new StackableItemEF(AccountId, itemId, AddItemCount));
             }
-
-            db.Inventories.Update(inv);
-            await db.SaveChangesAsync();
         }
+        else
+        {
+            for (int i = 0; i < AddItemCount; i++)
+            {
+                db.NonStackableItems.Add(new NonStackableItemInstanceEF(AccountId, itemId, Guid.NewGuid(), 0));
+            }
+        }
+
+        await db.SaveChangesAsync();
 
         CloseAddModal();
         await ReloadInventoryAsync();
@@ -565,26 +564,28 @@
 
     private async Task SaveItemChanges()
     {
-        if (SelectedItemSlot is null || !SelectedItemSlot.BaseItem.Stackable)
+        if (SelectedItemSlot is null or { BaseItem: { Stackable: false, }, })
         {
             return;
         }
 
         await using var db = await EarthDbFactory.CreateDbContextAsync();
-        var inv = await db.Inventories.FirstOrDefaultAsync();
+        var itemId = SelectedItemSlot.BaseItem.Id;
 
-        if (inv is not null)
+        var existingItem = await db.StackableItems
+            .FirstOrDefaultAsync(i => i.AccountId == AccountId && i.ItemId == itemId);
+
+        if (existingItem is not null)
         {
             if (EditCount <= 0)
             {
-                inv.StackableItemsData.Remove(SelectedItemSlot.BaseItem.Id);
+                db.StackableItems.Remove(existingItem);
             }
             else
             {
-                inv.StackableItemsData[SelectedItemSlot.BaseItem.Id] = EditCount;
+                existingItem.Count = EditCount;
             }
 
-            db.Inventories.Update(inv);
             await db.SaveChangesAsync();
         }
 
@@ -595,31 +596,30 @@
     private async Task RemoveItem(InventorySlot slot)
     {
         await using var db = await EarthDbFactory.CreateDbContextAsync();
-        var inv = await db.Inventories.FirstOrDefaultAsync();
+        var itemId = slot.BaseItem.Id;
 
-        if (inv is not null)
+        if (slot.BaseItem.Stackable)
         {
-            var itemId = slot.BaseItem.Id;
+            var stackableItem = await db.StackableItems
+                .FirstOrDefaultAsync(i => i.AccountId == AccountId && i.ItemId == itemId);
 
-            if (slot.BaseItem.Stackable)
+            if (stackableItem is not null)
             {
-                inv.StackableItemsData.Remove(itemId);
+                db.StackableItems.Remove(stackableItem);
             }
-            else if (slot.InstanceId is not null)
-            {
-                if (inv.NonStackableItemsData.TryGetValue(itemId, out var instances))
-                {
-                    instances.Remove(slot.InstanceId.Value);
-                    if (instances.Count == 0)
-                    {
-                        inv.NonStackableItemsData.Remove(itemId);
-                    }
-                }
-            }
-
-            db.Inventories.Update(inv);
-            await db.SaveChangesAsync();
         }
+        else if (slot.InstanceId is not null)
+        {
+            var instanceItem = await db.NonStackableItems
+                .FirstOrDefaultAsync(i => i.AccountId == AccountId && i.InstanceId == slot.InstanceId.Value);
+
+            if (instanceItem is not null)
+            {
+                db.NonStackableItems.Remove(instanceItem);
+            }
+        }
+
+        await db.SaveChangesAsync();
 
         CloseItemDetails();
         await ReloadInventoryAsync();

@@ -30,20 +30,10 @@ builder.AddDockerComposeEnvironment("solace-prod")
         }
     });
 
-var earthDbUseSqlite = builder.Configuration.GetValue<bool>("Database:Earth:UseSqlite");
-
-IResourceBuilder<IResourceWithConnectionString> db;
-if (earthDbUseSqlite)
-{
-    db = builder.AddSqlite("EarthDb", builder.Configuration.GetValue("Database:Earth:SqliteDirectory", "data"), builder.Configuration.GetValue("Database:Earth:SqliteFileName", "earth.db"));
-}
-else
-{
-    var postgres = builder.AddPostgres("postgres")
-        .WithDataVolume()
-        .WithPgAdmin();
-    db = postgres.AddDatabase("EarthDb");
-}
+var postgres = builder.AddPostgres("postgres")
+    .WithDataVolume()
+    .WithPgAdmin();
+var earthDb = postgres.AddDatabase("EarthDb");
 
 var eventBus = builder.AddProject<Projects.Solace_EventBus_Server>("event-bus")
     .WithHttpEndpoint(name: "http");
@@ -104,15 +94,14 @@ var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
     {
         endpoint.TargetHost = "*";
     })
-    .WithReference(db)
-    .WaitFor(db)
+    .WithReference(earthDb)
+    .WaitFor(earthDb)
     .WithReference(eventBus)
     .WaitFor(eventBus)
     .WithReference(objectStore)
     .WaitFor(objectStore)
     .WithEnvironmentFromSection(builder.Configuration, "ApiServer:Authentication", "ApiServer:")
     .WithEnvironment("StaticDataPath", staticDataPath)
-    .WithEnvironment("DatabaseProvider", earthDbUseSqlite ? "Sqlite" : "Postgres")
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.Ports = [$"{apiPort}:{apiPort}"];
@@ -146,14 +135,13 @@ var cdn = builder.AddProject<Projects.Solace_Cdn>("cdn")
     {
         endpoint.TargetHost = "*";
     })
-    .WithReference(db)
-    .WaitFor(db)
+    .WithReference(earthDb)
+    .WaitFor(earthDb)
     .WithReference(eventBus)
     .WaitFor(eventBus)
     .WithReference(objectStore)
     .WaitFor(objectStore)
     .WithEnvironment("StaticDataPath", staticDataPath)
-    .WithEnvironment("DatabaseProvider", earthDbUseSqlite ? "Sqlite" : "Postgres")
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.Ports = [$"{cdnPort}:{cdnPort}"];
@@ -237,8 +225,8 @@ var adminPanel = builder.AddProject<Projects.Solace_AdminPanel>("admin-panel")
     {
         endpoint.TargetHost = "*";
     })
-    .WithReference(db)
-    .WaitFor(db)
+    .WithReference(earthDb)
+    .WaitFor(earthDb)
     .WithReference(eventBus)
     .WaitFor(eventBus)
     .WithReference(objectStore)
@@ -278,14 +266,5 @@ var adminPanel = builder.AddProject<Projects.Solace_AdminPanel>("admin-panel")
             ReadOnly = false,
         });
     });
-
-if (earthDbUseSqlite)
-{
-    adminPanel.WithEnvironment("DatabaseProvider", "Sqlite");
-}
-else
-{
-    adminPanel.WithEnvironment("DatabaseProvider", "Postgres");
-}
 
 builder.Build().Run();

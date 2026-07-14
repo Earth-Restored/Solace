@@ -806,7 +806,7 @@
             Id = db.Id,
             Name = db.Name,
             Size = db.Size,
-            BlocksPerMeter = db.Scale,
+            BlocksPerMeter = db.BlocksPerMeter,
             ServerDataObjectId = db.ServerDataObjectId,
             PreviewObjectId = db.PreviewObjectId,
         }).ToList();
@@ -844,8 +844,8 @@
         public int Size { get; set; }
         public int BlocksPerMeter { get; set; }
 
-        public required string ServerDataObjectId { get; set; }
-        public required string PreviewObjectId { get; set; }
+        public required Guid ServerDataObjectId { get; set; }
+        public required Guid PreviewObjectId { get; set; }
     }
 
     private void OpenSkinModal()

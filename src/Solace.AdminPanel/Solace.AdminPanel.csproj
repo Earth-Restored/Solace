@@ -54,9 +54,6 @@
     <ProjectReference Include="../Solace.BuildplateImporter/Solace.BuildplateImporter.csproj" />
     <ProjectReference Include="../Solace.BuildplateRenderer/Solace.BuildplateRenderer.csproj" />
     <ProjectReference Include="../Solace.Common/Solace.Common.csproj" />
-    <ProjectReference Include="../Solace.DB.Postgres/Solace.DB.Postgres.csproj" />
-    <ProjectReference Include="../Solace.DB.Sqlite/Solace.DB.Sqlite.csproj" />
-    <ProjectReference Include="../Solace.DB.Common/Solace.DB.Common.csproj" />
     <ProjectReference Include="../Solace.DB/Solace.DB.csproj" />
     <ProjectReference Include="../Solace.ObjectStore.Client/Solace.ObjectStore.Client.csproj" />
     <ProjectReference Include="../Solace.ServiceDefaults/Solace.ServiceDefaults.csproj" />

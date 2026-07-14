@@ -11,9 +11,6 @@
   <Project Path="src/Solace.Cdn/Solace.Cdn.csproj" />
   <Project Path="src/Solace.Common/Solace.Common.csproj" />
   <Project Path="src/Solace.DB/Solace.DB.csproj" />
-  <Project Path="src/Solace.DB.Common/Solace.DB.Common.csproj" />
-  <Project Path="src/Solace.DB.Postgres/Solace.DB.Postgres.csproj" />
-  <Project Path="src/Solace.DB.Sqlite/Solace.DB.Sqlite.csproj" />
   <Project Path="src/Solace.EventBus/Solace.EventBus.csproj" />
   <Project Path="src/Solace.EventBus.Client/Solace.EventBus.Client.csproj" />
   <Project Path="src/Solace.EventBus.Server/Solace.EventBus.Server.csproj" />

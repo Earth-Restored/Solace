@@ -11,6 +11,7 @@ using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
+using Solace.Common.Utils;
 
 namespace Solace.ObjectStore.Client;
 
@@ -37,7 +38,7 @@ public sealed class ObjectStoreClient : IAsyncDisposable
         _logger = logger;
     }
 
-    public async Task<string?> StoreAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
+    public async Task<Guid?> StoreAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
     {
         using var call = _client.StoreObject(cancellationToken: cancellationToken);
 
@@ -50,10 +51,10 @@ public sealed class ObjectStoreClient : IAsyncDisposable
 
         var response = await call;
 
-        return response.Id;
+        return Guid.FromLowHigh(response.IdLow, response.IdHigh);
     }
 
-    public async Task<string?> StoreAsync(Stream data, CancellationToken cancellationToken = default)
+    public async Task<Guid?> StoreAsync(Stream data, CancellationToken cancellationToken = default)
     {
         using var call = _client.StoreObject(cancellationToken: cancellationToken);
 
@@ -73,7 +74,7 @@ public sealed class ObjectStoreClient : IAsyncDisposable
 
             var response = await call;
 
-            return response.Id;
+            return Guid.FromLowHigh(response.IdLow, response.IdHigh);
         }
         finally
         {
@@ -81,9 +82,10 @@ public sealed class ObjectStoreClient : IAsyncDisposable
         }
     }
 
-    public async Task<Stream?> GetStreamAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<Stream?> GetStreamAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var call = _client.GetObject(new GetObjectRequest { Id = id }, cancellationToken: cancellationToken);
+        var idLowHigh = id.ToLowHigh();
+        var call = _client.GetObject(new GetObjectRequest { IdLow = idLowHigh.Low, IdHigh = idLowHigh.High, }, cancellationToken: cancellationToken);
 
         try
         {
@@ -108,12 +110,13 @@ public sealed class ObjectStoreClient : IAsyncDisposable
         }
     }
 
-    public async Task<byte[]?> GetArrayAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<byte[]?> GetArrayAsync(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
             MemoryStream? memoryStream = null;
-            using var call = _client.GetObject(new GetObjectRequest { Id = id }, cancellationToken: cancellationToken);
+            var idLowHigh = id.ToLowHigh();
+            using var call = _client.GetObject(new GetObjectRequest { IdLow = idLowHigh.Low, IdHigh = idLowHigh.High, }, cancellationToken: cancellationToken);
 
             await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken))
             {
@@ -134,12 +137,13 @@ public sealed class ObjectStoreClient : IAsyncDisposable
         }
     }
 
-    public async Task<Memory<byte>?> GetMemoryAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<Memory<byte>?> GetMemoryAsync(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
             MemoryStream? memoryStream = null;
-            using var call = _client.GetObject(new GetObjectRequest { Id = id }, cancellationToken: cancellationToken);
+            var idLowHigh = id.ToLowHigh();
+            using var call = _client.GetObject(new GetObjectRequest { IdLow = idLowHigh.Low, IdHigh = idLowHigh.High, }, cancellationToken: cancellationToken);
 
             await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken))
             {
@@ -162,9 +166,10 @@ public sealed class ObjectStoreClient : IAsyncDisposable
         }
     }
 
-    public async Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var response = await _client.DeleteObjectAsync(new DeleteObjectRequest { Id = id, }, cancellationToken: cancellationToken);
+        var idLowHigh = id.ToLowHigh();
+        var response = await _client.DeleteObjectAsync(new DeleteObjectRequest { IdLow = idLowHigh.Low, IdHigh = idLowHigh.High, }, cancellationToken: cancellationToken);
 
         return response.Success;
     }

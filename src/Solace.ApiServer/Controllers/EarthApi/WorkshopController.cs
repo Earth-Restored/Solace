@@ -17,14 +17,11 @@ using ExpectedPurchasePriceR = Solace.ApiServer.Types.Common.ExpectedPurchasePri
 using FinishPrice = Solace.ApiServer.Types.Workshop.FinishPrice;
 using Hotbar = Solace.DB.Models.Player.HotbarEF;
 using InputItem = Solace.DB.Models.Player.Workshop.InputItem;
-using Inventory = Solace.DB.Models.Player.InventoryEF;
-using Journal = Solace.DB.Models.Player.JournalEF;
-using NonStackableItemInstance = Solace.DB.Models.Common.NonStackableItemInstance;
+using NonStackableItemInstance = Solace.DB.Models.Player.NonStackableItemInstanceEF;
 using OutputItem = Solace.ApiServer.Types.Workshop.OutputItem;
 using Profile = Solace.DB.Models.Player.ProfileEF;
 using Rewards = Solace.ApiServer.Utils.Rewards;
 using SmeltingCalculator = Solace.ApiServer.Utils.SmeltingCalculator;
-using ActivityLog = Solace.DB.Models.Player.ActivityLogEF;
 using SmeltingSlot = Solace.DB.Models.Player.Workshop.SmeltingSlot;
 using SmeltingSlots = Solace.DB.Models.Player.Workshop.SmeltingSlotsEF;
 using SplitRubies = Solace.ApiServer.Types.Profile.SplitRubies;
@@ -34,6 +31,7 @@ using UnlockPrice = Solace.ApiServer.Types.Workshop.UnlockPrice;
 using Solace.DB;
 using Microsoft.EntityFrameworkCore;
 using Solace.DB.Utils;
+using Solace.DB.Models.Player;
 
 namespace Solace.ApiServer.Controllers.EarthApi;
 
@@ -70,19 +68,24 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             .AsNoTracking()
             .FirstOrNewAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
 
+        var versions = await _earthDb.AccountVersions
+            .AsNoTracking()
+            .Select(versions => new { versions.Id, versions.Crafting, versions.Smelting, })
+            .FirstAsync(versions => versions.Id == accountId, cancellationToken: cancellationToken);
+
         Dictionary<string, object> workshop = new()
         {
             ["crafting"] = new Dictionary<string, object>()
             {
-                ["1"] = CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[0], requestStartedOn, craftingSlots.Version, 1),
-                ["2"] = CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[1], requestStartedOn, craftingSlots.Version, 2),
-                ["3"] = CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[2], requestStartedOn, craftingSlots.Version, 3),
+                ["1"] = CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[0], requestStartedOn, versions.Crafting, 1),
+                ["2"] = CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[1], requestStartedOn, versions.Crafting, 2),
+                ["3"] = CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[2], requestStartedOn, versions.Crafting, 3),
             },
             ["smelting"] = new Dictionary<string, object>()
             {
-                ["1"] = SmeltingSlotModelToResponseIncludingLocked(smeltingSlots.Slots[0], requestStartedOn, smeltingSlots.Version, 1),
-                ["2"] = SmeltingSlotModelToResponseIncludingLocked(smeltingSlots.Slots[1], requestStartedOn, smeltingSlots.Version, 2),
-                ["3"] = SmeltingSlotModelToResponseIncludingLocked(smeltingSlots.Slots[2], requestStartedOn, smeltingSlots.Version, 3),
+                ["1"] = SmeltingSlotModelToResponseIncludingLocked(smeltingSlots.Slots[0], requestStartedOn, versions.Smelting, 1),
+                ["2"] = SmeltingSlotModelToResponseIncludingLocked(smeltingSlots.Slots[1], requestStartedOn, versions.Smelting, 2),
+                ["3"] = SmeltingSlotModelToResponseIncludingLocked(smeltingSlots.Slots[2], requestStartedOn, versions.Smelting, 3),
             },
         };
 
@@ -92,7 +95,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
     [HttpGet("crafting/{slotIndex}")]
     public async Task<Results<ContentHttpResult, BadRequest>> GetCraftingStatus(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -104,13 +107,18 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             .AsNoTracking()
             .FirstOrNewAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
 
-        return EarthJson(CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[slotIndex - 1], requestStartedOn, craftingSlots.Version, slotIndex));
+        var versions = await _earthDb.AccountVersions
+            .AsNoTracking()
+            .Select(versions => new { versions.Id, versions.Crafting, })
+            .FirstAsync(versions => versions.Id == accountId, cancellationToken: cancellationToken);
+
+        return EarthJson(CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[slotIndex - 1], requestStartedOn, versions.Crafting, slotIndex));
     }
 
     [HttpGet("smelting/{slotIndex}")]
     public async Task<Results<ContentHttpResult, BadRequest>> GetSmeltingStatus(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -122,13 +130,18 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             .AsNoTracking()
             .FirstOrNewAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
 
-        return EarthJson(SmeltingSlotModelToResponseIncludingLocked(smeltingSlots.Slots[slotIndex - 1], requestStartedOn, smeltingSlots.Version, slotIndex));
+        var versions = await _earthDb.AccountVersions
+            .AsNoTracking()
+            .Select(versions => new { versions.Id, versions.Smelting, })
+            .FirstAsync(versions => versions.Id == accountId, cancellationToken: cancellationToken);
+
+        return EarthJson(SmeltingSlotModelToResponseIncludingLocked(smeltingSlots.Slots[slotIndex - 1], requestStartedOn, versions.Smelting, slotIndex));
     }
 
     [HttpPost("crafting/{slotIndex}/start")]
     public async Task<Results<ContentHttpResult, BadRequest>> StartCrafting(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -163,13 +176,9 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             .AsTracking()
             .FirstOrNewAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
 
-        var inventory = await _earthDb.Inventories
-            .AsTracking()
-            .FirstOrNewAsync(inventory => inventory.Id == accountId, cancellationToken: cancellationToken);
-
         var hotbar = await _earthDb.Hotbars
             .AsTracking()
-            .FirstOrNewAsync(hotbar => hotbar.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(hotbar => hotbar.Id == accountId, cancellationToken: cancellationToken);
 
         var craftingSlot = craftingSlots.Slots[slotIndex - 1];
 
@@ -178,13 +187,15 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
         }
 
+        var results = new ResultsEF.Builder();
+
         var providedItems = new InputItem[startRequest.Ingredients.Length];
         for (int index = 0; index < startRequest.Ingredients.Length; index++)
         {
             StartRequestCrafting.Item item = startRequest.Ingredients[index];
             if (item.ItemInstanceIds is null || item.ItemInstanceIds.Length == 0)
             {
-                if (!inventory.TakeItems(item.ItemId, item.Quantity))
+                if (!await InventoryUtils.TakeStackableItemsAsync(_earthDb, results, accountId, item.ItemId, item.Quantity, cancellationToken))
                 {
                     return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
                 }
@@ -193,7 +204,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             }
             else
             {
-                var instances = inventory.TakeItems(item.ItemId, item.ItemInstanceIds);
+                var instances = await InventoryUtils.TakeInstanceItemsAsync(_earthDb, results, accountId, item.ItemId, item.ItemInstanceIds, cancellationToken);
                 if (instances is null)
                 {
                     return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
@@ -203,7 +214,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             }
         }
 
-        hotbar.LimitToInventory(inventory);
+        await HotbarUtils.LimitToInventoryAsync(_earthDb, accountId, hotbar, cancellationToken);
 
         var inputItems = new List<List<InputItem>>(recipe.Ingredients.Length);
         foreach (Catalog.RecipesCatalogR.CraftingRecipe.Ingredient ingredient in recipe.Ingredients)
@@ -278,17 +289,21 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
         }
 
-        craftingSlot.ActiveJob = new CraftingSlot.ActiveCraftingJob(startRequest.SessionId, recipe.Id, requestStartedOn.ToUnixTimeMilliseconds(), [.. inputItems.Select(inputItems1 => new CraftingSlot.InputRow([.. inputItems1]))], startRequest.Multiplier, 0, false);
+        craftingSlot.ActiveJob = new CraftingSlot.ActiveCraftingJob(startRequest.SessionId, recipe.Id, requestStartedOn, [.. inputItems.Select(inputItems1 => new CraftingSlot.InputRow([.. inputItems1]))], startRequest.Multiplier, 0, false);
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
-        return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse(crafting: craftingSlots.Version, inventory: inventory.Version));
+        results
+            .Crafting()
+            .Inventory();
+
+        return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     [HttpPost("smelting/{slotIndex}/start")]
     public async Task<Results<ContentHttpResult, BadRequest>> StartSmelting(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -346,13 +361,9 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             .AsTracking()
             .FirstOrNewAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
 
-        var inventory = await _earthDb.Inventories
-            .AsTracking()
-            .FirstOrNewAsync(inventory => inventory.Id == accountId, cancellationToken: cancellationToken);
-
         var hotbar = await _earthDb.Hotbars
             .AsTracking()
-            .FirstOrNewAsync(hotbar => hotbar.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(hotbar => hotbar.Id == accountId, cancellationToken: cancellationToken);
 
         var smeltingSlot = smeltingSlots.Slots[slotIndex - 1];
 
@@ -361,10 +372,12 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
         }
 
+        var results = new ResultsEF.Builder();
+
         InputItem input;
-        if (startRequest.Input.ItemInstanceIds is null || startRequest.Input.ItemInstanceIds.Length == 0)
+        if (startRequest.Input.ItemInstanceIds is null or [])
         {
-            if (!inventory.TakeItems(startRequest.Input.ItemId, startRequest.Input.Quantity))
+            if (!await InventoryUtils.TakeStackableItemsAsync(_earthDb, results, accountId, startRequest.Input.ItemId, startRequest.Input.Quantity, cancellationToken))
             {
                 return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
             }
@@ -373,7 +386,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
         else
         {
-            var instances = inventory.TakeItems(startRequest.Input.ItemId, startRequest.Input.ItemInstanceIds);
+            var instances = await InventoryUtils.TakeInstanceItemsAsync(_earthDb, results, accountId, startRequest.Input.ItemId, startRequest.Input.ItemInstanceIds, cancellationToken);
             if (instances is null)
             {
                 return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
@@ -401,9 +414,9 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             if (requiredFuelCount > 0)
             {
                 InputItem fuelItem;
-                if (startRequest.Fuel.ItemInstanceIds is null || startRequest.Fuel.ItemInstanceIds.Length == 0)
+                if (startRequest.Fuel.ItemInstanceIds is null or [])
                 {
-                    if (!inventory.TakeItems(startRequest.Fuel.ItemId, requiredFuelCount))
+                    if (!await InventoryUtils.TakeStackableItemsAsync(_earthDb, results, accountId, startRequest.Fuel.ItemId, requiredFuelCount, cancellationToken))
                     {
                         return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
                     }
@@ -412,7 +425,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
                 }
                 else
                 {
-                    var instances = inventory.TakeItems(startRequest.Fuel.ItemId, startRequest.Fuel.ItemInstanceIds.AsSpan(0, requiredFuelCount));
+                    var instances = await InventoryUtils.TakeInstanceItemsAsync(_earthDb, results, accountId, startRequest.Fuel.ItemId, startRequest.Fuel.ItemInstanceIds.Take(requiredFuelCount), cancellationToken);
                     if (instances is null)
                     {
                         return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
@@ -421,7 +434,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
                     fuelItem = new InputItem(startRequest.Fuel.ItemId, requiredFuelCount, [.. instances]);
                 }
 
-                fuel = new SmeltingSlot.Fuel(fuelItem, fuelCatalogItem.FuelInfo.BurnTime, fuelCatalogItem.FuelInfo.HeatPerSecond);
+                fuel = new SmeltingSlot.Fuel(fuelItem, TimeSpan.FromSeconds(fuelCatalogItem.FuelInfo.BurnTime), fuelCatalogItem.FuelInfo.HeatPerSecond);
             }
             else
             {
@@ -438,19 +451,23 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             fuel = null;
         }
 
-        hotbar.LimitToInventory(inventory);
+        await HotbarUtils.LimitToInventoryAsync(_earthDb, accountId, hotbar, cancellationToken);
 
-        smeltingSlot.ActiveJob = new SmeltingSlot.ActiveSmeltingJob(startRequest.SessionId, recipe.Id, requestStartedOn.ToUnixTimeMilliseconds(), input, fuel, startRequest.Multiplier, 0, false);
+        smeltingSlot.ActiveJob = new SmeltingSlot.ActiveSmeltingJob(startRequest.SessionId, recipe.Id, requestStartedOn, input, fuel, startRequest.Multiplier, 0, false);
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
-        return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse(smelting: smeltingSlots.Version, inventory: inventory.Version));
+        results
+            .Smelting()
+            .Inventory();
+
+        return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     [HttpPost("crafting/{slotIndex}/collectItems")]
     public async Task<Results<ContentHttpResult, BadRequest>> CollectCraftingItems(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -488,22 +505,22 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
-        var results = new EarthDbContext.Results(_earthDb);
-        results.Crafting = craftingSlots.Version;
+        var results = new ResultsEF.Builder()
+            .Crafting();
 
-        await ActivityLogUtils.AddEntryAsync(results, accountId, new ActivityLog.CraftingCompletedEntry(requestStartedOn, rewards.ToDBRewardsModel()));
-        await rewards.ToRedeemQueryAsync(results, accountId, requestStartedOn, _staticData);
+        await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new DB.Models.Player.CraftingCompletedEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
+        await rewards.ToRedeemQueryAsync(_earthDb, results, accountId, requestStartedOn, _staticData, cancellationToken);
 
         return EarthJson(new Dictionary<string, object>()
             {
                 { "rewards", rewards.ToApiResponse() }
-            }, new EarthApiResponse.UpdatesResponse(results));
+            }, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     [HttpPost("smelting/{slotIndex}/collectItems")]
     public async Task<Results<ContentHttpResult, BadRequest>> CollectSmeltingItems(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -552,22 +569,22 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
-        var results = new EarthDbContext.Results(_earthDb);
-        results.Smelting = smeltingSlots.Version;
+        var results = new ResultsEF.Builder()
+            .Smelting();
 
-        await ActivityLogUtils.AddEntryAsync(results, accountId, new ActivityLog.SmeltingCompletedEntry(requestStartedOn, rewards.ToDBRewardsModel()));
-        await rewards.ToRedeemQueryAsync(results, accountId, requestStartedOn, _staticData);
+        await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new SmeltingCompletedEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
+        await rewards.ToRedeemQueryAsync(_earthDb, results, accountId, requestStartedOn, _staticData, cancellationToken);
 
         return EarthJson(new Dictionary<string, object>()
             {
                 { "rewards", rewards.ToApiResponse() }
-            }, new EarthApiResponse.UpdatesResponse(results));
+            }, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     [HttpPost("crafting/{slotIndex}/stop")]
     public async Task<Results<ContentHttpResult, BadRequest>> StopCraftingJob(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -579,35 +596,34 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             .AsTracking()
             .FirstOrNewAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
 
-        var inventory = await _earthDb.Inventories
-            .AsTracking()
-            .FirstOrNewAsync(inventory => inventory.Id == accountId, cancellationToken: cancellationToken);
-
-        var journal = await _earthDb.Journals
-            .AsTracking()
-            .FirstOrNewAsync(journal => journal.Id == accountId, cancellationToken: cancellationToken);
-
         var craftingSlot = craftingSlots.Slots[slotIndex - 1];
 
         if (craftingSlot.ActiveJob is null)
         {
-            return EarthJson(CraftingSlotModelToResponse(craftingSlot, requestStartedOn, craftingSlots.Version));
+            var versions = await _earthDb.AccountVersions
+                .AsNoTracking()
+                .Select(versions => new { versions.Id, versions.Crafting, })
+                .FirstAsync(versions => versions.Id == accountId, cancellationToken: cancellationToken);
+
+            return EarthJson(CraftingSlotModelToResponse(craftingSlot, requestStartedOn, versions.Crafting));
         }
 
-        CraftingCalculator.State state = CraftingCalculator.CalculateState(requestStartedOn, craftingSlot.ActiveJob, _staticData.Catalog);
+        var state = CraftingCalculator.CalculateState(requestStartedOn, craftingSlot.ActiveJob, _staticData.Catalog);
 
-        foreach (InputItem inputItem in state.Input)
+        var results = new ResultsEF.Builder();
+
+        foreach (var inputItem in state.Input)
         {
             if (inputItem.Instances.Length > 0)
             {
-                inventory.AddItems(inputItem.Id, [.. inputItem.Instances.Select(instance => new NonStackableItemInstance(instance.InstanceId, instance.Wear))]);
+                await InventoryUtils.AddInstanceItemsAsync(_earthDb, results, inputItem.Instances.Select(instance => new NonStackableItemInstance(accountId, inputItem.Id, instance.InstanceId, instance.Wear)), cancellationToken);
             }
             else if (inputItem.Count > 0)
             {
-                inventory.AddItems(inputItem.Id, inputItem.Count);
+                await InventoryUtils.AddStackableItemsAsync(_earthDb, results, accountId, inputItem.Id, inputItem.Count, cancellationToken);
             }
 
-            journal.AddCollectedItem(inputItem.Id, requestStartedOn, 0);
+            await JournalUtils.AddCollectedItemAsync(_earthDb, results, accountId, inputItem.Id, requestStartedOn, 0, cancellationToken);
         }
 
         var rewards = new Rewards();
@@ -621,21 +637,21 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
-        var results = new EarthDbContext.Results(_earthDb);
-        results.Crafting = craftingSlots.Version;
-        results.Inventory = inventory.Version;
-        results.Journal = journal.Version;
+        results
+            .Crafting();
 
-        await ActivityLogUtils.AddEntryAsync(results, accountId, new ActivityLog.CraftingCompletedEntry(requestStartedOn, rewards.ToDBRewardsModel()));
-        await rewards.ToRedeemQueryAsync(results, accountId, requestStartedOn, _staticData);
+        await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new CraftingCompletedEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
+        await rewards.ToRedeemQueryAsync(_earthDb, results, accountId, requestStartedOn, _staticData, cancellationToken);
 
-        return EarthJson(CraftingSlotModelToResponse(craftingSlot, requestStartedOn, craftingSlots.Version), new EarthApiResponse.UpdatesResponse(results));
+        var buildResults = await results.BuildAsync(_earthDb, accountId, cancellationToken);
+
+        return EarthJson(CraftingSlotModelToResponse(craftingSlot, requestStartedOn, buildResults.Crafting!.Value), new EarthApiResponse.UpdatesResponse(buildResults));
     }
 
     [HttpPost("smelting/{slotIndex}/stop")]
     public async Task<Results<ContentHttpResult, BadRequest>> StopSmeltingJob(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -647,46 +663,45 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             .AsTracking()
             .FirstOrNewAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
 
-        var inventory = await _earthDb.Inventories
-            .AsTracking()
-            .FirstOrNewAsync(inventory => inventory.Id == accountId, cancellationToken: cancellationToken);
-
-        var journal = await _earthDb.Journals
-            .AsTracking()
-            .FirstOrNewAsync(journal => journal.Id == accountId, cancellationToken: cancellationToken);
-
         var smeltingSlot = smeltingSlots.Slots[slotIndex - 1];
 
         if (smeltingSlot.ActiveJob is null)
         {
-            return EarthJson(SmeltingSlotModelToResponse(smeltingSlot, requestStartedOn, smeltingSlots.Version), new EarthApiResponse.UpdatesResponse());
+            var versions = await _earthDb.AccountVersions
+                .AsNoTracking()
+                .Select(versions => new { versions.Id, versions.Smelting, })
+                .FirstAsync(versions => versions.Id == accountId, cancellationToken: cancellationToken);
+
+            return EarthJson(SmeltingSlotModelToResponse(smeltingSlot, requestStartedOn, versions.Smelting), new EarthApiResponse.UpdatesResponse());
         }
 
         SmeltingCalculator.State state = SmeltingCalculator.CalculateState(requestStartedOn, smeltingSlot.ActiveJob, smeltingSlot.Burning, _staticData.Catalog);
 
+        var results = new ResultsEF.Builder();
+
         if (state.Input.Instances.Length > 0)
         {
-            inventory.AddItems(state.Input.Id, [.. state.Input.Instances.Select(instance => new NonStackableItemInstance(instance.InstanceId, instance.Wear))]);
+            await InventoryUtils.AddInstanceItemsAsync(_earthDb, results, state.Input.Instances.Select(instance => new NonStackableItemInstance(accountId, state.Input.Id, instance.InstanceId, instance.Wear)), cancellationToken);
         }
         else if (state.Input.Count > 0)
         {
-            inventory.AddItems(state.Input.Id, state.Input.Count);
+            await InventoryUtils.AddStackableItemsAsync(_earthDb, results, accountId, state.Input.Id, state.Input.Count, cancellationToken);
         }
 
-        journal.AddCollectedItem(state.Input.Id, requestStartedOn, 0);
+        await JournalUtils.AddCollectedItemAsync(_earthDb, results, accountId, state.Input.Id, requestStartedOn, 0, cancellationToken);
 
         if (state.RemainingAddedFuel is not null)
         {
             if (state.RemainingAddedFuel.Item.Instances.Length > 0)
             {
-                inventory.AddItems(state.RemainingAddedFuel.Item.Id, [.. state.RemainingAddedFuel.Item.Instances.Select(instance => new NonStackableItemInstance(instance.InstanceId, instance.Wear))]);
+                await InventoryUtils.AddInstanceItemsAsync(_earthDb, results, state.RemainingAddedFuel.Item.Instances.Select(instance => new NonStackableItemInstance(accountId, state.RemainingAddedFuel.Item.Id, instance.InstanceId, instance.Wear)), cancellationToken);
             }
             else if (state.RemainingAddedFuel.Item.Count > 0)
             {
-                inventory.AddItems(state.RemainingAddedFuel.Item.Id, state.RemainingAddedFuel.Item.Count);
+                await InventoryUtils.AddStackableItemsAsync(_earthDb, results, accountId, state.RemainingAddedFuel.Item.Id, state.RemainingAddedFuel.Item.Count, cancellationToken);
             }
 
-            journal.AddCollectedItem(state.RemainingAddedFuel.Item.Id, requestStartedOn, 0);
+            await JournalUtils.AddCollectedItemAsync(_earthDb, results, accountId, state.RemainingAddedFuel.Item.Id, requestStartedOn, 0, cancellationToken);
         }
 
         var rewards = new Rewards();
@@ -708,21 +723,21 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
-        var results = new EarthDbContext.Results(_earthDb);
-        results.Smelting = smeltingSlots.Version;
-        results.Inventory = inventory.Version;
-        results.Journal = journal.Version;
+        results
+            .Smelting();
 
-        await ActivityLogUtils.AddEntryAsync(results, accountId, new ActivityLog.SmeltingCompletedEntry(requestStartedOn, rewards.ToDBRewardsModel()));
-        await rewards.ToRedeemQueryAsync(results, accountId, requestStartedOn, _staticData);
+        await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new SmeltingCompletedEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
+        await rewards.ToRedeemQueryAsync(_earthDb, results, accountId, requestStartedOn, _staticData, cancellationToken);
 
-        return EarthJson(SmeltingSlotModelToResponse(smeltingSlot, requestStartedOn, smeltingSlots.Version), new EarthApiResponse.UpdatesResponse(results));
+        var buildResults = await results.BuildAsync(_earthDb, accountId, cancellationToken);
+
+        return EarthJson(SmeltingSlotModelToResponse(smeltingSlot, requestStartedOn, buildResults.Smelting!.Value), new EarthApiResponse.UpdatesResponse(buildResults));
     }
 
     [HttpPost("crafting/{slotIndex}/finish")]
     public async Task<Results<ContentHttpResult, BadRequest>> FinishCrafting(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -780,17 +795,17 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
-        var results = new EarthDbContext.Results(_earthDb);
-        results.Crafting = craftingSlots.Version;
-        results.Profile = profile.Version;
+        var results = new ResultsEF.Builder()
+            .Crafting()
+            .Profile();
 
-        return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse(results));
+        return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     [HttpPost("smelting/{slotIndex}/finish")]
     public async Task<Results<ContentHttpResult, BadRequest>> FinishSmelting(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -848,11 +863,11 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
-        var results = new EarthDbContext.Results(_earthDb);
-        results.Smelting = smeltingSlots.Version;
-        results.Profile = profile.Version;
+        var results = new ResultsEF.Builder()
+            .Smelting()
+            .Profile();
 
-        return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse(results));
+        return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     [HttpGet("crafting/finish/price")]
@@ -912,7 +927,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
     [HttpPost("crafting/{slotIndex}/unlock")]
     public async Task<Results<ContentHttpResult, BadRequest>> UnlockCraftingSlot(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -954,17 +969,17 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
-        var results = new EarthDbContext.Results(_earthDb);
-        results.Crafting = craftingSlots.Version;
-        results.Profile = profile.Version;
+        var results = new ResultsEF.Builder()
+            .Crafting()
+            .Profile();
 
-        return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse(results));
+        return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     [HttpPost("smelting/{slotIndex}/unlock")]
     public async Task<Results<ContentHttpResult, BadRequest>> UnlockSmeltingSlot(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex < 1 || slotIndex > 3)
+        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -1006,11 +1021,11 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
-        var results = new EarthDbContext.Results(_earthDb);
-        results.Smelting = smeltingSlots.Version;
-        results.Profile = profile.Version;
+        var results = new ResultsEF.Builder()
+            .Smelting()
+            .Profile();
 
-        return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse(results));
+        return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     private Types.Workshop.CraftingSlot CraftingSlotModelToResponseIncludingLocked(CraftingSlot craftingSlotModel, DateTimeOffset currentTime, int streamVersion, int slotIndex)
@@ -1090,7 +1105,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             if (state.RemainingAddedFuel is not null && state.RemainingAddedFuel.Item.Count > 0)
             {
                 fuel = new Types.Workshop.SmeltingSlot.FuelR(
-                    new BurnRate(state.RemainingAddedFuel.BurnDuration, state.RemainingAddedFuel.HeatPerSecond),
+                    new BurnRate((int)state.RemainingAddedFuel.BurnDuration.TotalMilliseconds, state.RemainingAddedFuel.HeatPerSecond),
                     state.RemainingAddedFuel.Item.Id,
                     state.RemainingAddedFuel.Item.Count,
                     [.. state.RemainingAddedFuel.Item.Instances.Select(item => item.InstanceId)]
@@ -1105,9 +1120,9 @@ internal sealed class WorkshopRouter : SolaceControllerBase
                 !state.Completed ? TimeFormatter.FormatTime(state.BurnStartTime) : null,
                 !state.Completed ? TimeFormatter.FormatTime(state.BurnEndTime) : null,
                 TimeFormatter.FormatDuration(state.RemainingHeat * 1000 / state.CurrentBurningFuel.HeatPerSecond),
-                (float)state.CurrentBurningFuel.BurnDuration * state.CurrentBurningFuel.HeatPerSecond - state.RemainingHeat,
+                (float)state.CurrentBurningFuel.BurnDuration.TotalMilliseconds * state.CurrentBurningFuel.HeatPerSecond - state.RemainingHeat,
                 new Types.Workshop.SmeltingSlot.FuelR(
-                    new BurnRate(state.CurrentBurningFuel.BurnDuration, state.CurrentBurningFuel.HeatPerSecond),
+                    new BurnRate((int)state.CurrentBurningFuel.BurnDuration.TotalMilliseconds, state.CurrentBurningFuel.HeatPerSecond),
                     state.CurrentBurningFuel.Item.Id,
                     state.CurrentBurningFuel.Item.Count,
                     [.. state.CurrentBurningFuel.Item.Instances.Select(item => item.InstanceId)]
@@ -1139,9 +1154,9 @@ internal sealed class WorkshopRouter : SolaceControllerBase
                 null,
                 null,
                 TimeFormatter.FormatDuration(burningModel.RemainingHeat * 1000 / burningModel.Fuel.HeatPerSecond),
-                (float)burningModel.Fuel.BurnDuration * burningModel.Fuel.HeatPerSecond * burningModel.Fuel.Item.Count - burningModel.RemainingHeat,
+                (float)burningModel.Fuel.BurnDuration.TotalMilliseconds * burningModel.Fuel.HeatPerSecond * burningModel.Fuel.Item.Count - burningModel.RemainingHeat,
                 new Types.Workshop.SmeltingSlot.FuelR(
-                    new BurnRate(burningModel.Fuel.BurnDuration, burningModel.Fuel.HeatPerSecond),
+                    new BurnRate((int)burningModel.Fuel.BurnDuration.TotalMilliseconds, burningModel.Fuel.HeatPerSecond),
                     burningModel.Fuel.Item.Id,
                     burningModel.Fuel.Item.Count,
                     [.. burningModel.Fuel.Item.Instances.Select(item => item.InstanceId)]

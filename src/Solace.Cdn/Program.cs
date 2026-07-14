@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 using Solace.Cdn.Utils;
 using Solace.Common;
 using Solace.DB;
-using Solace.DB.Common;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 
@@ -54,12 +53,10 @@ internal sealed partial class App
         }
 
         var earthDbConnectionString = builder.Configuration.GetConnectionString("EarthDb");
-        var earthDbProvider = builder.Configuration["DatabaseProvider"];
         Debug.Assert(earthDbConnectionString is not null);
-        Debug.Assert(earthDbProvider is not null);
 
         builder.Services.AddDbContextFactory<EarthDbContext>(options =>
-            EarthDbContext.ConfigureBuilder(options, earthDbConnectionString, earthDbProvider));
+            EarthDbContext.ConfigureBuilder(options, earthDbConnectionString));
 
         builder.Services.AddSingleton<StartupDependencies>();
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
@@ -122,13 +119,6 @@ internal sealed partial class App
 
         startupDeps.EventBus = eventBus;
         startupDeps.ObjectStore = objectStore;
-
-        using (var scope = app.Services.CreateScope())
-        {
-            var earthDb = scope.ServiceProvider.GetRequiredService<EarthDbContext>();
-            
-            _ = earthDb.Model.GetRelationalModel();
-        }
 
         app.Run();
 

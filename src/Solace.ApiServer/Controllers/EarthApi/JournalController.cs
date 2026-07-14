@@ -36,48 +36,52 @@ internal sealed class JournalController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var journal = await _earthDB.Journals
+        var journalEnties = _earthDB.JournalEntries
             .AsNoTracking()
-            .FirstOrNewAsync(journal => journal.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .Where(entry => entry.AccountId == accountId)
+            .Select(entry => new { entry.ItemId, entry.FirstSeen, entry.LastSeen, entry.AmountCollected, })
+            .AsAsyncEnumerable()
+            .WithCancellation(cancellationToken);
 
-        var activityLogs = await _earthDB.ActivityLogs
+        var activityLogEntries = _earthDB.ActivityLogs
             .AsNoTracking()
-            .FirstOrNewAsync(activityLogs => activityLogs.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .Where(entry => entry.AccountId == accountId)
+            .AsAsyncEnumerable();
 
         Dictionary<Guid, Types.Journal.JournalRecord.InventoryJournalEntry> inventoryJournal = [];
-        foreach (var (uuid, itemJournalEntry) in journal.Items)
+        await foreach (var itemJournalEntry in journalEnties)
         {
-            inventoryJournal[uuid] = new Types.Journal.JournalRecord.InventoryJournalEntry(
+            inventoryJournal[itemJournalEntry.ItemId] = new Types.Journal.JournalRecord.InventoryJournalEntry(
                 TimeFormatter.FormatTime(itemJournalEntry.FirstSeen),
                 TimeFormatter.FormatTime(itemJournalEntry.LastSeen),
                 itemJournalEntry.AmountCollected
             );
         }
 
-        Types.Journal.JournalRecord.ActivityLogEntry[] activityLog = [.. activityLogs.Entries.Select(ActivityLogEntryToApiResponse)];
+        var activityLog = await activityLogEntries.Select(ActivityLogEntryToApiResponse).ToArrayAsync(cancellationToken);
         Array.Reverse(activityLog);
 
-        string resp = Json.Serialize(new EarthApiResponse(new Types.Journal.JournalRecord(inventoryJournal, activityLog)));
+        var resp = Json.Serialize(new EarthApiResponse(new Types.Journal.JournalRecord(inventoryJournal, activityLog)));
         return TypedResults.Content(resp, "application/json");
     }
 
-    private static Types.Journal.JournalRecord.ActivityLogEntry ActivityLogEntryToApiResponse(ActivityLogEF.Entry entry)
+    private static Types.Journal.JournalRecord.ActivityLogEntry ActivityLogEntryToApiResponse(ActivityLogEntryEF entry)
     {
         Rewards rewards = entry switch
         {
-            ActivityLogEF.LevelUpEntry levelUp => new Rewards().SetLevel(levelUp.Level),
-            ActivityLogEF.TappableEntry tappable => Rewards.FromDBRewardsModel(tappable.Rewards),
-            ActivityLogEF.JournalItemUnlockedEntry journalItemUnlocked => new Rewards().AddItem(journalItemUnlocked.ItemId, 0),
-            ActivityLogEF.CraftingCompletedEntry craftingCompleted => Rewards.FromDBRewardsModel(craftingCompleted.Rewards),
-            ActivityLogEF.SmeltingCompletedEntry smeltingCompleted => Rewards.FromDBRewardsModel(smeltingCompleted.Rewards),
-            ActivityLogEF.BoostActivatedEntry => new Rewards(),
+            LevelUpEntryEF levelUp => new Rewards().SetLevel(levelUp.Level),
+            TappableEntryEF tappable => Rewards.FromDBRewardsModel(tappable.Rewards),
+            JournalItemUnlockedEntryEF journalItemUnlocked => new Rewards().AddItem(journalItemUnlocked.ItemId, 0),
+            CraftingCompletedEntryEF craftingCompleted => Rewards.FromDBRewardsModel(craftingCompleted.Rewards),
+            SmeltingCompletedEntryEF smeltingCompleted => Rewards.FromDBRewardsModel(smeltingCompleted.Rewards),
+            BoostActivatedEntryEF => new Rewards(),
             _ => throw new InvalidDataException($"Unknown ActivityLog.Entry '{entry?.GetType()?.ToString() ?? "null"}'"),
         };
 
         Dictionary<string, string> properties = [];
         switch (entry)
         {
-            case ActivityLogEF.BoostActivatedEntry boostActivated:
+            case BoostActivatedEntryEF boostActivated:
                 {
                     properties["boostId"] = boostActivated.ItemId.ToString();
                 }
@@ -86,7 +90,7 @@ internal sealed class JournalController : SolaceControllerBase
         }
 
         return new Types.Journal.JournalRecord.ActivityLogEntry(
-            Types.Journal.JournalRecord.ActivityLogEntry.Type.FromDb(entry.Type),
+            Types.Journal.JournalRecord.ActivityLogEntry.Type.FromDb(entry),
             TimeFormatter.FormatTime(entry.Timestamp),
             rewards.ToApiResponse(),
             properties

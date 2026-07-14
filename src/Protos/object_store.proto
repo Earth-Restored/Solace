@@ -17,11 +17,13 @@ message StoreObjectRequest {
 }
 
 message StoreObjectResponse {
-    string id = 1;
+    fixed64 idLow = 1;
+    fixed64 idHigh = 2;
 }
 
 message GetObjectRequest {
-    string id = 1;
+    fixed64 idLow = 1;
+    fixed64 idHigh = 2;
 }
 
 message GetObjectResponse {
@@ -31,7 +33,8 @@ message GetObjectResponse {
 }
 
 message DeleteObjectRequest{
-    string id = 1;
+    fixed64 idLow = 1;
+    fixed64 idHigh = 2;
 }
 
 message DeleteObjectResponse {

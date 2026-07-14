@@ -8,341 +8,99 @@ using Solace.DB.Models.Common;
 
 namespace Solace.DB.Models.Player;
 
-public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable<TokensEF>
+public abstract class TokenEF
 {
-    public Guid Id { get; set; }
+    // for EF
+    protected TokenEF()
+    {
+        AccountId = default;
+    }
 
-    public int Version { get; set; } = 1;
+    [SetsRequiredMembers]
+    protected TokenEF(Guid accountId)
+    {
+        AccountId = accountId;
+    }
+
+    public required Guid AccountId { get; set; }
+
+    public Guid TokenId { get; set; }
 
     public Account Account { get; set; } = null!;
-
-    public Dictionary<string, Token> Tokens { get; set; } = [];
-
-    public sealed record TokenWithId(
-        string Id,
-        Token Token
-    );
-
-    public TokenWithId[] GetTokens()
-        => [.. Tokens.Select(item => new TokenWithId(item.Key, item.Value))];
-
-    public void AddToken(string id, Token token)
-        => Tokens[id] = token;
-
-    public Token? RemoveToken(string id)
-    {
-        Tokens.Remove(id, out var token);
-
-        return token;
-    }
-
-    public async Task MergeWith(TokensEF other, ValueMerger merger)
-    {
-        merger.CurrentUserId = Id.ToString();
-        merger.CurrentUsername = Account?.Username;
-
-        foreach (var item in other.Tokens)
-        {
-            Tokens[item.Key] = item.Value;
-        }
-    }
-
-    [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
-    [JsonDerivedType(typeof(LevelUpToken), "LEVEL_UP")]
-    [JsonDerivedType(typeof(JournalItemUnlockedToken), "JOURNAL_ITEM_UNLOCKED")]
-    [JsonDerivedType(typeof(DailyLoginToken), "DAILY_LOGIN")]
-    public abstract class Token : IEquatable<Token>, ICloneable<Token>
-    {
-        [JsonIgnore]
-        public TypeE Type { get; init; }
-
-        protected Token(TypeE type)
-        {
-            Type = type;
-        }
-
-        [JsonConverter(typeof(JsonStringEnumConverter<TypeE>))]
-        public enum TypeE
-        {
-#pragma warning disable CA1707 // Identifiers should not contain underscores
-            LEVEL_UP,
-            JOURNAL_ITEM_UNLOCKED,
-            DAILY_LOGIN,
-#pragma warning restore CA1707 // Identifiers should not contain underscores
-        }
-
-        public abstract bool Equals(Token? other);
-
-        public override bool Equals(object? obj)
-            => Equals(obj as Token);
-
-        public abstract override int GetHashCode();
-
-        public abstract Token DeepCopy();
-
-        public sealed class Comparer : IEqualityComparer<Token>
-        {
-            public static Comparer Instance { get; } = new Comparer();
-
-            private Comparer()
-            {
-            }
-
-            public bool Equals(Token? x, Token? y)
-                => x == y || (x?.Equals(y) ?? false);
-
-            public int GetHashCode([DisallowNull] Token obj)
-                => obj.GetHashCode();
-        }
-    }
-
-    public sealed class LevelUpToken : Token
-    {
-        public int Level { get; init; }
-        public Rewards Rewards { get; init; }
-
-        public LevelUpToken(int level, Rewards rewards)
-            : base(TypeE.LEVEL_UP)
-        {
-            Level = level;
-            Rewards = rewards;
-        }
-
-        public override bool Equals(Token? other)
-            => other is LevelUpToken levelUp && Level == levelUp.Level && Rewards.Equals(levelUp.Rewards);
-
-        public override int GetHashCode()
-            => HashCode.Combine(Level, Rewards);
-
-        public override LevelUpToken DeepCopy()
-            => new LevelUpToken(Level, Rewards.DeepCopy());
-    }
-
-    public sealed class JournalItemUnlockedToken : Token
-    {
-        public Guid ItemId { get; init; }
-
-        public JournalItemUnlockedToken(Guid itemId)
-            : base(TypeE.JOURNAL_ITEM_UNLOCKED)
-        {
-            ItemId = itemId;
-        }
-
-        public override bool Equals(Token? other)
-            => other is JournalItemUnlockedToken itemUnlocked && ItemId == itemUnlocked.ItemId;
-
-        public override int GetHashCode()
-            => HashCode.Combine(ItemId);
-
-        public override JournalItemUnlockedToken DeepCopy()
-            => new JournalItemUnlockedToken(ItemId);
-    }
-
-    public sealed class DailyLoginToken : Token
-    {
-        public string Date { get; init; }
-        public Rewards Rewards { get; init; }
-        public bool Claimed { get; init; }
-        public long? ClaimedOn { get; init; }
-
-        public DailyLoginToken(string date, Rewards rewards, bool claimed = false, DateTimeOffset? claimedOn = null)
-            : base(TypeE.DAILY_LOGIN)
-        {
-            Date = date;
-            Rewards = rewards;
-            Claimed = claimed;
-            ClaimedOn = claimedOn?.ToUnixTimeMilliseconds();
-        }
-
-        [JsonConstructor]
-        public DailyLoginToken(string date, Rewards rewards, long? claimedOn, bool claimed = false)
-            : base(TypeE.DAILY_LOGIN)
-        {
-            Date = date;
-            Rewards = rewards;
-            Claimed = claimed;
-            ClaimedOn = claimedOn;
-        }
-
-        [JsonIgnore, NotMapped] public DateTimeOffset? ClaimedOnDT => ClaimedOn is null ? null : DateTimeOffset.FromUnixTimeMilliseconds(ClaimedOn.Value);
-
-        public override bool Equals(Token? other)
-            => other is DailyLoginToken dailyLogin && Date == dailyLogin.Date && Rewards.Equals(dailyLogin.Rewards) && Claimed == dailyLogin.Claimed && ClaimedOn == dailyLogin.ClaimedOn;
-
-        public override int GetHashCode()
-            => HashCode.Combine(Date, Rewards, Claimed, ClaimedOn);
-
-        public override DailyLoginToken DeepCopy()
-            => new DailyLoginToken(Date, Rewards.DeepCopy(), Claimed, ClaimedOnDT);
-    }
-
-    public sealed class Legacy : IEquatable<Legacy>
-    {
-        [JsonInclude, JsonPropertyName("tokens")]
-        public Dictionary<string, Token> Tokens;
-
-        public Legacy()
-        {
-            Tokens = [];
-        }
-
-        public sealed record TokenWithId(
-            string Id,
-            Token Token
-        );
-
-        public bool Equals(Legacy? other)
-            => other is not null && Tokens.OrderBy(static item => item.Key, StringComparer.Ordinal).Select(item => (Key: item.Key, Value: item.Value)).SequenceEqual(other.Tokens.OrderBy(static item => item.Key, StringComparer.Ordinal).Select(item => (Key: item.Key, Value: item.Value)));
-
-        public override bool Equals(object? obj)
-            => Equals(obj as Legacy);
-
-        public override int GetHashCode()
-        {
-            var hash = new HashCode();
-
-            foreach (var item in Tokens.OrderBy(static item => item.Key, StringComparer.Ordinal))
-            {
-                hash.Add(item.Key);
-                hash.Add(item.Value);
-            }
-
-            return hash.ToHashCode();
-        }
-
-        [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
-        [JsonDerivedType(typeof(LevelUpToken), "LEVEL_UP")]
-        [JsonDerivedType(typeof(JournalItemUnlockedToken), "JOURNAL_ITEM_UNLOCKED")]
-        public abstract class Token : IEquatable<Token>
-        {
-            [JsonIgnore]
-            public TypeE Type { get; init; }
-
-            protected Token(TypeE type)
-            {
-                Type = type;
-            }
-
-            [JsonConverter(typeof(JsonStringEnumConverter<TypeE>))]
-            public enum TypeE
-            {
-#pragma warning disable CA1707 // Identifiers should not contain underscores
-                LEVEL_UP,
-                JOURNAL_ITEM_UNLOCKED,
-#pragma warning restore CA1707 // Identifiers should not contain underscores
-            }
-
-            public abstract bool Equals(Token? other);
-
-            public override bool Equals(object? obj)
-                => Equals(obj as Token);
-
-            public abstract override int GetHashCode();
-        }
-
-        public sealed class LevelUpToken : Token
-        {
-            public int Level { get; init; }
-            public Rewards Rewards { get; init; }
-
-            public LevelUpToken(int level, Rewards rewards)
-                : base(TypeE.LEVEL_UP)
-            {
-                Level = level;
-                Rewards = rewards;
-            }
-
-            public override bool Equals(Token? other)
-                => other is LevelUpToken levelUp && Level == levelUp.Level && Rewards.Equals(levelUp.Rewards);
-
-            public override int GetHashCode()
-                => HashCode.Combine(Level, Rewards);
-        }
-
-        public sealed class JournalItemUnlockedToken : Token
-        {
-            public Guid ItemId { get; init; }
-
-            public JournalItemUnlockedToken(Guid itemId)
-                : base(TypeE.JOURNAL_ITEM_UNLOCKED)
-            {
-                ItemId = itemId;
-            }
-
-            public override bool Equals(Token? other)
-                => other is JournalItemUnlockedToken itemUnlocked && ItemId == itemUnlocked.ItemId;
-
-            public override int GetHashCode()
-                => HashCode.Combine(ItemId);
-        }
-    }
 }
 
-#region Converter
-public sealed class TokenValueConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<Dictionary<string, TokensEF.Token>, string>
+public abstract class RewardedTokenEF : TokenEF
 {
-    public TokenValueConverter() : base(
-        v => JsonSerializer.Serialize(v, DbJsonContext.Default.DictionaryStringToken),
-        v => JsonSerializer.Deserialize(v, DbJsonContext.Default.DictionaryStringToken) ?? new Dictionary<string, TokensEF.Token>())
+    protected RewardedTokenEF()
     {
+        Rewards = null!;
     }
+
+    [SetsRequiredMembers]
+    public RewardedTokenEF(Guid accountId, Rewards rewards)
+        : base(accountId)
+    {
+        Rewards = rewards;
+    }
+
+    public Rewards Rewards { get; init; }
 }
 
-public sealed class TokenDictionaryValueComparer : Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<Dictionary<string, TokensEF.Token>>
+public sealed class LevelUpTokenEF : RewardedTokenEF
 {
-    public TokenDictionaryValueComparer() : base(
-        (a, b) => CompareDictionaries(a, b),
-        a => GetArrayHashCode(a),
-        a => SnapshotDictionary(a))
+    private LevelUpTokenEF()
+        : base()
     {
     }
 
-    public static bool CompareDictionaries(Dictionary<string, TokensEF.Token>? a, Dictionary<string, TokensEF.Token>? b)
+    [SetsRequiredMembers]
+    public LevelUpTokenEF(Guid accountId, int level, Rewards rewards)
+        : base(accountId, rewards)
     {
-         if (a == b)
-        {
-            return true;
-        }
-
-        if (a == null || b == null)
-        {
-            return false;
-        }
-
-        if (a.Count != b.Count)
-        {
-            return false;
-        }
-
-        foreach (var kvp in a)
-        {
-            if (!b.TryGetValue(kvp.Key, out var value2))
-            {
-                return false;
-            }
-
-            if (!TokensEF.Token.Comparer.Instance.Equals(kvp.Value, value2))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        Level = level;
+        Rewards = rewards;
     }
 
-    public static int GetArrayHashCode(Dictionary<string, TokensEF.Token> a)
-    {
-        var hash = new HashCode();
-        foreach (var kvp in a.OrderBy(x => x.Key, StringComparer.Ordinal))
-        {
-            hash.Add(kvp.Key);
-            hash.Add(kvp.Value, TokensEF.Token.Comparer.Instance);
-        }
-
-        return hash.ToHashCode();
-    }
-
-    public static Dictionary<string, TokensEF.Token> SnapshotDictionary(Dictionary<string, TokensEF.Token> a)
-        => new Dictionary<string, TokensEF.Token>(a.Select(item => new KeyValuePair<string, TokensEF.Token>(item.Key, item.Value.DeepCopy())));
+    public int Level { get; init; }
 }
-#endregion
+
+public sealed class JournalItemUnlockedTokenEF : TokenEF
+{
+    private JournalItemUnlockedTokenEF()
+        : base()
+    {
+    }
+
+    [SetsRequiredMembers]
+    public JournalItemUnlockedTokenEF(Guid accountId, Guid itemId)
+        : base(accountId)
+    {
+        ItemId = itemId;
+    }
+
+    public Guid ItemId { get; init; }
+}
+
+public sealed class DailyLoginTokenEF : RewardedTokenEF
+{
+    private DailyLoginTokenEF()
+        : base()
+    {
+    }
+
+    [SetsRequiredMembers]
+    public DailyLoginTokenEF(Guid accountId, DateOnly date, Rewards rewards, DateTimeOffset? claimedOn = null)
+        : base(accountId, rewards)
+    {
+        Date = date;
+        Rewards = rewards;
+        ClaimedOn = claimedOn;
+    }
+
+    public DateOnly Date { get; init; }
+
+    public DateTimeOffset? ClaimedOn { get; init; }
+
+    [NotMapped, JsonIgnore, MemberNotNullWhen(true, nameof(ClaimedOn))]
+    public bool Claimed => ClaimedOn is not null;
+}

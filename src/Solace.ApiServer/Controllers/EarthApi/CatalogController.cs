@@ -7,16 +7,6 @@ using System.Text.Json;
 using Solace.ApiServer.Types.Catalog;
 using Solace.ApiServer.Utils;
 using Solace.StaticData;
-using CICIBIEType = Solace.StaticData.Catalog.ItemsCatalogR.Item.BoostEffectType;
-using CICIBIType = Solace.StaticData.Catalog.ItemsCatalogR.Item.BoostInfoType;
-using CICICategory = Solace.StaticData.Catalog.ItemsCatalogR.Item.CategoryE;
-using CICIJEBehavior = Solace.StaticData.Catalog.ItemsCatalogR.Item.JournalEntryR.BehaviorE;
-using CICIJEBiome = Solace.StaticData.Catalog.ItemsCatalogR.Item.JournalEntryR.BiomeE;
-using CICIType = Solace.StaticData.Catalog.ItemsCatalogR.Item.TypeE;
-using CICIUseType = Solace.StaticData.Catalog.ItemsCatalogR.Item.UseTypeE;
-using CIJGCJGParentCollection = Solace.StaticData.Catalog.ItemJournalGroupsCatalogR.JournalGroup.ParentCollectionE;
-using CRCCRCategory = Solace.StaticData.Catalog.RecipesCatalogR.CraftingRecipeCategory;
-using ItemsCatalog = Solace.ApiServer.Types.Catalog.ItemsCatalog;
 using Solace.ApiServer.Types.Common;
 
 namespace Solace.ApiServer.Controllers.EarthApi;

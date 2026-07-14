@@ -26,13 +26,21 @@ internal sealed class Rewards
 
     public Rewards SetLevel(int level)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(level, 1);
+
         _level = level;
         return this;
     }
 
     public Rewards AddItem(Guid id, int count)
     {
-        _items[id] = _items.GetValueOrDefault(id, 0) + count;
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+
+        if (count > 0)
+        {
+            _items[id] = _items.GetValueOrDefault(id, 0) + count;
+        }
+
         return this;
     }
 
@@ -50,53 +58,28 @@ internal sealed class Rewards
 
     public Rewards AddRubies(int rubies)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(rubies);
+
         _rubies += rubies;
         return this;
     }
 
     public Rewards AddExperiencePoints(int experiencePoints)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(experiencePoints);
+
         _experiencePoints += experiencePoints;
         return this;
     }
 
-    public async Task ToRedeemQueryAsync(EarthDbContext.Results results, Guid accountId, DateTimeOffset currentTime, StaticData.StaticData staticData)
+    public async Task ToRedeemQueryAsync(EarthDbContext earthDb, ResultsEF.Builder results, Guid accountId, DateTimeOffset currentTime, StaticData.StaticData staticData, CancellationToken cancellationToken = default)
     {
-        ProfileEF? profile = null;
-        if (_rubies > 0 || _experiencePoints > 0)
-        {
-            profile = await results.EarthDb.Profiles
-                .AsTracking()
-                .FirstOrNewAsync(profile => profile.Id == accountId);
-        }
-
-        InventoryEF? inventory = null;
-        JournalEF? journal = null;
-        if (_items.Count > 0)
-        {
-            inventory = await results.EarthDb.Inventories
-                .AsTracking()
-                .FirstOrNewAsync(inventory => inventory.Id == accountId);
-
-            journal = await results.EarthDb.Journals
-                .AsTracking()
-                .FirstOrNewAsync(journal => journal.Id == accountId);
-        }
-
-        if (_buildplates.Count > 0)
-        {
-            // TODO
-        }
-
-        if (_challenges.Count > 0)
-        {
-            // TODO
-        }
-
         bool checkLevelUp = false;
         if (_rubies > 0 || _experiencePoints > 0)
         {
-            Debug.Assert(profile is not null);
+            var profile = await earthDb.Profiles
+                .AsTracking()
+                .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
             if (_rubies > 0)
             {
@@ -113,48 +96,43 @@ internal sealed class Rewards
                 checkLevelUp = true;
             }
 
-            await results.EarthDb.SaveChangesAsync();
+            await earthDb.SaveChangesAsync(cancellationToken);
 
-            results.Profile = profile.Version;
+            results.Profile();
         }
 
         if (_items.Count > 0)
         {
-            Debug.Assert(inventory is not null);
-            Debug.Assert(journal is not null);
-
-            foreach (var entry in _items)
+            foreach (var (itemId, quantity) in _items)
             {
-                var id = entry.Key;
-                int quantity = entry.Value;
                 if (quantity > 0)
                 {
-                    Catalog.ItemsCatalogR.Item? item = staticData.Catalog.ItemsCatalog.GetItem(id);
+                    Catalog.ItemsCatalogR.Item? item = staticData.Catalog.ItemsCatalog.GetItem(itemId);
                     Debug.Assert(item is not null);
 
                     if (item.Stackable)
                     {
-                        inventory.AddItems(id, quantity);
+                        await InventoryUtils.AddStackableItemsAsync(earthDb, results, accountId, itemId, quantity, cancellationToken);
                     }
                     else
                     {
-                        inventory.AddItems(id, [.. Enumerable.Range(0, quantity).Select(index => new NonStackableItemInstance(Guid.NewGuid(), 0))]);
+                        await InventoryUtils.AddInstanceItemsAsync(earthDb, results, accountId, itemId, quantity, cancellationToken);
                     }
 
-                    if (journal.AddCollectedItem(id, currentTime, quantity) == 0)
+                    if (await JournalUtils.AddCollectedItemAsync(earthDb, results, accountId, itemId, currentTime, quantity, cancellationToken) is 0)
                     {
                         if (item.JournalEntry is not null)
                         {
-                            await TokenUtils.AddTokenAsync(results, accountId, new TokensEF.JournalItemUnlockedToken(id));
+                            await TokenUtils.AddTokenAsync(earthDb, results, new JournalItemUnlockedTokenEF(accountId, itemId), cancellationToken);
                         }
                     }
                 }
             }
 
-            await results.EarthDb.SaveChangesAsync();
+            await earthDb.SaveChangesAsync(cancellationToken);
 
-            results.Inventory = inventory.Version;
-            results.Journal = journal.Version;
+            results.Inventory();
+            results.Journal();
         }
 
         if (_buildplates.Count > 0)
@@ -169,7 +147,7 @@ internal sealed class Rewards
 
         if (checkLevelUp)
         {
-            await LevelUtils.CheckAndHandlePlayerLevelUpAsync(results, accountId, currentTime, staticData);
+            await LevelUtils.CheckAndHandlePlayerLevelUpAsync(earthDb, results, accountId, currentTime, staticData);
         }
     }
 
@@ -197,7 +175,7 @@ internal sealed class Rewards
 
         foreach (var (id, count) in rewardsModel.Items)
         {
-            rewards.AddItem(id, count ?? 1);
+            rewards.AddItem(id, count);
         }
 
         foreach (var id in rewardsModel.Buildplates)
@@ -218,7 +196,7 @@ internal sealed class Rewards
             _rubies,
             _experiencePoints,
             _level,
-            _items.ToDictionary(item => item.Key, item => (int?)item.Value),
+            _items.ToDictionary(item => item.Key, item => item.Value),
             [.. _buildplates],
             [.. _challenges]
         );

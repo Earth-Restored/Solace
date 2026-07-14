@@ -15,6 +15,7 @@ using Solace.StaticData;
 using Solace.EventBus.Client;
 using Microsoft.EntityFrameworkCore;
 using Solace.DB.Utils;
+using Solace.ApiServer.Utils;
 
 namespace Solace.ApiServer.Controllers.EarthApi;
 
@@ -249,22 +250,14 @@ internal sealed partial class ShopController : SolaceControllerBase
                             .AsTracking()
                             .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
-                        var journal = await _earthDB.Journals
-                            .AsTracking()
-                            .FirstOrNewAsync(journal => journal.Id == accountId, cancellationToken: cancellationToken);
-
-                        var inventory = await _earthDB.Inventories
-                            .AsTracking()
-                            .FirstOrNewAsync(inventory => inventory.Id == accountId, cancellationToken: cancellationToken);
-
                         if (profile.Rubies.Total < expectedPurchasePrice)
                         {
                             LogPurchaseInsufficientRubies(accountId, itemId);
                             break;
                         }
 
-                        inventory.AddItems(data.Id, data.Amount);
-                        journal.AddCollectedItem(data.Id, DateTimeOffset.UtcNow, data.Amount);
+                        await InventoryUtils.AddStackableItemsAsync(_earthDB, ResultsEF.Builder.Null, accountId, data.Id, data.Amount, cancellationToken);
+                        await JournalUtils.AddCollectedItemAsync(_earthDB, ResultsEF.Builder.Null, accountId, data.Id, DateTimeOffset.UtcNow, data.Amount, cancellationToken);
 
                         // TODO: add to activity log?
 

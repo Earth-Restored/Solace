@@ -415,7 +415,7 @@ _playerPageSize));
                 Id = buildplate.Id,
                 Name = buildplate.Name,
                 Size = buildplate.Size,
-                BlocksPerMeter = buildplate.Scale,
+                BlocksPerMeter = buildplate.BlocksPerMeter,
                 IsNight = buildplate.Night,
                 ServerDataObjectId = buildplate.ServerDataObjectId,
                 PreviewObjectId = buildplate.PreviewObjectId,
@@ -486,7 +486,7 @@ _playerPageSize));
                     Id = dbBp.Id,
                     Name = dbBp.Name,
                     Size = dbBp.Size,
-                    BlocksPerMeter = dbBp.Scale,
+                    BlocksPerMeter = dbBp.BlocksPerMeter,
                     IsNight = dbBp.Night,
                     ServerDataObjectId = dbBp.ServerDataObjectId,
                 });
@@ -690,7 +690,7 @@ BuildplateLauncher.ExeName))
             if (dbBuildplate is not null)
             {
                 dbBuildplate.Name = bp.Name;
-                dbBuildplate.Scale = bp.BlocksPerMeter;
+                dbBuildplate.BlocksPerMeter = bp.BlocksPerMeter;
 
                 await earthDb.SaveChangesAsync();
 
@@ -779,8 +779,8 @@ BuildplateLauncher.ExeName))
         public int BlocksPerMeter { get; set; }
         public bool IsNight { get; set; }
 
-        public required string ServerDataObjectId { get; set; }
-        public required string PreviewObjectId { get; set; }
+        public required Guid ServerDataObjectId { get; set; }
+        public required Guid PreviewObjectId { get; set; }
 
         // Change Tracking
         private string? _originalName;
@@ -809,7 +809,7 @@ BuildplateLauncher.ExeName))
         public int BlocksPerMeter { get; set; }
         public bool IsNight { get; set; }
 
-        public required string ServerDataObjectId { get; set; }
+        public required Guid ServerDataObjectId { get; set; }
 
         public bool IsAdding { get; set; }
         public string? ErrorMessage { get; set; }

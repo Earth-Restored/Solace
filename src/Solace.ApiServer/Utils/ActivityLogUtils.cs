@@ -7,15 +7,26 @@ namespace Solace.ApiServer.Utils;
 
 internal static class ActivityLogUtils
 {
-    public static async Task AddEntryAsync(EarthDbContext.Results results, Guid accountId, ActivityLogEF.Entry entry)
+    public static async Task AddEntryAsync(EarthDbContext earthDb, ResultsEF.Builder results, Guid accountId, ActivityLogEntryEF entry, CancellationToken cancellationToken = default)
     {
-        var activityLog = await results.EarthDb.ActivityLogs
-            .AsTracking()
-            .FirstOrNewAsync(activityLog => activityLog.Id == accountId);
+        _ = results;
 
-        activityLog.AddEntry(entry);
-        activityLog.Prune();
+        earthDb.ActivityLogs.Add(entry);
 
-        await results.EarthDb.SaveChangesAsync();
+        await earthDb.SaveChangesAsync(cancellationToken);
+
+        var thresholdTimestamp = await earthDb.ActivityLogs
+            .Where(log => log.AccountId == accountId)
+            .OrderByDescending(log => log.Timestamp)
+            .Select(log => log.Timestamp)
+            .Skip(39) // Skip the first 39 (0-indexed)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (thresholdTimestamp != default)
+        {
+            await earthDb.ActivityLogs
+                .Where(log => log.AccountId == accountId && log.Timestamp < thresholdTimestamp)
+                .ExecuteDeleteAsync(cancellationToken);
+        }
     }
 }

@@ -21,13 +21,13 @@ namespace Solace.ApiServer.Controllers.EarthApi;
 [Route("1/api/v{version:apiVersion}")]
 internal sealed partial class BoostsController : SolaceControllerBase
 {
-    private readonly EarthDbContext _earthDB;
+    private readonly EarthDbContext _earthDb;
     private readonly Catalog _catalog;
     private readonly ILogger<BoostsController> _logger;
 
     public BoostsController(EarthDbContext earthDB, StaticData.StaticData staticData, ILogger<BoostsController> logger)
     {
-        _earthDB = earthDB;
+        _earthDb = earthDB;
         _catalog = staticData.Catalog;
         _logger = logger;
     }
@@ -49,20 +49,20 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         // I know this is ugly, we're making changes to the database in response to a GET request, but if we don't then the client won't correctly update the player health bar in the UI
 
-        var boosts = await _earthDB.Boosts
+        var boosts = await _earthDb.Boosts
             .AsNoTracking()
-            .FirstOrNewAsync(boosts => boosts.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .FirstAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
 
-        var profile = await _earthDB.Profiles
+        var profile = await _earthDb.Profiles
             .AsTracking()
             .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
-        var results = new EarthDbContext.Results(_earthDB);
+        var results = new ResultsEF.Builder();
 
         if (PruneBoostsAndUpdateProfile(boosts, profile, requestStartedOn, _catalog.ItemsCatalog))
         {
-            await _earthDB.SaveChangesAsync(cancellationToken);
-            results.Profile = profile.Version;
+            await _earthDb.SaveChangesAsync(cancellationToken);
+            results.Profile();
         }
 
         Types.Boost.Boosts.Potion?[] potions = [.. boosts.ActiveBoosts.Select(activeBoost =>
@@ -156,10 +156,10 @@ internal sealed partial class BoostsController : SolaceControllerBase
                 statModiferValues.FoodMultiplier > 0 ? (statModiferValues.FoodMultiplier + 100) / 100f : null
             ),
             [],
-            activeBoostsWithInfo.Count != 0 ? TimeFormatter.FormatTime(activeBoostsWithInfo.Values.Select(activeBoostInfo => activeBoostInfo.ActiveBoost.StartTime + activeBoostInfo.ActiveBoost.Duration).Min()) : null
+            activeBoostsWithInfo.Count != 0 ? TimeFormatter.FormatTime(activeBoostsWithInfo.Values.Min(activeBoostInfo => activeBoostInfo.ActiveBoost.StartTime + activeBoostInfo.ActiveBoost.Duration)) : null
         );
 
-        return EarthJson(boostsResponse, new EarthApiResponse.UpdatesResponse(results));
+        return EarthJson(boostsResponse, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     [HttpPost("boosts/potions/{itemId}/activate")]
@@ -179,15 +179,11 @@ internal sealed partial class BoostsController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var inventory = await _earthDB.Inventories
-           .AsTracking()
-           .FirstOrNewAsync(inventory => inventory.Id == accountId, cancellationToken: cancellationToken);
+        var boosts = await _earthDb.Boosts
+            .AsTracking()
+            .FirstAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
 
-        var boosts = await _earthDB.Boosts
-          .AsTracking()
-          .FirstOrNewAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
-
-        var profile = await _earthDB.Profiles
+        var profile = await _earthDb.Profiles
             .AsTracking()
             .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
@@ -198,7 +194,9 @@ internal sealed partial class BoostsController : SolaceControllerBase
             profileChanged = true;
         }
 
-        if (!inventory.TakeItems(itemId, 1))
+        var results = new ResultsEF.Builder();
+
+        if (!await InventoryUtils.TakeStackableItemsAsync(_earthDb, results, accountId, itemId, 1, cancellationToken))
         {
             return EarthJson(null, null);
         }
@@ -238,11 +236,11 @@ internal sealed partial class BoostsController : SolaceControllerBase
             var existingBoost = boosts.ActiveBoosts[newIndex];
             Debug.Assert(existingBoost is not null);
 
-            boosts.ActiveBoosts[newIndex] = new BoostsEF.ActiveBoost(existingBoost.InstanceId, existingBoost.ItemId, existingBoost.StartTime, existingBoost.Duration + item.BoostInfo.Duration);
+            boosts.ActiveBoosts[newIndex] = new BoostsEF.ActiveBoost(existingBoost.InstanceId, existingBoost.ItemId, existingBoost.StartTime, existingBoost.Duration + TimeSpan.FromMilliseconds(item.BoostInfo.Duration));
         }
         else
         {
-            boosts.ActiveBoosts[newIndex] = new BoostsEF.ActiveBoost(Guid.NewGuid(), itemId, requestStartedOn.ToUnixTimeMilliseconds(), item.BoostInfo.Duration);
+            boosts.ActiveBoosts[newIndex] = new BoostsEF.ActiveBoost(Guid.NewGuid(), itemId, requestStartedOn, TimeSpan.FromMilliseconds(item.BoostInfo.Duration));
             if (item.BoostInfo.Effects.Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostEffectType.HEALTH))
             {
                 // TODO: determine if we should add new player health straight away
@@ -250,20 +248,16 @@ internal sealed partial class BoostsController : SolaceControllerBase
             }
         }
 
-        await _earthDB.SaveChangesAsync(cancellationToken);
+        await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new BoostActivatedEntryEF(accountId, requestStartedOn, itemId), cancellationToken);
 
-        var results = new EarthDbContext.Results(_earthDB);
-        results.Inventory = inventory.Version;
-        results.Boosts = boosts.Version;
+        await _earthDb.SaveChangesAsync(cancellationToken);
 
-        if (profileChanged)
-        {
-            results.Profile = profile.Version;
-        }
+        results.Inventory();
+        results.Boosts();
 
-        await ActivityLogUtils.AddEntryAsync(results, accountId, new ActivityLogEF.BoostActivatedEntry(requestStartedOn, itemId));
+        results.Profile(profileChanged);
 
-        return EarthJson(null, new EarthApiResponse.UpdatesResponse(results));
+        return EarthJson(null, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     [HttpDelete("boosts/{instanceId}")]
@@ -276,11 +270,11 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        var boosts = await _earthDB.Boosts
+        var boosts = await _earthDb.Boosts
             .AsTracking()
-            .FirstOrNewAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
 
-        var profile = await _earthDB.Profiles
+        var profile = await _earthDb.Profiles
             .AsTracking()
             .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
@@ -323,17 +317,13 @@ internal sealed partial class BoostsController : SolaceControllerBase
             }
         }
 
-        await _earthDB.SaveChangesAsync(cancellationToken);
+        await _earthDb.SaveChangesAsync(cancellationToken);
 
-        var results = new EarthDbContext.Results(_earthDB);
-        results.Boosts = boosts.Version;
+        var results = new ResultsEF.Builder()
+            .Boosts()
+            .Profile(profileChanged);
 
-        if (profileChanged)
-        {
-            results.Profile = profile.Version;
-        }
-
-        return EarthJson(null, new EarthApiResponse.UpdatesResponse(results));
+        return EarthJson(null, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     private static bool PruneBoostsAndUpdateProfile(BoostsEF boosts, ProfileEF profile, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)

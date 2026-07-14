@@ -13,7 +13,7 @@ internal static class SmeltingCalculator
         Debug.Assert(recipe is not null);
 
         int totalHeatRequired = recipe.HeatRequired * activeJob.TotalRounds;
-        var totalCompletionTime = activeJob.StartTimeDT + CalculateDurationForHeat(totalHeatRequired, burning, activeJob.AddedFuel);
+        var totalCompletionTime = activeJob.StartTime + CalculateDurationForHeat(totalHeatRequired, burning, activeJob.AddedFuel);
         DateTimeOffset nextCompletionTime = DateTimeOffset.MinValue;
         int completedRounds;
         if (activeJob.FinishedEarly)
@@ -24,7 +24,7 @@ internal static class SmeltingCalculator
         {
             for (completedRounds = 0; completedRounds < activeJob.TotalRounds; completedRounds++)
             {
-                nextCompletionTime = activeJob.StartTimeDT + CalculateDurationForHeat(recipe.HeatRequired * (completedRounds + 1), burning, activeJob.AddedFuel);
+                nextCompletionTime = activeJob.StartTime + CalculateDurationForHeat(recipe.HeatRequired * (completedRounds + 1), burning, activeJob.AddedFuel);
                 if (nextCompletionTime >= currentTime)
                 {
                     break;
@@ -71,7 +71,7 @@ internal static class SmeltingCalculator
         {
             currentFuel = burning.Fuel;
             currentFuelTotalHeat = burning.RemainingHeat;
-            burnStartTime = activeJob.StartTimeDT;
+            burnStartTime = activeJob.StartTime;
             burnEndTime = burnStartTime + TimeSpan.FromMilliseconds(burning.RemainingHeat * 1000 / burning.Fuel.HeatPerSecond);
         }
         else
@@ -83,9 +83,9 @@ internal static class SmeltingCalculator
 
             currentFuel = activeJob.AddedFuel;
             consumedAddedFuelCount = 1;
-            currentFuelTotalHeat = currentFuel.HeatPerSecond * currentFuel.BurnDuration;
-            burnStartTime = activeJob.StartTimeDT;
-            burnEndTime = burnStartTime + currentFuel.BurnDurationTS;
+            currentFuelTotalHeat = currentFuel.HeatPerSecond * (int)currentFuel.BurnDuration.TotalSeconds;
+            burnStartTime = activeJob.StartTime;
+            burnEndTime = burnStartTime + currentFuel.BurnDuration;
         }
 
         while (burnEndTime < fuelEndTime)
@@ -98,9 +98,9 @@ internal static class SmeltingCalculator
             totalHeatRequired -= currentFuelTotalHeat;
             currentFuel = activeJob.AddedFuel;
             consumedAddedFuelCount++;
-            currentFuelTotalHeat = currentFuel.HeatPerSecond * currentFuel.BurnDuration;
+            currentFuelTotalHeat = currentFuel.HeatPerSecond * (int)currentFuel.BurnDuration.TotalSeconds;
             burnStartTime = burnEndTime;
-            burnEndTime = burnStartTime + currentFuel.BurnDurationTS;
+            burnEndTime = burnStartTime + currentFuel.BurnDuration;
         }
 
         if (totalHeatRequired < 0)
@@ -111,7 +111,7 @@ internal static class SmeltingCalculator
         int remainingHeat;
         if (!completed)
         {
-            remainingHeat = (int)(((burnEndTime - fuelEndTime) * currentFuelTotalHeat) / currentFuel.BurnDurationTS);
+            remainingHeat = (int)(((burnEndTime - fuelEndTime) * currentFuelTotalHeat) / currentFuel.BurnDuration);
         }
         else
         {
@@ -208,9 +208,9 @@ internal static class SmeltingCalculator
 
         if (addedFuel is not null)
         {
-            for (int count = 0; count < addedFuel.Item.Count; count++)
+            for (var count = 0; count < addedFuel.Item.Count; count++)
             {
-                if (requiredHeat < addedFuel.HeatPerSecond * addedFuel.BurnDuration)
+                if (requiredHeat < addedFuel.HeatPerSecond * addedFuel.BurnDuration.TotalSeconds)
                 {
                     duration += TimeSpan.FromMilliseconds(requiredHeat * 1000 / addedFuel.HeatPerSecond);
                     requiredHeat = 0;
@@ -218,8 +218,8 @@ internal static class SmeltingCalculator
                 }
                 else
                 {
-                    duration += addedFuel.BurnDurationTS;
-                    requiredHeat -= addedFuel.HeatPerSecond * addedFuel.BurnDuration;
+                    duration += addedFuel.BurnDuration;
+                    requiredHeat -= addedFuel.HeatPerSecond * (int)addedFuel.BurnDuration.TotalSeconds;
                 }
             }
         }

@@ -7,11 +7,9 @@ using Solace.Common.Utils;
 
 namespace Solace.DB.Models.Player;
 
-public sealed class BoostsEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable<BoostsEF>
+public sealed class BoostsEF : IEntityWithId<Guid>
 {
-    public Guid Id { get; set; }
-
-    public int Version { get; set; } = 1;
+    public required Guid Id { get; set; }
 
     public Account Account { get; set; } = null!;
 
@@ -25,7 +23,7 @@ public sealed class BoostsEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
         for (int index = 0; index < ActiveBoosts.Length; index++)
         {
             ActiveBoost? activeBoost = ActiveBoosts[index];
-            if (activeBoost is not null && activeBoost.StartTimeDT + activeBoost.DurationTS < currentTime)
+            if (activeBoost is not null && activeBoost.StartTime + activeBoost.Duration < currentTime)
             {
                 ActiveBoosts[index] = null;
                 yield return activeBoost;
@@ -33,157 +31,10 @@ public sealed class BoostsEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
         }
     }
 
-    public async Task MergeWith(BoostsEF other, ValueMerger merger)
-    {
-        merger.CurrentUserId = Id.ToString();
-        merger.CurrentUsername = Account?.Username;
-
-        for (var i = 0; i < other.ActiveBoosts.Length; i++)
-        {
-            if (ActiveBoosts[i] is null)
-            {
-                ActiveBoosts[i] = other.ActiveBoosts[i];
-            }
-            else if (other.ActiveBoosts[i] is not null)
-            {
-                ActiveBoosts[i] = await merger.AutoMerge(ActiveBoosts[i]!, other.ActiveBoosts[i]!, $"Boost slot {i + 1}", null);
-            }
-        }
-    }
-
     public sealed record ActiveBoost(
         Guid InstanceId,
         Guid ItemId,
-        long StartTime,
-        long Duration
-    ) : ICloneable<ActiveBoost>
-    {
-        [JsonIgnore, NotMapped] public DateTimeOffset StartTimeDT => DateTimeOffset.FromUnixTimeMilliseconds(StartTime);
-
-        [JsonIgnore, NotMapped] public TimeSpan DurationTS => TimeSpan.FromMilliseconds(Duration);
-
-        public ActiveBoost DeepCopy()
-            => new ActiveBoost(this);
-
-        public sealed class Comparer : IEqualityComparer<ActiveBoost>
-        {
-            public static Comparer Instance { get; } = new Comparer();
-
-            private Comparer()
-            {
-            }
-
-            public bool Equals(ActiveBoost? x, ActiveBoost? y)
-                => x == y || (x?.Equals(y) ?? false);
-
-            public int GetHashCode([DisallowNull] ActiveBoost obj)
-                => obj.GetHashCode();
-        }
-    }
-
-    public sealed class Legacy : IEquatable<Legacy>
-    {
-        public ActiveBoost?[] ActiveBoosts { get; init; }
-
-        public Legacy()
-        {
-            ActiveBoosts = new ActiveBoost[5];
-        }
-
-        public bool Equals(Legacy? other)
-            => other is not null && ActiveBoosts.SequenceEqual(other.ActiveBoosts);
-
-        public override bool Equals(object? obj)
-            => Equals(obj as Legacy);
-
-        public override int GetHashCode()
-        {
-            var hash = new HashCode();
-
-            foreach (var item in ActiveBoosts)
-            {
-                hash.Add(item);
-            }
-
-            return hash.ToHashCode();
-        }
-
-        public sealed record ActiveBoost(
-            Guid InstanceId,
-            Guid ItemId,
-            long StartTime,
-            long Duration
-        );
-    }
+        DateTimeOffset StartTime,
+        TimeSpan Duration
+    );
 }
-
-#region Converter
-public sealed class ActiveBoostValueConverter : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<BoostsEF.ActiveBoost?[], string>
-{
-    public ActiveBoostValueConverter() : base(
-        v => JsonSerializer.Serialize(v, DbJsonContext.Default.ActiveBoostArray),
-        v => JsonSerializer.Deserialize(v, DbJsonContext.Default.ActiveBoostArray) ?? new BoostsEF.ActiveBoost?[5])
-    {
-    }
-}
-
-public sealed class ActiveBoostArrayValueComparer : Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<BoostsEF.ActiveBoost?[]>
-{
-    public ActiveBoostArrayValueComparer() : base(
-        (a, b) => CompareArrays(a, b),
-        a => GetArrayHashCode(a),
-        a => SnapshotArray(a))
-    {
-    }
-
-    public static bool CompareArrays(BoostsEF.ActiveBoost?[]? a, BoostsEF.ActiveBoost?[]? b)
-    {
-        if (ReferenceEquals(a, b))
-        {
-            return true;
-        }
-
-        if (a is null || b is null)
-        {
-            return false;
-        }
-
-        if (a.Length != b.Length)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < a.Length; i++)
-        {
-            if (!BoostsEF.ActiveBoost.Comparer.Instance.Equals(a[i], b[i]))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    public static int GetArrayHashCode(BoostsEF.ActiveBoost?[] a)
-    {
-        var hash = new HashCode();
-        foreach (var item in a)
-        {
-            hash.Add(item is not null ? BoostsEF.ActiveBoost.Comparer.Instance.GetHashCode(item) : 0);
-        }
-
-        return hash.ToHashCode();
-    }
-
-    public static BoostsEF.ActiveBoost?[] SnapshotArray(BoostsEF.ActiveBoost?[] a)
-    {
-        var clone = new BoostsEF.ActiveBoost?[a.Length];
-        for (int i = 0; i < a.Length; i++)
-        {
-            clone[i] = a[i]?.DeepCopy();
-        }
-
-        return clone;
-    }
-}
-#endregion

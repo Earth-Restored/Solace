@@ -1,15 +1,17 @@
-﻿using Solace.StaticData;
+﻿using Solace.Common;
+using Solace.StaticData;
 
 namespace Solace.ApiServer.Utils;
 
 internal static partial class ItemWear
 {
-    public static float WearToHealth(Guid itemId, int wear, Catalog.ItemsCatalogR itemsCatalog, ILogger logger)
+    public static float WearToHealth(Guid itemId, int wear, Catalog.ItemsCatalogR itemsCatalog)
     {
-        Catalog.ItemsCatalogR.Item? catalogItem = itemsCatalog.GetItem(itemId);
+        var catalogItem = itemsCatalog.GetItem(itemId);
 
         if (catalogItem is null || catalogItem.ToolInfo is null)
         {
+            var logger = GlobalLoggerFactory.CreateLogger(nameof(ItemWear));
             LogHealthForNonTool(logger, itemId);
             return 100.0f;
         }

@@ -4,17 +4,16 @@ using Solace.DB;
 using Solace.DB.Models.Player;
 using Solace.DB.Utils;
 using Solace.StaticData;
-using static Solace.DB.Models.Player.TokensEF;
 
 namespace Solace.ApiServer.Utils;
 
 internal sealed partial class LevelUtils
 {
 #pragma warning disable IDE0060 // Remove unused parameter
-    public static async Task CheckAndHandlePlayerLevelUpAsync(EarthDbContext.Results results, Guid accountId, DateTimeOffset currentTime, StaticData.StaticData staticData)
+    public static async Task CheckAndHandlePlayerLevelUpAsync(EarthDbContext earthDb, ResultsEF.Builder results, Guid accountId, DateTimeOffset currentTime, StaticData.StaticData staticData)
 #pragma warning restore IDE0060 // Remove unused parameter
     {
-        var profile = await results.EarthDb.Profiles
+        var profile = await earthDb.Profiles
             .AsTracking()
             .FirstOrNewAsync(profile => profile.Id == accountId);
 
@@ -24,14 +23,14 @@ internal sealed partial class LevelUtils
             changed = true;
             profile.Level++;
             Rewards rewards = MakeLevelRewards(staticData.Levels.Levels[profile.Level - 2]);
-            await TokenUtils.AddTokenAsync(results, accountId, new LevelUpToken(profile.Level, rewards.ToDBRewardsModel()));
+            await TokenUtils.AddTokenAsync(earthDb, results, new LevelUpTokenEF(accountId, profile.Level, rewards.ToDBRewardsModel()));
         }
 
         if (changed)
         {
-            await results.EarthDb.SaveChangesAsync();
+            await earthDb.SaveChangesAsync();
 
-            results.Profile = profile.Version;
+            results.Profile();
         }
     }
 

@@ -69,23 +69,4 @@ public sealed class Rubies : IEquatable<Rubies>
 
     public override int GetHashCode()
         => HashCode.Combine(Purchased, Earned);
-
-    public sealed class Legacy
-    {
-        public int Purchased { get; set; }
-
-        public int Earned { get; set; }
-
-        [JsonIgnore]
-        public int Total => Purchased + Earned;
-
-        public bool Equals(Legacy? other)
-            => other is not null && Purchased == other.Purchased && Earned == other.Earned;
-
-        public override bool Equals(object? obj)
-            => Equals(obj as Legacy);
-
-        public override int GetHashCode()
-            => HashCode.Combine(Purchased, Earned);
-    }
 }

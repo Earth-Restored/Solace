@@ -23,13 +23,13 @@ namespace Solace.ApiServer.Controllers.EarthApi;
 [Route("1/api/v{version:apiVersion}/inventory/survival")]
 internal sealed class InventoryController : SolaceControllerBase
 {
-    private readonly EarthDbContext _earthDB;
+    private readonly EarthDbContext _earthDb;
     private readonly Catalog _catalog;
     private readonly ILogger<InventoryController> _logger;
 
     public InventoryController(EarthDbContext earthDB, StaticData.StaticData staticData, ILogger<InventoryController> logger)
     {
-        _earthDB = earthDB;
+        _earthDb = earthDB;
         _catalog = staticData.Catalog;
         _logger = logger;
     }
@@ -42,17 +42,25 @@ internal sealed class InventoryController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var inventory = await _earthDB.Inventories
+        var stackableItems = await _earthDb.StackableItems
             .AsNoTracking()
-            .FirstOrNewAsync(inventory => inventory.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .Where(item => item.AccountId == accountId)
+            .ToListAsync(cancellationToken);
 
-        var hotbar = await _earthDB.Hotbars
+        var nonStackableItems = await _earthDb.NonStackableItems
             .AsNoTracking()
-            .FirstOrNewAsync(hotbar => hotbar.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .Where(item => item.AccountId == accountId)
+            .GroupBy(instance => instance.ItemId)
+            .ToListAsync(cancellationToken);
 
-        var journal = await _earthDB.Journals
+        var hotbar = await _earthDb.Hotbars
             .AsNoTracking()
-            .FirstOrNewAsync(journal => journal.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .FirstAsync(hotbar => hotbar.Id == accountId, cancellationToken: cancellationToken);
+
+        var journalEntries = await _earthDb.JournalEntries
+            .AsNoTracking()
+            .Where(entry => entry.AccountId == accountId)
+            .ToDictionaryAsync(entry => entry.ItemId, cancellationToken);
 
         Dictionary<Guid, int> hotbarItemCounts = [];
         foreach (var item in hotbar.Items)
@@ -77,13 +85,15 @@ internal sealed class InventoryController : SolaceControllerBase
                 item.Uuid,
                 item.Count,
                 item.InstanceId,
-                item.InstanceId is not null ? ItemWear.WearToHealth(item.Uuid, inventory.GetItemInstance(item.Uuid, item.InstanceId.Value)?.Wear ?? 0, _catalog.ItemsCatalog, _logger) : 0.0f
-                    ) : null)],
-            [.. inventory.StackableItems.Select(item =>
+                item.InstanceId is not null 
+                    ? ItemWear.WearToHealth(item.Uuid, nonStackableItems.FirstOrDefault(nsi => nsi.Key == item.Uuid)?.FirstOrDefault(nsi => nsi.InstanceId == item.InstanceId.Value)?.Wear ?? 0, _catalog.ItemsCatalog) 
+                    : 0.0f
+                ) : null)],
+            [.. stackableItems.Select(item =>
             {
-                var uuid = item.Id;
+                var uuid = item.ItemId;
                 int count = item.Count - hotbarItemCounts.GetValueOrDefault(uuid);
-                JournalEF.ItemJournalEntry itemJournalEntry = journal.GetItem(uuid)!;
+                var itemJournalEntry = journalEntries[uuid];
                 string firstSeen = TimeFormatter.FormatTime(itemJournalEntry.FirstSeen);
                 string lastSeen = TimeFormatter.FormatTime(itemJournalEntry.LastSeen);
 
@@ -95,15 +105,15 @@ internal sealed class InventoryController : SolaceControllerBase
                     new StackableInventoryItem.OnR(lastSeen)
                 );
             })],
-            [.. inventory.NonStackableItems.Select(item =>
+            [.. nonStackableItems.Select(group =>
             {
-                var uuid = item.Id;
-                JournalEF.ItemJournalEntry itemJournalEntry = journal.GetItem(uuid)!;
+                var uuid = group.Key;
+                var itemJournalEntry = journalEntries[uuid];
                 string firstSeen = TimeFormatter.FormatTime(itemJournalEntry.FirstSeen);
                 string lastSeen = TimeFormatter.FormatTime(itemJournalEntry.LastSeen);
                 return new NonStackableInventoryItem(
                     uuid,
-                    [.. item.Instances.Where(instance => !hotbarItemInstances.Contains(instance.InstanceId)).Select(instance => new NonStackableInventoryItem.Instance(instance.InstanceId, ItemWear.WearToHealth(item.Id, instance.Wear, _catalog.ItemsCatalog, _logger)))],
+                    [.. group.Where(instance => !hotbarItemInstances.Contains(instance.InstanceId)).Select(instance => new NonStackableInventoryItem.Instance(instance.InstanceId, ItemWear.WearToHealth(uuid, instance.Wear, _catalog.ItemsCatalog)))],
                     1,
                     new NonStackableInventoryItem.OnR(firstSeen),
                     new NonStackableInventoryItem.OnR(lastSeen)
@@ -111,7 +121,7 @@ internal sealed class InventoryController : SolaceControllerBase
             })]
         );
 
-        string resp = Json.Serialize(new EarthApiResponse(inventoryResponse));
+        var resp = Json.Serialize(new EarthApiResponse(inventoryResponse));
         return TypedResults.Content(resp, "application/json");
     }
 
@@ -129,29 +139,25 @@ internal sealed class InventoryController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var inventory = await _earthDB.Inventories
-            .AsNoTracking()
-            .FirstOrNewAsync(inventory => inventory.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
-
-        var hotbar = await _earthDB.Hotbars
+        var hotbar = await _earthDb.Hotbars
             .AsTracking()
-            .FirstOrNewAsync(hotbar => hotbar.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(hotbar => hotbar.Id == accountId, cancellationToken: cancellationToken);
 
-        for (int index = 0; index < hotbar.Items.Length; index++)
+        for (var index = 0; index < hotbar.Items.Length; index++)
         {
-            SetHotbarRequestItem item = setHotbarRequestItems[index];
+            var item = setHotbarRequestItems[index];
             hotbar.Items[index] = item is not null ? new HotbarEF.Item(item.Id, item.Count, item.InstanceId) : null;
         }
 
-        hotbar.LimitToInventory(inventory);
+        await HotbarUtils.LimitToInventoryAsync(_earthDb, accountId, hotbar, cancellationToken);
 
-        await _earthDB.SaveChangesAsync(cancellationToken);
+        await _earthDb.SaveChangesAsync(cancellationToken);
 
         HotbarItem?[] hotbarItems = [.. hotbar.Items.Select(item => item is not null ? new HotbarItem(
             item.Uuid,
             item.Count,
             item.InstanceId,
-            item.InstanceId is not null ? ItemWear.WearToHealth(item.Uuid, inventory.GetItemInstance(item.Uuid, item.InstanceId.Value)!.Wear, _catalog.ItemsCatalog, _logger) : 0.0f
+            item.InstanceId is not null ? ItemWear.WearToHealth(item.Uuid, _earthDb.NonStackableItems.AsNoTracking().First(nsi => nsi.AccountId == accountId && nsi.ItemId == item.Uuid && nsi.InstanceId == item.InstanceId.Value).Wear, _catalog.ItemsCatalog) : 0.0f
         ) : null)];
 
         string resp = Json.Serialize(hotbarItems);
@@ -176,49 +182,41 @@ internal sealed class InventoryController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var inventory = await _earthDB.Inventories
-           .AsTracking()
-           .FirstOrNewAsync(inventory => inventory.Id == accountId, cancellationToken: cancellationToken);
-
-        var journal = await _earthDB.Journals
-            .AsTracking()
-            .FirstOrNewAsync(journal => journal.Id == accountId, cancellationToken: cancellationToken);
-
-        var profile = await _earthDB.Profiles
+        var profile = await _earthDb.Profiles
             .AsTracking()
             .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
-        var boosts = await _earthDB.Boosts
+        var boosts = await _earthDb.Boosts
             .AsNoTracking()
-            .FirstOrNewAsync(boosts => boosts.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .FirstAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
 
-        if (!inventory.TakeItems(itemId, 1))
+        var results = new ResultsEF.Builder();
+
+        if (!await InventoryUtils.TakeStackableItemsAsync(_earthDb, results, accountId,  itemId, 1, cancellationToken))
         {
             return TypedResults.Content(Json.Serialize(new EarthApiResponse(null, null)), "application/json");
         }
 
-        var results = new EarthDbContext.Results(_earthDB);
-
         var returnItemIdNullable = item.ConsumeInfo.ReturnItemId;
         if (returnItemIdNullable is { } returnItemId)
         {
-            Catalog.ItemsCatalogR.Item? returnItem = _catalog.ItemsCatalog.GetItem(returnItemId);
+            var returnItem = _catalog.ItemsCatalog.GetItem(returnItemId);
             Debug.Assert(returnItem is not null);
 
             if (returnItem.Stackable)
             {
-                inventory.AddItems(returnItemId, 1);
+                await InventoryUtils.AddStackableItemsAsync(_earthDb, results, accountId, returnItemId, 1, cancellationToken);
             }
             else
             {
-                inventory.AddItems(returnItemId, [new NonStackableItemInstance(Guid.NewGuid(), 0)]);
+                await InventoryUtils.AddInstanceItemsAsync(_earthDb, results, accountId, returnItemId, 1, cancellationToken);
             }
 
-            if (journal.AddCollectedItem(returnItemId, requestStartedOn, 1) == 0)
+            if (await JournalUtils.AddCollectedItemAsync(_earthDb, results, accountId, returnItemId, requestStartedOn, 1, cancellationToken) == 0)
             {
                 if (returnItem.JournalEntry is not null)
                 {
-                    await TokenUtils.AddTokenAsync(results, accountId, new TokensEF.JournalItemUnlockedToken(returnItemId));
+                    await TokenUtils.AddTokenAsync(_earthDb, results, new JournalItemUnlockedTokenEF(accountId, returnItemId), cancellationToken);
                 }
             }
         }
@@ -238,13 +236,14 @@ internal sealed class InventoryController : SolaceControllerBase
             profile.Health = maxPlayerHealth;
         }
 
-        await _earthDB.SaveChangesAsync(cancellationToken);
+        await _earthDb.SaveChangesAsync(cancellationToken);
 
-        results.Inventory = inventory.Version;
-        results.Journal = journal.Version;
-        results.Profile = profile.Version;
+        results
+            .Inventory()
+            .Journal()
+            .Profile();
 
-        string resp = Json.Serialize(new EarthApiResponse(null, new EarthApiResponse.UpdatesResponse(results)));
+        var resp = Json.Serialize(new EarthApiResponse(null, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken))));
         return TypedResults.Content(resp, "application/json");
     }
 

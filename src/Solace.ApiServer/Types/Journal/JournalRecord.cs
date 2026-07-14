@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using Solace.ApiServer.Types.Common;
 using static Solace.ApiServer.Types.Journal.JournalRecord;
@@ -42,16 +43,16 @@ internal static class ActivityLogTypeExtensions
 {
     extension(ActivityLogEntry.Type)
     {
-        public static ActivityLogEntry.Type FromDb(DB.Models.Player.ActivityLogEF.Entry.TypeE type)
-            => type switch
+        public static ActivityLogEntry.Type FromDb(DB.Models.Player.ActivityLogEntryEF entry)
+            => entry switch
             {
-                DB.Models.Player.ActivityLogEF.Entry.TypeE.LEVEL_UP => ActivityLogEntry.Type.LEVEL_UP,
-                DB.Models.Player.ActivityLogEF.Entry.TypeE.TAPPABLE => ActivityLogEntry.Type.TAPPABLE,
-                DB.Models.Player.ActivityLogEF.Entry.TypeE.JOURNAL_ITEM_UNLOCKED => ActivityLogEntry.Type.JOURNAL_ITEM_UNLOCKED,
-                DB.Models.Player.ActivityLogEF.Entry.TypeE.CRAFTING_COMPLETED => ActivityLogEntry.Type.CRAFTING_COMPLETED,
-                DB.Models.Player.ActivityLogEF.Entry.TypeE.SMELTING_COMPLETED => ActivityLogEntry.Type.SMELTING_COMPLETED,
-                DB.Models.Player.ActivityLogEF.Entry.TypeE.BOOST_ACTIVATED => ActivityLogEntry.Type.BOOST_ACTIVATED,
-                _ => throw new InvalidEnumArgumentException(nameof(type), (int)type, typeof(DB.Models.Player.ActivityLogEF.Entry.TypeE)),
+                DB.Models.Player.LevelUpEntryEF => ActivityLogEntry.Type.LEVEL_UP,
+                DB.Models.Player.TappableEntryEF => ActivityLogEntry.Type.TAPPABLE,
+                DB.Models.Player.JournalItemUnlockedEntryEF => ActivityLogEntry.Type.JOURNAL_ITEM_UNLOCKED,
+                DB.Models.Player.CraftingCompletedEntryEF => ActivityLogEntry.Type.CRAFTING_COMPLETED,
+                DB.Models.Player.SmeltingCompletedEntryEF => ActivityLogEntry.Type.SMELTING_COMPLETED,
+                DB.Models.Player.BoostActivatedEntryEF => ActivityLogEntry.Type.BOOST_ACTIVATED,
+                _ => throw new UnreachableException(),
             };
     }
 }

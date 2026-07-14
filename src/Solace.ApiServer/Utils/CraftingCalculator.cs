@@ -12,7 +12,7 @@ internal static class CraftingCalculator
         Catalog.RecipesCatalogR.CraftingRecipe recipe = catalog.RecipesCatalog.Crafting.Where(craftingRecipe => craftingRecipe.Id == activeJob.RecipeId).First();
 
         var roundDuration = TimeSpan.FromSeconds(recipe.Duration);
-        int completedRounds = activeJob.FinishedEarly ? activeJob.TotalRounds : int.Min((int)((currentTime - activeJob.StartTimeDT) / roundDuration), activeJob.TotalRounds);
+        int completedRounds = activeJob.FinishedEarly ? activeJob.TotalRounds : int.Min((int)((currentTime - activeJob.StartTime) / roundDuration), activeJob.TotalRounds);
         int availableRounds = completedRounds - activeJob.CollectedRounds;
 
         LinkedList<InputItem> input = [];
@@ -62,8 +62,8 @@ internal static class CraftingCalculator
             activeJob.TotalRounds,
             [.. input],
             new State.OutputItem(recipe.Output.ItemId, recipe.Output.Count),
-            activeJob.StartTimeDT + roundDuration * (completedRounds + 1),
-            activeJob.StartTimeDT + roundDuration * activeJob.TotalRounds,
+            activeJob.StartTime + roundDuration * (completedRounds + 1),
+            activeJob.StartTime + roundDuration * activeJob.TotalRounds,
             completedRounds == activeJob.TotalRounds
         );
     }

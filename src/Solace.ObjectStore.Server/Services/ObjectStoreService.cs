@@ -1,7 +1,9 @@
 using System.Buffers;
+using System.Buffers.Binary;
 using System.IO.Pipelines;
 using Google.Protobuf;
 using Grpc.Core;
+using Solace.Common.Utils;
 
 namespace Solace.ObjectStore.Server.Services;
 
@@ -41,7 +43,7 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
             throw new RpcException(new Status(StatusCode.Internal, "Object upload failed mid-stream."));
         }
 
-        string id;
+        Guid id;
         try
         {
             id = await storeTask;
@@ -59,24 +61,29 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
 
         LogStoreObjectSuccess(id);
 
+        var (idLow, idHigh) = id.ToLowHigh();
+
         return new StoreObjectResponse
         {
-            Id = id,
+            IdLow = idLow,
+            IdHigh = idHigh,
         };
     }
 
     public override async Task GetObject(GetObjectRequest request, IServerStreamWriter<GetObjectResponse> responseStream, ServerCallContext context)
     {
-        LogGetObject(request.Id);
+        var id = Guid.FromLowHigh(request.IdLow, request.IdHigh);
 
-        var @object = await _dataStore.LoadAsync(request.Id, context.CancellationToken);
+        LogGetObject(id);
+
+        var @object = await _dataStore.LoadAsync(id, context.CancellationToken);
 
         using var objectStream = @object.Stream;
 
         if (objectStream is null)
         {
-            LogGetObjectObjectNotFound(request.Id);
-            context.Status = new Status(StatusCode.NotFound, $"Object with Id '{request.Id}' does not exist.");
+            LogGetObjectObjectNotFound(id);
+            context.Status = new Status(StatusCode.NotFound, $"Object with Id '{id}' does not exist.");
             return;
         }
 
@@ -109,9 +116,11 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
 
     public override async Task<DeleteObjectResponse> DeleteObject(DeleteObjectRequest request, ServerCallContext context)
     {
-        LogDeleteObject(request.Id);
+        var id = Guid.FromLowHigh(request.IdLow, request.IdHigh);
 
-        await _dataStore.DeleteAsync(request.Id, context.CancellationToken);
+        LogDeleteObject(id);
+
+        await _dataStore.DeleteAsync(id, context.CancellationToken);
 
         return new DeleteObjectResponse
         {
@@ -126,17 +135,17 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
     private partial void LogUnexpectedFailureWhileStoringObject(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Stored new object '{Id}'")]
-    private partial void LogStoreObjectSuccess(string Id);
+    private partial void LogStoreObjectSuccess(Guid Id);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Object store failed mid-stream")]
     private partial void LogStoreObjectStreamWriteFail(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Request for object '{Id}'")]
-    private partial void LogGetObject(string Id);
+    private partial void LogGetObject(Guid Id);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Requested object '{Id}' does not exist")]
-    private partial void LogGetObjectObjectNotFound(string Id);
+    private partial void LogGetObjectObjectNotFound(Guid Id);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Request to delete object '{Id}'")]
-    private partial void LogDeleteObject(string Id);
+    private partial void LogDeleteObject(Guid Id);
 }

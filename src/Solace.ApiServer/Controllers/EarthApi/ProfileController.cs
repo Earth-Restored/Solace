@@ -46,7 +46,7 @@ internal sealed class ProfileController : SolaceControllerBase
 
         var boosts = await _earthDB.Boosts
             .AsNoTracking()
-            .FirstOrNewAsync(boosts => boosts.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .FirstAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
 
         var levels = _staticData.Levels.Levels;
         int currentLevelExperience = profile.Experience - (profile.Level > 1 ? profile.Level - 2 < levels.Length ? levels[profile.Level - 2].ExperienceRequired : levels[^1].ExperienceRequired : 0);

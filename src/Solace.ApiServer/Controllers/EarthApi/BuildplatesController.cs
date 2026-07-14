@@ -73,7 +73,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
                 "00000000-0000-0000-0000-000000000000",
                 new Dimension(buildplate.Size, buildplate.Size),
                 new Offset(0, buildplate.Offset, 0),
-                buildplate.Scale,
+                buildplate.BlocksPerMeter,
                 OwnedBuildplate.TypeE.SURVIVAL,
                 SurfaceOrientation.HORIZONTAL,
                 model,
@@ -135,13 +135,9 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.NotFound();
         }
 
-        var inventory = await _earthDB.Inventories
-            .AsNoTracking()
-            .FirstOrNewAsync(inventory => inventory.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
-
         var hotbar = await _earthDB.Hotbars
             .AsNoTracking()
-            .FirstOrNewAsync(hotbar => hotbar.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .FirstAsync(hotbar => hotbar.Id == accountId, cancellationToken: cancellationToken);
 
         using var serverData = await _objectStore.GetStreamAsync(buildplate.ServerDataObjectId, cancellationToken);
         if (serverData is null)
@@ -150,7 +146,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.InternalServerError();
         }
 
-        string? sharedBuildplateServerDataObjectId = await _objectStore.StoreAsync(serverData, cancellationToken);
+        var sharedBuildplateServerDataObjectId = await _objectStore.StoreAsync(serverData, cancellationToken);
         if (sharedBuildplateServerDataObjectId is null)
         {
             LogSharedBuildplateServerDataStoreError(buildplateId);
@@ -162,12 +158,12 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             AccountId = accountId,
             Size = buildplate.Size,
             Offset = buildplate.Offset,
-            Scale = buildplate.Scale,
+            Scale = buildplate.BlocksPerMeter,
             Night = buildplate.Night,
-            Created = requestStartedOn.ToUnixTimeMilliseconds(),
+            Created = requestStartedOn,
             BuildplateLastModifed = buildplate.LastModified,
-            ServerDataObjectId = sharedBuildplateServerDataObjectId,
-            LastViewed = requestStartedOn.ToUnixTimeMilliseconds(),
+            ServerDataObjectId = sharedBuildplateServerDataObjectId.Value,
+            LastViewed = requestStartedOn,
             NumberOfTimesViewed = 0,
         };
 
@@ -185,7 +181,10 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             }
             else
             {
-                sharedBuildplateHotbarItem = new SharedBuildplateEF.HotbarItem(item.Uuid, 1, item.InstanceId, inventory.GetItemInstance(item.Uuid, item.InstanceId.Value)?.Wear ?? 0);
+                var instance = await _earthDB.NonStackableItems  
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(instance => instance.AccountId == accountId && instance.ItemId == item.Uuid && instance.InstanceId == item.InstanceId.Value, cancellationToken);
+                sharedBuildplateHotbarItem = new SharedBuildplateEF.HotbarItem(item.Uuid, 1, item.InstanceId, instance?.Wear ?? 0);
             }
 
             sharedBuildplate.Hotbar[index] = sharedBuildplateHotbarItem;
@@ -199,7 +198,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
         catch (Exception ex)
         {
             LogSharedBuildplateDBStoreError(ex, buildplateId);
-            await _objectStore.DeleteAsync(sharedBuildplateServerDataObjectId, cancellationToken);
+            await _objectStore.DeleteAsync(sharedBuildplateServerDataObjectId.Value, cancellationToken);
             return TypedResults.InternalServerError();
         }
 
@@ -254,7 +253,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
                     item.Uuid,
                     item.Count,
                     item.InstanceId,
-                    item.InstanceId is not null ? ItemWear.WearToHealth(item.Uuid, item.Wear, _catalog.ItemsCatalog, _logger) : 0.0f
+                    item.InstanceId is not null ? ItemWear.WearToHealth(item.Uuid, item.Wear, _catalog.ItemsCatalog) : 0.0f
                 ) : null)],
                 [.. sharedBuildplate.Hotbar
                     .Where(item => item is not null && item.InstanceId is null)
@@ -511,7 +510,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
 
                     size = buildplate.Size;
                     offset = buildplate.Offset;
-                    scale = buildplate.Scale;
+                    scale = buildplate.BlocksPerMeter;
                 }
 
                 break;
@@ -602,7 +601,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             .FirstOrDefaultAsync(templateBuildplate => templateBuildplate.Id == buildplateId, cancellationToken);
         return templateBuildplate is null
             ? null
-            : new BuildplateGeometry(templateBuildplate.Size, templateBuildplate.Offset, templateBuildplate.Scale);
+            : new BuildplateGeometry(templateBuildplate.Size, templateBuildplate.Offset, templateBuildplate.BlocksPerMeter);
     }
 
     private sealed record SharedBuildplateInstanceRequest(
@@ -610,10 +609,10 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
     );
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Preview object {PreviewObjectId} for buildplate {BuildplateId} could not be loaded from object store")]
-    private partial void LogBuildplatePreviewNotFound(string PreviewObjectId, Guid BuildplateId);
+    private partial void LogBuildplatePreviewNotFound(Guid PreviewObjectId, Guid BuildplateId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Data object {ServerDataObjectId} for buildplate {BuildplateId} could not be loaded from object store")]
-    private partial void LogBuildplateServerDataNotFound(string ServerDataObjectId, Guid BuildplateId);
+    private partial void LogBuildplateServerDataNotFound(Guid ServerDataObjectId, Guid BuildplateId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Could not store data object for shared buildplate '{BuildplateId}' in object store")]
     private partial void LogSharedBuildplateServerDataStoreError(Guid BuildplateId);
@@ -622,7 +621,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
     private partial void LogSharedBuildplateDBStoreError(Exception ex, Guid BuildplateId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Data object {ServerDataObjectId} for shared buildplate {BuildplateId} could not be loaded from object store")]
-    private partial void LogSharedBuildplateServerDataNotFound(string ServerDataObjectId, Guid BuildplateId);
+    private partial void LogSharedBuildplateServerDataNotFound(Guid ServerDataObjectId, Guid BuildplateId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Could not get preview for shared buildplate '{BuildplateId}'")]
     private partial void LogSharedBuildplatePreviewGenerateError(Guid BuildplateId);

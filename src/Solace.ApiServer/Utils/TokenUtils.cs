@@ -8,38 +8,51 @@ namespace Solace.ApiServer.Utils;
 
 internal static class TokenUtils
 {
-    public static async Task<string> AddTokenAsync(EarthDbContext.Results results, Guid accountId, TokensEF.Token token)
+    public static async Task<Guid> AddTokenAsync(EarthDbContext earthDb, ResultsEF.Builder results, TokenEF token, CancellationToken cancellationToken = default)
     {
-        var tokens = await results.EarthDb.Tokens
+        earthDb.Tokens.Add(token);
+        await earthDb.SaveChangesAsync(cancellationToken);
+
+        results.Tokens();
+
+        return token.TokenId;
+    }
+
+    public static async Task<TokenEF?> RemoveTokenAsync(EarthDbContext earthDb, ResultsEF.Builder results, Guid accountId, Guid tokenId, CancellationToken cancellationToken = default)
+    {
+        var token = await earthDb.Tokens
             .AsTracking()
-            .FirstOrNewAsync(tokens => tokens.Id == accountId);
+            .FirstOrDefaultAsync(t => t.AccountId == accountId && t.TokenId == tokenId, cancellationToken);
 
-        string id = Guid.NewGuid().ToString();
-        tokens.AddToken(id, token);
+        if (token is null)
+        {
+            return null;
+        }
 
-        await results.EarthDb.SaveChangesAsync();
+        earthDb.Tokens.Remove(token);
+        await earthDb.SaveChangesAsync(cancellationToken);
 
-        results.Tokens = tokens.Version;
+        results.Tokens();
 
-        return id;
+        return token;
     }
 
     // does not handle redeeming the token itself (removing it from the list of tokens belonging to the player)
-    public static async Task<TokensEF.Token> DoActionsOnRedeemedTokenAsync(EarthDbContext.Results results, TokensEF.Token token, Guid accountId, DateTimeOffset currentTime, StaticData.StaticData staticData)
+    public static async Task<TokenEF> DoActionsOnRedeemedTokenAsync(EarthDbContext earthDb, ResultsEF.Builder results, TokenEF token, Guid accountId, DateTimeOffset currentTime, StaticData.StaticData staticData)
     {
         switch (token)
         {
-            case TokensEF.LevelUpToken levelUpToken:
+            case LevelUpTokenEF levelUpToken:
                 {
-                    await ActivityLogUtils.AddEntryAsync(results, accountId, new ActivityLogEF.LevelUpEntry(currentTime, levelUpToken.Level));
+                    await ActivityLogUtils.AddEntryAsync(earthDb, results, accountId, new LevelUpEntryEF(accountId, currentTime, levelUpToken.Level));
 
-                    await Rewards.FromDBRewardsModel(levelUpToken.Rewards).ToRedeemQueryAsync(results, accountId, currentTime, staticData);
+                    await Rewards.FromDBRewardsModel(levelUpToken.Rewards).ToRedeemQueryAsync(earthDb, results, accountId, currentTime, staticData);
                 }
 
                 break;
-            case TokensEF.JournalItemUnlockedToken journalItemUnlockedToken:
+            case JournalItemUnlockedTokenEF journalItemUnlockedToken:
                 {
-                    await ActivityLogUtils.AddEntryAsync(results, accountId, new ActivityLogEF.JournalItemUnlockedEntry(currentTime, journalItemUnlockedToken.ItemId));
+                    await ActivityLogUtils.AddEntryAsync(earthDb, results, accountId, new JournalItemUnlockedEntryEF(accountId, currentTime, journalItemUnlockedToken.ItemId));
 
                     /*int experiencePoints = staticData.catalog.itemsCatalog.getItem(journalItemUnlockedToken.itemId).experience().journal();
                     if (experiencePoints > 0)
@@ -49,9 +62,9 @@ internal static class TokenUtils
                 }
 
                 break;
-            case TokensEF.DailyLoginToken { Claimed: false } dailyLoginToken:
+            case DailyLoginTokenEF { Claimed: false, } dailyLoginToken:
                 {
-                    await Rewards.FromDBRewardsModel(dailyLoginToken.Rewards).ToRedeemQueryAsync(results, accountId, currentTime, staticData);
+                    await Rewards.FromDBRewardsModel(dailyLoginToken.Rewards).ToRedeemQueryAsync(earthDb, results, accountId, currentTime, staticData);
                 }
 
                 break;

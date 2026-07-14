@@ -39,12 +39,9 @@ internal static class EarthDbContextExtensions
                 new() { Id = CryptoSecrets.PlayfabSessionTicketName, Value = GenerateSecureSecret(64) },
             ];
 
-            string insertSql = earthDb.Database.Provider switch
-            {
-                DatabaseProvider.Sqlite => "INSERT OR IGNORE INTO Secrets (Id, Value) VALUES ({0}, {1});",
-                DatabaseProvider.Postgres => "INSERT INTO \"Secrets\" (\"Id\", \"Value\") VALUES ({0}, {1}) ON CONFLICT (\"Id\") DO NOTHING;",
-                _ => throw new InvalidOperationException($"Unsupported database provider.")
-            };
+            string insertSql = """
+                INSERT INTO "Secrets" ("Id", "Value") VALUES ({0}, {1}) ON CONFLICT ("Id") DO NOTHING;
+                """;
 
             try
             {

@@ -1,5 +1,5 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Solace.DB.Utils;
 
@@ -11,17 +11,9 @@ public static class ExceptionExtensions
         {
             get
             {
-                if (exception.InnerException is SqliteException sqliteEx)
+                if (exception.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
                 {
-                    if (sqliteEx is { SqliteErrorCode: 19, SqliteExtendedErrorCode: 2067 or 2579 })
-                    {
-                        return true;
-                    }
-
-                    if (sqliteEx.Message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
+                    return true;
                 }
 
                 return false;

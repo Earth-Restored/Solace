@@ -38,24 +38,26 @@ internal sealed class TokensController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var tokens = await _earthDb.Tokens
+        var tokens = _earthDb.Tokens
             .AsNoTracking()
-            .FirstOrNewAsync(tokens => tokens.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .Where(token => token.AccountId == accountId)
+            .AsAsyncEnumerable();
 
-        return EarthJson(new Dictionary<string, Dictionary<string, Token>>()
+        var tokensResponse = await tokens.Where(token => token is not DailyLoginTokenEF { Claimed: true, })
+            .Select(token => new KeyValuePair<Guid, Token>(token.TokenId, TokenToApiResponse(token)))
+            .ToDictionaryAsync(cancellationToken: cancellationToken);
+
+        return EarthJson(new Dictionary<string, Dictionary<Guid, Token>>()
         {
             {
                 "tokens",
-                tokens.GetTokens()
-                    .Where(token => token.Token is not TokensEF.DailyLoginToken { Claimed: true })
-                    .Select(token => new KeyValuePair<string, Token>(token.Id, TokenToApiResponse(token.Token)))
-                    .ToDictionary()
+                tokensResponse
             }
         }, null);
     }
 
     [HttpPost("{tokenId}/redeem")]
-    public async Task<Results<ContentHttpResult, BadRequest>> Redeem(string tokenId, CancellationToken cancellationToken)
+    public async Task<Results<ContentHttpResult, BadRequest>> Redeem(Guid tokenId, CancellationToken cancellationToken)
     {
         if (!TryGetAccountId(out var accountId))
         {
@@ -65,17 +67,11 @@ internal sealed class TokensController : SolaceControllerBase
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        var tokens = await _earthDb.Tokens
-            .AsTracking()
-            .FirstOrNewAsync(tokens => tokens.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
-
-        var removedToken = tokens.RemoveToken(tokenId);
+        var removedToken = await TokenUtils.RemoveTokenAsync(_earthDb, ResultsEF.Builder.Null, accountId, tokenId, cancellationToken);
 
         if (removedToken is not null)
         {
-            await _earthDb.SaveChangesAsync(cancellationToken);
-
-            await TokenUtils.DoActionsOnRedeemedTokenAsync(new EarthDbContext.Results(_earthDb), removedToken, accountId, requestStartedOn, _staticData);
+            await TokenUtils.DoActionsOnRedeemedTokenAsync(_earthDb, ResultsEF.Builder.Null, removedToken, accountId, requestStartedOn, _staticData);
         }
 
         if (removedToken is not null)
@@ -88,33 +84,33 @@ internal sealed class TokensController : SolaceControllerBase
         }
     }
 
-    private static Token TokenToApiResponse(TokensEF.Token token)
+    private static Token TokenToApiResponse(TokenEF token)
     {
         Dictionary<string, string> properties = [];
         switch (token)
         {
-            case TokensEF.JournalItemUnlockedToken journalItemUnlocked:
+            case JournalItemUnlockedTokenEF journalItemUnlocked:
                 properties["itemid"] = journalItemUnlocked.ItemId.ToString();
                 break;
         }
 
         Rewards rewards = token switch
         {
-            TokensEF.LevelUpToken levelUp => Rewards.FromDBRewardsModel(levelUp.Rewards).SetLevel(levelUp.Level),
-            TokensEF.DailyLoginToken dailyLogin => Rewards.FromDBRewardsModel(dailyLogin.Rewards),
+            LevelUpTokenEF levelUp => Rewards.FromDBRewardsModel(levelUp.Rewards).SetLevel(levelUp.Level),
+            DailyLoginTokenEF dailyLogin => Rewards.FromDBRewardsModel(dailyLogin.Rewards),
             _ => new Rewards(),
         };
 
         Token.LifetimeE lifetime = token switch
         {
-            TokensEF.LevelUpToken => Token.LifetimeE.TRANSIENT,
-            TokensEF.JournalItemUnlockedToken => Token.LifetimeE.PERSISTENT,
-            TokensEF.DailyLoginToken => Token.LifetimeE.TRANSIENT,
+            LevelUpTokenEF => Token.LifetimeE.TRANSIENT,
+            JournalItemUnlockedTokenEF => Token.LifetimeE.PERSISTENT,
+            DailyLoginTokenEF => Token.LifetimeE.TRANSIENT,
             _ => throw new InvalidDataException($"Unknown Token type '{token?.GetType()?.ToString() ?? null}'"),
         };
 
         return new Token(
-            Token.Type.FromDb(token.Type),
+            Token.Type.FromDb(token),
             properties,
             rewards.ToApiResponse(),
             lifetime

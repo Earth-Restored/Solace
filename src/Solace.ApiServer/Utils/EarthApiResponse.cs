@@ -30,7 +30,7 @@ internal sealed class EarthApiResponse
     {
         public Dictionary<string, int?> Map = [];
 
-        public UpdatesResponse(EarthDbContext.Results results)
+        public UpdatesResponse(ResultsEF results)
             : this(results.Profile, results.Inventory, results.Crafting, results.Smelting, results.Boosts, results.Buildplates, results.Journal, results.Challenges, results.Tokens)
         {
         }

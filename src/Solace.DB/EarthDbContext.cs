@@ -2,7 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Solace.Common;
 using Solace.DB.Models;
 using Solace.DB.Models.Common;
@@ -26,9 +25,11 @@ public sealed class EarthDbContext : DbContext
 
     public DbSet<Account> Accounts { get; set; }
 
+    public DbSet<AccountVersions> AccountVersions { get; set; }
+
     public DbSet<ProfileEF> Profiles { get; set; }
 
-    public DbSet<ActivityLogEF> ActivityLogs { get; set; }
+    public DbSet<ActivityLogEntryEF> ActivityLogs { get; set; }
 
     public DbSet<BoostsEF> Boosts { get; set; }
 
@@ -36,13 +37,15 @@ public sealed class EarthDbContext : DbContext
 
     public DbSet<HotbarEF> Hotbars { get; set; }
 
-    public DbSet<InventoryEF> Inventories { get; set; }
+    public DbSet<StackableItemEF> StackableItems { get; set; }
 
-    public DbSet<JournalEF> Journals { get; set; }
+    public DbSet<NonStackableItemInstanceEF> NonStackableItems { get; set; }
 
-    public DbSet<RedeemedTappablesEF> RedeemedTappables { get; set; }
+    public DbSet<ItemJournalEntryEF> JournalEntries { get; set; }
 
-    public DbSet<TokensEF> Tokens { get; set; }
+    public DbSet<RedeemedTappableEF> RedeemedTappables { get; set; }
+
+    public DbSet<TokenEF> Tokens { get; set; }
 
     public DbSet<CraftingSlotsEF> CraftingSlots { get; set; }
 
@@ -58,19 +61,77 @@ public sealed class EarthDbContext : DbContext
 
     public DbSet<Secret> Secrets { get; set; }
 
+    public static EarthDbContext CreateFromConnection(string connectionString)
+    {
+        var optionsBuilder = new DbContextOptionsBuilder<EarthDbContext>();
+        ConfigureBuilder(optionsBuilder, connectionString);
+
+        return new EarthDbContext(optionsBuilder.Options);
+    }
+
+    public static void ConfigureBuilder(DbContextOptionsBuilder optionsBuilder, string connectionString)
+    {
+        optionsBuilder.UseNpgsql(connectionString);
+
+        optionsBuilder.UseModel(CompiledModels.EarthDbContextModel.Instance);
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // ToJson gives these
+#pragma warning disable CS8634 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'class' constraint.
+#pragma warning disable IDE0058 // Expression value is never used
+#pragma warning disable CS8621 // Nullability of reference types in return type doesn't match the target delegate (possibly because of nullability attributes).
+#pragma warning disable CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
         base.OnModelCreating(modelBuilder);
 
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        // triggers
+        modelBuilder.Entity<ProfileEF>(entity =>
         {
-            if (typeof(IVersionedEntity).IsAssignableFrom(entityType.ClrType))
-            {
-                modelBuilder.Entity(entityType.ClrType)
-                    .Property(nameof(IVersionedEntity.Version))
-                    .IsConcurrencyToken();
-            }
-        }
+            entity.ToTable("Profiles", tb => tb.HasTrigger("trg_profiles_version"));
+        });
+
+        modelBuilder.Entity<StackableItemEF>(entity =>
+        {
+            entity.ToTable("StackableItems", tb => tb.HasTrigger("trg_stackable_items_version"));
+        });
+
+        modelBuilder.Entity<NonStackableItemInstanceEF>(entity =>
+        {
+            entity.ToTable("NonStackableItems", tb => tb.HasTrigger("trg_non_stackable_items_version"));
+        });
+
+        modelBuilder.Entity<CraftingSlotsEF>(entity =>
+        {
+            entity.ToTable("CraftingSlots", tb => tb.HasTrigger("trg_crafting_slots_version"));
+        });
+
+        modelBuilder.Entity<SmeltingSlotsEF>(entity =>
+        {
+            entity.ToTable("SmeltingSlots", tb => tb.HasTrigger("trg_smelting_slots_version"));
+        });
+
+        modelBuilder.Entity<BoostsEF>(entity =>
+        {
+            entity.ToTable("Boosts", tb => tb.HasTrigger("trg_boosts_version"));
+        });
+
+        modelBuilder.Entity<BuildplateEF>(entity =>
+        {
+            entity.ToTable("Buildplate", tb => tb.HasTrigger("trg_buildplates_version"));
+        });
+
+        modelBuilder.Entity<ItemJournalEntryEF>(entity =>
+        {
+            entity.ToTable("JournalEntries", tb => tb.HasTrigger("trg_journal_entries_version"));
+        });
+        
+        // todo: challenges once implemented
+
+        modelBuilder.Entity<TokenEF>(entity =>
+        {
+            entity.ToTable("Tokens", tb => tb.HasTrigger("trg_tokens_version"));
+        });
 
         // account
         modelBuilder.Entity<Account>()
@@ -85,6 +146,13 @@ public sealed class EarthDbContext : DbContext
         });
 
         modelBuilder.Entity<Account>()
+            .HasOne(a => a.AccountVersions)
+            .WithOne(p => p.Account)
+            .HasForeignKey<ProfileEF>(p => p.Id)
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
+
+        modelBuilder.Entity<Account>()
             .HasOne(a => a.Profile)
             .WithOne(p => p.Account)
             .HasForeignKey<ProfileEF>(p => p.Id)
@@ -92,11 +160,10 @@ public sealed class EarthDbContext : DbContext
             .IsRequired();
 
         modelBuilder.Entity<Account>()
-            .HasOne(a => a.ActivityLog)
-            .WithOne(a => a.Account)
-            .HasForeignKey<ActivityLogEF>(a => a.Id)
-            .OnDelete(DeleteBehavior.Cascade)
-            .IsRequired();
+            .HasMany(a => a.ActivityLogs)
+            .WithOne(b => b.Account)
+            .HasForeignKey(b => b.AccountId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Account>()
             .HasOne(a => a.Boosts)
@@ -119,32 +186,34 @@ public sealed class EarthDbContext : DbContext
             .IsRequired();
 
         modelBuilder.Entity<Account>()
-            .HasOne(a => a.Inventory)
-            .WithOne(i => i.Account)
-            .HasForeignKey<InventoryEF>(i => i.Id)
-            .OnDelete(DeleteBehavior.Cascade)
-            .IsRequired();
+            .HasMany(a => a.StackableItems)
+            .WithOne(b => b.Account)
+            .HasForeignKey(b => b.AccountId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Account>()
-            .HasOne(a => a.Journal)
-            .WithOne(j => j.Account)
-            .HasForeignKey<JournalEF>(j => j.Id)
-            .OnDelete(DeleteBehavior.Cascade)
-            .IsRequired();
+            .HasMany(a => a.NonStackableItems)
+            .WithOne(b => b.Account)
+            .HasForeignKey(b => b.AccountId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Account>()
-            .HasOne(a => a.RedeemedTappables)
-            .WithOne(r => r.Account)
-            .HasForeignKey<RedeemedTappablesEF>(r => r.Id)
-            .OnDelete(DeleteBehavior.Cascade)
-            .IsRequired();
+            .HasMany(a => a.JournalEntries)
+            .WithOne(b => b.Account)
+            .HasForeignKey(b => b.AccountId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Account>()
-            .HasOne(a => a.Tokens)
-            .WithOne(t => t.Account)
-            .HasForeignKey<TokensEF>(t => t.Id)
-            .OnDelete(DeleteBehavior.Cascade)
-            .IsRequired();
+            .HasMany(a => a.RedeemedTappables)
+            .WithOne(b => b.Account)
+            .HasForeignKey(b => b.AccountId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Account>()
+            .HasMany(a => a.Tokens)
+            .WithOne(b => b.Account)
+            .HasForeignKey(b => b.AccountId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Account>()
             .HasOne(a => a.CraftingSlots)
@@ -171,73 +240,101 @@ public sealed class EarthDbContext : DbContext
             .OwnsOne(x => x.Rubies, builder => builder.ToJson());
 
         // activity log
-        modelBuilder.Entity<ActivityLogEF>()
-            .OwnsMany(x => x.Entries, config =>
+        modelBuilder.Entity<ActivityLogEntryEF>()
+            .HasDiscriminator<string>("entity_type")
+            .HasValue<LevelUpEntryEF>("level_up")
+            .HasValue<TappableEntryEF>("tappable_collected")
+            .HasValue<JournalItemUnlockedEntryEF>("journal_item_unlocked")
+            .HasValue<CraftingCompletedEntryEF>("crafting_completed")
+            .HasValue<SmeltingCompletedEntryEF>("smelting_completed")
+            .HasValue<BoostActivatedEntryEF>("boost_activated");
+
+        modelBuilder.Entity<ActivityLogEntryEF>()
+            .HasKey(e => new { e.AccountId, e.EntryId, });
+
+        modelBuilder.Entity<ActivityLogEntryEF>()
+            .Property(e => e.EntryId)
+            .ValueGeneratedOnAdd();
+
+        modelBuilder.Entity<JournalItemUnlockedEntryEF>()
+            .Property(e => e.ItemId)
+            .HasColumnName("ItemId");
+
+        modelBuilder.Entity<BoostActivatedEntryEF>()
+            .Property(e => e.ItemId)
+            .HasColumnName("ItemId");
+
+        modelBuilder.Entity<RewardedActivityLogEntryEF>()
+            .OwnsOne(e => e.Rewards, navigationBuilder =>
             {
-                config.ToJson();
-                config.HasDiscriminator<string>("type")
-                    .HasValue<LevelUpEntry>("LEVEL_UP")
-                    .HasValue<TappableEntry>("TAPPABLE")
-                    .HasValue<JournalItemUnlockedEntry>("JOURNAL_ITEM_UNLOCKED")
-                    .HasValue<CraftingCompletedEntry>("CRAFTING_COMPLETED")
-                    .HasValue<SmeltingCompletedEntry>("SMELTING_COMPLETED")
-                    .HasValue<BoostActivatedEntry>("BOOST_ACTIVATED");
+                navigationBuilder.ToJson();
+
+                navigationBuilder.Property(r => r.Items)
+                    .HasConversion(
+                        v => JsonSerializer.Serialize(v, DbJsonContext.Default.DictionaryGuidInt32),
+                        v => JsonSerializer.Deserialize(v, DbJsonContext.Default.DictionaryGuidInt32) ?? new Dictionary<Guid, int>()
+                    )
+                    .Metadata.SetValueComparer(new DictionaryGuidIntValueComparer());
             });
-            // .Property(x => x.Entries)
-            // .HasConversion<ActivityLogValueConverter>()
-            // .Metadata.SetValueComparer(new ActivityLogListValueComparer());
 
         // boosts
         modelBuilder.Entity<BoostsEF>()
             .OwnsMany(x => x.ActiveBoosts, config => config.ToJson());
-            // .Property(x => x.ActiveBoosts)
-            // .HasConversion<ActiveBoostValueConverter>()
-            // .Metadata.SetValueComparer(new ActiveBoostArrayValueComparer());
 
         // hotbar
         modelBuilder.Entity<HotbarEF>()
             .OwnsMany(x => x.Items, config => config.ToJson());
-            // .Property(x => x.Items)
-            // .HasConversion<HotbarValueConverter>()
-            // .Metadata.SetValueComparer(new HotbarArrayValueComparer());
 
         // inventory
-        modelBuilder.Ignore<NonStackableItemInstance>();
+        modelBuilder.Entity<StackableItemEF>()
+            .HasKey(x => new { x.AccountId, x.ItemId, });
 
-        modelBuilder.Entity<InventoryEF>()
-            .Property(x => x.StackableItemsData)
-            .HasConversion<StackableItemValueConverter>()
-            .Metadata.SetValueComparer(new StackableItemDictionaryValueComparer());
-
-        modelBuilder.Entity<InventoryEF>()
-            .Property(x => x.NonStackableItemsData)
-            .HasConversion<NonStackableItemValueConverter>()
-            .Metadata.SetValueComparer(new NonStackableItemDictionaryValueComparer());
+        modelBuilder.Entity<NonStackableItemInstanceEF>()
+            .HasKey(x => new { x.AccountId, x.ItemId, x.InstanceId, });
 
         // journal
-        modelBuilder.Entity<JournalEF>()
-            .Property(x => x.Items)
-            .HasConversion<JournalValueConverter>()
-            .Metadata.SetValueComparer(new JournalDictionaryValueComparer());
+        modelBuilder.Entity<ItemJournalEntryEF>()
+            .HasKey(x => new { x.AccountId, x.ItemId, });
 
         // redeemed tappables
-        modelBuilder.Entity<RedeemedTappablesEF>()
-            .OwnsOne(x => x.Tappables, builder => builder.ToJson());
+        modelBuilder.Entity<RedeemedTappableEF>()
+            .HasKey(x => new { x.AccountId, x.TappableId, });
 
         // tokens
-        modelBuilder.Entity<TokensEF>()
-            .Property(x => x.Tokens)
-            .HasConversion<TokenValueConverter>()
-            .Metadata.SetValueComparer(new TokenDictionaryValueComparer());
+        modelBuilder.Entity<TokenEF>()
+            .HasDiscriminator<string>("token_type")
+            .HasValue<LevelUpTokenEF>("level_up")
+            .HasValue<JournalItemUnlockedTokenEF>("journal_item_unlocked")
+            .HasValue<DailyLoginTokenEF>("daily_login");
+
+        modelBuilder.Entity<TokenEF>()
+            .HasKey(e => new { e.AccountId, e.TokenId, });
+
+        modelBuilder.Entity<TokenEF>()
+            .Property(e => e.TokenId)
+            .ValueGeneratedOnAdd();
+
+        modelBuilder.Entity<RewardedTokenEF>()
+            .OwnsOne(e => e.Rewards, navigationBuilder =>
+            {
+                navigationBuilder.ToJson();
+
+                navigationBuilder.Property(r => r.Items)
+                    .HasConversion(
+                        v => JsonSerializer.Serialize(v, DbJsonContext.Default.DictionaryGuidInt32),
+                        v => JsonSerializer.Deserialize(v, DbJsonContext.Default.DictionaryGuidInt32) ?? new Dictionary<Guid, int>()
+                    )
+                    .Metadata.SetValueComparer(new DictionaryGuidIntValueComparer());
+            });
+
+        modelBuilder.Entity<DailyLoginTokenEF>()
+            .HasIndex(e => e.Date);
 
         // crafting slots
         modelBuilder.Ignore<CraftingSlotEF.ActiveCraftingJob>();
 
         modelBuilder.Entity<CraftingSlotsEF>()
             .OwnsMany(x => x.Slots, config => config.ToJson());
-            // .Property(x => x.Slots)
-            // .HasConversion<CraftingSlotValueConverter>()
-            // .Metadata.SetValueComparer(new CraftingSlotArrayValueComparer());
 
         // smelting slots
         modelBuilder.Ignore<SmeltingSlot.ActiveSmeltingJob>();
@@ -246,16 +343,14 @@ public sealed class EarthDbContext : DbContext
 
         modelBuilder.Entity<SmeltingSlotsEF>()
             .OwnsMany(x => x.Slots, config => config.ToJson());
-            // .Property(x => x.Slots)
-            // .HasConversion<SmeltingSlotValueConverter>()
-            // .Metadata.SetValueComparer(new SmeltingSlotArrayValueComparer());
 
         // shared buildplates
         modelBuilder.Entity<SharedBuildplateEF>()
             .OwnsMany(x => x.Hotbar, config => config.ToJson());
-            // .Property(x => x.Hotbar)
-            // .HasConversion<SBHotbarValueConverter>()
-            // .Metadata.SetValueComparer(new SBHotbarArrayValueComparer());
+#pragma warning restore CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
+#pragma warning restore CS8621 // Nullability of reference types in return type doesn't match the target delegate (possibly because of nullability attributes).
+#pragma warning restore IDE0058 // Expression value is never used
+#pragma warning restore CS8634 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'class' constraint.
     }
 
     public async Task ClearAsync(CancellationToken cancellationToken = default)
@@ -305,13 +400,8 @@ public sealed class EarthDbContext : DbContext
         };
 
         account.Profile = new ProfileEF() { Id = id, Account = account, };
-        account.ActivityLog = new ActivityLogEF() { Id = id, Account = account, };
         account.Boosts = new BoostsEF() { Id = id, Account = account, };
         account.Hotbar = new HotbarEF() { Id = id, Account = account, };
-        account.Inventory = new InventoryEF() { Id = id, Account = account, };
-        account.Journal = new JournalEF() { Id = id, Account = account, };
-        account.RedeemedTappables = new RedeemedTappablesEF() { Id = id, Account = account, };
-        account.Tokens = new TokensEF() { Id = id, Account = account, };
         account.CraftingSlots = new CraftingSlotsEF() { Id = id, Account = account, };
         account.SmeltingSlots = new SmeltingSlotsEF() { Id = id, Account = account, };
 
@@ -321,42 +411,126 @@ public sealed class EarthDbContext : DbContext
 
         return account;
     }
+}
 
-    public sealed class Results
+public sealed class ResultsEF
+{
+    [DisallowNull]
+    public int? Profile { get => field; set => field = field is null || value > field ? value : field; }
+
+    [DisallowNull]
+    public int? Inventory { get => field; set => field = field is null || value > field ? value : field; }
+
+    [DisallowNull]
+    public int? Crafting { get => field; set => field = field is null || value > field ? value : field; }
+
+    [DisallowNull]
+    public int? Smelting { get => field; set => field = field is null || value > field ? value : field; }
+
+    [DisallowNull]
+    public int? Boosts { get => field; set => field = field is null || value > field ? value : field; }
+
+    [DisallowNull]
+    public int? Buildplates { get => field; set => field = field is null || value > field ? value : field; }
+
+    [DisallowNull]
+    public int? Journal { get => field; set => field = field is null || value > field ? value : field; }
+
+    [DisallowNull]
+    public int? Challenges { get => field; set => field = field is null || value > field ? value : field; }
+
+    [DisallowNull]
+    public int? Tokens { get => field; set => field = field is null || value > field ? value : field; }
+
+    public sealed class Builder
     {
-        [SetsRequiredMembers]
-        public Results(EarthDbContext earthDb)
+        private bool _profile;
+        private bool _inventory;
+        private bool _crafting;
+        private bool _smelting;
+        private bool _boosts;
+        private bool _buildplates;
+        private bool _journal;
+        private bool _challenges;
+        private bool _tokens;
+
+        public static Builder Null { get; } = new Builder();
+
+        public Builder Profile(bool updated = true)
         {
-            EarthDb = earthDb;
+            _profile |= updated;
+            return this;
         }
 
-        public required EarthDbContext EarthDb { get; init; }
+        public Builder Inventory(bool updated = true)
+        {
+            _inventory |= updated;
+            return this;
+        }
 
-        [DisallowNull]
-        public int? Profile { get; set; }
+        public Builder Crafting(bool updated = true)
+        {
+            _crafting |= updated;
+            return this;
+        }
 
-        [DisallowNull]
-        public int? Inventory { get; set; }
+        public Builder Smelting(bool updated = true)
+        {
+            _smelting |= updated;
+            return this;
+        }
 
-        [DisallowNull]
-        public int? Crafting { get; set; }
+        public Builder Boosts(bool updated = true)
+        {
+            _boosts |= updated;
+            return this;
+        }
 
-        [DisallowNull]
-        public int? Smelting { get; set; }
+        public Builder Buildplates(bool updated = true)
+        {
+            _buildplates |= updated;
+            return this;
+        }
 
-        [DisallowNull]
-        public int? Boosts { get; set; }
+        public Builder Journal(bool updated = true)
+        {
+            _journal |= updated;
+            return this;
+        }
 
-        [DisallowNull]
-        public int? Buildplates { get; set; }
+        public Builder Challenges(bool updated = true)
+        {
+            _challenges |= updated;
+            return this;
+        }
 
-        [DisallowNull]
-        public int? Journal { get; set; }
+        public Builder Tokens(bool updated = true)
+        {
+            _tokens |= updated;
+            return this;
+        }
 
-        [DisallowNull]
-        public int? Challenges { get; set; }
+        public async Task<ResultsEF> BuildAsync(EarthDbContext earthDb, Guid accountId, CancellationToken cancellationToken = default)
+        {
+            var versions = await earthDb.AccountVersions
+                .AsNoTracking()
+                .FirstAsync(versions => versions.Id == accountId, cancellationToken);
 
-        [DisallowNull]
-        public int? Tokens { get; set; }
+            return Build(versions);
+        }
+
+        public ResultsEF Build(AccountVersions versions)
+            => new ResultsEF
+            {
+                Profile = _profile ? versions.Profile : null,
+                Inventory = _inventory ? versions.Inventory : null,
+                Crafting = _crafting ? versions.Crafting : null,
+                Smelting = _smelting ? versions.Smelting : null,
+                Boosts = _boosts ? versions.Boosts : null,
+                Buildplates = _buildplates ? versions.Buildplates : null,
+                Journal = _journal ? versions.Journal : null,
+                Challenges = _challenges ? versions.Challenges : null,
+                Tokens = _tokens ? versions.Tokens : null,
+            };
     }
 }

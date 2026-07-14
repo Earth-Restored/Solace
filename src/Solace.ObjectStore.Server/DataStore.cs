@@ -14,17 +14,18 @@ internal sealed class DataStore
         }
     }
 
-    public async Task<string> StoreAsync(Stream data, CancellationToken cancellationToken = default)
+    public async Task<Guid> StoreAsync(Stream data, CancellationToken cancellationToken = default)
     {
-        string id = Guid.NewGuid().ToString();
+        var id = Guid.CreateVersion7();
+        var idString = id.ToString();
 
-        var dir = new DirectoryInfo(Path.Combine(_rootDirectory.FullName, id[..2]));
+        var dir = new DirectoryInfo(Path.Combine(_rootDirectory.FullName, idString[..2]));
         if (!dir.Exists)
         {
             dir.Create();
         }
 
-        var file = new FileInfo(Path.Combine(dir.FullName, id));
+        var file = new FileInfo(Path.Combine(dir.FullName, idString));
 
         try
         {
@@ -45,11 +46,13 @@ internal sealed class DataStore
         return id;
     }
 
-    public async Task<(Stream? Stream, long Length)> LoadAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<(Stream? Stream, long Length)> LoadAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
 
-        var file = new FileInfo(Path.Combine(_rootDirectory.FullName, id[..2], id));
+        var idString = id.ToString();
+
+        var file = new FileInfo(Path.Combine(_rootDirectory.FullName, idString[..2], idString));
         if (!file.Exists)
         {
             return (null, 0);
@@ -65,11 +68,13 @@ internal sealed class DataStore
         }
     }
 
-    public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
 
-        var file = new FileInfo(Path.Combine(_rootDirectory.FullName, id[..2], id));
+        var idString = id.ToString();
+
+        var file = new FileInfo(Path.Combine(_rootDirectory.FullName, idString[..2], idString));
 
         if (file.Exists)
         {

@@ -18,6 +18,7 @@ internal sealed class EnvironmentSettingsController : ControllerBase
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Endpoints cannot be static")]
     public ContentHttpResult Features()
     {
+        // todo: make this configurable
         var resp = new EarthApiResponse(new Dictionary<string, object>
         {
             ["workshop_enabled"] = true,
