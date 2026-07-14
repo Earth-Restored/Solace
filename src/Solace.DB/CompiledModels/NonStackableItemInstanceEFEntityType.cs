@@ -310,10 +310,10 @@ namespace Solace.DB.CompiledModels
                 null,
                 ICollection<NonStackableItemInstanceEF> (IInternalEntry entry) => entry.GetCurrentValue<ICollection<NonStackableItemInstanceEF>>(nonStackableItems));
             nonStackableItems.SetPropertyIndexes(
-                index: 6,
+                index: 7,
                 originalValueIndex: -1,
                 shadowIndex: -1,
-                relationshipIndex: 7,
+                relationshipIndex: 8,
                 storeGenerationIndex: -1);
             nonStackableItems.SetCollectionAccessor<Account, ICollection<NonStackableItemInstanceEF>, NonStackableItemInstanceEF>(
                 ICollection<NonStackableItemInstanceEF> (Account entity) => AccountUnsafeAccessors.NonStackableItems(entity),
@@ -366,7 +366,7 @@ namespace Solace.DB.CompiledModels
             runtimeEntityType.AddAnnotation("Relational:FunctionName", null);
             runtimeEntityType.AddAnnotation("Relational:Schema", null);
             runtimeEntityType.AddAnnotation("Relational:SqlQuery", null);
-            runtimeEntityType.AddAnnotation("Relational:TableName", "NonStackableItemInstances");
+            runtimeEntityType.AddAnnotation("Relational:TableName", "NonStackableItems");
             runtimeEntityType.AddAnnotation("Relational:ViewName", null);
             runtimeEntityType.AddAnnotation("Relational:ViewSchema", null);
 

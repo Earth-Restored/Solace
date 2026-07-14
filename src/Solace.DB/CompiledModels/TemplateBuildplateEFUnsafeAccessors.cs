@@ -13,6 +13,9 @@ namespace Solace.DB.CompiledModels
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Id>k__BackingField")]
         public static extern ref Guid Id(TemplateBuildplateEF @this);
 
+        [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<BlocksPerMeter>k__BackingField")]
+        public static extern ref int BlocksPerMeter(TemplateBuildplateEF @this);
+
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Name>k__BackingField")]
         public static extern ref string Name(TemplateBuildplateEF @this);
 
@@ -23,18 +26,12 @@ namespace Solace.DB.CompiledModels
         public static extern ref int Offset(TemplateBuildplateEF @this);
 
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<PreviewObjectId>k__BackingField")]
-        public static extern ref string PreviewObjectId(TemplateBuildplateEF @this);
-
-        [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Scale>k__BackingField")]
-        public static extern ref int Scale(TemplateBuildplateEF @this);
+        public static extern ref Guid PreviewObjectId(TemplateBuildplateEF @this);
 
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<ServerDataObjectId>k__BackingField")]
-        public static extern ref string ServerDataObjectId(TemplateBuildplateEF @this);
+        public static extern ref Guid ServerDataObjectId(TemplateBuildplateEF @this);
 
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Size>k__BackingField")]
         public static extern ref int Size(TemplateBuildplateEF @this);
-
-        [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Version>k__BackingField")]
-        public static extern ref int Version(TemplateBuildplateEF @this);
     }
 }

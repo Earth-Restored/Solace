@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Solace.DB.Models;
+using Solace.DB.Models.Common;
 using Solace.DB.Models.Player;
 
 #pragma warning disable 219, 612, 618
@@ -18,47 +19,47 @@ using Solace.DB.Models.Player;
 namespace Solace.DB.CompiledModels
 {
     [EntityFrameworkInternal]
-    public partial class LevelUpEntryEntityType
+    public partial class LevelUpTokenEFEntityType
     {
         public static RuntimeEntityType Create(RuntimeModel model, RuntimeEntityType baseEntityType = null)
         {
             var runtimeEntityType = model.AddEntityType(
-                "Solace.DB.Models.Player.LevelUpEntry",
-                typeof(LevelUpEntryEF),
+                "Solace.DB.Models.Player.LevelUpTokenEF",
+                typeof(LevelUpTokenEF),
                 baseEntityType,
-                discriminatorProperty: "entity_type",
+                discriminatorProperty: "token_type",
                 discriminatorValue: "level_up",
                 propertyCount: 1);
 
             var level = runtimeEntityType.AddProperty(
                 "Level",
                 typeof(int),
-                propertyInfo: typeof(LevelUpEntryEF).GetProperty("Level", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                fieldInfo: typeof(LevelUpEntryEF).GetField("<Level>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                propertyInfo: typeof(LevelUpTokenEF).GetProperty("Level", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                fieldInfo: typeof(LevelUpTokenEF).GetField("<Level>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: 0);
             level.SetGetter(
-                int (LevelUpEntryEF instance) => LevelUpEntryUnsafeAccessors.Level(instance),
-                bool (LevelUpEntryEF instance) => LevelUpEntryUnsafeAccessors.Level(instance) == 0);
+                int (LevelUpTokenEF instance) => LevelUpTokenEFUnsafeAccessors.Level(instance),
+                bool (LevelUpTokenEF instance) => LevelUpTokenEFUnsafeAccessors.Level(instance) == 0);
             level.SetSetter(
-                LevelUpEntryEF (LevelUpEntryEF instance, int value) =>
+                LevelUpTokenEF (LevelUpTokenEF instance, int value) =>
                 {
-                    LevelUpEntryUnsafeAccessors.Level(instance) = value;
+                    LevelUpTokenEFUnsafeAccessors.Level(instance) = value;
                     return instance;
                 });
             level.SetMaterializationSetter(
-                LevelUpEntryEF (LevelUpEntryEF instance, int value) =>
+                LevelUpTokenEF (LevelUpTokenEF instance, int value) =>
                 {
-                    LevelUpEntryUnsafeAccessors.Level(instance) = value;
+                    LevelUpTokenEFUnsafeAccessors.Level(instance) = value;
                     return instance;
                 });
             level.SetAccessors(
-                int (IInternalEntry entry) => LevelUpEntryUnsafeAccessors.Level(((LevelUpEntryEF)(entry.Entity))),
-                int (IInternalEntry entry) => LevelUpEntryUnsafeAccessors.Level(((LevelUpEntryEF)(entry.Entity))),
-                int (IInternalEntry entry) => entry.ReadOriginalValue<int>(level, 4),
+                int (IInternalEntry entry) => LevelUpTokenEFUnsafeAccessors.Level(((LevelUpTokenEF)(entry.Entity))),
+                int (IInternalEntry entry) => LevelUpTokenEFUnsafeAccessors.Level(((LevelUpTokenEF)(entry.Entity))),
+                int (IInternalEntry entry) => entry.ReadOriginalValue<int>(level, 3),
                 int (IInternalEntry entry) => entry.GetCurrentValue<int>(level));
             level.SetPropertyIndexes(
-                index: 4,
-                originalValueIndex: 4,
+                index: 3,
+                originalValueIndex: 3,
                 shadowIndex: -1,
                 relationshipIndex: -1,
                 storeGenerationIndex: -1);
@@ -85,44 +86,44 @@ namespace Solace.DB.CompiledModels
         public static void CreateAnnotations(RuntimeEntityType runtimeEntityType)
         {
             var accountId = runtimeEntityType.FindProperty("AccountId");
-            var entryId = runtimeEntityType.FindProperty("EntryId");
-            var timestamp = runtimeEntityType.FindProperty("Timestamp");
-            var entity_type = runtimeEntityType.FindProperty("entity_type");
+            var tokenId = runtimeEntityType.FindProperty("TokenId");
+            var token_type = runtimeEntityType.FindProperty("token_type");
             var level = runtimeEntityType.FindProperty("Level");
             var account = runtimeEntityType.FindNavigation("Account");
+            var rewards = runtimeEntityType.FindNavigation("Rewards");
             runtimeEntityType.SetOriginalValuesFactory(
                 ISnapshot (IInternalEntry source) =>
                 {
-                    var structuralType = ((LevelUpEntryEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, long, DateTimeOffset, string, int>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)entryId).GetValueComparer())).Snapshot(source.GetCurrentValue<long>(entryId)), ((ValueComparer<DateTimeOffset>)(((IProperty)timestamp).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(timestamp)), (source.GetCurrentValue<string>(entity_type) == null ? null : ((ValueComparer<string>)(((IProperty)entity_type).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(entity_type))), ((ValueComparer<int>)(((IProperty)level).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(level)))));
+                    var structuralType = ((LevelUpTokenEF)(source.Entity));
+                    return ((ISnapshot)(new Snapshot<Guid, Guid, string, int>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<Guid>)(((IProperty)tokenId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(tokenId)), (source.GetCurrentValue<string>(token_type) == null ? null : ((ValueComparer<string>)(((IProperty)token_type).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(token_type))), ((ValueComparer<int>)(((IProperty)level).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(level)))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
-                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, long>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<long>)(((IProperty)entryId).GetValueComparer())).Snapshot(default(long))))));
+                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, Guid>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<Guid>)(((IProperty)tokenId).GetValueComparer())).Snapshot(default(Guid))))));
             runtimeEntityType.SetTemporaryValuesFactory(
-                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid, long>(default(Guid), default(long)))));
+                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid, Guid>(default(Guid), default(Guid)))));
             runtimeEntityType.SetShadowValuesFactory(
-                ISnapshot (IDictionary<string, object> source) => ((ISnapshot)(new Snapshot<string>((source.ContainsKey("entity_type") ? ((string)(source["entity_type"])) : null)))));
+                ISnapshot (IDictionary<string, object> source) => ((ISnapshot)(new Snapshot<string>((source.ContainsKey("token_type") ? ((string)(source["token_type"])) : null)))));
             runtimeEntityType.SetEmptyShadowValuesFactory(
                 ISnapshot () => ((ISnapshot)(new Snapshot<string>(default(string)))));
             runtimeEntityType.SetRelationshipSnapshotFactory(
                 ISnapshot (IInternalEntry source) =>
                 {
-                    var structuralType = ((LevelUpEntryEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, long, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)entryId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<long>(entryId)), source.GetCurrentValue<Account>(account))));
+                    var structuralType = ((LevelUpTokenEF)(source.Entity));
+                    return ((ISnapshot)(new Snapshot<Guid, Guid, object, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<Guid>)(((IProperty)tokenId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(tokenId)), source.GetCurrentValue<Account>(account), source.GetCurrentValue<Rewards>(rewards))));
                 });
             runtimeEntityType.SetCounts(new PropertyCounts(
-                propertyCount: 5,
-                navigationCount: 1,
+                propertyCount: 4,
+                navigationCount: 2,
                 complexPropertyCount: 0,
                 complexCollectionCount: 0,
-                originalValueCount: 5,
+                originalValueCount: 4,
                 shadowCount: 1,
-                relationshipCount: 3,
+                relationshipCount: 4,
                 storeGeneratedCount: 2));
             runtimeEntityType.AddAnnotation("Relational:FunctionName", null);
             runtimeEntityType.AddAnnotation("Relational:Schema", null);
             runtimeEntityType.AddAnnotation("Relational:SqlQuery", null);
-            runtimeEntityType.AddAnnotation("Relational:TableName", "ActivityLogs");
+            runtimeEntityType.AddAnnotation("Relational:TableName", "Tokens");
             runtimeEntityType.AddAnnotation("Relational:ViewName", null);
             runtimeEntityType.AddAnnotation("Relational:ViewSchema", null);
 

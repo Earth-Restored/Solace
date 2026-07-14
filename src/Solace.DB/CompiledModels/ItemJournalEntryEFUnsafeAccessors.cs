@@ -9,7 +9,7 @@ using Solace.DB.Models.Player;
 
 namespace Solace.DB.CompiledModels
 {
-    public static class ItemJournalEntryUnsafeAccessors
+    public static class ItemJournalEntryEFUnsafeAccessors
     {
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<AccountId>k__BackingField")]
         public static extern ref Guid AccountId(ItemJournalEntryEF @this);

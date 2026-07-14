@@ -18,43 +18,43 @@ using Solace.DB.Models.Player;
 namespace Solace.DB.CompiledModels
 {
     [EntityFrameworkInternal]
-    public partial class JournalItemUnlockedEntryEntityType
+    public partial class BoostActivatedEntryEFEntityType
     {
         public static RuntimeEntityType Create(RuntimeModel model, RuntimeEntityType baseEntityType = null)
         {
             var runtimeEntityType = model.AddEntityType(
-                "Solace.DB.Models.Player.JournalItemUnlockedEntry",
-                typeof(JournalItemUnlockedEntryEF),
+                "Solace.DB.Models.Player.BoostActivatedEntryEF",
+                typeof(BoostActivatedEntryEF),
                 baseEntityType,
                 discriminatorProperty: "entity_type",
-                discriminatorValue: "journal_item_unlocked",
+                discriminatorValue: "boost_activated",
                 propertyCount: 1);
 
             var itemId = runtimeEntityType.AddProperty(
                 "ItemId",
                 typeof(Guid),
-                propertyInfo: typeof(JournalItemUnlockedEntryEF).GetProperty("ItemId", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                fieldInfo: typeof(JournalItemUnlockedEntryEF).GetField("<ItemId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                propertyInfo: typeof(BoostActivatedEntryEF).GetProperty("ItemId", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                fieldInfo: typeof(BoostActivatedEntryEF).GetField("<ItemId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 valueGenerated: ValueGenerated.OnUpdateSometimes,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
             itemId.SetGetter(
-                Guid (JournalItemUnlockedEntryEF instance) => JournalItemUnlockedEntryUnsafeAccessors.ItemId(instance),
-                bool (JournalItemUnlockedEntryEF instance) => JournalItemUnlockedEntryUnsafeAccessors.ItemId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
+                Guid (BoostActivatedEntryEF instance) => BoostActivatedEntryEFUnsafeAccessors.ItemId(instance),
+                bool (BoostActivatedEntryEF instance) => BoostActivatedEntryEFUnsafeAccessors.ItemId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
             itemId.SetSetter(
-                JournalItemUnlockedEntryEF (JournalItemUnlockedEntryEF instance, Guid value) =>
+                BoostActivatedEntryEF (BoostActivatedEntryEF instance, Guid value) =>
                 {
-                    JournalItemUnlockedEntryUnsafeAccessors.ItemId(instance) = value;
+                    BoostActivatedEntryEFUnsafeAccessors.ItemId(instance) = value;
                     return instance;
                 });
             itemId.SetMaterializationSetter(
-                JournalItemUnlockedEntryEF (JournalItemUnlockedEntryEF instance, Guid value) =>
+                BoostActivatedEntryEF (BoostActivatedEntryEF instance, Guid value) =>
                 {
-                    JournalItemUnlockedEntryUnsafeAccessors.ItemId(instance) = value;
+                    BoostActivatedEntryEFUnsafeAccessors.ItemId(instance) = value;
                     return instance;
                 });
             itemId.SetAccessors(
-                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(4) ? entry.ReadStoreGeneratedValue<Guid>(2) : (entry.FlaggedAsTemporary(4) && JournalItemUnlockedEntryUnsafeAccessors.ItemId(((JournalItemUnlockedEntryEF)(entry.Entity))) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(2) : JournalItemUnlockedEntryUnsafeAccessors.ItemId(((JournalItemUnlockedEntryEF)(entry.Entity))))),
-                Guid (IInternalEntry entry) => JournalItemUnlockedEntryUnsafeAccessors.ItemId(((JournalItemUnlockedEntryEF)(entry.Entity))),
+                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(4) ? entry.ReadStoreGeneratedValue<Guid>(2) : (entry.FlaggedAsTemporary(4) && BoostActivatedEntryEFUnsafeAccessors.ItemId(((BoostActivatedEntryEF)(entry.Entity))) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(2) : BoostActivatedEntryEFUnsafeAccessors.ItemId(((BoostActivatedEntryEF)(entry.Entity))))),
+                Guid (IInternalEntry entry) => BoostActivatedEntryEFUnsafeAccessors.ItemId(((BoostActivatedEntryEF)(entry.Entity))),
                 Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(itemId, 4),
                 Guid (IInternalEntry entry) => entry.GetCurrentValue<Guid>(itemId));
             itemId.SetPropertyIndexes(
@@ -95,7 +95,7 @@ namespace Solace.DB.CompiledModels
             runtimeEntityType.SetOriginalValuesFactory(
                 ISnapshot (IInternalEntry source) =>
                 {
-                    var structuralType = ((JournalItemUnlockedEntryEF)(source.Entity));
+                    var structuralType = ((BoostActivatedEntryEF)(source.Entity));
                     return ((ISnapshot)(new Snapshot<Guid, long, DateTimeOffset, string, Guid>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)entryId).GetValueComparer())).Snapshot(source.GetCurrentValue<long>(entryId)), ((ValueComparer<DateTimeOffset>)(((IProperty)timestamp).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(timestamp)), (source.GetCurrentValue<string>(entity_type) == null ? null : ((ValueComparer<string>)(((IProperty)entity_type).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(entity_type))), ((ValueComparer<Guid>)(((IProperty)itemId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(itemId)))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
@@ -109,7 +109,7 @@ namespace Solace.DB.CompiledModels
             runtimeEntityType.SetRelationshipSnapshotFactory(
                 ISnapshot (IInternalEntry source) =>
                 {
-                    var structuralType = ((JournalItemUnlockedEntryEF)(source.Entity));
+                    var structuralType = ((BoostActivatedEntryEF)(source.Entity));
                     return ((ISnapshot)(new Snapshot<Guid, long, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)entryId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<long>(entryId)), source.GetCurrentValue<Account>(account))));
                 });
             runtimeEntityType.SetCounts(new PropertyCounts(

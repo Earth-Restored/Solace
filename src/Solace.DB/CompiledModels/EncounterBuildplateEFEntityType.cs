@@ -180,50 +180,51 @@ namespace Solace.DB.CompiledModels
 
             var serverDataObjectId = runtimeEntityType.AddProperty(
                 "ServerDataObjectId",
-                typeof(string),
+                typeof(Guid),
                 propertyInfo: typeof(EncounterBuildplateEF).GetProperty("ServerDataObjectId", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                fieldInfo: typeof(EncounterBuildplateEF).GetField("<ServerDataObjectId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
+                fieldInfo: typeof(EncounterBuildplateEF).GetField("<ServerDataObjectId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
             serverDataObjectId.SetGetter(
-                string (EncounterBuildplateEF instance) => EncounterBuildplateEFUnsafeAccessors.ServerDataObjectId(instance),
-                bool (EncounterBuildplateEF instance) => EncounterBuildplateEFUnsafeAccessors.ServerDataObjectId(instance) == null);
+                Guid (EncounterBuildplateEF instance) => EncounterBuildplateEFUnsafeAccessors.ServerDataObjectId(instance),
+                bool (EncounterBuildplateEF instance) => EncounterBuildplateEFUnsafeAccessors.ServerDataObjectId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
             serverDataObjectId.SetSetter(
-                EncounterBuildplateEF (EncounterBuildplateEF instance, string value) =>
+                EncounterBuildplateEF (EncounterBuildplateEF instance, Guid value) =>
                 {
                     EncounterBuildplateEFUnsafeAccessors.ServerDataObjectId(instance) = value;
                     return instance;
                 });
             serverDataObjectId.SetMaterializationSetter(
-                EncounterBuildplateEF (EncounterBuildplateEF instance, string value) =>
+                EncounterBuildplateEF (EncounterBuildplateEF instance, Guid value) =>
                 {
                     EncounterBuildplateEFUnsafeAccessors.ServerDataObjectId(instance) = value;
                     return instance;
                 });
             serverDataObjectId.SetAccessors(
-                string (IInternalEntry entry) => EncounterBuildplateEFUnsafeAccessors.ServerDataObjectId(((EncounterBuildplateEF)(entry.Entity))),
-                string (IInternalEntry entry) => EncounterBuildplateEFUnsafeAccessors.ServerDataObjectId(((EncounterBuildplateEF)(entry.Entity))),
-                string (IInternalEntry entry) => entry.ReadOriginalValue<string>(serverDataObjectId, 3),
-                string (IInternalEntry entry) => entry.GetCurrentValue<string>(serverDataObjectId));
+                Guid (IInternalEntry entry) => EncounterBuildplateEFUnsafeAccessors.ServerDataObjectId(((EncounterBuildplateEF)(entry.Entity))),
+                Guid (IInternalEntry entry) => EncounterBuildplateEFUnsafeAccessors.ServerDataObjectId(((EncounterBuildplateEF)(entry.Entity))),
+                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(serverDataObjectId, 3),
+                Guid (IInternalEntry entry) => entry.GetCurrentValue<Guid>(serverDataObjectId));
             serverDataObjectId.SetPropertyIndexes(
                 index: 3,
                 originalValueIndex: 3,
                 shadowIndex: -1,
                 relationshipIndex: -1,
                 storeGenerationIndex: -1);
-            serverDataObjectId.TypeMapping = StringTypeMapping.Default.Clone(
-                comparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
-                keyComparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
-                providerValueComparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
+            serverDataObjectId.TypeMapping = GuidTypeMapping.Default.Clone(
+                comparer: new ValueComparer<Guid>(
+                    bool (Guid v1, Guid v2) => v1 == v2,
+                    int (Guid v) => ((object)v).GetHashCode(),
+                    Guid (Guid v) => v),
+                keyComparer: new ValueComparer<Guid>(
+                    bool (Guid v1, Guid v2) => v1 == v2,
+                    int (Guid v) => ((object)v).GetHashCode(),
+                    Guid (Guid v) => v),
+                providerValueComparer: new ValueComparer<Guid>(
+                    bool (Guid v1, Guid v2) => v1 == v2,
+                    int (Guid v) => ((object)v).GetHashCode(),
+                    Guid (Guid v) => v),
                 mappingInfo: new RelationalTypeMappingInfo(
-                    dbType: System.Data.DbType.String));
+                    storeTypeName: "uuid"));
             serverDataObjectId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var size = runtimeEntityType.AddProperty(
@@ -296,7 +297,7 @@ namespace Solace.DB.CompiledModels
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((EncounterBuildplateEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, int, int, string, int>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), ((ValueComparer<int>)(((IProperty)offset).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(offset)), ((ValueComparer<int>)(((IProperty)scale).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(scale)), (source.GetCurrentValue<string>(serverDataObjectId) == null ? null : ((ValueComparer<string>)(((IProperty)serverDataObjectId).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(serverDataObjectId))), ((ValueComparer<int>)(((IProperty)size).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(size)))));
+                    return ((ISnapshot)(new Snapshot<Guid, int, int, Guid, int>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), ((ValueComparer<int>)(((IProperty)offset).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(offset)), ((ValueComparer<int>)(((IProperty)scale).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(scale)), ((ValueComparer<Guid>)(((IProperty)serverDataObjectId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(serverDataObjectId)), ((ValueComparer<int>)(((IProperty)size).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(size)))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
                 ISnapshot () => ((ISnapshot)(new Snapshot<Guid>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(default(Guid))))));

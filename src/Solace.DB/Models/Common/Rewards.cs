@@ -11,7 +11,7 @@ public sealed record Rewards(
     string[] Challenges
 ) : ICloneable<Rewards>
 {
-    private Rewards() : this(0, 0, null, [], [], [])
+    public Rewards() : this(0, 0, null, [], [], [])
     {
     }
 

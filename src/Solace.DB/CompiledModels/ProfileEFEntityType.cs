@@ -27,7 +27,7 @@ namespace Solace.DB.CompiledModels
                 "Solace.DB.Models.Player.ProfileEF",
                 typeof(ProfileEF),
                 baseEntityType,
-                propertyCount: 5,
+                propertyCount: 4,
                 navigationCount: 2,
                 foreignKeyCount: 1,
                 keyCount: 1);
@@ -230,56 +230,6 @@ namespace Solace.DB.CompiledModels
                     storeTypeName: "integer"));
             level.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
-            var version = runtimeEntityType.AddProperty(
-                "Version",
-                typeof(int),
-                propertyInfo: typeof(ProfileEF).GetProperty("Version", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                fieldInfo: typeof(ProfileEF).GetField("<Version>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                concurrencyToken: true,
-                sentinel: 0);
-            version.SetGetter(
-                int (ProfileEF instance) => ProfileEFUnsafeAccessors.Version(instance),
-                bool (ProfileEF instance) => ProfileEFUnsafeAccessors.Version(instance) == 0);
-            version.SetSetter(
-                ProfileEF (ProfileEF instance, int value) =>
-                {
-                    ProfileEFUnsafeAccessors.Version(instance) = value;
-                    return instance;
-                });
-            version.SetMaterializationSetter(
-                ProfileEF (ProfileEF instance, int value) =>
-                {
-                    ProfileEFUnsafeAccessors.Version(instance) = value;
-                    return instance;
-                });
-            version.SetAccessors(
-                int (IInternalEntry entry) => ProfileEFUnsafeAccessors.Version(((ProfileEF)(entry.Entity))),
-                int (IInternalEntry entry) => ProfileEFUnsafeAccessors.Version(((ProfileEF)(entry.Entity))),
-                int (IInternalEntry entry) => entry.ReadOriginalValue<int>(version, 4),
-                int (IInternalEntry entry) => entry.GetCurrentValue<int>(version));
-            version.SetPropertyIndexes(
-                index: 4,
-                originalValueIndex: 4,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            version.TypeMapping = IntTypeMapping.Default.Clone(
-                comparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                keyComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                providerValueComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "integer"));
-            version.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
-
             var key = runtimeEntityType.AddKey(
                 new[] { id });
             runtimeEntityType.SetPrimaryKey(key);
@@ -357,10 +307,10 @@ namespace Solace.DB.CompiledModels
                 null,
                 ProfileEF (IInternalEntry entry) => entry.GetCurrentValue<ProfileEF>(profile));
             profile.SetPropertyIndexes(
-                index: 7,
+                index: 8,
                 originalValueIndex: -1,
                 shadowIndex: -1,
-                relationshipIndex: 8,
+                relationshipIndex: 9,
                 storeGenerationIndex: -1);
             return runtimeForeignKey;
         }
@@ -371,7 +321,6 @@ namespace Solace.DB.CompiledModels
             var experience = runtimeEntityType.FindProperty("Experience");
             var health = runtimeEntityType.FindProperty("Health");
             var level = runtimeEntityType.FindProperty("Level");
-            var version = runtimeEntityType.FindProperty("Version");
             var key = runtimeEntityType.FindKey(new[] { id });
             key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid>(key));
             key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<Guid>(key));
@@ -381,7 +330,7 @@ namespace Solace.DB.CompiledModels
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((ProfileEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, int, int, int, int>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), ((ValueComparer<int>)(((IProperty)experience).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(experience)), ((ValueComparer<int>)(((IProperty)health).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(health)), ((ValueComparer<int>)(((IProperty)level).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(level)), ((ValueComparer<int>)(((IProperty)version).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(version)))));
+                    return ((ISnapshot)(new Snapshot<Guid, int, int, int>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), ((ValueComparer<int>)(((IProperty)experience).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(experience)), ((ValueComparer<int>)(((IProperty)health).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(health)), ((ValueComparer<int>)(((IProperty)level).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(level)))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
                 ISnapshot () => ((ISnapshot)(new Snapshot<Guid>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(default(Guid))))));
@@ -398,11 +347,11 @@ namespace Solace.DB.CompiledModels
                     return ((ISnapshot)(new Snapshot<Guid, object, object>(((ValueComparer<Guid>)(((IProperty)id).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), source.GetCurrentValue<Account>(account), source.GetCurrentValue<Rubies>(rubies))));
                 });
             runtimeEntityType.SetCounts(new PropertyCounts(
-                propertyCount: 5,
+                propertyCount: 4,
                 navigationCount: 2,
                 complexPropertyCount: 0,
                 complexCollectionCount: 0,
-                originalValueCount: 5,
+                originalValueCount: 4,
                 shadowCount: 0,
                 relationshipCount: 3,
                 storeGeneratedCount: 1));

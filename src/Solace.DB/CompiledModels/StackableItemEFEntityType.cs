@@ -259,10 +259,10 @@ namespace Solace.DB.CompiledModels
                 null,
                 ICollection<StackableItemEF> (IInternalEntry entry) => entry.GetCurrentValue<ICollection<StackableItemEF>>(stackableItems));
             stackableItems.SetPropertyIndexes(
-                index: 11,
+                index: 12,
                 originalValueIndex: -1,
                 shadowIndex: -1,
-                relationshipIndex: 12,
+                relationshipIndex: 13,
                 storeGenerationIndex: -1);
             stackableItems.SetCollectionAccessor<Account, ICollection<StackableItemEF>, StackableItemEF>(
                 ICollection<StackableItemEF> (Account entity) => AccountUnsafeAccessors.StackableItems(entity),

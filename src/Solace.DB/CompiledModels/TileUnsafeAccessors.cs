@@ -11,9 +11,9 @@ namespace Solace.DB.CompiledModels
     public static class TileUnsafeAccessors
     {
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Id>k__BackingField")]
-        public static extern ref ulong Id(Tile @this);
+        public static extern ref long Id(Tile @this);
 
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<ObjectStoreId>k__BackingField")]
-        public static extern ref string ObjectStoreId(Tile @this);
+        public static extern ref Guid ObjectStoreId(Tile @this);
     }
 }

@@ -8,7 +8,7 @@ using Solace.DB.Models.Player;
 
 namespace Solace.DB.CompiledModels
 {
-    public static class LevelUpTokenUnsafeAccessors
+    public static class LevelUpTokenEFUnsafeAccessors
     {
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Level>k__BackingField")]
         public static extern ref int Level(LevelUpTokenEF @this);

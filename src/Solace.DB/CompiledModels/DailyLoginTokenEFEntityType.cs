@@ -19,64 +19,18 @@ using Solace.DB.Models.Player;
 namespace Solace.DB.CompiledModels
 {
     [EntityFrameworkInternal]
-    public partial class DailyLoginTokenEntityType
+    public partial class DailyLoginTokenEFEntityType
     {
         public static RuntimeEntityType Create(RuntimeModel model, RuntimeEntityType baseEntityType = null)
         {
             var runtimeEntityType = model.AddEntityType(
-                "Solace.DB.Models.Player.DailyLoginToken",
+                "Solace.DB.Models.Player.DailyLoginTokenEF",
                 typeof(DailyLoginTokenEF),
                 baseEntityType,
                 discriminatorProperty: "token_type",
                 discriminatorValue: "daily_login",
-                propertyCount: 3);
-
-            var claimed = runtimeEntityType.AddProperty(
-                "Claimed",
-                typeof(bool),
-                propertyInfo: typeof(DailyLoginTokenEF).GetProperty("Claimed", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                fieldInfo: typeof(DailyLoginTokenEF).GetField("<Claimed>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                sentinel: false);
-            claimed.SetGetter(
-                bool (DailyLoginTokenEF instance) => DailyLoginTokenUnsafeAccessors.Claimed(instance),
-                bool (DailyLoginTokenEF instance) => DailyLoginTokenUnsafeAccessors.Claimed(instance) == false);
-            claimed.SetSetter(
-                DailyLoginTokenEF (DailyLoginTokenEF instance, bool value) =>
-                {
-                    DailyLoginTokenUnsafeAccessors.Claimed(instance) = value;
-                    return instance;
-                });
-            claimed.SetMaterializationSetter(
-                DailyLoginTokenEF (DailyLoginTokenEF instance, bool value) =>
-                {
-                    DailyLoginTokenUnsafeAccessors.Claimed(instance) = value;
-                    return instance;
-                });
-            claimed.SetAccessors(
-                bool (IInternalEntry entry) => DailyLoginTokenUnsafeAccessors.Claimed(((DailyLoginTokenEF)(entry.Entity))),
-                bool (IInternalEntry entry) => DailyLoginTokenUnsafeAccessors.Claimed(((DailyLoginTokenEF)(entry.Entity))),
-                bool (IInternalEntry entry) => entry.ReadOriginalValue<bool>(claimed, 3),
-                bool (IInternalEntry entry) => entry.GetCurrentValue<bool>(claimed));
-            claimed.SetPropertyIndexes(
-                index: 3,
-                originalValueIndex: 3,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            claimed.TypeMapping = NpgsqlBoolTypeMapping.Default.Clone(
-                comparer: new ValueComparer<bool>(
-                    bool (bool v1, bool v2) => v1 == v2,
-                    int (bool v) => ((object)v).GetHashCode(),
-                    bool (bool v) => v),
-                keyComparer: new ValueComparer<bool>(
-                    bool (bool v1, bool v2) => v1 == v2,
-                    int (bool v) => ((object)v).GetHashCode(),
-                    bool (bool v) => v),
-                providerValueComparer: new ValueComparer<bool>(
-                    bool (bool v1, bool v2) => v1 == v2,
-                    int (bool v) => ((object)v).GetHashCode(),
-                    bool (bool v) => v));
-            claimed.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
+                propertyCount: 2,
+                unnamedIndexCount: 1);
 
             var claimedOn = runtimeEntityType.AddProperty(
                 "ClaimedOn",
@@ -85,28 +39,28 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(DailyLoginTokenEF).GetField("<ClaimedOn>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 nullable: true);
             claimedOn.SetGetter(
-                DateTimeOffset? (DailyLoginTokenEF instance) => DailyLoginTokenUnsafeAccessors.ClaimedOn(instance),
-                bool (DailyLoginTokenEF instance) => !(DailyLoginTokenUnsafeAccessors.ClaimedOn(instance).HasValue));
+                DateTimeOffset? (DailyLoginTokenEF instance) => DailyLoginTokenEFUnsafeAccessors.ClaimedOn(instance),
+                bool (DailyLoginTokenEF instance) => !(DailyLoginTokenEFUnsafeAccessors.ClaimedOn(instance).HasValue));
             claimedOn.SetSetter(
                 DailyLoginTokenEF (DailyLoginTokenEF instance, DateTimeOffset? value) =>
                 {
-                    DailyLoginTokenUnsafeAccessors.ClaimedOn(instance) = value;
+                    DailyLoginTokenEFUnsafeAccessors.ClaimedOn(instance) = value;
                     return instance;
                 });
             claimedOn.SetMaterializationSetter(
                 DailyLoginTokenEF (DailyLoginTokenEF instance, DateTimeOffset? value) =>
                 {
-                    DailyLoginTokenUnsafeAccessors.ClaimedOn(instance) = value;
+                    DailyLoginTokenEFUnsafeAccessors.ClaimedOn(instance) = value;
                     return instance;
                 });
             claimedOn.SetAccessors(
-                DateTimeOffset? (IInternalEntry entry) => DailyLoginTokenUnsafeAccessors.ClaimedOn(((DailyLoginTokenEF)(entry.Entity))),
-                DateTimeOffset? (IInternalEntry entry) => DailyLoginTokenUnsafeAccessors.ClaimedOn(((DailyLoginTokenEF)(entry.Entity))),
-                DateTimeOffset? (IInternalEntry entry) => entry.ReadOriginalValue<DateTimeOffset?>(claimedOn, 4),
+                DateTimeOffset? (IInternalEntry entry) => DailyLoginTokenEFUnsafeAccessors.ClaimedOn(((DailyLoginTokenEF)(entry.Entity))),
+                DateTimeOffset? (IInternalEntry entry) => DailyLoginTokenEFUnsafeAccessors.ClaimedOn(((DailyLoginTokenEF)(entry.Entity))),
+                DateTimeOffset? (IInternalEntry entry) => entry.ReadOriginalValue<DateTimeOffset?>(claimedOn, 3),
                 DateTimeOffset? (IInternalEntry entry) => entry.GetCurrentValue<DateTimeOffset?>(claimedOn));
             claimedOn.SetPropertyIndexes(
-                index: 4,
-                originalValueIndex: 4,
+                index: 3,
+                originalValueIndex: 3,
                 shadowIndex: -1,
                 relationshipIndex: -1,
                 storeGenerationIndex: -1);
@@ -136,28 +90,28 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(DailyLoginTokenEF).GetField("<Date>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: new DateOnly(1, 1, 1));
             date.SetGetter(
-                DateOnly (DailyLoginTokenEF instance) => DailyLoginTokenUnsafeAccessors.Date(instance),
-                bool (DailyLoginTokenEF instance) => DailyLoginTokenUnsafeAccessors.Date(instance) == default(DateOnly));
+                DateOnly (DailyLoginTokenEF instance) => DailyLoginTokenEFUnsafeAccessors.Date(instance),
+                bool (DailyLoginTokenEF instance) => DailyLoginTokenEFUnsafeAccessors.Date(instance) == default(DateOnly));
             date.SetSetter(
                 DailyLoginTokenEF (DailyLoginTokenEF instance, DateOnly value) =>
                 {
-                    DailyLoginTokenUnsafeAccessors.Date(instance) = value;
+                    DailyLoginTokenEFUnsafeAccessors.Date(instance) = value;
                     return instance;
                 });
             date.SetMaterializationSetter(
                 DailyLoginTokenEF (DailyLoginTokenEF instance, DateOnly value) =>
                 {
-                    DailyLoginTokenUnsafeAccessors.Date(instance) = value;
+                    DailyLoginTokenEFUnsafeAccessors.Date(instance) = value;
                     return instance;
                 });
             date.SetAccessors(
-                DateOnly (IInternalEntry entry) => DailyLoginTokenUnsafeAccessors.Date(((DailyLoginTokenEF)(entry.Entity))),
-                DateOnly (IInternalEntry entry) => DailyLoginTokenUnsafeAccessors.Date(((DailyLoginTokenEF)(entry.Entity))),
-                DateOnly (IInternalEntry entry) => entry.ReadOriginalValue<DateOnly>(date, 5),
+                DateOnly (IInternalEntry entry) => DailyLoginTokenEFUnsafeAccessors.Date(((DailyLoginTokenEF)(entry.Entity))),
+                DateOnly (IInternalEntry entry) => DailyLoginTokenEFUnsafeAccessors.Date(((DailyLoginTokenEF)(entry.Entity))),
+                DateOnly (IInternalEntry entry) => entry.ReadOriginalValue<DateOnly>(date, 4),
                 DateOnly (IInternalEntry entry) => entry.GetCurrentValue<DateOnly>(date));
             date.SetPropertyIndexes(
-                index: 5,
-                originalValueIndex: 5,
+                index: 4,
+                originalValueIndex: 4,
                 shadowIndex: -1,
                 relationshipIndex: -1,
                 storeGenerationIndex: -1);
@@ -176,6 +130,9 @@ namespace Solace.DB.CompiledModels
                     DateOnly (DateOnly v) => v));
             date.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
+            var index = runtimeEntityType.AddIndex(
+                new[] { date });
+
             return runtimeEntityType;
         }
 
@@ -184,7 +141,6 @@ namespace Solace.DB.CompiledModels
             var accountId = runtimeEntityType.FindProperty("AccountId");
             var tokenId = runtimeEntityType.FindProperty("TokenId");
             var token_type = runtimeEntityType.FindProperty("token_type");
-            var claimed = runtimeEntityType.FindProperty("Claimed");
             var claimedOn = runtimeEntityType.FindProperty("ClaimedOn");
             var date = runtimeEntityType.FindProperty("Date");
             var account = runtimeEntityType.FindNavigation("Account");
@@ -193,12 +149,12 @@ namespace Solace.DB.CompiledModels
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((DailyLoginTokenEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, long, string, bool, DateTimeOffset?, DateOnly>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)tokenId).GetValueComparer())).Snapshot(source.GetCurrentValue<long>(tokenId)), (source.GetCurrentValue<string>(token_type) == null ? null : ((ValueComparer<string>)(((IProperty)token_type).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(token_type))), ((ValueComparer<bool>)(((IProperty)claimed).GetValueComparer())).Snapshot(source.GetCurrentValue<bool>(claimed)), (source.GetCurrentValue<DateTimeOffset?>(claimedOn) == null ? null : ((ValueComparer<DateTimeOffset?>)(((IProperty)claimedOn).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset?>(claimedOn))), ((ValueComparer<DateOnly>)(((IProperty)date).GetValueComparer())).Snapshot(source.GetCurrentValue<DateOnly>(date)))));
+                    return ((ISnapshot)(new Snapshot<Guid, Guid, string, DateTimeOffset?, DateOnly>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<Guid>)(((IProperty)tokenId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(tokenId)), (source.GetCurrentValue<string>(token_type) == null ? null : ((ValueComparer<string>)(((IProperty)token_type).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(token_type))), (source.GetCurrentValue<DateTimeOffset?>(claimedOn) == null ? null : ((ValueComparer<DateTimeOffset?>)(((IProperty)claimedOn).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset?>(claimedOn))), ((ValueComparer<DateOnly>)(((IProperty)date).GetValueComparer())).Snapshot(source.GetCurrentValue<DateOnly>(date)))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
-                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, long>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<long>)(((IProperty)tokenId).GetValueComparer())).Snapshot(default(long))))));
+                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, Guid>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<Guid>)(((IProperty)tokenId).GetValueComparer())).Snapshot(default(Guid))))));
             runtimeEntityType.SetTemporaryValuesFactory(
-                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid, long>(default(Guid), default(long)))));
+                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid, Guid>(default(Guid), default(Guid)))));
             runtimeEntityType.SetShadowValuesFactory(
                 ISnapshot (IDictionary<string, object> source) => ((ISnapshot)(new Snapshot<string>((source.ContainsKey("token_type") ? ((string)(source["token_type"])) : null)))));
             runtimeEntityType.SetEmptyShadowValuesFactory(
@@ -207,14 +163,14 @@ namespace Solace.DB.CompiledModels
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((DailyLoginTokenEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, long, object, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)tokenId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<long>(tokenId)), source.GetCurrentValue<Account>(account), source.GetCurrentValue<Rewards>(rewards))));
+                    return ((ISnapshot)(new Snapshot<Guid, Guid, object, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<Guid>)(((IProperty)tokenId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(tokenId)), source.GetCurrentValue<Account>(account), source.GetCurrentValue<Rewards>(rewards))));
                 });
             runtimeEntityType.SetCounts(new PropertyCounts(
-                propertyCount: 6,
+                propertyCount: 5,
                 navigationCount: 2,
                 complexPropertyCount: 0,
                 complexCollectionCount: 0,
-                originalValueCount: 6,
+                originalValueCount: 5,
                 shadowCount: 1,
                 relationshipCount: 4,
                 storeGeneratedCount: 2));

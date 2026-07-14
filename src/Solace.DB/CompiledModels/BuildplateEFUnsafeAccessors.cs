@@ -44,9 +44,6 @@ namespace Solace.DB.CompiledModels
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<TemplateId>k__BackingField")]
         public static extern ref Guid? TemplateId(BuildplateEF @this);
 
-        [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Version>k__BackingField")]
-        public static extern ref int Version(BuildplateEF @this);
-
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Account>k__BackingField")]
         public static extern ref Account Account(BuildplateEF @this);
     }

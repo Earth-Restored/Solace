@@ -29,7 +29,7 @@ namespace Solace.DB.CompiledModels
         public static RuntimeEntityType Create(RuntimeModel model, RuntimeEntityType baseEntityType = null)
         {
             var runtimeEntityType = model.AddEntityType(
-                "Solace.DB.Models.Player.RewardedActivityLogEntry.Rewards#Rewards",
+                "Solace.DB.Models.Player.RewardedActivityLogEntryEF.Rewards#Rewards",
                 typeof(Rewards),
                 baseEntityType,
                 sharedClrType: true,
@@ -37,23 +37,23 @@ namespace Solace.DB.CompiledModels
                 foreignKeyCount: 1,
                 keyCount: 1);
 
-            var rewardedActivityLogEntryAccountId = runtimeEntityType.AddProperty(
-                "RewardedActivityLogEntryAccountId",
+            var rewardedActivityLogEntryEFAccountId = runtimeEntityType.AddProperty(
+                "RewardedActivityLogEntryEFAccountId",
                 typeof(Guid),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            rewardedActivityLogEntryAccountId.SetAccessors(
+            rewardedActivityLogEntryEFAccountId.SetAccessors(
                 Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(0) ? entry.ReadStoreGeneratedValue<Guid>(0) : (entry.FlaggedAsTemporary(0) && entry.ReadShadowValue<Guid>(0) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(0) : entry.ReadShadowValue<Guid>(0))),
                 Guid (IInternalEntry entry) => entry.ReadShadowValue<Guid>(0),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(rewardedActivityLogEntryAccountId, 0),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(rewardedActivityLogEntryAccountId, 0));
-            rewardedActivityLogEntryAccountId.SetPropertyIndexes(
+                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(rewardedActivityLogEntryEFAccountId, 0),
+                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(rewardedActivityLogEntryEFAccountId, 0));
+            rewardedActivityLogEntryEFAccountId.SetPropertyIndexes(
                 index: 0,
                 originalValueIndex: 0,
                 shadowIndex: 0,
                 relationshipIndex: 0,
                 storeGenerationIndex: 0);
-            rewardedActivityLogEntryAccountId.TypeMapping = GuidTypeMapping.Default.Clone(
+            rewardedActivityLogEntryEFAccountId.TypeMapping = GuidTypeMapping.Default.Clone(
                 comparer: new ValueComparer<Guid>(
                     bool (Guid v1, Guid v2) => v1 == v2,
                     int (Guid v) => ((object)v).GetHashCode(),
@@ -68,26 +68,26 @@ namespace Solace.DB.CompiledModels
                     Guid (Guid v) => v),
                 mappingInfo: new RelationalTypeMappingInfo(
                     storeTypeName: "uuid"));
-            rewardedActivityLogEntryAccountId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(rewardedActivityLogEntryAccountId));
-            rewardedActivityLogEntryAccountId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
+            rewardedActivityLogEntryEFAccountId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(rewardedActivityLogEntryEFAccountId));
+            rewardedActivityLogEntryEFAccountId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
-            var rewardedActivityLogEntryEntryId = runtimeEntityType.AddProperty(
-                "RewardedActivityLogEntryEntryId",
+            var rewardedActivityLogEntryEFEntryId = runtimeEntityType.AddProperty(
+                "RewardedActivityLogEntryEFEntryId",
                 typeof(long),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: 0L);
-            rewardedActivityLogEntryEntryId.SetAccessors(
+            rewardedActivityLogEntryEFEntryId.SetAccessors(
                 long (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(1) ? entry.ReadStoreGeneratedValue<long>(1) : (entry.FlaggedAsTemporary(1) && entry.ReadShadowValue<long>(1) == 0L ? entry.ReadTemporaryValue<long>(1) : entry.ReadShadowValue<long>(1))),
                 long (IInternalEntry entry) => entry.ReadShadowValue<long>(1),
-                long (IInternalEntry entry) => entry.ReadOriginalValue<long>(rewardedActivityLogEntryEntryId, 1),
-                long (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<long>(rewardedActivityLogEntryEntryId, 1));
-            rewardedActivityLogEntryEntryId.SetPropertyIndexes(
+                long (IInternalEntry entry) => entry.ReadOriginalValue<long>(rewardedActivityLogEntryEFEntryId, 1),
+                long (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<long>(rewardedActivityLogEntryEFEntryId, 1));
+            rewardedActivityLogEntryEFEntryId.SetPropertyIndexes(
                 index: 1,
                 originalValueIndex: 1,
                 shadowIndex: 1,
                 relationshipIndex: 1,
                 storeGenerationIndex: 1);
-            rewardedActivityLogEntryEntryId.TypeMapping = LongTypeMapping.Default.Clone(
+            rewardedActivityLogEntryEFEntryId.TypeMapping = LongTypeMapping.Default.Clone(
                 comparer: new ValueComparer<long>(
                     bool (long v1, long v2) => v1 == v2,
                     int (long v) => ((object)v).GetHashCode(),
@@ -100,8 +100,8 @@ namespace Solace.DB.CompiledModels
                     bool (long v1, long v2) => v1 == v2,
                     int (long v) => ((object)v).GetHashCode(),
                     long (long v) => v));
-            rewardedActivityLogEntryEntryId.SetCurrentValueComparer(new EntryCurrentValueComparer<long>(rewardedActivityLogEntryEntryId));
-            rewardedActivityLogEntryEntryId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
+            rewardedActivityLogEntryEFEntryId.SetCurrentValueComparer(new EntryCurrentValueComparer<long>(rewardedActivityLogEntryEFEntryId));
+            rewardedActivityLogEntryEFEntryId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var buildplates = runtimeEntityType.AddProperty(
                 "Buildplates",
@@ -447,7 +447,7 @@ namespace Solace.DB.CompiledModels
             rubies.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var key = runtimeEntityType.AddKey(
-                new[] { rewardedActivityLogEntryAccountId, rewardedActivityLogEntryEntryId });
+                new[] { rewardedActivityLogEntryEFAccountId, rewardedActivityLogEntryEFEntryId });
             runtimeEntityType.SetPrimaryKey(key);
 
             return runtimeEntityType;
@@ -455,7 +455,7 @@ namespace Solace.DB.CompiledModels
 
         public static RuntimeForeignKey CreateForeignKey1(RuntimeEntityType declaringEntityType, RuntimeEntityType principalEntityType)
         {
-            var runtimeForeignKey = declaringEntityType.AddForeignKey(new[] { declaringEntityType.FindProperty("RewardedActivityLogEntryAccountId"), declaringEntityType.FindProperty("RewardedActivityLogEntryEntryId") },
+            var runtimeForeignKey = declaringEntityType.AddForeignKey(new[] { declaringEntityType.FindProperty("RewardedActivityLogEntryEFAccountId"), declaringEntityType.FindProperty("RewardedActivityLogEntryEFEntryId") },
                 principalEntityType.FindKey(new[] { principalEntityType.FindProperty("AccountId"), principalEntityType.FindProperty("EntryId") }),
                 principalEntityType,
                 deleteBehavior: DeleteBehavior.Cascade,
@@ -473,23 +473,23 @@ namespace Solace.DB.CompiledModels
                 eagerLoaded: true);
 
             rewards.SetGetter(
-                Rewards (RewardedActivityLogEntryEF instance) => RewardedActivityLogEntryUnsafeAccessors.Rewards(instance),
-                bool (RewardedActivityLogEntryEF instance) => RewardedActivityLogEntryUnsafeAccessors.Rewards(instance) == null);
+                Rewards (RewardedActivityLogEntryEF instance) => RewardedActivityLogEntryEFUnsafeAccessors.Rewards(instance),
+                bool (RewardedActivityLogEntryEF instance) => RewardedActivityLogEntryEFUnsafeAccessors.Rewards(instance) == null);
             rewards.SetSetter(
                 RewardedActivityLogEntryEF (RewardedActivityLogEntryEF instance, Rewards value) =>
                 {
-                    RewardedActivityLogEntryUnsafeAccessors.Rewards(instance) = value;
+                    RewardedActivityLogEntryEFUnsafeAccessors.Rewards(instance) = value;
                     return instance;
                 });
             rewards.SetMaterializationSetter(
                 RewardedActivityLogEntryEF (RewardedActivityLogEntryEF instance, Rewards value) =>
                 {
-                    RewardedActivityLogEntryUnsafeAccessors.Rewards(instance) = value;
+                    RewardedActivityLogEntryEFUnsafeAccessors.Rewards(instance) = value;
                     return instance;
                 });
             rewards.SetAccessors(
-                Rewards (IInternalEntry entry) => RewardedActivityLogEntryUnsafeAccessors.Rewards(((RewardedActivityLogEntryEF)(entry.Entity))),
-                Rewards (IInternalEntry entry) => RewardedActivityLogEntryUnsafeAccessors.Rewards(((RewardedActivityLogEntryEF)(entry.Entity))),
+                Rewards (IInternalEntry entry) => RewardedActivityLogEntryEFUnsafeAccessors.Rewards(((RewardedActivityLogEntryEF)(entry.Entity))),
+                Rewards (IInternalEntry entry) => RewardedActivityLogEntryEFUnsafeAccessors.Rewards(((RewardedActivityLogEntryEF)(entry.Entity))),
                 null,
                 Rewards (IInternalEntry entry) => entry.GetCurrentValue<Rewards>(rewards));
             rewards.SetPropertyIndexes(
@@ -503,36 +503,36 @@ namespace Solace.DB.CompiledModels
 
         public static void CreateAnnotations(RuntimeEntityType runtimeEntityType)
         {
-            var rewardedActivityLogEntryAccountId = runtimeEntityType.FindProperty("RewardedActivityLogEntryAccountId");
-            var rewardedActivityLogEntryEntryId = runtimeEntityType.FindProperty("RewardedActivityLogEntryEntryId");
+            var rewardedActivityLogEntryEFAccountId = runtimeEntityType.FindProperty("RewardedActivityLogEntryEFAccountId");
+            var rewardedActivityLogEntryEFEntryId = runtimeEntityType.FindProperty("RewardedActivityLogEntryEFEntryId");
             var buildplates = runtimeEntityType.FindProperty("Buildplates");
             var challenges = runtimeEntityType.FindProperty("Challenges");
             var experiencePoints = runtimeEntityType.FindProperty("ExperiencePoints");
             var items = runtimeEntityType.FindProperty("Items");
             var level = runtimeEntityType.FindProperty("Level");
             var rubies = runtimeEntityType.FindProperty("Rubies");
-            var key = runtimeEntityType.FindKey(new[] { rewardedActivityLogEntryAccountId, rewardedActivityLogEntryEntryId });
+            var key = runtimeEntityType.FindKey(new[] { rewardedActivityLogEntryEFAccountId, rewardedActivityLogEntryEFEntryId });
             key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateCompositeFactory(key));
             key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<IReadOnlyList<object>>(key));
             runtimeEntityType.SetOriginalValuesFactory(
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((Rewards)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, long, Guid[], string[], int, Dictionary<Guid, int>, int?, int>(((ValueComparer<Guid>)(((IProperty)rewardedActivityLogEntryAccountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(rewardedActivityLogEntryAccountId)), ((ValueComparer<long>)(((IProperty)rewardedActivityLogEntryEntryId).GetValueComparer())).Snapshot(source.GetCurrentValue<long>(rewardedActivityLogEntryEntryId)), (((IEnumerable<Guid>)(source.GetCurrentValue<Guid[]>(buildplates))) == null ? null : ((Guid[])(((ValueComparer<IEnumerable<Guid>>)(((IProperty)buildplates).GetValueComparer())).Snapshot(((IEnumerable<Guid>)(source.GetCurrentValue<Guid[]>(buildplates))))))), (((object)(source.GetCurrentValue<string[]>(challenges))) == null ? null : ((string[])(((ValueComparer<object>)(((IProperty)challenges).GetValueComparer())).Snapshot(((object)(source.GetCurrentValue<string[]>(challenges))))))), ((ValueComparer<int>)(((IProperty)experiencePoints).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(experiencePoints)), (source.GetCurrentValue<Dictionary<Guid, int>>(items) == null ? null : ((ValueComparer<Dictionary<Guid, int>>)(((IProperty)items).GetValueComparer())).Snapshot(source.GetCurrentValue<Dictionary<Guid, int>>(items))), (source.GetCurrentValue<int?>(level) == null ? null : ((ValueComparer<int?>)(((IProperty)level).GetValueComparer())).Snapshot(source.GetCurrentValue<int?>(level))), ((ValueComparer<int>)(((IProperty)rubies).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(rubies)))));
+                    return ((ISnapshot)(new Snapshot<Guid, long, Guid[], string[], int, Dictionary<Guid, int>, int?, int>(((ValueComparer<Guid>)(((IProperty)rewardedActivityLogEntryEFAccountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(rewardedActivityLogEntryEFAccountId)), ((ValueComparer<long>)(((IProperty)rewardedActivityLogEntryEFEntryId).GetValueComparer())).Snapshot(source.GetCurrentValue<long>(rewardedActivityLogEntryEFEntryId)), (((IEnumerable<Guid>)(source.GetCurrentValue<Guid[]>(buildplates))) == null ? null : ((Guid[])(((ValueComparer<IEnumerable<Guid>>)(((IProperty)buildplates).GetValueComparer())).Snapshot(((IEnumerable<Guid>)(source.GetCurrentValue<Guid[]>(buildplates))))))), (((object)(source.GetCurrentValue<string[]>(challenges))) == null ? null : ((string[])(((ValueComparer<object>)(((IProperty)challenges).GetValueComparer())).Snapshot(((object)(source.GetCurrentValue<string[]>(challenges))))))), ((ValueComparer<int>)(((IProperty)experiencePoints).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(experiencePoints)), (source.GetCurrentValue<Dictionary<Guid, int>>(items) == null ? null : ((ValueComparer<Dictionary<Guid, int>>)(((IProperty)items).GetValueComparer())).Snapshot(source.GetCurrentValue<Dictionary<Guid, int>>(items))), (source.GetCurrentValue<int?>(level) == null ? null : ((ValueComparer<int?>)(((IProperty)level).GetValueComparer())).Snapshot(source.GetCurrentValue<int?>(level))), ((ValueComparer<int>)(((IProperty)rubies).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(rubies)))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
-                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, long>(((ValueComparer<Guid>)(((IProperty)rewardedActivityLogEntryAccountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<long>)(((IProperty)rewardedActivityLogEntryEntryId).GetValueComparer())).Snapshot(default(long))))));
+                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, long>(((ValueComparer<Guid>)(((IProperty)rewardedActivityLogEntryEFAccountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<long>)(((IProperty)rewardedActivityLogEntryEFEntryId).GetValueComparer())).Snapshot(default(long))))));
             runtimeEntityType.SetTemporaryValuesFactory(
                 ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid, long>(default(Guid), default(long)))));
             runtimeEntityType.SetShadowValuesFactory(
-                ISnapshot (IDictionary<string, object> source) => ((ISnapshot)(new Snapshot<Guid, long>((source.ContainsKey("RewardedActivityLogEntryAccountId") ? ((Guid)(source["RewardedActivityLogEntryAccountId"])) : new Guid("00000000-0000-0000-0000-000000000000")), (source.ContainsKey("RewardedActivityLogEntryEntryId") ? ((long)(source["RewardedActivityLogEntryEntryId"])) : 0L)))));
+                ISnapshot (IDictionary<string, object> source) => ((ISnapshot)(new Snapshot<Guid, long>((source.ContainsKey("RewardedActivityLogEntryEFAccountId") ? ((Guid)(source["RewardedActivityLogEntryEFAccountId"])) : new Guid("00000000-0000-0000-0000-000000000000")), (source.ContainsKey("RewardedActivityLogEntryEFEntryId") ? ((long)(source["RewardedActivityLogEntryEFEntryId"])) : 0L)))));
             runtimeEntityType.SetEmptyShadowValuesFactory(
                 ISnapshot () => ((ISnapshot)(new Snapshot<Guid, long>(default(Guid), default(long)))));
             runtimeEntityType.SetRelationshipSnapshotFactory(
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((Rewards)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, long>(((ValueComparer<Guid>)(((IProperty)rewardedActivityLogEntryAccountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(rewardedActivityLogEntryAccountId)), ((ValueComparer<long>)(((IProperty)rewardedActivityLogEntryEntryId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<long>(rewardedActivityLogEntryEntryId)))));
+                    return ((ISnapshot)(new Snapshot<Guid, long>(((ValueComparer<Guid>)(((IProperty)rewardedActivityLogEntryEFAccountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(rewardedActivityLogEntryEFAccountId)), ((ValueComparer<long>)(((IProperty)rewardedActivityLogEntryEFEntryId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<long>(rewardedActivityLogEntryEFEntryId)))));
                 });
             runtimeEntityType.SetCounts(new PropertyCounts(
                 propertyCount: 8,

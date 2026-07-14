@@ -8,7 +8,7 @@ using Solace.DB.Models.Player;
 
 namespace Solace.DB.CompiledModels
 {
-    public static class RewardedActivityLogEntryUnsafeAccessors
+    public static class RewardedActivityLogEntryEFUnsafeAccessors
     {
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Rewards>k__BackingField")]
         public static extern ref Rewards Rewards(RewardedActivityLogEntryEF @this);

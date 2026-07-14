@@ -29,7 +29,7 @@ namespace Solace.DB.CompiledModels
         public static RuntimeEntityType Create(RuntimeModel model, RuntimeEntityType baseEntityType = null)
         {
             var runtimeEntityType = model.AddEntityType(
-                "Solace.DB.Models.Player.RewardedToken.Rewards#Rewards",
+                "Solace.DB.Models.Player.RewardedTokenEF.Rewards#Rewards",
                 typeof(Rewards),
                 baseEntityType,
                 sharedClrType: true,
@@ -37,23 +37,23 @@ namespace Solace.DB.CompiledModels
                 foreignKeyCount: 1,
                 keyCount: 1);
 
-            var rewardedTokenAccountId = runtimeEntityType.AddProperty(
-                "RewardedTokenAccountId",
+            var rewardedTokenEFAccountId = runtimeEntityType.AddProperty(
+                "RewardedTokenEFAccountId",
                 typeof(Guid),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            rewardedTokenAccountId.SetAccessors(
+            rewardedTokenEFAccountId.SetAccessors(
                 Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(0) ? entry.ReadStoreGeneratedValue<Guid>(0) : (entry.FlaggedAsTemporary(0) && entry.ReadShadowValue<Guid>(0) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(0) : entry.ReadShadowValue<Guid>(0))),
                 Guid (IInternalEntry entry) => entry.ReadShadowValue<Guid>(0),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(rewardedTokenAccountId, 0),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(rewardedTokenAccountId, 0));
-            rewardedTokenAccountId.SetPropertyIndexes(
+                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(rewardedTokenEFAccountId, 0),
+                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(rewardedTokenEFAccountId, 0));
+            rewardedTokenEFAccountId.SetPropertyIndexes(
                 index: 0,
                 originalValueIndex: 0,
                 shadowIndex: 0,
                 relationshipIndex: 0,
                 storeGenerationIndex: 0);
-            rewardedTokenAccountId.TypeMapping = GuidTypeMapping.Default.Clone(
+            rewardedTokenEFAccountId.TypeMapping = GuidTypeMapping.Default.Clone(
                 comparer: new ValueComparer<Guid>(
                     bool (Guid v1, Guid v2) => v1 == v2,
                     int (Guid v) => ((object)v).GetHashCode(),
@@ -68,40 +68,42 @@ namespace Solace.DB.CompiledModels
                     Guid (Guid v) => v),
                 mappingInfo: new RelationalTypeMappingInfo(
                     storeTypeName: "uuid"));
-            rewardedTokenAccountId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(rewardedTokenAccountId));
-            rewardedTokenAccountId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
+            rewardedTokenEFAccountId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(rewardedTokenEFAccountId));
+            rewardedTokenEFAccountId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
-            var rewardedTokenTokenId = runtimeEntityType.AddProperty(
-                "RewardedTokenTokenId",
-                typeof(long),
+            var rewardedTokenEFTokenId = runtimeEntityType.AddProperty(
+                "RewardedTokenEFTokenId",
+                typeof(Guid),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
-                sentinel: 0L);
-            rewardedTokenTokenId.SetAccessors(
-                long (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(1) ? entry.ReadStoreGeneratedValue<long>(1) : (entry.FlaggedAsTemporary(1) && entry.ReadShadowValue<long>(1) == 0L ? entry.ReadTemporaryValue<long>(1) : entry.ReadShadowValue<long>(1))),
-                long (IInternalEntry entry) => entry.ReadShadowValue<long>(1),
-                long (IInternalEntry entry) => entry.ReadOriginalValue<long>(rewardedTokenTokenId, 1),
-                long (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<long>(rewardedTokenTokenId, 1));
-            rewardedTokenTokenId.SetPropertyIndexes(
+                sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
+            rewardedTokenEFTokenId.SetAccessors(
+                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(1) ? entry.ReadStoreGeneratedValue<Guid>(1) : (entry.FlaggedAsTemporary(1) && entry.ReadShadowValue<Guid>(1) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(1) : entry.ReadShadowValue<Guid>(1))),
+                Guid (IInternalEntry entry) => entry.ReadShadowValue<Guid>(1),
+                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(rewardedTokenEFTokenId, 1),
+                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(rewardedTokenEFTokenId, 1));
+            rewardedTokenEFTokenId.SetPropertyIndexes(
                 index: 1,
                 originalValueIndex: 1,
                 shadowIndex: 1,
                 relationshipIndex: 1,
                 storeGenerationIndex: 1);
-            rewardedTokenTokenId.TypeMapping = LongTypeMapping.Default.Clone(
-                comparer: new ValueComparer<long>(
-                    bool (long v1, long v2) => v1 == v2,
-                    int (long v) => ((object)v).GetHashCode(),
-                    long (long v) => v),
-                keyComparer: new ValueComparer<long>(
-                    bool (long v1, long v2) => v1 == v2,
-                    int (long v) => ((object)v).GetHashCode(),
-                    long (long v) => v),
-                providerValueComparer: new ValueComparer<long>(
-                    bool (long v1, long v2) => v1 == v2,
-                    int (long v) => ((object)v).GetHashCode(),
-                    long (long v) => v));
-            rewardedTokenTokenId.SetCurrentValueComparer(new EntryCurrentValueComparer<long>(rewardedTokenTokenId));
-            rewardedTokenTokenId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
+            rewardedTokenEFTokenId.TypeMapping = GuidTypeMapping.Default.Clone(
+                comparer: new ValueComparer<Guid>(
+                    bool (Guid v1, Guid v2) => v1 == v2,
+                    int (Guid v) => ((object)v).GetHashCode(),
+                    Guid (Guid v) => v),
+                keyComparer: new ValueComparer<Guid>(
+                    bool (Guid v1, Guid v2) => v1 == v2,
+                    int (Guid v) => ((object)v).GetHashCode(),
+                    Guid (Guid v) => v),
+                providerValueComparer: new ValueComparer<Guid>(
+                    bool (Guid v1, Guid v2) => v1 == v2,
+                    int (Guid v) => ((object)v).GetHashCode(),
+                    Guid (Guid v) => v),
+                mappingInfo: new RelationalTypeMappingInfo(
+                    storeTypeName: "uuid"));
+            rewardedTokenEFTokenId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(rewardedTokenEFTokenId));
+            rewardedTokenEFTokenId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var buildplates = runtimeEntityType.AddProperty(
                 "Buildplates",
@@ -447,7 +449,7 @@ namespace Solace.DB.CompiledModels
             rubies.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var key = runtimeEntityType.AddKey(
-                new[] { rewardedTokenAccountId, rewardedTokenTokenId });
+                new[] { rewardedTokenEFAccountId, rewardedTokenEFTokenId });
             runtimeEntityType.SetPrimaryKey(key);
 
             return runtimeEntityType;
@@ -455,7 +457,7 @@ namespace Solace.DB.CompiledModels
 
         public static RuntimeForeignKey CreateForeignKey1(RuntimeEntityType declaringEntityType, RuntimeEntityType principalEntityType)
         {
-            var runtimeForeignKey = declaringEntityType.AddForeignKey(new[] { declaringEntityType.FindProperty("RewardedTokenAccountId"), declaringEntityType.FindProperty("RewardedTokenTokenId") },
+            var runtimeForeignKey = declaringEntityType.AddForeignKey(new[] { declaringEntityType.FindProperty("RewardedTokenEFAccountId"), declaringEntityType.FindProperty("RewardedTokenEFTokenId") },
                 principalEntityType.FindKey(new[] { principalEntityType.FindProperty("AccountId"), principalEntityType.FindProperty("TokenId") }),
                 principalEntityType,
                 deleteBehavior: DeleteBehavior.Cascade,
@@ -473,23 +475,23 @@ namespace Solace.DB.CompiledModels
                 eagerLoaded: true);
 
             rewards.SetGetter(
-                Rewards (RewardedTokenEF instance) => RewardedTokenUnsafeAccessors.Rewards(instance),
-                bool (RewardedTokenEF instance) => RewardedTokenUnsafeAccessors.Rewards(instance) == null);
+                Rewards (RewardedTokenEF instance) => RewardedTokenEFUnsafeAccessors.Rewards(instance),
+                bool (RewardedTokenEF instance) => RewardedTokenEFUnsafeAccessors.Rewards(instance) == null);
             rewards.SetSetter(
                 RewardedTokenEF (RewardedTokenEF instance, Rewards value) =>
                 {
-                    RewardedTokenUnsafeAccessors.Rewards(instance) = value;
+                    RewardedTokenEFUnsafeAccessors.Rewards(instance) = value;
                     return instance;
                 });
             rewards.SetMaterializationSetter(
                 RewardedTokenEF (RewardedTokenEF instance, Rewards value) =>
                 {
-                    RewardedTokenUnsafeAccessors.Rewards(instance) = value;
+                    RewardedTokenEFUnsafeAccessors.Rewards(instance) = value;
                     return instance;
                 });
             rewards.SetAccessors(
-                Rewards (IInternalEntry entry) => RewardedTokenUnsafeAccessors.Rewards(((RewardedTokenEF)(entry.Entity))),
-                Rewards (IInternalEntry entry) => RewardedTokenUnsafeAccessors.Rewards(((RewardedTokenEF)(entry.Entity))),
+                Rewards (IInternalEntry entry) => RewardedTokenEFUnsafeAccessors.Rewards(((RewardedTokenEF)(entry.Entity))),
+                Rewards (IInternalEntry entry) => RewardedTokenEFUnsafeAccessors.Rewards(((RewardedTokenEF)(entry.Entity))),
                 null,
                 Rewards (IInternalEntry entry) => entry.GetCurrentValue<Rewards>(rewards));
             rewards.SetPropertyIndexes(
@@ -503,36 +505,36 @@ namespace Solace.DB.CompiledModels
 
         public static void CreateAnnotations(RuntimeEntityType runtimeEntityType)
         {
-            var rewardedTokenAccountId = runtimeEntityType.FindProperty("RewardedTokenAccountId");
-            var rewardedTokenTokenId = runtimeEntityType.FindProperty("RewardedTokenTokenId");
+            var rewardedTokenEFAccountId = runtimeEntityType.FindProperty("RewardedTokenEFAccountId");
+            var rewardedTokenEFTokenId = runtimeEntityType.FindProperty("RewardedTokenEFTokenId");
             var buildplates = runtimeEntityType.FindProperty("Buildplates");
             var challenges = runtimeEntityType.FindProperty("Challenges");
             var experiencePoints = runtimeEntityType.FindProperty("ExperiencePoints");
             var items = runtimeEntityType.FindProperty("Items");
             var level = runtimeEntityType.FindProperty("Level");
             var rubies = runtimeEntityType.FindProperty("Rubies");
-            var key = runtimeEntityType.FindKey(new[] { rewardedTokenAccountId, rewardedTokenTokenId });
+            var key = runtimeEntityType.FindKey(new[] { rewardedTokenEFAccountId, rewardedTokenEFTokenId });
             key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateCompositeFactory(key));
             key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<IReadOnlyList<object>>(key));
             runtimeEntityType.SetOriginalValuesFactory(
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((Rewards)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, long, Guid[], string[], int, Dictionary<Guid, int>, int?, int>(((ValueComparer<Guid>)(((IProperty)rewardedTokenAccountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(rewardedTokenAccountId)), ((ValueComparer<long>)(((IProperty)rewardedTokenTokenId).GetValueComparer())).Snapshot(source.GetCurrentValue<long>(rewardedTokenTokenId)), (((IEnumerable<Guid>)(source.GetCurrentValue<Guid[]>(buildplates))) == null ? null : ((Guid[])(((ValueComparer<IEnumerable<Guid>>)(((IProperty)buildplates).GetValueComparer())).Snapshot(((IEnumerable<Guid>)(source.GetCurrentValue<Guid[]>(buildplates))))))), (((object)(source.GetCurrentValue<string[]>(challenges))) == null ? null : ((string[])(((ValueComparer<object>)(((IProperty)challenges).GetValueComparer())).Snapshot(((object)(source.GetCurrentValue<string[]>(challenges))))))), ((ValueComparer<int>)(((IProperty)experiencePoints).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(experiencePoints)), (source.GetCurrentValue<Dictionary<Guid, int>>(items) == null ? null : ((ValueComparer<Dictionary<Guid, int>>)(((IProperty)items).GetValueComparer())).Snapshot(source.GetCurrentValue<Dictionary<Guid, int>>(items))), (source.GetCurrentValue<int?>(level) == null ? null : ((ValueComparer<int?>)(((IProperty)level).GetValueComparer())).Snapshot(source.GetCurrentValue<int?>(level))), ((ValueComparer<int>)(((IProperty)rubies).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(rubies)))));
+                    return ((ISnapshot)(new Snapshot<Guid, Guid, Guid[], string[], int, Dictionary<Guid, int>, int?, int>(((ValueComparer<Guid>)(((IProperty)rewardedTokenEFAccountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(rewardedTokenEFAccountId)), ((ValueComparer<Guid>)(((IProperty)rewardedTokenEFTokenId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(rewardedTokenEFTokenId)), (((IEnumerable<Guid>)(source.GetCurrentValue<Guid[]>(buildplates))) == null ? null : ((Guid[])(((ValueComparer<IEnumerable<Guid>>)(((IProperty)buildplates).GetValueComparer())).Snapshot(((IEnumerable<Guid>)(source.GetCurrentValue<Guid[]>(buildplates))))))), (((object)(source.GetCurrentValue<string[]>(challenges))) == null ? null : ((string[])(((ValueComparer<object>)(((IProperty)challenges).GetValueComparer())).Snapshot(((object)(source.GetCurrentValue<string[]>(challenges))))))), ((ValueComparer<int>)(((IProperty)experiencePoints).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(experiencePoints)), (source.GetCurrentValue<Dictionary<Guid, int>>(items) == null ? null : ((ValueComparer<Dictionary<Guid, int>>)(((IProperty)items).GetValueComparer())).Snapshot(source.GetCurrentValue<Dictionary<Guid, int>>(items))), (source.GetCurrentValue<int?>(level) == null ? null : ((ValueComparer<int?>)(((IProperty)level).GetValueComparer())).Snapshot(source.GetCurrentValue<int?>(level))), ((ValueComparer<int>)(((IProperty)rubies).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(rubies)))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
-                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, long>(((ValueComparer<Guid>)(((IProperty)rewardedTokenAccountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<long>)(((IProperty)rewardedTokenTokenId).GetValueComparer())).Snapshot(default(long))))));
+                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, Guid>(((ValueComparer<Guid>)(((IProperty)rewardedTokenEFAccountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<Guid>)(((IProperty)rewardedTokenEFTokenId).GetValueComparer())).Snapshot(default(Guid))))));
             runtimeEntityType.SetTemporaryValuesFactory(
-                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid, long>(default(Guid), default(long)))));
+                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid, Guid>(default(Guid), default(Guid)))));
             runtimeEntityType.SetShadowValuesFactory(
-                ISnapshot (IDictionary<string, object> source) => ((ISnapshot)(new Snapshot<Guid, long>((source.ContainsKey("RewardedTokenAccountId") ? ((Guid)(source["RewardedTokenAccountId"])) : new Guid("00000000-0000-0000-0000-000000000000")), (source.ContainsKey("RewardedTokenTokenId") ? ((long)(source["RewardedTokenTokenId"])) : 0L)))));
+                ISnapshot (IDictionary<string, object> source) => ((ISnapshot)(new Snapshot<Guid, Guid>((source.ContainsKey("RewardedTokenEFAccountId") ? ((Guid)(source["RewardedTokenEFAccountId"])) : new Guid("00000000-0000-0000-0000-000000000000")), (source.ContainsKey("RewardedTokenEFTokenId") ? ((Guid)(source["RewardedTokenEFTokenId"])) : new Guid("00000000-0000-0000-0000-000000000000"))))));
             runtimeEntityType.SetEmptyShadowValuesFactory(
-                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, long>(default(Guid), default(long)))));
+                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, Guid>(default(Guid), default(Guid)))));
             runtimeEntityType.SetRelationshipSnapshotFactory(
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((Rewards)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, long>(((ValueComparer<Guid>)(((IProperty)rewardedTokenAccountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(rewardedTokenAccountId)), ((ValueComparer<long>)(((IProperty)rewardedTokenTokenId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<long>(rewardedTokenTokenId)))));
+                    return ((ISnapshot)(new Snapshot<Guid, Guid>(((ValueComparer<Guid>)(((IProperty)rewardedTokenEFAccountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(rewardedTokenEFAccountId)), ((ValueComparer<Guid>)(((IProperty)rewardedTokenEFTokenId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(rewardedTokenEFTokenId)))));
                 });
             runtimeEntityType.SetCounts(new PropertyCounts(
                 propertyCount: 8,

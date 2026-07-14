@@ -299,10 +299,10 @@ namespace Solace.DB.CompiledModels
             null,
             ICollection<ActivityLogEntryEF> (IInternalEntry entry) => entry.GetCurrentValue<ICollection<ActivityLogEntryEF>>(activityLogs));
         activityLogs.SetPropertyIndexes(
-            index: 0,
+            index: 1,
             originalValueIndex: -1,
             shadowIndex: -1,
-            relationshipIndex: 1,
+            relationshipIndex: 2,
             storeGenerationIndex: -1);
         activityLogs.SetCollectionAccessor<Account, ICollection<ActivityLogEntryEF>, ActivityLogEntryEF>(
             ICollection<ActivityLogEntryEF> (Account entity) => AccountUnsafeAccessors.ActivityLogs(entity),

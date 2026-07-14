@@ -18,12 +18,12 @@ using Solace.DB.Models.Player;
 namespace Solace.DB.CompiledModels
 {
     [EntityFrameworkInternal]
-    public partial class JournalItemUnlockedTokenEntityType
+    public partial class JournalItemUnlockedTokenEFEntityType
     {
         public static RuntimeEntityType Create(RuntimeModel model, RuntimeEntityType baseEntityType = null)
         {
             var runtimeEntityType = model.AddEntityType(
-                "Solace.DB.Models.Player.JournalItemUnlockedToken",
+                "Solace.DB.Models.Player.JournalItemUnlockedTokenEF",
                 typeof(JournalItemUnlockedTokenEF),
                 baseEntityType,
                 discriminatorProperty: "token_type",
@@ -37,23 +37,23 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(JournalItemUnlockedTokenEF).GetField("<ItemId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
             itemId.SetGetter(
-                Guid (JournalItemUnlockedTokenEF instance) => JournalItemUnlockedTokenUnsafeAccessors.ItemId(instance),
-                bool (JournalItemUnlockedTokenEF instance) => JournalItemUnlockedTokenUnsafeAccessors.ItemId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
+                Guid (JournalItemUnlockedTokenEF instance) => JournalItemUnlockedTokenEFUnsafeAccessors.ItemId(instance),
+                bool (JournalItemUnlockedTokenEF instance) => JournalItemUnlockedTokenEFUnsafeAccessors.ItemId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
             itemId.SetSetter(
                 JournalItemUnlockedTokenEF (JournalItemUnlockedTokenEF instance, Guid value) =>
                 {
-                    JournalItemUnlockedTokenUnsafeAccessors.ItemId(instance) = value;
+                    JournalItemUnlockedTokenEFUnsafeAccessors.ItemId(instance) = value;
                     return instance;
                 });
             itemId.SetMaterializationSetter(
                 JournalItemUnlockedTokenEF (JournalItemUnlockedTokenEF instance, Guid value) =>
                 {
-                    JournalItemUnlockedTokenUnsafeAccessors.ItemId(instance) = value;
+                    JournalItemUnlockedTokenEFUnsafeAccessors.ItemId(instance) = value;
                     return instance;
                 });
             itemId.SetAccessors(
-                Guid (IInternalEntry entry) => JournalItemUnlockedTokenUnsafeAccessors.ItemId(((JournalItemUnlockedTokenEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => JournalItemUnlockedTokenUnsafeAccessors.ItemId(((JournalItemUnlockedTokenEF)(entry.Entity))),
+                Guid (IInternalEntry entry) => JournalItemUnlockedTokenEFUnsafeAccessors.ItemId(((JournalItemUnlockedTokenEF)(entry.Entity))),
+                Guid (IInternalEntry entry) => JournalItemUnlockedTokenEFUnsafeAccessors.ItemId(((JournalItemUnlockedTokenEF)(entry.Entity))),
                 Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(itemId, 3),
                 Guid (IInternalEntry entry) => entry.GetCurrentValue<Guid>(itemId));
             itemId.SetPropertyIndexes(
@@ -93,12 +93,12 @@ namespace Solace.DB.CompiledModels
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((JournalItemUnlockedTokenEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, long, string, Guid>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)tokenId).GetValueComparer())).Snapshot(source.GetCurrentValue<long>(tokenId)), (source.GetCurrentValue<string>(token_type) == null ? null : ((ValueComparer<string>)(((IProperty)token_type).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(token_type))), ((ValueComparer<Guid>)(((IProperty)itemId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(itemId)))));
+                    return ((ISnapshot)(new Snapshot<Guid, Guid, string, Guid>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<Guid>)(((IProperty)tokenId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(tokenId)), (source.GetCurrentValue<string>(token_type) == null ? null : ((ValueComparer<string>)(((IProperty)token_type).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(token_type))), ((ValueComparer<Guid>)(((IProperty)itemId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(itemId)))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
-                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, long>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<long>)(((IProperty)tokenId).GetValueComparer())).Snapshot(default(long))))));
+                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, Guid>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<Guid>)(((IProperty)tokenId).GetValueComparer())).Snapshot(default(Guid))))));
             runtimeEntityType.SetTemporaryValuesFactory(
-                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid, long>(default(Guid), default(long)))));
+                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid, Guid>(default(Guid), default(Guid)))));
             runtimeEntityType.SetShadowValuesFactory(
                 ISnapshot (IDictionary<string, object> source) => ((ISnapshot)(new Snapshot<string>((source.ContainsKey("token_type") ? ((string)(source["token_type"])) : null)))));
             runtimeEntityType.SetEmptyShadowValuesFactory(
@@ -107,7 +107,7 @@ namespace Solace.DB.CompiledModels
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((JournalItemUnlockedTokenEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, long, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)tokenId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<long>(tokenId)), source.GetCurrentValue<Account>(account))));
+                    return ((ISnapshot)(new Snapshot<Guid, Guid, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<Guid>)(((IProperty)tokenId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(tokenId)), source.GetCurrentValue<Account>(account))));
                 });
             runtimeEntityType.SetCounts(new PropertyCounts(
                 propertyCount: 4,

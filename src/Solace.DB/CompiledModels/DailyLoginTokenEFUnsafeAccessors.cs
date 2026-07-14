@@ -8,11 +8,8 @@ using Solace.DB.Models.Player;
 
 namespace Solace.DB.CompiledModels
 {
-    public static class DailyLoginTokenUnsafeAccessors
+    public static class DailyLoginTokenEFUnsafeAccessors
     {
-        [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Claimed>k__BackingField")]
-        public static extern ref bool Claimed(DailyLoginTokenEF @this);
-
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<ClaimedOn>k__BackingField")]
         public static extern ref DateTimeOffset? ClaimedOn(DailyLoginTokenEF @this);
 

@@ -27,7 +27,7 @@ namespace Solace.DB.CompiledModels
                 "Solace.DB.Models.Player.Workshop.CraftingSlotsEF",
                 typeof(CraftingSlotsEF),
                 baseEntityType,
-                propertyCount: 2,
+                propertyCount: 1,
                 navigationCount: 2,
                 foreignKeyCount: 1,
                 keyCount: 1);
@@ -82,56 +82,6 @@ namespace Solace.DB.CompiledModels
                     storeTypeName: "uuid"));
             id.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(id));
             id.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
-
-            var version = runtimeEntityType.AddProperty(
-                "Version",
-                typeof(int),
-                propertyInfo: typeof(CraftingSlotsEF).GetProperty("Version", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                fieldInfo: typeof(CraftingSlotsEF).GetField("<Version>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                concurrencyToken: true,
-                sentinel: 0);
-            version.SetGetter(
-                int (CraftingSlotsEF instance) => CraftingSlotsEFUnsafeAccessors.Version(instance),
-                bool (CraftingSlotsEF instance) => CraftingSlotsEFUnsafeAccessors.Version(instance) == 0);
-            version.SetSetter(
-                CraftingSlotsEF (CraftingSlotsEF instance, int value) =>
-                {
-                    CraftingSlotsEFUnsafeAccessors.Version(instance) = value;
-                    return instance;
-                });
-            version.SetMaterializationSetter(
-                CraftingSlotsEF (CraftingSlotsEF instance, int value) =>
-                {
-                    CraftingSlotsEFUnsafeAccessors.Version(instance) = value;
-                    return instance;
-                });
-            version.SetAccessors(
-                int (IInternalEntry entry) => CraftingSlotsEFUnsafeAccessors.Version(((CraftingSlotsEF)(entry.Entity))),
-                int (IInternalEntry entry) => CraftingSlotsEFUnsafeAccessors.Version(((CraftingSlotsEF)(entry.Entity))),
-                int (IInternalEntry entry) => entry.ReadOriginalValue<int>(version, 1),
-                int (IInternalEntry entry) => entry.GetCurrentValue<int>(version));
-            version.SetPropertyIndexes(
-                index: 1,
-                originalValueIndex: 1,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            version.TypeMapping = IntTypeMapping.Default.Clone(
-                comparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                keyComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                providerValueComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "integer"));
-            version.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var key = runtimeEntityType.AddKey(
                 new[] { id });
@@ -210,10 +160,10 @@ namespace Solace.DB.CompiledModels
                 null,
                 CraftingSlotsEF (IInternalEntry entry) => entry.GetCurrentValue<CraftingSlotsEF>(craftingSlots));
             craftingSlots.SetPropertyIndexes(
-                index: 3,
+                index: 4,
                 originalValueIndex: -1,
                 shadowIndex: -1,
-                relationshipIndex: 4,
+                relationshipIndex: 5,
                 storeGenerationIndex: -1);
             return runtimeForeignKey;
         }
@@ -221,7 +171,6 @@ namespace Solace.DB.CompiledModels
         public static void CreateAnnotations(RuntimeEntityType runtimeEntityType)
         {
             var id = runtimeEntityType.FindProperty("Id");
-            var version = runtimeEntityType.FindProperty("Version");
             var key = runtimeEntityType.FindKey(new[] { id });
             key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid>(key));
             key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<Guid>(key));
@@ -231,7 +180,7 @@ namespace Solace.DB.CompiledModels
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((CraftingSlotsEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, int>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), ((ValueComparer<int>)(((IProperty)version).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(version)))));
+                    return ((ISnapshot)(new Snapshot<Guid>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
                 ISnapshot () => ((ISnapshot)(new Snapshot<Guid>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(default(Guid))))));
@@ -248,11 +197,11 @@ namespace Solace.DB.CompiledModels
                     return ((ISnapshot)(new Snapshot<Guid, object, object>(((ValueComparer<Guid>)(((IProperty)id).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), source.GetCurrentValue<Account>(account), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<CraftingSlotEF[]>(slots)))));
                 });
             runtimeEntityType.SetCounts(new PropertyCounts(
-                propertyCount: 2,
+                propertyCount: 1,
                 navigationCount: 2,
                 complexPropertyCount: 0,
                 complexCollectionCount: 0,
-                originalValueCount: 2,
+                originalValueCount: 1,
                 shadowCount: 0,
                 relationshipCount: 3,
                 storeGeneratedCount: 1));

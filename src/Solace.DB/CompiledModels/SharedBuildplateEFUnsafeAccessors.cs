@@ -21,7 +21,7 @@ namespace Solace.DB.CompiledModels
         public static extern ref DateTimeOffset BuildplateLastModifed(SharedBuildplateEF @this);
 
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Created>k__BackingField")]
-        public static extern ref long Created(SharedBuildplateEF @this);
+        public static extern ref DateTimeOffset Created(SharedBuildplateEF @this);
 
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<LastViewed>k__BackingField")]
         public static extern ref DateTimeOffset LastViewed(SharedBuildplateEF @this);

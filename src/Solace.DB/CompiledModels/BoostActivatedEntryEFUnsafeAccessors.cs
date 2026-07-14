@@ -8,9 +8,9 @@ using Solace.DB.Models.Player;
 
 namespace Solace.DB.CompiledModels
 {
-    public static class JournalItemUnlockedEntryUnsafeAccessors
+    public static class BoostActivatedEntryEFUnsafeAccessors
     {
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<ItemId>k__BackingField")]
-        public static extern ref Guid ItemId(JournalItemUnlockedEntryEF @this);
+        public static extern ref Guid ItemId(BoostActivatedEntryEF @this);
     }
 }

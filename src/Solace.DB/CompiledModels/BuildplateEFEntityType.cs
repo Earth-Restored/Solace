@@ -28,7 +28,7 @@ namespace Solace.DB.CompiledModels
                 "Solace.DB.Models.Player.BuildplateEF",
                 typeof(BuildplateEF),
                 baseEntityType,
-                propertyCount: 12,
+                propertyCount: 11,
                 navigationCount: 1,
                 foreignKeyCount: 1,
                 unnamedIndexCount: 1,
@@ -576,56 +576,6 @@ namespace Solace.DB.CompiledModels
             templateId.SetKeyComparer(new NullableValueComparer<Guid>(templateId.TypeMapping.KeyComparer));
             templateId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
-            var version = runtimeEntityType.AddProperty(
-                "Version",
-                typeof(int),
-                propertyInfo: typeof(BuildplateEF).GetProperty("Version", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                fieldInfo: typeof(BuildplateEF).GetField("<Version>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                concurrencyToken: true,
-                sentinel: 0);
-            version.SetGetter(
-                int (BuildplateEF instance) => BuildplateEFUnsafeAccessors.Version(instance),
-                bool (BuildplateEF instance) => BuildplateEFUnsafeAccessors.Version(instance) == 0);
-            version.SetSetter(
-                BuildplateEF (BuildplateEF instance, int value) =>
-                {
-                    BuildplateEFUnsafeAccessors.Version(instance) = value;
-                    return instance;
-                });
-            version.SetMaterializationSetter(
-                BuildplateEF (BuildplateEF instance, int value) =>
-                {
-                    BuildplateEFUnsafeAccessors.Version(instance) = value;
-                    return instance;
-                });
-            version.SetAccessors(
-                int (IInternalEntry entry) => BuildplateEFUnsafeAccessors.Version(((BuildplateEF)(entry.Entity))),
-                int (IInternalEntry entry) => BuildplateEFUnsafeAccessors.Version(((BuildplateEF)(entry.Entity))),
-                int (IInternalEntry entry) => entry.ReadOriginalValue<int>(version, 11),
-                int (IInternalEntry entry) => entry.GetCurrentValue<int>(version));
-            version.SetPropertyIndexes(
-                index: 11,
-                originalValueIndex: 11,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            version.TypeMapping = IntTypeMapping.Default.Clone(
-                comparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                keyComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                providerValueComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "integer"));
-            version.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
-
             var key = runtimeEntityType.AddKey(
                 new[] { id });
             runtimeEntityType.SetPrimaryKey(key);
@@ -705,10 +655,10 @@ namespace Solace.DB.CompiledModels
                 null,
                 ICollection<BuildplateEF> (IInternalEntry entry) => entry.GetCurrentValue<ICollection<BuildplateEF>>(buildplates));
             buildplates.SetPropertyIndexes(
-                index: 2,
+                index: 3,
                 originalValueIndex: -1,
                 shadowIndex: -1,
-                relationshipIndex: 3,
+                relationshipIndex: 4,
                 storeGenerationIndex: -1);
             buildplates.SetCollectionAccessor<Account, ICollection<BuildplateEF>, BuildplateEF>(
                 ICollection<BuildplateEF> (Account entity) => AccountUnsafeAccessors.Buildplates(entity),
@@ -732,7 +682,6 @@ namespace Solace.DB.CompiledModels
             var serverDataObjectId = runtimeEntityType.FindProperty("ServerDataObjectId");
             var size = runtimeEntityType.FindProperty("Size");
             var templateId = runtimeEntityType.FindProperty("TemplateId");
-            var version = runtimeEntityType.FindProperty("Version");
             var key = runtimeEntityType.FindKey(new[] { id });
             key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid>(key));
             key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<Guid>(key));
@@ -741,7 +690,7 @@ namespace Solace.DB.CompiledModels
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((BuildplateEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, Guid, int, DateTimeOffset, string, bool, int, Guid, Guid, int, Guid?, int>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), ((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<int>)(((IProperty)blocksPerMeter).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(blocksPerMeter)), ((ValueComparer<DateTimeOffset>)(((IProperty)lastModified).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(lastModified)), (source.GetCurrentValue<string>(name) == null ? null : ((ValueComparer<string>)(((IProperty)name).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(name))), ((ValueComparer<bool>)(((IProperty)night).GetValueComparer())).Snapshot(source.GetCurrentValue<bool>(night)), ((ValueComparer<int>)(((IProperty)offset).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(offset)), ((ValueComparer<Guid>)(((IProperty)previewObjectId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(previewObjectId)), ((ValueComparer<Guid>)(((IProperty)serverDataObjectId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(serverDataObjectId)), ((ValueComparer<int>)(((IProperty)size).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(size)), (source.GetCurrentValue<Guid?>(templateId) == null ? null : ((ValueComparer<Guid?>)(((IProperty)templateId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid?>(templateId))), ((ValueComparer<int>)(((IProperty)version).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(version)))));
+                    return ((ISnapshot)(new Snapshot<Guid, Guid, int, DateTimeOffset, string, bool, int, Guid, Guid, int, Guid?>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), ((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<int>)(((IProperty)blocksPerMeter).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(blocksPerMeter)), ((ValueComparer<DateTimeOffset>)(((IProperty)lastModified).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(lastModified)), (source.GetCurrentValue<string>(name) == null ? null : ((ValueComparer<string>)(((IProperty)name).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(name))), ((ValueComparer<bool>)(((IProperty)night).GetValueComparer())).Snapshot(source.GetCurrentValue<bool>(night)), ((ValueComparer<int>)(((IProperty)offset).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(offset)), ((ValueComparer<Guid>)(((IProperty)previewObjectId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(previewObjectId)), ((ValueComparer<Guid>)(((IProperty)serverDataObjectId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(serverDataObjectId)), ((ValueComparer<int>)(((IProperty)size).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(size)), (source.GetCurrentValue<Guid?>(templateId) == null ? null : ((ValueComparer<Guid?>)(((IProperty)templateId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid?>(templateId))))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
                 ISnapshot () => ((ISnapshot)(new Snapshot<Guid, Guid>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid))))));
@@ -758,11 +707,11 @@ namespace Solace.DB.CompiledModels
                     return ((ISnapshot)(new Snapshot<Guid, Guid, object>(((ValueComparer<Guid>)(((IProperty)id).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), ((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), source.GetCurrentValue<Account>(account))));
                 });
             runtimeEntityType.SetCounts(new PropertyCounts(
-                propertyCount: 12,
+                propertyCount: 11,
                 navigationCount: 1,
                 complexPropertyCount: 0,
                 complexCollectionCount: 0,
-                originalValueCount: 12,
+                originalValueCount: 11,
                 shadowCount: 0,
                 relationshipCount: 3,
                 storeGeneratedCount: 2));

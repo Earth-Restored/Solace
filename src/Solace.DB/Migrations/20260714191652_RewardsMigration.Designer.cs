@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Solace.DB;
@@ -11,9 +12,11 @@ using Solace.DB;
 namespace Solace.DB.Postgres.Migrations
 {
     [DbContext(typeof(EarthDbContext))]
-    partial class EarthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260714191652_a")]
+    partial class RewardsMigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

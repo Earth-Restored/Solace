@@ -18,13 +18,14 @@ namespace Solace.DB.CompiledModels
     public partial class EarthDbContextModel
     {
         private EarthDbContextModel()
-            : base(skipDetectChanges: false, modelId: new Guid("a50ffb4c-8e27-423e-86cd-b63da833999b"), entityTypeCount: 37)
+            : base(skipDetectChanges: false, modelId: new Guid("f70ebbe5-aee7-485e-b041-70ef9a2de0ec"), entityTypeCount: 38)
         {
         }
 
         partial void Initialize()
         {
             var account = AccountEntityType.Create(this);
+            var accountVersions = AccountVersionsEntityType.Create(this);
             var encounterBuildplateEF = EncounterBuildplateEFEntityType.Create(this);
             var secret = SecretEntityType.Create(this);
             var sharedBuildplateEF = SharedBuildplateEFEntityType.Create(this);
@@ -37,7 +38,7 @@ namespace Solace.DB.CompiledModels
             var buildplateEF = BuildplateEFEntityType.Create(this);
             var hotbarEF = HotbarEFEntityType.Create(this);
             var item = ItemEntityType.Create(this);
-            var itemJournalEntry = ItemJournalEntryEntityType.Create(this);
+            var itemJournalEntryEF = ItemJournalEntryEFEntityType.Create(this);
             var nonStackableItemInstanceEF = NonStackableItemInstanceEFEntityType.Create(this);
             var profileEF = ProfileEFEntityType.Create(this);
             var redeemedTappableEF = RedeemedTappableEFEntityType.Create(this);
@@ -50,18 +51,19 @@ namespace Solace.DB.CompiledModels
             var craftingSlotsEF = CraftingSlotsEFEntityType.Create(this);
             var smeltingSlot = SmeltingSlotEntityType.Create(this);
             var smeltingSlotsEF = SmeltingSlotsEFEntityType.Create(this);
-            var boostActivatedEntry = BoostActivatedEntryEntityType.Create(this, activityLogEntryEF);
-            var journalItemUnlockedEntry = JournalItemUnlockedEntryEntityType.Create(this, activityLogEntryEF);
-            var levelUpEntry = LevelUpEntryEntityType.Create(this, activityLogEntryEF);
-            var rewardedActivityLogEntry = RewardedActivityLogEntryEntityType.Create(this, activityLogEntryEF);
-            var journalItemUnlockedToken = JournalItemUnlockedTokenEntityType.Create(this, tokenEF);
-            var rewardedToken = RewardedTokenEntityType.Create(this, tokenEF);
-            var craftingCompletedEntry = CraftingCompletedEntryEntityType.Create(this, rewardedActivityLogEntry);
-            var smeltingCompletedEntry = SmeltingCompletedEntryEntityType.Create(this, rewardedActivityLogEntry);
-            var tappableEntry = TappableEntryEntityType.Create(this, rewardedActivityLogEntry);
-            var dailyLoginToken = DailyLoginTokenEntityType.Create(this, rewardedToken);
-            var levelUpToken = LevelUpTokenEntityType.Create(this, rewardedToken);
+            var boostActivatedEntryEF = BoostActivatedEntryEFEntityType.Create(this, activityLogEntryEF);
+            var journalItemUnlockedEntryEF = JournalItemUnlockedEntryEFEntityType.Create(this, activityLogEntryEF);
+            var levelUpEntryEF = LevelUpEntryEFEntityType.Create(this, activityLogEntryEF);
+            var rewardedActivityLogEntryEF = RewardedActivityLogEntryEFEntityType.Create(this, activityLogEntryEF);
+            var journalItemUnlockedTokenEF = JournalItemUnlockedTokenEFEntityType.Create(this, tokenEF);
+            var rewardedTokenEF = RewardedTokenEFEntityType.Create(this, tokenEF);
+            var craftingCompletedEntryEF = CraftingCompletedEntryEFEntityType.Create(this, rewardedActivityLogEntryEF);
+            var smeltingCompletedEntryEF = SmeltingCompletedEntryEFEntityType.Create(this, rewardedActivityLogEntryEF);
+            var tappableEntryEF = TappableEntryEFEntityType.Create(this, rewardedActivityLogEntryEF);
+            var dailyLoginTokenEF = DailyLoginTokenEFEntityType.Create(this, rewardedTokenEF);
+            var levelUpTokenEF = LevelUpTokenEFEntityType.Create(this, rewardedTokenEF);
 
+            AccountVersionsEntityType.CreateForeignKey1(accountVersions, account);
             SharedBuildplateEFEntityType.CreateForeignKey1(sharedBuildplateEF, account);
             HotbarItemEntityType.CreateForeignKey1(hotbarItem, sharedBuildplateEF);
             ActivityLogEntryEFEntityType.CreateForeignKey1(activityLogEntryEF, account);
@@ -70,12 +72,12 @@ namespace Solace.DB.CompiledModels
             BuildplateEFEntityType.CreateForeignKey1(buildplateEF, account);
             HotbarEFEntityType.CreateForeignKey1(hotbarEF, account);
             ItemEntityType.CreateForeignKey1(item, hotbarEF);
-            ItemJournalEntryEntityType.CreateForeignKey1(itemJournalEntry, account);
+            ItemJournalEntryEFEntityType.CreateForeignKey1(itemJournalEntryEF, account);
             NonStackableItemInstanceEFEntityType.CreateForeignKey1(nonStackableItemInstanceEF, account);
             ProfileEFEntityType.CreateForeignKey1(profileEF, account);
             RedeemedTappableEFEntityType.CreateForeignKey1(redeemedTappableEF, account);
-            RewardsEntityType.CreateForeignKey1(rewards, rewardedActivityLogEntry);
-            Rewards0EntityType.CreateForeignKey1(rewards0, rewardedToken);
+            RewardsEntityType.CreateForeignKey1(rewards, rewardedActivityLogEntryEF);
+            Rewards0EntityType.CreateForeignKey1(rewards0, rewardedTokenEF);
             RubiesEntityType.CreateForeignKey1(rubies, profileEF);
             StackableItemEFEntityType.CreateForeignKey1(stackableItemEF, account);
             TokenEFEntityType.CreateForeignKey1(tokenEF, account);
@@ -85,6 +87,7 @@ namespace Solace.DB.CompiledModels
             SmeltingSlotsEFEntityType.CreateForeignKey1(smeltingSlotsEF, account);
 
             AccountEntityType.CreateAnnotations(account);
+            AccountVersionsEntityType.CreateAnnotations(accountVersions);
             EncounterBuildplateEFEntityType.CreateAnnotations(encounterBuildplateEF);
             SecretEntityType.CreateAnnotations(secret);
             SharedBuildplateEFEntityType.CreateAnnotations(sharedBuildplateEF);
@@ -97,7 +100,7 @@ namespace Solace.DB.CompiledModels
             BuildplateEFEntityType.CreateAnnotations(buildplateEF);
             HotbarEFEntityType.CreateAnnotations(hotbarEF);
             ItemEntityType.CreateAnnotations(item);
-            ItemJournalEntryEntityType.CreateAnnotations(itemJournalEntry);
+            ItemJournalEntryEFEntityType.CreateAnnotations(itemJournalEntryEF);
             NonStackableItemInstanceEFEntityType.CreateAnnotations(nonStackableItemInstanceEF);
             ProfileEFEntityType.CreateAnnotations(profileEF);
             RedeemedTappableEFEntityType.CreateAnnotations(redeemedTappableEF);
@@ -110,17 +113,17 @@ namespace Solace.DB.CompiledModels
             CraftingSlotsEFEntityType.CreateAnnotations(craftingSlotsEF);
             SmeltingSlotEntityType.CreateAnnotations(smeltingSlot);
             SmeltingSlotsEFEntityType.CreateAnnotations(smeltingSlotsEF);
-            BoostActivatedEntryEntityType.CreateAnnotations(boostActivatedEntry);
-            JournalItemUnlockedEntryEntityType.CreateAnnotations(journalItemUnlockedEntry);
-            LevelUpEntryEntityType.CreateAnnotations(levelUpEntry);
-            RewardedActivityLogEntryEntityType.CreateAnnotations(rewardedActivityLogEntry);
-            JournalItemUnlockedTokenEntityType.CreateAnnotations(journalItemUnlockedToken);
-            RewardedTokenEntityType.CreateAnnotations(rewardedToken);
-            CraftingCompletedEntryEntityType.CreateAnnotations(craftingCompletedEntry);
-            SmeltingCompletedEntryEntityType.CreateAnnotations(smeltingCompletedEntry);
-            TappableEntryEntityType.CreateAnnotations(tappableEntry);
-            DailyLoginTokenEntityType.CreateAnnotations(dailyLoginToken);
-            LevelUpTokenEntityType.CreateAnnotations(levelUpToken);
+            BoostActivatedEntryEFEntityType.CreateAnnotations(boostActivatedEntryEF);
+            JournalItemUnlockedEntryEFEntityType.CreateAnnotations(journalItemUnlockedEntryEF);
+            LevelUpEntryEFEntityType.CreateAnnotations(levelUpEntryEF);
+            RewardedActivityLogEntryEFEntityType.CreateAnnotations(rewardedActivityLogEntryEF);
+            JournalItemUnlockedTokenEFEntityType.CreateAnnotations(journalItemUnlockedTokenEF);
+            RewardedTokenEFEntityType.CreateAnnotations(rewardedTokenEF);
+            CraftingCompletedEntryEFEntityType.CreateAnnotations(craftingCompletedEntryEF);
+            SmeltingCompletedEntryEFEntityType.CreateAnnotations(smeltingCompletedEntryEF);
+            TappableEntryEFEntityType.CreateAnnotations(tappableEntryEF);
+            DailyLoginTokenEFEntityType.CreateAnnotations(dailyLoginTokenEF);
+            LevelUpTokenEFEntityType.CreateAnnotations(levelUpTokenEF);
 
             AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
             AddAnnotation("ProductVersion", "10.0.9");
@@ -172,8 +175,6 @@ namespace Solace.DB.CompiledModels
                 IsNullable = true
             };
             solaceDBModelsAccountTableBase.Columns.Add("Username", usernameColumnBase);
-            var versionColumnBase = new ColumnBase<ColumnMappingBase>("Version", "integer", solaceDBModelsAccountTableBase);
-            solaceDBModelsAccountTableBase.Columns.Add("Version", versionColumnBase);
             relationalModel.DefaultTables.Add("Solace.DB.Models.Account", solaceDBModelsAccountTableBase);
             var solaceDBModelsAccountMappingBase = new TableMappingBase<ColumnMappingBase>(account, solaceDBModelsAccountTableBase, null);
             solaceDBModelsAccountTableBase.AddTypeMapping(solaceDBModelsAccountMappingBase, false);
@@ -188,7 +189,6 @@ namespace Solace.DB.CompiledModels
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)profilePictureUrlColumnBase, account.FindProperty("ProfilePictureUrl")!, solaceDBModelsAccountMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)skinImageDataColumnBase, account.FindProperty("SkinImageData")!, solaceDBModelsAccountMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)usernameColumnBase, account.FindProperty("Username")!, solaceDBModelsAccountMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)versionColumnBase, account.FindProperty("Version")!, solaceDBModelsAccountMappingBase);
 
             var tableMappings = new List<TableMapping>();
             account.SetRuntimeAnnotation("Relational:TableMappings", tableMappings);
@@ -238,9 +238,6 @@ namespace Solace.DB.CompiledModels
             };
             accountsTable.Columns.Add("Username", usernameColumn);
             usernameColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<string>(usernameColumn);
-            var versionColumn = new Column("Version", "integer", accountsTable);
-            accountsTable.Columns.Add("Version", versionColumn);
-            versionColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(versionColumn);
             relationalModel.Tables.Add(("Accounts", null), accountsTable);
             var accountsTableMapping = new TableMapping(account, accountsTable, null);
             accountsTable.AddTypeMapping(accountsTableMapping, false);
@@ -255,7 +252,6 @@ namespace Solace.DB.CompiledModels
             RelationalModel.CreateColumnMapping(profilePictureUrlColumn, account.FindProperty("ProfilePictureUrl")!, accountsTableMapping);
             RelationalModel.CreateColumnMapping(skinImageDataColumn, account.FindProperty("SkinImageData")!, accountsTableMapping);
             RelationalModel.CreateColumnMapping(usernameColumn, account.FindProperty("Username")!, accountsTableMapping);
-            RelationalModel.CreateColumnMapping(versionColumn, account.FindProperty("Version")!, accountsTableMapping);
             var pK_Accounts = new UniqueConstraint("PK_Accounts", accountsTable, new[] { idColumn });
             accountsTable.PrimaryKey = pK_Accounts;
             pK_Accounts.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<Guid>(pK_Accounts));
@@ -275,59 +271,156 @@ namespace Solace.DB.CompiledModels
             RelationalModel.GetOrCreateTableIndexes(iX_Accounts_UsernameIx).Add(iX_Accounts_Username);
             accountsTable.Indexes.Add("IX_Accounts_Username", iX_Accounts_Username);
 
-            var encounterBuildplateEF = FindEntityType("Solace.DB.Models.Global.EncounterBuildplateEF")!;
+            var accountVersions = FindEntityType("Solace.DB.Models.AccountVersions")!;
 
             var defaultTableMappings0 = new List<TableMappingBase<ColumnMappingBase>>();
-            encounterBuildplateEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings0);
+            accountVersions.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings0);
+            var solaceDBModelsAccountVersionsTableBase = new TableBase("Solace.DB.Models.AccountVersions", null, relationalModel);
+            var boostsColumnBase = new ColumnBase<ColumnMappingBase>("Boosts", "integer", solaceDBModelsAccountVersionsTableBase);
+            solaceDBModelsAccountVersionsTableBase.Columns.Add("Boosts", boostsColumnBase);
+            var buildplatesColumnBase = new ColumnBase<ColumnMappingBase>("Buildplates", "integer", solaceDBModelsAccountVersionsTableBase);
+            solaceDBModelsAccountVersionsTableBase.Columns.Add("Buildplates", buildplatesColumnBase);
+            var challengesColumnBase = new ColumnBase<ColumnMappingBase>("Challenges", "integer", solaceDBModelsAccountVersionsTableBase);
+            solaceDBModelsAccountVersionsTableBase.Columns.Add("Challenges", challengesColumnBase);
+            var craftingColumnBase = new ColumnBase<ColumnMappingBase>("Crafting", "integer", solaceDBModelsAccountVersionsTableBase);
+            solaceDBModelsAccountVersionsTableBase.Columns.Add("Crafting", craftingColumnBase);
+            var idColumnBase0 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsAccountVersionsTableBase);
+            solaceDBModelsAccountVersionsTableBase.Columns.Add("Id", idColumnBase0);
+            var inventoryColumnBase = new ColumnBase<ColumnMappingBase>("Inventory", "integer", solaceDBModelsAccountVersionsTableBase);
+            solaceDBModelsAccountVersionsTableBase.Columns.Add("Inventory", inventoryColumnBase);
+            var journalColumnBase = new ColumnBase<ColumnMappingBase>("Journal", "integer", solaceDBModelsAccountVersionsTableBase);
+            solaceDBModelsAccountVersionsTableBase.Columns.Add("Journal", journalColumnBase);
+            var profileColumnBase = new ColumnBase<ColumnMappingBase>("Profile", "integer", solaceDBModelsAccountVersionsTableBase);
+            solaceDBModelsAccountVersionsTableBase.Columns.Add("Profile", profileColumnBase);
+            var smeltingColumnBase = new ColumnBase<ColumnMappingBase>("Smelting", "integer", solaceDBModelsAccountVersionsTableBase);
+            solaceDBModelsAccountVersionsTableBase.Columns.Add("Smelting", smeltingColumnBase);
+            var tokensColumnBase = new ColumnBase<ColumnMappingBase>("Tokens", "integer", solaceDBModelsAccountVersionsTableBase);
+            solaceDBModelsAccountVersionsTableBase.Columns.Add("Tokens", tokensColumnBase);
+            relationalModel.DefaultTables.Add("Solace.DB.Models.AccountVersions", solaceDBModelsAccountVersionsTableBase);
+            var solaceDBModelsAccountVersionsMappingBase = new TableMappingBase<ColumnMappingBase>(accountVersions, solaceDBModelsAccountVersionsTableBase, null);
+            solaceDBModelsAccountVersionsTableBase.AddTypeMapping(solaceDBModelsAccountVersionsMappingBase, false);
+            defaultTableMappings0.Add(solaceDBModelsAccountVersionsMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase0, accountVersions.FindProperty("Id")!, solaceDBModelsAccountVersionsMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)boostsColumnBase, accountVersions.FindProperty("Boosts")!, solaceDBModelsAccountVersionsMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)buildplatesColumnBase, accountVersions.FindProperty("Buildplates")!, solaceDBModelsAccountVersionsMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)challengesColumnBase, accountVersions.FindProperty("Challenges")!, solaceDBModelsAccountVersionsMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)craftingColumnBase, accountVersions.FindProperty("Crafting")!, solaceDBModelsAccountVersionsMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)inventoryColumnBase, accountVersions.FindProperty("Inventory")!, solaceDBModelsAccountVersionsMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)journalColumnBase, accountVersions.FindProperty("Journal")!, solaceDBModelsAccountVersionsMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)profileColumnBase, accountVersions.FindProperty("Profile")!, solaceDBModelsAccountVersionsMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)smeltingColumnBase, accountVersions.FindProperty("Smelting")!, solaceDBModelsAccountVersionsMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)tokensColumnBase, accountVersions.FindProperty("Tokens")!, solaceDBModelsAccountVersionsMappingBase);
+
+            var tableMappings0 = new List<TableMapping>();
+            accountVersions.SetRuntimeAnnotation("Relational:TableMappings", tableMappings0);
+            var accountVersionsTable = new Table("AccountVersions", null, relationalModel);
+            var idColumn0 = new Column("Id", "uuid", accountVersionsTable);
+            accountVersionsTable.Columns.Add("Id", idColumn0);
+            idColumn0.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn0);
+            var boostsColumn = new Column("Boosts", "integer", accountVersionsTable);
+            accountVersionsTable.Columns.Add("Boosts", boostsColumn);
+            boostsColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(boostsColumn);
+            var buildplatesColumn = new Column("Buildplates", "integer", accountVersionsTable);
+            accountVersionsTable.Columns.Add("Buildplates", buildplatesColumn);
+            buildplatesColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(buildplatesColumn);
+            var challengesColumn = new Column("Challenges", "integer", accountVersionsTable);
+            accountVersionsTable.Columns.Add("Challenges", challengesColumn);
+            challengesColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(challengesColumn);
+            var craftingColumn = new Column("Crafting", "integer", accountVersionsTable);
+            accountVersionsTable.Columns.Add("Crafting", craftingColumn);
+            craftingColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(craftingColumn);
+            var inventoryColumn = new Column("Inventory", "integer", accountVersionsTable);
+            accountVersionsTable.Columns.Add("Inventory", inventoryColumn);
+            inventoryColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(inventoryColumn);
+            var journalColumn = new Column("Journal", "integer", accountVersionsTable);
+            accountVersionsTable.Columns.Add("Journal", journalColumn);
+            journalColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(journalColumn);
+            var profileColumn = new Column("Profile", "integer", accountVersionsTable);
+            accountVersionsTable.Columns.Add("Profile", profileColumn);
+            profileColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(profileColumn);
+            var smeltingColumn = new Column("Smelting", "integer", accountVersionsTable);
+            accountVersionsTable.Columns.Add("Smelting", smeltingColumn);
+            smeltingColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(smeltingColumn);
+            var tokensColumn = new Column("Tokens", "integer", accountVersionsTable);
+            accountVersionsTable.Columns.Add("Tokens", tokensColumn);
+            tokensColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(tokensColumn);
+            relationalModel.Tables.Add(("AccountVersions", null), accountVersionsTable);
+            var accountVersionsTableMapping = new TableMapping(accountVersions, accountVersionsTable, null);
+            accountVersionsTable.AddTypeMapping(accountVersionsTableMapping, false);
+            tableMappings0.Add(accountVersionsTableMapping);
+            RelationalModel.CreateColumnMapping(idColumn0, accountVersions.FindProperty("Id")!, accountVersionsTableMapping);
+            RelationalModel.CreateColumnMapping(boostsColumn, accountVersions.FindProperty("Boosts")!, accountVersionsTableMapping);
+            RelationalModel.CreateColumnMapping(buildplatesColumn, accountVersions.FindProperty("Buildplates")!, accountVersionsTableMapping);
+            RelationalModel.CreateColumnMapping(challengesColumn, accountVersions.FindProperty("Challenges")!, accountVersionsTableMapping);
+            RelationalModel.CreateColumnMapping(craftingColumn, accountVersions.FindProperty("Crafting")!, accountVersionsTableMapping);
+            RelationalModel.CreateColumnMapping(inventoryColumn, accountVersions.FindProperty("Inventory")!, accountVersionsTableMapping);
+            RelationalModel.CreateColumnMapping(journalColumn, accountVersions.FindProperty("Journal")!, accountVersionsTableMapping);
+            RelationalModel.CreateColumnMapping(profileColumn, accountVersions.FindProperty("Profile")!, accountVersionsTableMapping);
+            RelationalModel.CreateColumnMapping(smeltingColumn, accountVersions.FindProperty("Smelting")!, accountVersionsTableMapping);
+            RelationalModel.CreateColumnMapping(tokensColumn, accountVersions.FindProperty("Tokens")!, accountVersionsTableMapping);
+            var pK_AccountVersions = new UniqueConstraint("PK_AccountVersions", accountVersionsTable, new[] { idColumn0 });
+            accountVersionsTable.PrimaryKey = pK_AccountVersions;
+            pK_AccountVersions.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<Guid>(pK_AccountVersions));
+            var pK_AccountVersionsKey = RelationalModel.GetKey(this,
+                "Solace.DB.Models.AccountVersions",
+                new[] { "Id" });
+            pK_AccountVersions.MappedKeys.Add(pK_AccountVersionsKey);
+            RelationalModel.GetOrCreateUniqueConstraints(pK_AccountVersionsKey).Add(pK_AccountVersions);
+            accountVersionsTable.UniqueConstraints.Add("PK_AccountVersions", pK_AccountVersions);
+
+            var encounterBuildplateEF = FindEntityType("Solace.DB.Models.Global.EncounterBuildplateEF")!;
+
+            var defaultTableMappings1 = new List<TableMappingBase<ColumnMappingBase>>();
+            encounterBuildplateEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings1);
             var solaceDBModelsGlobalEncounterBuildplateEFTableBase = new TableBase("Solace.DB.Models.Global.EncounterBuildplateEF", null, relationalModel);
-            var idColumnBase0 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsGlobalEncounterBuildplateEFTableBase);
-            solaceDBModelsGlobalEncounterBuildplateEFTableBase.Columns.Add("Id", idColumnBase0);
+            var idColumnBase1 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsGlobalEncounterBuildplateEFTableBase);
+            solaceDBModelsGlobalEncounterBuildplateEFTableBase.Columns.Add("Id", idColumnBase1);
             var offsetColumnBase = new ColumnBase<ColumnMappingBase>("Offset", "integer", solaceDBModelsGlobalEncounterBuildplateEFTableBase);
             solaceDBModelsGlobalEncounterBuildplateEFTableBase.Columns.Add("Offset", offsetColumnBase);
             var scaleColumnBase = new ColumnBase<ColumnMappingBase>("Scale", "integer", solaceDBModelsGlobalEncounterBuildplateEFTableBase);
             solaceDBModelsGlobalEncounterBuildplateEFTableBase.Columns.Add("Scale", scaleColumnBase);
-            var serverDataObjectIdColumnBase = new ColumnBase<ColumnMappingBase>("ServerDataObjectId", "text", solaceDBModelsGlobalEncounterBuildplateEFTableBase);
+            var serverDataObjectIdColumnBase = new ColumnBase<ColumnMappingBase>("ServerDataObjectId", "uuid", solaceDBModelsGlobalEncounterBuildplateEFTableBase);
             solaceDBModelsGlobalEncounterBuildplateEFTableBase.Columns.Add("ServerDataObjectId", serverDataObjectIdColumnBase);
             var sizeColumnBase = new ColumnBase<ColumnMappingBase>("Size", "integer", solaceDBModelsGlobalEncounterBuildplateEFTableBase);
             solaceDBModelsGlobalEncounterBuildplateEFTableBase.Columns.Add("Size", sizeColumnBase);
             relationalModel.DefaultTables.Add("Solace.DB.Models.Global.EncounterBuildplateEF", solaceDBModelsGlobalEncounterBuildplateEFTableBase);
             var solaceDBModelsGlobalEncounterBuildplateEFMappingBase = new TableMappingBase<ColumnMappingBase>(encounterBuildplateEF, solaceDBModelsGlobalEncounterBuildplateEFTableBase, null);
             solaceDBModelsGlobalEncounterBuildplateEFTableBase.AddTypeMapping(solaceDBModelsGlobalEncounterBuildplateEFMappingBase, false);
-            defaultTableMappings0.Add(solaceDBModelsGlobalEncounterBuildplateEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase0, encounterBuildplateEF.FindProperty("Id")!, solaceDBModelsGlobalEncounterBuildplateEFMappingBase);
+            defaultTableMappings1.Add(solaceDBModelsGlobalEncounterBuildplateEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase1, encounterBuildplateEF.FindProperty("Id")!, solaceDBModelsGlobalEncounterBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)offsetColumnBase, encounterBuildplateEF.FindProperty("Offset")!, solaceDBModelsGlobalEncounterBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)scaleColumnBase, encounterBuildplateEF.FindProperty("Scale")!, solaceDBModelsGlobalEncounterBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)serverDataObjectIdColumnBase, encounterBuildplateEF.FindProperty("ServerDataObjectId")!, solaceDBModelsGlobalEncounterBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)sizeColumnBase, encounterBuildplateEF.FindProperty("Size")!, solaceDBModelsGlobalEncounterBuildplateEFMappingBase);
 
-            var tableMappings0 = new List<TableMapping>();
-            encounterBuildplateEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings0);
+            var tableMappings1 = new List<TableMapping>();
+            encounterBuildplateEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings1);
             var encounterBuildplatesTable = new Table("EncounterBuildplates", null, relationalModel);
-            var idColumn0 = new Column("Id", "uuid", encounterBuildplatesTable);
-            encounterBuildplatesTable.Columns.Add("Id", idColumn0);
-            idColumn0.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn0);
+            var idColumn1 = new Column("Id", "uuid", encounterBuildplatesTable);
+            encounterBuildplatesTable.Columns.Add("Id", idColumn1);
+            idColumn1.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn1);
             var offsetColumn = new Column("Offset", "integer", encounterBuildplatesTable);
             encounterBuildplatesTable.Columns.Add("Offset", offsetColumn);
             offsetColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(offsetColumn);
             var scaleColumn = new Column("Scale", "integer", encounterBuildplatesTable);
             encounterBuildplatesTable.Columns.Add("Scale", scaleColumn);
             scaleColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(scaleColumn);
-            var serverDataObjectIdColumn = new Column("ServerDataObjectId", "text", encounterBuildplatesTable);
+            var serverDataObjectIdColumn = new Column("ServerDataObjectId", "uuid", encounterBuildplatesTable);
             encounterBuildplatesTable.Columns.Add("ServerDataObjectId", serverDataObjectIdColumn);
-            serverDataObjectIdColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<string>(serverDataObjectIdColumn);
+            serverDataObjectIdColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(serverDataObjectIdColumn);
             var sizeColumn = new Column("Size", "integer", encounterBuildplatesTable);
             encounterBuildplatesTable.Columns.Add("Size", sizeColumn);
             sizeColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(sizeColumn);
             relationalModel.Tables.Add(("EncounterBuildplates", null), encounterBuildplatesTable);
             var encounterBuildplatesTableMapping = new TableMapping(encounterBuildplateEF, encounterBuildplatesTable, null);
             encounterBuildplatesTable.AddTypeMapping(encounterBuildplatesTableMapping, false);
-            tableMappings0.Add(encounterBuildplatesTableMapping);
-            RelationalModel.CreateColumnMapping(idColumn0, encounterBuildplateEF.FindProperty("Id")!, encounterBuildplatesTableMapping);
+            tableMappings1.Add(encounterBuildplatesTableMapping);
+            RelationalModel.CreateColumnMapping(idColumn1, encounterBuildplateEF.FindProperty("Id")!, encounterBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(offsetColumn, encounterBuildplateEF.FindProperty("Offset")!, encounterBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(scaleColumn, encounterBuildplateEF.FindProperty("Scale")!, encounterBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(serverDataObjectIdColumn, encounterBuildplateEF.FindProperty("ServerDataObjectId")!, encounterBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(sizeColumn, encounterBuildplateEF.FindProperty("Size")!, encounterBuildplatesTableMapping);
-            var pK_EncounterBuildplates = new UniqueConstraint("PK_EncounterBuildplates", encounterBuildplatesTable, new[] { idColumn0 });
+            var pK_EncounterBuildplates = new UniqueConstraint("PK_EncounterBuildplates", encounterBuildplatesTable, new[] { idColumn1 });
             encounterBuildplatesTable.PrimaryKey = pK_EncounterBuildplates;
             pK_EncounterBuildplates.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<Guid>(pK_EncounterBuildplates));
             var pK_EncounterBuildplatesKey = RelationalModel.GetKey(this,
@@ -339,36 +432,36 @@ namespace Solace.DB.CompiledModels
 
             var secret = FindEntityType("Solace.DB.Models.Global.Secret")!;
 
-            var defaultTableMappings1 = new List<TableMappingBase<ColumnMappingBase>>();
-            secret.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings1);
+            var defaultTableMappings2 = new List<TableMappingBase<ColumnMappingBase>>();
+            secret.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings2);
             var solaceDBModelsGlobalSecretTableBase = new TableBase("Solace.DB.Models.Global.Secret", null, relationalModel);
-            var idColumnBase1 = new ColumnBase<ColumnMappingBase>("Id", "text", solaceDBModelsGlobalSecretTableBase);
-            solaceDBModelsGlobalSecretTableBase.Columns.Add("Id", idColumnBase1);
+            var idColumnBase2 = new ColumnBase<ColumnMappingBase>("Id", "text", solaceDBModelsGlobalSecretTableBase);
+            solaceDBModelsGlobalSecretTableBase.Columns.Add("Id", idColumnBase2);
             var valueColumnBase = new ColumnBase<ColumnMappingBase>("Value", "text", solaceDBModelsGlobalSecretTableBase);
             solaceDBModelsGlobalSecretTableBase.Columns.Add("Value", valueColumnBase);
             relationalModel.DefaultTables.Add("Solace.DB.Models.Global.Secret", solaceDBModelsGlobalSecretTableBase);
             var solaceDBModelsGlobalSecretMappingBase = new TableMappingBase<ColumnMappingBase>(secret, solaceDBModelsGlobalSecretTableBase, null);
             solaceDBModelsGlobalSecretTableBase.AddTypeMapping(solaceDBModelsGlobalSecretMappingBase, false);
-            defaultTableMappings1.Add(solaceDBModelsGlobalSecretMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase1, secret.FindProperty("Id")!, solaceDBModelsGlobalSecretMappingBase);
+            defaultTableMappings2.Add(solaceDBModelsGlobalSecretMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase2, secret.FindProperty("Id")!, solaceDBModelsGlobalSecretMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)valueColumnBase, secret.FindProperty("Value")!, solaceDBModelsGlobalSecretMappingBase);
 
-            var tableMappings1 = new List<TableMapping>();
-            secret.SetRuntimeAnnotation("Relational:TableMappings", tableMappings1);
+            var tableMappings2 = new List<TableMapping>();
+            secret.SetRuntimeAnnotation("Relational:TableMappings", tableMappings2);
             var secretsTable = new Table("Secrets", null, relationalModel);
-            var idColumn1 = new Column("Id", "text", secretsTable);
-            secretsTable.Columns.Add("Id", idColumn1);
-            idColumn1.Accessors = ColumnAccessorsFactory.CreateGeneric<string>(idColumn1);
+            var idColumn2 = new Column("Id", "text", secretsTable);
+            secretsTable.Columns.Add("Id", idColumn2);
+            idColumn2.Accessors = ColumnAccessorsFactory.CreateGeneric<string>(idColumn2);
             var valueColumn = new Column("Value", "text", secretsTable);
             secretsTable.Columns.Add("Value", valueColumn);
             valueColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<string>(valueColumn);
             relationalModel.Tables.Add(("Secrets", null), secretsTable);
             var secretsTableMapping = new TableMapping(secret, secretsTable, null);
             secretsTable.AddTypeMapping(secretsTableMapping, false);
-            tableMappings1.Add(secretsTableMapping);
-            RelationalModel.CreateColumnMapping(idColumn1, secret.FindProperty("Id")!, secretsTableMapping);
+            tableMappings2.Add(secretsTableMapping);
+            RelationalModel.CreateColumnMapping(idColumn2, secret.FindProperty("Id")!, secretsTableMapping);
             RelationalModel.CreateColumnMapping(valueColumn, secret.FindProperty("Value")!, secretsTableMapping);
-            var pK_Secrets = new UniqueConstraint("PK_Secrets", secretsTable, new[] { idColumn1 });
+            var pK_Secrets = new UniqueConstraint("PK_Secrets", secretsTable, new[] { idColumn2 });
             secretsTable.PrimaryKey = pK_Secrets;
             pK_Secrets.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<string>(pK_Secrets));
             var pK_SecretsKey = RelationalModel.GetKey(this,
@@ -380,22 +473,22 @@ namespace Solace.DB.CompiledModels
 
             var sharedBuildplateEF = FindEntityType("Solace.DB.Models.Global.SharedBuildplateEF")!;
 
-            var defaultTableMappings2 = new List<TableMappingBase<ColumnMappingBase>>();
-            sharedBuildplateEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings2);
+            var defaultTableMappings3 = new List<TableMappingBase<ColumnMappingBase>>();
+            sharedBuildplateEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings3);
             var solaceDBModelsGlobalSharedBuildplateEFTableBase = new TableBase("Solace.DB.Models.Global.SharedBuildplateEF", null, relationalModel);
             var accountIdColumnBase = new ColumnBase<ColumnMappingBase>("AccountId", "uuid", solaceDBModelsGlobalSharedBuildplateEFTableBase);
             solaceDBModelsGlobalSharedBuildplateEFTableBase.Columns.Add("AccountId", accountIdColumnBase);
             var buildplateLastModifedColumnBase = new ColumnBase<ColumnMappingBase>("BuildplateLastModifed", "timestamp with time zone", solaceDBModelsGlobalSharedBuildplateEFTableBase);
             solaceDBModelsGlobalSharedBuildplateEFTableBase.Columns.Add("BuildplateLastModifed", buildplateLastModifedColumnBase);
-            var createdColumnBase = new ColumnBase<ColumnMappingBase>("Created", "bigint", solaceDBModelsGlobalSharedBuildplateEFTableBase);
+            var createdColumnBase = new ColumnBase<ColumnMappingBase>("Created", "timestamp with time zone", solaceDBModelsGlobalSharedBuildplateEFTableBase);
             solaceDBModelsGlobalSharedBuildplateEFTableBase.Columns.Add("Created", createdColumnBase);
             var hotbarColumnBase = new JsonColumnBase("Hotbar", "jsonb", solaceDBModelsGlobalSharedBuildplateEFTableBase)
             {
                 IsNullable = true
             };
             solaceDBModelsGlobalSharedBuildplateEFTableBase.Columns.Add("Hotbar", hotbarColumnBase);
-            var idColumnBase2 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsGlobalSharedBuildplateEFTableBase);
-            solaceDBModelsGlobalSharedBuildplateEFTableBase.Columns.Add("Id", idColumnBase2);
+            var idColumnBase3 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsGlobalSharedBuildplateEFTableBase);
+            solaceDBModelsGlobalSharedBuildplateEFTableBase.Columns.Add("Id", idColumnBase3);
             var lastViewedColumnBase = new ColumnBase<ColumnMappingBase>("LastViewed", "timestamp with time zone", solaceDBModelsGlobalSharedBuildplateEFTableBase);
             solaceDBModelsGlobalSharedBuildplateEFTableBase.Columns.Add("LastViewed", lastViewedColumnBase);
             var nightColumnBase = new ColumnBase<ColumnMappingBase>("Night", "boolean", solaceDBModelsGlobalSharedBuildplateEFTableBase);
@@ -413,8 +506,8 @@ namespace Solace.DB.CompiledModels
             relationalModel.DefaultTables.Add("Solace.DB.Models.Global.SharedBuildplateEF", solaceDBModelsGlobalSharedBuildplateEFTableBase);
             var solaceDBModelsGlobalSharedBuildplateEFMappingBase = new TableMappingBase<ColumnMappingBase>(sharedBuildplateEF, solaceDBModelsGlobalSharedBuildplateEFTableBase, null);
             solaceDBModelsGlobalSharedBuildplateEFTableBase.AddTypeMapping(solaceDBModelsGlobalSharedBuildplateEFMappingBase, false);
-            defaultTableMappings2.Add(solaceDBModelsGlobalSharedBuildplateEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase2, sharedBuildplateEF.FindProperty("Id")!, solaceDBModelsGlobalSharedBuildplateEFMappingBase);
+            defaultTableMappings3.Add(solaceDBModelsGlobalSharedBuildplateEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase3, sharedBuildplateEF.FindProperty("Id")!, solaceDBModelsGlobalSharedBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase, sharedBuildplateEF.FindProperty("AccountId")!, solaceDBModelsGlobalSharedBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)buildplateLastModifedColumnBase, sharedBuildplateEF.FindProperty("BuildplateLastModifed")!, solaceDBModelsGlobalSharedBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)createdColumnBase, sharedBuildplateEF.FindProperty("Created")!, solaceDBModelsGlobalSharedBuildplateEFMappingBase);
@@ -426,21 +519,21 @@ namespace Solace.DB.CompiledModels
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)serverDataObjectIdColumnBase0, sharedBuildplateEF.FindProperty("ServerDataObjectId")!, solaceDBModelsGlobalSharedBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)sizeColumnBase0, sharedBuildplateEF.FindProperty("Size")!, solaceDBModelsGlobalSharedBuildplateEFMappingBase);
 
-            var tableMappings2 = new List<TableMapping>();
-            sharedBuildplateEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings2);
+            var tableMappings3 = new List<TableMapping>();
+            sharedBuildplateEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings3);
             var sharedBuildplatesTable = new Table("SharedBuildplates", null, relationalModel);
-            var idColumn2 = new Column("Id", "uuid", sharedBuildplatesTable);
-            sharedBuildplatesTable.Columns.Add("Id", idColumn2);
-            idColumn2.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn2);
+            var idColumn3 = new Column("Id", "uuid", sharedBuildplatesTable);
+            sharedBuildplatesTable.Columns.Add("Id", idColumn3);
+            idColumn3.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn3);
             var accountIdColumn = new Column("AccountId", "uuid", sharedBuildplatesTable);
             sharedBuildplatesTable.Columns.Add("AccountId", accountIdColumn);
             accountIdColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(accountIdColumn);
             var buildplateLastModifedColumn = new Column("BuildplateLastModifed", "timestamp with time zone", sharedBuildplatesTable);
             sharedBuildplatesTable.Columns.Add("BuildplateLastModifed", buildplateLastModifedColumn);
             buildplateLastModifedColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<DateTimeOffset>(buildplateLastModifedColumn);
-            var createdColumn = new Column("Created", "bigint", sharedBuildplatesTable);
+            var createdColumn = new Column("Created", "timestamp with time zone", sharedBuildplatesTable);
             sharedBuildplatesTable.Columns.Add("Created", createdColumn);
-            createdColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<long>(createdColumn);
+            createdColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<DateTimeOffset>(createdColumn);
             var hotbarColumn = new JsonColumn("Hotbar", "jsonb", sharedBuildplatesTable)
             {
                 IsNullable = true
@@ -474,8 +567,8 @@ namespace Solace.DB.CompiledModels
                 IsSharedTablePrincipal = true,
             };
             sharedBuildplatesTable.AddTypeMapping(sharedBuildplatesTableMapping, false);
-            tableMappings2.Add(sharedBuildplatesTableMapping);
-            RelationalModel.CreateColumnMapping(idColumn2, sharedBuildplateEF.FindProperty("Id")!, sharedBuildplatesTableMapping);
+            tableMappings3.Add(sharedBuildplatesTableMapping);
+            RelationalModel.CreateColumnMapping(idColumn3, sharedBuildplateEF.FindProperty("Id")!, sharedBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(accountIdColumn, sharedBuildplateEF.FindProperty("AccountId")!, sharedBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(buildplateLastModifedColumn, sharedBuildplateEF.FindProperty("BuildplateLastModifed")!, sharedBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(createdColumn, sharedBuildplateEF.FindProperty("Created")!, sharedBuildplatesTableMapping);
@@ -489,26 +582,26 @@ namespace Solace.DB.CompiledModels
 
             var hotbarItem = FindEntityType("Solace.DB.Models.Global.SharedBuildplateEF+HotbarItem")!;
 
-            var defaultTableMappings3 = new List<TableMappingBase<ColumnMappingBase>>();
-            hotbarItem.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings3);
+            var defaultTableMappings4 = new List<TableMappingBase<ColumnMappingBase>>();
+            hotbarItem.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings4);
             var solaceDBModelsGlobalSharedBuildplateEFMappingBase0 = new TableMappingBase<ColumnMappingBase>(hotbarItem, solaceDBModelsGlobalSharedBuildplateEFTableBase, null);
             solaceDBModelsGlobalSharedBuildplateEFTableBase.AddTypeMapping(solaceDBModelsGlobalSharedBuildplateEFMappingBase0, null);
-            defaultTableMappings3.Add(solaceDBModelsGlobalSharedBuildplateEFMappingBase0);
+            defaultTableMappings4.Add(solaceDBModelsGlobalSharedBuildplateEFMappingBase0);
 
-            var tableMappings3 = new List<TableMapping>();
-            hotbarItem.SetRuntimeAnnotation("Relational:TableMappings", tableMappings3);
+            var tableMappings4 = new List<TableMapping>();
+            hotbarItem.SetRuntimeAnnotation("Relational:TableMappings", tableMappings4);
             var sharedBuildplatesTableMapping0 = new TableMapping(hotbarItem, sharedBuildplatesTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             sharedBuildplatesTable.AddTypeMapping(sharedBuildplatesTableMapping0, null);
-            tableMappings3.Add(sharedBuildplatesTableMapping0);
+            tableMappings4.Add(sharedBuildplatesTableMapping0);
             sharedBuildplatesTable.AddRowInternalForeignKey(hotbarItem, RelationalModel.GetForeignKey(this,
                 "Solace.DB.Models.Global.SharedBuildplateEF+HotbarItem",
                 new[] { "SharedBuildplateEFId" },
                 "Solace.DB.Models.Global.SharedBuildplateEF",
                 new[] { "Id" }));
-            var pK_SharedBuildplates = new UniqueConstraint("PK_SharedBuildplates", sharedBuildplatesTable, new[] { idColumn2 });
+            var pK_SharedBuildplates = new UniqueConstraint("PK_SharedBuildplates", sharedBuildplatesTable, new[] { idColumn3 });
             sharedBuildplatesTable.PrimaryKey = pK_SharedBuildplates;
             pK_SharedBuildplates.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<Guid>(pK_SharedBuildplates));
             var pK_SharedBuildplatesKey = RelationalModel.GetKey(this,
@@ -529,47 +622,47 @@ namespace Solace.DB.CompiledModels
 
             var templateBuildplateEF = FindEntityType("Solace.DB.Models.Global.TemplateBuildplateEF")!;
 
-            var defaultTableMappings4 = new List<TableMappingBase<ColumnMappingBase>>();
-            templateBuildplateEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings4);
+            var defaultTableMappings5 = new List<TableMappingBase<ColumnMappingBase>>();
+            templateBuildplateEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings5);
             var solaceDBModelsGlobalTemplateBuildplateEFTableBase = new TableBase("Solace.DB.Models.Global.TemplateBuildplateEF", null, relationalModel);
-            var idColumnBase3 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsGlobalTemplateBuildplateEFTableBase);
-            solaceDBModelsGlobalTemplateBuildplateEFTableBase.Columns.Add("Id", idColumnBase3);
+            var blocksPerMeterColumnBase = new ColumnBase<ColumnMappingBase>("BlocksPerMeter", "integer", solaceDBModelsGlobalTemplateBuildplateEFTableBase);
+            solaceDBModelsGlobalTemplateBuildplateEFTableBase.Columns.Add("BlocksPerMeter", blocksPerMeterColumnBase);
+            var idColumnBase4 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsGlobalTemplateBuildplateEFTableBase);
+            solaceDBModelsGlobalTemplateBuildplateEFTableBase.Columns.Add("Id", idColumnBase4);
             var nameColumnBase = new ColumnBase<ColumnMappingBase>("Name", "text", solaceDBModelsGlobalTemplateBuildplateEFTableBase);
             solaceDBModelsGlobalTemplateBuildplateEFTableBase.Columns.Add("Name", nameColumnBase);
             var nightColumnBase0 = new ColumnBase<ColumnMappingBase>("Night", "boolean", solaceDBModelsGlobalTemplateBuildplateEFTableBase);
             solaceDBModelsGlobalTemplateBuildplateEFTableBase.Columns.Add("Night", nightColumnBase0);
             var offsetColumnBase1 = new ColumnBase<ColumnMappingBase>("Offset", "integer", solaceDBModelsGlobalTemplateBuildplateEFTableBase);
             solaceDBModelsGlobalTemplateBuildplateEFTableBase.Columns.Add("Offset", offsetColumnBase1);
-            var previewObjectIdColumnBase = new ColumnBase<ColumnMappingBase>("PreviewObjectId", "text", solaceDBModelsGlobalTemplateBuildplateEFTableBase);
+            var previewObjectIdColumnBase = new ColumnBase<ColumnMappingBase>("PreviewObjectId", "uuid", solaceDBModelsGlobalTemplateBuildplateEFTableBase);
             solaceDBModelsGlobalTemplateBuildplateEFTableBase.Columns.Add("PreviewObjectId", previewObjectIdColumnBase);
-            var scaleColumnBase1 = new ColumnBase<ColumnMappingBase>("Scale", "integer", solaceDBModelsGlobalTemplateBuildplateEFTableBase);
-            solaceDBModelsGlobalTemplateBuildplateEFTableBase.Columns.Add("Scale", scaleColumnBase1);
-            var serverDataObjectIdColumnBase1 = new ColumnBase<ColumnMappingBase>("ServerDataObjectId", "text", solaceDBModelsGlobalTemplateBuildplateEFTableBase);
+            var serverDataObjectIdColumnBase1 = new ColumnBase<ColumnMappingBase>("ServerDataObjectId", "uuid", solaceDBModelsGlobalTemplateBuildplateEFTableBase);
             solaceDBModelsGlobalTemplateBuildplateEFTableBase.Columns.Add("ServerDataObjectId", serverDataObjectIdColumnBase1);
             var sizeColumnBase1 = new ColumnBase<ColumnMappingBase>("Size", "integer", solaceDBModelsGlobalTemplateBuildplateEFTableBase);
             solaceDBModelsGlobalTemplateBuildplateEFTableBase.Columns.Add("Size", sizeColumnBase1);
-            var versionColumnBase0 = new ColumnBase<ColumnMappingBase>("Version", "integer", solaceDBModelsGlobalTemplateBuildplateEFTableBase);
-            solaceDBModelsGlobalTemplateBuildplateEFTableBase.Columns.Add("Version", versionColumnBase0);
             relationalModel.DefaultTables.Add("Solace.DB.Models.Global.TemplateBuildplateEF", solaceDBModelsGlobalTemplateBuildplateEFTableBase);
             var solaceDBModelsGlobalTemplateBuildplateEFMappingBase = new TableMappingBase<ColumnMappingBase>(templateBuildplateEF, solaceDBModelsGlobalTemplateBuildplateEFTableBase, null);
             solaceDBModelsGlobalTemplateBuildplateEFTableBase.AddTypeMapping(solaceDBModelsGlobalTemplateBuildplateEFMappingBase, false);
-            defaultTableMappings4.Add(solaceDBModelsGlobalTemplateBuildplateEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase3, templateBuildplateEF.FindProperty("Id")!, solaceDBModelsGlobalTemplateBuildplateEFMappingBase);
+            defaultTableMappings5.Add(solaceDBModelsGlobalTemplateBuildplateEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase4, templateBuildplateEF.FindProperty("Id")!, solaceDBModelsGlobalTemplateBuildplateEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)blocksPerMeterColumnBase, templateBuildplateEF.FindProperty("BlocksPerMeter")!, solaceDBModelsGlobalTemplateBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)nameColumnBase, templateBuildplateEF.FindProperty("Name")!, solaceDBModelsGlobalTemplateBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)nightColumnBase0, templateBuildplateEF.FindProperty("Night")!, solaceDBModelsGlobalTemplateBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)offsetColumnBase1, templateBuildplateEF.FindProperty("Offset")!, solaceDBModelsGlobalTemplateBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)previewObjectIdColumnBase, templateBuildplateEF.FindProperty("PreviewObjectId")!, solaceDBModelsGlobalTemplateBuildplateEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)scaleColumnBase1, templateBuildplateEF.FindProperty("Scale")!, solaceDBModelsGlobalTemplateBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)serverDataObjectIdColumnBase1, templateBuildplateEF.FindProperty("ServerDataObjectId")!, solaceDBModelsGlobalTemplateBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)sizeColumnBase1, templateBuildplateEF.FindProperty("Size")!, solaceDBModelsGlobalTemplateBuildplateEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)versionColumnBase0, templateBuildplateEF.FindProperty("Version")!, solaceDBModelsGlobalTemplateBuildplateEFMappingBase);
 
-            var tableMappings4 = new List<TableMapping>();
-            templateBuildplateEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings4);
+            var tableMappings5 = new List<TableMapping>();
+            templateBuildplateEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings5);
             var templateBuildplatesTable = new Table("TemplateBuildplates", null, relationalModel);
-            var idColumn3 = new Column("Id", "uuid", templateBuildplatesTable);
-            templateBuildplatesTable.Columns.Add("Id", idColumn3);
-            idColumn3.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn3);
+            var idColumn4 = new Column("Id", "uuid", templateBuildplatesTable);
+            templateBuildplatesTable.Columns.Add("Id", idColumn4);
+            idColumn4.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn4);
+            var blocksPerMeterColumn = new Column("BlocksPerMeter", "integer", templateBuildplatesTable);
+            templateBuildplatesTable.Columns.Add("BlocksPerMeter", blocksPerMeterColumn);
+            blocksPerMeterColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(blocksPerMeterColumn);
             var nameColumn = new Column("Name", "text", templateBuildplatesTable);
             templateBuildplatesTable.Columns.Add("Name", nameColumn);
             nameColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<string>(nameColumn);
@@ -579,35 +672,28 @@ namespace Solace.DB.CompiledModels
             var offsetColumn1 = new Column("Offset", "integer", templateBuildplatesTable);
             templateBuildplatesTable.Columns.Add("Offset", offsetColumn1);
             offsetColumn1.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(offsetColumn1);
-            var previewObjectIdColumn = new Column("PreviewObjectId", "text", templateBuildplatesTable);
+            var previewObjectIdColumn = new Column("PreviewObjectId", "uuid", templateBuildplatesTable);
             templateBuildplatesTable.Columns.Add("PreviewObjectId", previewObjectIdColumn);
-            previewObjectIdColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<string>(previewObjectIdColumn);
-            var scaleColumn1 = new Column("Scale", "integer", templateBuildplatesTable);
-            templateBuildplatesTable.Columns.Add("Scale", scaleColumn1);
-            scaleColumn1.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(scaleColumn1);
-            var serverDataObjectIdColumn1 = new Column("ServerDataObjectId", "text", templateBuildplatesTable);
+            previewObjectIdColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(previewObjectIdColumn);
+            var serverDataObjectIdColumn1 = new Column("ServerDataObjectId", "uuid", templateBuildplatesTable);
             templateBuildplatesTable.Columns.Add("ServerDataObjectId", serverDataObjectIdColumn1);
-            serverDataObjectIdColumn1.Accessors = ColumnAccessorsFactory.CreateGeneric<string>(serverDataObjectIdColumn1);
+            serverDataObjectIdColumn1.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(serverDataObjectIdColumn1);
             var sizeColumn1 = new Column("Size", "integer", templateBuildplatesTable);
             templateBuildplatesTable.Columns.Add("Size", sizeColumn1);
             sizeColumn1.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(sizeColumn1);
-            var versionColumn0 = new Column("Version", "integer", templateBuildplatesTable);
-            templateBuildplatesTable.Columns.Add("Version", versionColumn0);
-            versionColumn0.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(versionColumn0);
             relationalModel.Tables.Add(("TemplateBuildplates", null), templateBuildplatesTable);
             var templateBuildplatesTableMapping = new TableMapping(templateBuildplateEF, templateBuildplatesTable, null);
             templateBuildplatesTable.AddTypeMapping(templateBuildplatesTableMapping, false);
-            tableMappings4.Add(templateBuildplatesTableMapping);
-            RelationalModel.CreateColumnMapping(idColumn3, templateBuildplateEF.FindProperty("Id")!, templateBuildplatesTableMapping);
+            tableMappings5.Add(templateBuildplatesTableMapping);
+            RelationalModel.CreateColumnMapping(idColumn4, templateBuildplateEF.FindProperty("Id")!, templateBuildplatesTableMapping);
+            RelationalModel.CreateColumnMapping(blocksPerMeterColumn, templateBuildplateEF.FindProperty("BlocksPerMeter")!, templateBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(nameColumn, templateBuildplateEF.FindProperty("Name")!, templateBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(nightColumn0, templateBuildplateEF.FindProperty("Night")!, templateBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(offsetColumn1, templateBuildplateEF.FindProperty("Offset")!, templateBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(previewObjectIdColumn, templateBuildplateEF.FindProperty("PreviewObjectId")!, templateBuildplatesTableMapping);
-            RelationalModel.CreateColumnMapping(scaleColumn1, templateBuildplateEF.FindProperty("Scale")!, templateBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(serverDataObjectIdColumn1, templateBuildplateEF.FindProperty("ServerDataObjectId")!, templateBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(sizeColumn1, templateBuildplateEF.FindProperty("Size")!, templateBuildplatesTableMapping);
-            RelationalModel.CreateColumnMapping(versionColumn0, templateBuildplateEF.FindProperty("Version")!, templateBuildplatesTableMapping);
-            var pK_TemplateBuildplates = new UniqueConstraint("PK_TemplateBuildplates", templateBuildplatesTable, new[] { idColumn3 });
+            var pK_TemplateBuildplates = new UniqueConstraint("PK_TemplateBuildplates", templateBuildplatesTable, new[] { idColumn4 });
             templateBuildplatesTable.PrimaryKey = pK_TemplateBuildplates;
             pK_TemplateBuildplates.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<Guid>(pK_TemplateBuildplates));
             var pK_TemplateBuildplatesKey = RelationalModel.GetKey(this,
@@ -619,38 +705,39 @@ namespace Solace.DB.CompiledModels
 
             var tile = FindEntityType("Solace.DB.Models.Global.Tile")!;
 
-            var defaultTableMappings5 = new List<TableMappingBase<ColumnMappingBase>>();
-            tile.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings5);
+            var defaultTableMappings6 = new List<TableMappingBase<ColumnMappingBase>>();
+            tile.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings6);
             var solaceDBModelsGlobalTileTableBase = new TableBase("Solace.DB.Models.Global.Tile", null, relationalModel);
-            var idColumnBase4 = new ColumnBase<ColumnMappingBase>("Id", "numeric(20,0)", solaceDBModelsGlobalTileTableBase);
-            solaceDBModelsGlobalTileTableBase.Columns.Add("Id", idColumnBase4);
-            var objectStoreIdColumnBase = new ColumnBase<ColumnMappingBase>("ObjectStoreId", "text", solaceDBModelsGlobalTileTableBase);
+            var idColumnBase5 = new ColumnBase<ColumnMappingBase>("Id", "bigint", solaceDBModelsGlobalTileTableBase);
+            solaceDBModelsGlobalTileTableBase.Columns.Add("Id", idColumnBase5);
+            var objectStoreIdColumnBase = new ColumnBase<ColumnMappingBase>("ObjectStoreId", "uuid", solaceDBModelsGlobalTileTableBase);
             solaceDBModelsGlobalTileTableBase.Columns.Add("ObjectStoreId", objectStoreIdColumnBase);
             relationalModel.DefaultTables.Add("Solace.DB.Models.Global.Tile", solaceDBModelsGlobalTileTableBase);
             var solaceDBModelsGlobalTileMappingBase = new TableMappingBase<ColumnMappingBase>(tile, solaceDBModelsGlobalTileTableBase, null);
             solaceDBModelsGlobalTileTableBase.AddTypeMapping(solaceDBModelsGlobalTileMappingBase, false);
-            defaultTableMappings5.Add(solaceDBModelsGlobalTileMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase4, tile.FindProperty("Id")!, solaceDBModelsGlobalTileMappingBase);
+            defaultTableMappings6.Add(solaceDBModelsGlobalTileMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase5, tile.FindProperty("Id")!, solaceDBModelsGlobalTileMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)objectStoreIdColumnBase, tile.FindProperty("ObjectStoreId")!, solaceDBModelsGlobalTileMappingBase);
 
-            var tableMappings5 = new List<TableMapping>();
-            tile.SetRuntimeAnnotation("Relational:TableMappings", tableMappings5);
+            var tableMappings6 = new List<TableMapping>();
+            tile.SetRuntimeAnnotation("Relational:TableMappings", tableMappings6);
             var tilesTable = new Table("Tiles", null, relationalModel);
-            var idColumn4 = new Column("Id", "numeric(20,0)", tilesTable);
-            tilesTable.Columns.Add("Id", idColumn4);
-            idColumn4.Accessors = ColumnAccessorsFactory.CreateGeneric<decimal>(idColumn4);
-            var objectStoreIdColumn = new Column("ObjectStoreId", "text", tilesTable);
+            var idColumn5 = new Column("Id", "bigint", tilesTable);
+            tilesTable.Columns.Add("Id", idColumn5);
+            idColumn5.Accessors = ColumnAccessorsFactory.CreateGeneric<long>(idColumn5);
+            idColumn5.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            var objectStoreIdColumn = new Column("ObjectStoreId", "uuid", tilesTable);
             tilesTable.Columns.Add("ObjectStoreId", objectStoreIdColumn);
-            objectStoreIdColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<string>(objectStoreIdColumn);
+            objectStoreIdColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(objectStoreIdColumn);
             relationalModel.Tables.Add(("Tiles", null), tilesTable);
             var tilesTableMapping = new TableMapping(tile, tilesTable, null);
             tilesTable.AddTypeMapping(tilesTableMapping, false);
-            tableMappings5.Add(tilesTableMapping);
-            RelationalModel.CreateColumnMapping(idColumn4, tile.FindProperty("Id")!, tilesTableMapping);
+            tableMappings6.Add(tilesTableMapping);
+            RelationalModel.CreateColumnMapping(idColumn5, tile.FindProperty("Id")!, tilesTableMapping);
             RelationalModel.CreateColumnMapping(objectStoreIdColumn, tile.FindProperty("ObjectStoreId")!, tilesTableMapping);
-            var pK_Tiles = new UniqueConstraint("PK_Tiles", tilesTable, new[] { idColumn4 });
+            var pK_Tiles = new UniqueConstraint("PK_Tiles", tilesTable, new[] { idColumn5 });
             tilesTable.PrimaryKey = pK_Tiles;
-            pK_Tiles.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<decimal>(pK_Tiles));
+            pK_Tiles.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<long>(pK_Tiles));
             var pK_TilesKey = RelationalModel.GetKey(this,
                 "Solace.DB.Models.Global.Tile",
                 new[] { "Id" });
@@ -660,8 +747,8 @@ namespace Solace.DB.CompiledModels
 
             var activityLogEntryEF = FindEntityType("Solace.DB.Models.Player.ActivityLogEntryEF")!;
 
-            var defaultTableMappings6 = new List<TableMappingBase<ColumnMappingBase>>();
-            activityLogEntryEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings6);
+            var defaultTableMappings7 = new List<TableMappingBase<ColumnMappingBase>>();
+            activityLogEntryEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings7);
             var solaceDBModelsPlayerActivityLogEntryEFTableBase = new TableBase("Solace.DB.Models.Player.ActivityLogEntryEF", null, relationalModel);
             var accountIdColumnBase0 = new ColumnBase<ColumnMappingBase>("AccountId", "uuid", solaceDBModelsPlayerActivityLogEntryEFTableBase);
             solaceDBModelsPlayerActivityLogEntryEFTableBase.Columns.Add("AccountId", accountIdColumnBase0);
@@ -689,14 +776,14 @@ namespace Solace.DB.CompiledModels
             relationalModel.DefaultTables.Add("Solace.DB.Models.Player.ActivityLogEntryEF", solaceDBModelsPlayerActivityLogEntryEFTableBase);
             var solaceDBModelsPlayerActivityLogEntryEFMappingBase = new TableMappingBase<ColumnMappingBase>(activityLogEntryEF, solaceDBModelsPlayerActivityLogEntryEFTableBase, true);
             solaceDBModelsPlayerActivityLogEntryEFTableBase.AddTypeMapping(solaceDBModelsPlayerActivityLogEntryEFMappingBase, false);
-            defaultTableMappings6.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase);
+            defaultTableMappings7.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, activityLogEntryEF.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, activityLogEntryEF.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, activityLogEntryEF.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, activityLogEntryEF.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase);
 
-            var tableMappings6 = new List<TableMapping>();
-            activityLogEntryEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings6);
+            var tableMappings7 = new List<TableMapping>();
+            activityLogEntryEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings7);
             var activityLogsTable = new Table("ActivityLogs", null, relationalModel);
             var accountIdColumn0 = new Column("AccountId", "uuid", activityLogsTable);
             activityLogsTable.Columns.Add("AccountId", accountIdColumn0);
@@ -735,107 +822,100 @@ namespace Solace.DB.CompiledModels
                 IsSharedTablePrincipal = true,
             };
             activityLogsTable.AddTypeMapping(activityLogsTableMapping, false);
-            tableMappings6.Add(activityLogsTableMapping);
+            tableMappings7.Add(activityLogsTableMapping);
             RelationalModel.CreateColumnMapping(accountIdColumn0, activityLogEntryEF.FindProperty("AccountId")!, activityLogsTableMapping);
             RelationalModel.CreateColumnMapping(entryIdColumn, activityLogEntryEF.FindProperty("EntryId")!, activityLogsTableMapping);
             RelationalModel.CreateColumnMapping(timestampColumn, activityLogEntryEF.FindProperty("Timestamp")!, activityLogsTableMapping);
             RelationalModel.CreateColumnMapping(entity_typeColumn, activityLogEntryEF.FindProperty("entity_type")!, activityLogsTableMapping);
 
-            var boostActivatedEntry = FindEntityType("Solace.DB.Models.Player.BoostActivatedEntry")!;
+            var boostActivatedEntryEF = FindEntityType("Solace.DB.Models.Player.BoostActivatedEntryEF")!;
 
-            var defaultTableMappings7 = new List<TableMappingBase<ColumnMappingBase>>();
-            boostActivatedEntry.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings7);
-            var solaceDBModelsPlayerActivityLogEntryEFMappingBase0 = new TableMappingBase<ColumnMappingBase>(boostActivatedEntry, solaceDBModelsPlayerActivityLogEntryEFTableBase, null);
+            var defaultTableMappings8 = new List<TableMappingBase<ColumnMappingBase>>();
+            boostActivatedEntryEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings8);
+            var solaceDBModelsPlayerActivityLogEntryEFMappingBase0 = new TableMappingBase<ColumnMappingBase>(boostActivatedEntryEF, solaceDBModelsPlayerActivityLogEntryEFTableBase, null);
             solaceDBModelsPlayerActivityLogEntryEFTableBase.AddTypeMapping(solaceDBModelsPlayerActivityLogEntryEFMappingBase0, false);
-            defaultTableMappings7.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase0);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, boostActivatedEntry.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase0);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, boostActivatedEntry.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase0);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)itemIdColumnBase, boostActivatedEntry.FindProperty("ItemId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase0);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, boostActivatedEntry.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase0);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, boostActivatedEntry.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase0);
+            defaultTableMappings8.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase0);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, boostActivatedEntryEF.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase0);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, boostActivatedEntryEF.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase0);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)itemIdColumnBase, boostActivatedEntryEF.FindProperty("ItemId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase0);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, boostActivatedEntryEF.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase0);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, boostActivatedEntryEF.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase0);
 
-            var tableMappings7 = new List<TableMapping>();
-            boostActivatedEntry.SetRuntimeAnnotation("Relational:TableMappings", tableMappings7);
-            var activityLogsTableMapping0 = new TableMapping(boostActivatedEntry, activityLogsTable, null)
+            var tableMappings8 = new List<TableMapping>();
+            boostActivatedEntryEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings8);
+            var activityLogsTableMapping0 = new TableMapping(boostActivatedEntryEF, activityLogsTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             activityLogsTable.AddTypeMapping(activityLogsTableMapping0, false);
-            tableMappings7.Add(activityLogsTableMapping0);
-            RelationalModel.CreateColumnMapping(accountIdColumn0, boostActivatedEntry.FindProperty("AccountId")!, activityLogsTableMapping0);
-            RelationalModel.CreateColumnMapping(entryIdColumn, boostActivatedEntry.FindProperty("EntryId")!, activityLogsTableMapping0);
-            RelationalModel.CreateColumnMapping(itemIdColumn, boostActivatedEntry.FindProperty("ItemId")!, activityLogsTableMapping0);
-            RelationalModel.CreateColumnMapping(timestampColumn, boostActivatedEntry.FindProperty("Timestamp")!, activityLogsTableMapping0);
-            RelationalModel.CreateColumnMapping(entity_typeColumn, boostActivatedEntry.FindProperty("entity_type")!, activityLogsTableMapping0);
+            tableMappings8.Add(activityLogsTableMapping0);
+            RelationalModel.CreateColumnMapping(accountIdColumn0, boostActivatedEntryEF.FindProperty("AccountId")!, activityLogsTableMapping0);
+            RelationalModel.CreateColumnMapping(entryIdColumn, boostActivatedEntryEF.FindProperty("EntryId")!, activityLogsTableMapping0);
+            RelationalModel.CreateColumnMapping(itemIdColumn, boostActivatedEntryEF.FindProperty("ItemId")!, activityLogsTableMapping0);
+            RelationalModel.CreateColumnMapping(timestampColumn, boostActivatedEntryEF.FindProperty("Timestamp")!, activityLogsTableMapping0);
+            RelationalModel.CreateColumnMapping(entity_typeColumn, boostActivatedEntryEF.FindProperty("entity_type")!, activityLogsTableMapping0);
 
             var boostsEF = FindEntityType("Solace.DB.Models.Player.BoostsEF")!;
 
-            var defaultTableMappings8 = new List<TableMappingBase<ColumnMappingBase>>();
-            boostsEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings8);
+            var defaultTableMappings9 = new List<TableMappingBase<ColumnMappingBase>>();
+            boostsEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings9);
             var solaceDBModelsPlayerBoostsEFTableBase = new TableBase("Solace.DB.Models.Player.BoostsEF", null, relationalModel);
             var activeBoostsColumnBase = new JsonColumnBase("ActiveBoosts", "jsonb", solaceDBModelsPlayerBoostsEFTableBase)
             {
                 IsNullable = true
             };
             solaceDBModelsPlayerBoostsEFTableBase.Columns.Add("ActiveBoosts", activeBoostsColumnBase);
-            var idColumnBase5 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsPlayerBoostsEFTableBase);
-            solaceDBModelsPlayerBoostsEFTableBase.Columns.Add("Id", idColumnBase5);
-            var versionColumnBase1 = new ColumnBase<ColumnMappingBase>("Version", "integer", solaceDBModelsPlayerBoostsEFTableBase);
-            solaceDBModelsPlayerBoostsEFTableBase.Columns.Add("Version", versionColumnBase1);
+            var idColumnBase6 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsPlayerBoostsEFTableBase);
+            solaceDBModelsPlayerBoostsEFTableBase.Columns.Add("Id", idColumnBase6);
             relationalModel.DefaultTables.Add("Solace.DB.Models.Player.BoostsEF", solaceDBModelsPlayerBoostsEFTableBase);
             var solaceDBModelsPlayerBoostsEFMappingBase = new TableMappingBase<ColumnMappingBase>(boostsEF, solaceDBModelsPlayerBoostsEFTableBase, null);
             solaceDBModelsPlayerBoostsEFTableBase.AddTypeMapping(solaceDBModelsPlayerBoostsEFMappingBase, false);
-            defaultTableMappings8.Add(solaceDBModelsPlayerBoostsEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase5, boostsEF.FindProperty("Id")!, solaceDBModelsPlayerBoostsEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)versionColumnBase1, boostsEF.FindProperty("Version")!, solaceDBModelsPlayerBoostsEFMappingBase);
+            defaultTableMappings9.Add(solaceDBModelsPlayerBoostsEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase6, boostsEF.FindProperty("Id")!, solaceDBModelsPlayerBoostsEFMappingBase);
 
-            var tableMappings8 = new List<TableMapping>();
-            boostsEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings8);
+            var tableMappings9 = new List<TableMapping>();
+            boostsEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings9);
             var boostsTable = new Table("Boosts", null, relationalModel);
-            var idColumn5 = new Column("Id", "uuid", boostsTable);
-            boostsTable.Columns.Add("Id", idColumn5);
-            idColumn5.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn5);
+            var idColumn6 = new Column("Id", "uuid", boostsTable);
+            boostsTable.Columns.Add("Id", idColumn6);
+            idColumn6.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn6);
             var activeBoostsColumn = new JsonColumn("ActiveBoosts", "jsonb", boostsTable)
             {
                 IsNullable = true
             };
             boostsTable.Columns.Add("ActiveBoosts", activeBoostsColumn);
             activeBoostsColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<JsonTypePlaceholder>(activeBoostsColumn);
-            var versionColumn1 = new Column("Version", "integer", boostsTable);
-            boostsTable.Columns.Add("Version", versionColumn1);
-            versionColumn1.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(versionColumn1);
             relationalModel.Tables.Add(("Boosts", null), boostsTable);
             var boostsTableMapping = new TableMapping(boostsEF, boostsTable, null)
             {
                 IsSharedTablePrincipal = true,
             };
             boostsTable.AddTypeMapping(boostsTableMapping, false);
-            tableMappings8.Add(boostsTableMapping);
-            RelationalModel.CreateColumnMapping(idColumn5, boostsEF.FindProperty("Id")!, boostsTableMapping);
-            RelationalModel.CreateColumnMapping(versionColumn1, boostsEF.FindProperty("Version")!, boostsTableMapping);
+            tableMappings9.Add(boostsTableMapping);
+            RelationalModel.CreateColumnMapping(idColumn6, boostsEF.FindProperty("Id")!, boostsTableMapping);
 
             var activeBoost = FindEntityType("Solace.DB.Models.Player.BoostsEF+ActiveBoost")!;
 
-            var defaultTableMappings9 = new List<TableMappingBase<ColumnMappingBase>>();
-            activeBoost.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings9);
+            var defaultTableMappings10 = new List<TableMappingBase<ColumnMappingBase>>();
+            activeBoost.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings10);
             var solaceDBModelsPlayerBoostsEFMappingBase0 = new TableMappingBase<ColumnMappingBase>(activeBoost, solaceDBModelsPlayerBoostsEFTableBase, null);
             solaceDBModelsPlayerBoostsEFTableBase.AddTypeMapping(solaceDBModelsPlayerBoostsEFMappingBase0, null);
-            defaultTableMappings9.Add(solaceDBModelsPlayerBoostsEFMappingBase0);
+            defaultTableMappings10.Add(solaceDBModelsPlayerBoostsEFMappingBase0);
 
-            var tableMappings9 = new List<TableMapping>();
-            activeBoost.SetRuntimeAnnotation("Relational:TableMappings", tableMappings9);
+            var tableMappings10 = new List<TableMapping>();
+            activeBoost.SetRuntimeAnnotation("Relational:TableMappings", tableMappings10);
             var boostsTableMapping0 = new TableMapping(activeBoost, boostsTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             boostsTable.AddTypeMapping(boostsTableMapping0, null);
-            tableMappings9.Add(boostsTableMapping0);
+            tableMappings10.Add(boostsTableMapping0);
             boostsTable.AddRowInternalForeignKey(activeBoost, RelationalModel.GetForeignKey(this,
                 "Solace.DB.Models.Player.BoostsEF+ActiveBoost",
                 new[] { "BoostsEFId" },
                 "Solace.DB.Models.Player.BoostsEF",
                 new[] { "Id" }));
-            var pK_Boosts = new UniqueConstraint("PK_Boosts", boostsTable, new[] { idColumn5 });
+            var pK_Boosts = new UniqueConstraint("PK_Boosts", boostsTable, new[] { idColumn6 });
             boostsTable.PrimaryKey = pK_Boosts;
             pK_Boosts.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<Guid>(pK_Boosts));
             var pK_BoostsKey = RelationalModel.GetKey(this,
@@ -847,15 +927,15 @@ namespace Solace.DB.CompiledModels
 
             var buildplateEF = FindEntityType("Solace.DB.Models.Player.BuildplateEF")!;
 
-            var defaultTableMappings10 = new List<TableMappingBase<ColumnMappingBase>>();
-            buildplateEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings10);
+            var defaultTableMappings11 = new List<TableMappingBase<ColumnMappingBase>>();
+            buildplateEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings11);
             var solaceDBModelsPlayerBuildplateEFTableBase = new TableBase("Solace.DB.Models.Player.BuildplateEF", null, relationalModel);
             var accountIdColumnBase1 = new ColumnBase<ColumnMappingBase>("AccountId", "uuid", solaceDBModelsPlayerBuildplateEFTableBase);
             solaceDBModelsPlayerBuildplateEFTableBase.Columns.Add("AccountId", accountIdColumnBase1);
-            var blocksPerMeterColumnBase = new ColumnBase<ColumnMappingBase>("BlocksPerMeter", "integer", solaceDBModelsPlayerBuildplateEFTableBase);
-            solaceDBModelsPlayerBuildplateEFTableBase.Columns.Add("BlocksPerMeter", blocksPerMeterColumnBase);
-            var idColumnBase6 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsPlayerBuildplateEFTableBase);
-            solaceDBModelsPlayerBuildplateEFTableBase.Columns.Add("Id", idColumnBase6);
+            var blocksPerMeterColumnBase0 = new ColumnBase<ColumnMappingBase>("BlocksPerMeter", "integer", solaceDBModelsPlayerBuildplateEFTableBase);
+            solaceDBModelsPlayerBuildplateEFTableBase.Columns.Add("BlocksPerMeter", blocksPerMeterColumnBase0);
+            var idColumnBase7 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsPlayerBuildplateEFTableBase);
+            solaceDBModelsPlayerBuildplateEFTableBase.Columns.Add("Id", idColumnBase7);
             var lastModifiedColumnBase = new ColumnBase<ColumnMappingBase>("LastModified", "timestamp with time zone", solaceDBModelsPlayerBuildplateEFTableBase);
             solaceDBModelsPlayerBuildplateEFTableBase.Columns.Add("LastModified", lastModifiedColumnBase);
             var nameColumnBase0 = new ColumnBase<ColumnMappingBase>("Name", "text", solaceDBModelsPlayerBuildplateEFTableBase);
@@ -875,15 +955,13 @@ namespace Solace.DB.CompiledModels
                 IsNullable = true
             };
             solaceDBModelsPlayerBuildplateEFTableBase.Columns.Add("TemplateId", templateIdColumnBase);
-            var versionColumnBase2 = new ColumnBase<ColumnMappingBase>("Version", "integer", solaceDBModelsPlayerBuildplateEFTableBase);
-            solaceDBModelsPlayerBuildplateEFTableBase.Columns.Add("Version", versionColumnBase2);
             relationalModel.DefaultTables.Add("Solace.DB.Models.Player.BuildplateEF", solaceDBModelsPlayerBuildplateEFTableBase);
             var solaceDBModelsPlayerBuildplateEFMappingBase = new TableMappingBase<ColumnMappingBase>(buildplateEF, solaceDBModelsPlayerBuildplateEFTableBase, null);
             solaceDBModelsPlayerBuildplateEFTableBase.AddTypeMapping(solaceDBModelsPlayerBuildplateEFMappingBase, false);
-            defaultTableMappings10.Add(solaceDBModelsPlayerBuildplateEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase6, buildplateEF.FindProperty("Id")!, solaceDBModelsPlayerBuildplateEFMappingBase);
+            defaultTableMappings11.Add(solaceDBModelsPlayerBuildplateEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase7, buildplateEF.FindProperty("Id")!, solaceDBModelsPlayerBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase1, buildplateEF.FindProperty("AccountId")!, solaceDBModelsPlayerBuildplateEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)blocksPerMeterColumnBase, buildplateEF.FindProperty("BlocksPerMeter")!, solaceDBModelsPlayerBuildplateEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)blocksPerMeterColumnBase0, buildplateEF.FindProperty("BlocksPerMeter")!, solaceDBModelsPlayerBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)lastModifiedColumnBase, buildplateEF.FindProperty("LastModified")!, solaceDBModelsPlayerBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)nameColumnBase0, buildplateEF.FindProperty("Name")!, solaceDBModelsPlayerBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)nightColumnBase1, buildplateEF.FindProperty("Night")!, solaceDBModelsPlayerBuildplateEFMappingBase);
@@ -892,20 +970,19 @@ namespace Solace.DB.CompiledModels
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)serverDataObjectIdColumnBase2, buildplateEF.FindProperty("ServerDataObjectId")!, solaceDBModelsPlayerBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)sizeColumnBase2, buildplateEF.FindProperty("Size")!, solaceDBModelsPlayerBuildplateEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)templateIdColumnBase, buildplateEF.FindProperty("TemplateId")!, solaceDBModelsPlayerBuildplateEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)versionColumnBase2, buildplateEF.FindProperty("Version")!, solaceDBModelsPlayerBuildplateEFMappingBase);
 
-            var tableMappings10 = new List<TableMapping>();
-            buildplateEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings10);
+            var tableMappings11 = new List<TableMapping>();
+            buildplateEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings11);
             var playerBuildplatesTable = new Table("PlayerBuildplates", null, relationalModel);
-            var idColumn6 = new Column("Id", "uuid", playerBuildplatesTable);
-            playerBuildplatesTable.Columns.Add("Id", idColumn6);
-            idColumn6.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn6);
+            var idColumn7 = new Column("Id", "uuid", playerBuildplatesTable);
+            playerBuildplatesTable.Columns.Add("Id", idColumn7);
+            idColumn7.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn7);
             var accountIdColumn1 = new Column("AccountId", "uuid", playerBuildplatesTable);
             playerBuildplatesTable.Columns.Add("AccountId", accountIdColumn1);
             accountIdColumn1.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(accountIdColumn1);
-            var blocksPerMeterColumn = new Column("BlocksPerMeter", "integer", playerBuildplatesTable);
-            playerBuildplatesTable.Columns.Add("BlocksPerMeter", blocksPerMeterColumn);
-            blocksPerMeterColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(blocksPerMeterColumn);
+            var blocksPerMeterColumn0 = new Column("BlocksPerMeter", "integer", playerBuildplatesTable);
+            playerBuildplatesTable.Columns.Add("BlocksPerMeter", blocksPerMeterColumn0);
+            blocksPerMeterColumn0.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(blocksPerMeterColumn0);
             var lastModifiedColumn = new Column("LastModified", "timestamp with time zone", playerBuildplatesTable);
             playerBuildplatesTable.Columns.Add("LastModified", lastModifiedColumn);
             lastModifiedColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<DateTimeOffset>(lastModifiedColumn);
@@ -933,16 +1010,13 @@ namespace Solace.DB.CompiledModels
             };
             playerBuildplatesTable.Columns.Add("TemplateId", templateIdColumn);
             templateIdColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(templateIdColumn);
-            var versionColumn2 = new Column("Version", "integer", playerBuildplatesTable);
-            playerBuildplatesTable.Columns.Add("Version", versionColumn2);
-            versionColumn2.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(versionColumn2);
             relationalModel.Tables.Add(("PlayerBuildplates", null), playerBuildplatesTable);
             var playerBuildplatesTableMapping = new TableMapping(buildplateEF, playerBuildplatesTable, null);
             playerBuildplatesTable.AddTypeMapping(playerBuildplatesTableMapping, false);
-            tableMappings10.Add(playerBuildplatesTableMapping);
-            RelationalModel.CreateColumnMapping(idColumn6, buildplateEF.FindProperty("Id")!, playerBuildplatesTableMapping);
+            tableMappings11.Add(playerBuildplatesTableMapping);
+            RelationalModel.CreateColumnMapping(idColumn7, buildplateEF.FindProperty("Id")!, playerBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(accountIdColumn1, buildplateEF.FindProperty("AccountId")!, playerBuildplatesTableMapping);
-            RelationalModel.CreateColumnMapping(blocksPerMeterColumn, buildplateEF.FindProperty("BlocksPerMeter")!, playerBuildplatesTableMapping);
+            RelationalModel.CreateColumnMapping(blocksPerMeterColumn0, buildplateEF.FindProperty("BlocksPerMeter")!, playerBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(lastModifiedColumn, buildplateEF.FindProperty("LastModified")!, playerBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(nameColumn0, buildplateEF.FindProperty("Name")!, playerBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(nightColumn1, buildplateEF.FindProperty("Night")!, playerBuildplatesTableMapping);
@@ -951,8 +1025,7 @@ namespace Solace.DB.CompiledModels
             RelationalModel.CreateColumnMapping(serverDataObjectIdColumn2, buildplateEF.FindProperty("ServerDataObjectId")!, playerBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(sizeColumn2, buildplateEF.FindProperty("Size")!, playerBuildplatesTableMapping);
             RelationalModel.CreateColumnMapping(templateIdColumn, buildplateEF.FindProperty("TemplateId")!, playerBuildplatesTableMapping);
-            RelationalModel.CreateColumnMapping(versionColumn2, buildplateEF.FindProperty("Version")!, playerBuildplatesTableMapping);
-            var pK_PlayerBuildplates = new UniqueConstraint("PK_PlayerBuildplates", playerBuildplatesTable, new[] { idColumn6 });
+            var pK_PlayerBuildplates = new UniqueConstraint("PK_PlayerBuildplates", playerBuildplatesTable, new[] { idColumn7 });
             playerBuildplatesTable.PrimaryKey = pK_PlayerBuildplates;
             pK_PlayerBuildplates.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<Guid>(pK_PlayerBuildplates));
             var pK_PlayerBuildplatesKey = RelationalModel.GetKey(this,
@@ -971,43 +1044,38 @@ namespace Solace.DB.CompiledModels
             RelationalModel.GetOrCreateTableIndexes(iX_PlayerBuildplates_AccountIdIx).Add(iX_PlayerBuildplates_AccountId);
             playerBuildplatesTable.Indexes.Add("IX_PlayerBuildplates_AccountId", iX_PlayerBuildplates_AccountId);
 
-            var craftingCompletedEntry = FindEntityType("Solace.DB.Models.Player.CraftingCompletedEntry")!;
+            var craftingCompletedEntryEF = FindEntityType("Solace.DB.Models.Player.CraftingCompletedEntryEF")!;
 
-            var defaultTableMappings11 = new List<TableMappingBase<ColumnMappingBase>>();
-            craftingCompletedEntry.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings11);
-            var solaceDBModelsPlayerActivityLogEntryEFMappingBase1 = new TableMappingBase<ColumnMappingBase>(craftingCompletedEntry, solaceDBModelsPlayerActivityLogEntryEFTableBase, null);
+            var defaultTableMappings12 = new List<TableMappingBase<ColumnMappingBase>>();
+            craftingCompletedEntryEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings12);
+            var solaceDBModelsPlayerActivityLogEntryEFMappingBase1 = new TableMappingBase<ColumnMappingBase>(craftingCompletedEntryEF, solaceDBModelsPlayerActivityLogEntryEFTableBase, null);
             solaceDBModelsPlayerActivityLogEntryEFTableBase.AddTypeMapping(solaceDBModelsPlayerActivityLogEntryEFMappingBase1, false);
-            defaultTableMappings11.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase1);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, craftingCompletedEntry.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase1);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, craftingCompletedEntry.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase1);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, craftingCompletedEntry.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase1);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, craftingCompletedEntry.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase1);
+            defaultTableMappings12.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase1);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, craftingCompletedEntryEF.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase1);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, craftingCompletedEntryEF.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase1);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, craftingCompletedEntryEF.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase1);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, craftingCompletedEntryEF.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase1);
 
-            var tableMappings11 = new List<TableMapping>();
-            craftingCompletedEntry.SetRuntimeAnnotation("Relational:TableMappings", tableMappings11);
-            var activityLogsTableMapping1 = new TableMapping(craftingCompletedEntry, activityLogsTable, null)
+            var tableMappings12 = new List<TableMapping>();
+            craftingCompletedEntryEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings12);
+            var activityLogsTableMapping1 = new TableMapping(craftingCompletedEntryEF, activityLogsTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             activityLogsTable.AddTypeMapping(activityLogsTableMapping1, false);
-            tableMappings11.Add(activityLogsTableMapping1);
-            RelationalModel.CreateColumnMapping(accountIdColumn0, craftingCompletedEntry.FindProperty("AccountId")!, activityLogsTableMapping1);
-            RelationalModel.CreateColumnMapping(entryIdColumn, craftingCompletedEntry.FindProperty("EntryId")!, activityLogsTableMapping1);
-            RelationalModel.CreateColumnMapping(timestampColumn, craftingCompletedEntry.FindProperty("Timestamp")!, activityLogsTableMapping1);
-            RelationalModel.CreateColumnMapping(entity_typeColumn, craftingCompletedEntry.FindProperty("entity_type")!, activityLogsTableMapping1);
+            tableMappings12.Add(activityLogsTableMapping1);
+            RelationalModel.CreateColumnMapping(accountIdColumn0, craftingCompletedEntryEF.FindProperty("AccountId")!, activityLogsTableMapping1);
+            RelationalModel.CreateColumnMapping(entryIdColumn, craftingCompletedEntryEF.FindProperty("EntryId")!, activityLogsTableMapping1);
+            RelationalModel.CreateColumnMapping(timestampColumn, craftingCompletedEntryEF.FindProperty("Timestamp")!, activityLogsTableMapping1);
+            RelationalModel.CreateColumnMapping(entity_typeColumn, craftingCompletedEntryEF.FindProperty("entity_type")!, activityLogsTableMapping1);
 
-            var dailyLoginToken = FindEntityType("Solace.DB.Models.Player.DailyLoginToken")!;
+            var dailyLoginTokenEF = FindEntityType("Solace.DB.Models.Player.DailyLoginTokenEF")!;
 
-            var defaultTableMappings12 = new List<TableMappingBase<ColumnMappingBase>>();
-            dailyLoginToken.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings12);
+            var defaultTableMappings13 = new List<TableMappingBase<ColumnMappingBase>>();
+            dailyLoginTokenEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings13);
             var solaceDBModelsPlayerTokenEFTableBase = new TableBase("Solace.DB.Models.Player.TokenEF", null, relationalModel);
             var accountIdColumnBase2 = new ColumnBase<ColumnMappingBase>("AccountId", "uuid", solaceDBModelsPlayerTokenEFTableBase);
             solaceDBModelsPlayerTokenEFTableBase.Columns.Add("AccountId", accountIdColumnBase2);
-            var claimedColumnBase = new ColumnBase<ColumnMappingBase>("Claimed", "boolean", solaceDBModelsPlayerTokenEFTableBase)
-            {
-                IsNullable = true
-            };
-            solaceDBModelsPlayerTokenEFTableBase.Columns.Add("Claimed", claimedColumnBase);
             var claimedOnColumnBase = new ColumnBase<ColumnMappingBase>("ClaimedOn", "timestamp with time zone", solaceDBModelsPlayerTokenEFTableBase)
             {
                 IsNullable = true
@@ -1033,37 +1101,29 @@ namespace Solace.DB.CompiledModels
                 IsNullable = true
             };
             solaceDBModelsPlayerTokenEFTableBase.Columns.Add("Rewards", rewardsColumnBase0);
-            var tokenIdColumnBase = new ColumnBase<ColumnMappingBase>("TokenId", "bigint", solaceDBModelsPlayerTokenEFTableBase);
+            var tokenIdColumnBase = new ColumnBase<ColumnMappingBase>("TokenId", "uuid", solaceDBModelsPlayerTokenEFTableBase);
             solaceDBModelsPlayerTokenEFTableBase.Columns.Add("TokenId", tokenIdColumnBase);
             var token_typeColumnBase = new ColumnBase<ColumnMappingBase>("token_type", "character varying(21)", solaceDBModelsPlayerTokenEFTableBase);
             solaceDBModelsPlayerTokenEFTableBase.Columns.Add("token_type", token_typeColumnBase);
             relationalModel.DefaultTables.Add("Solace.DB.Models.Player.TokenEF", solaceDBModelsPlayerTokenEFTableBase);
-            var solaceDBModelsPlayerTokenEFMappingBase = new TableMappingBase<ColumnMappingBase>(dailyLoginToken, solaceDBModelsPlayerTokenEFTableBase, null);
+            var solaceDBModelsPlayerTokenEFMappingBase = new TableMappingBase<ColumnMappingBase>(dailyLoginTokenEF, solaceDBModelsPlayerTokenEFTableBase, null);
             solaceDBModelsPlayerTokenEFTableBase.AddTypeMapping(solaceDBModelsPlayerTokenEFMappingBase, false);
-            defaultTableMappings12.Add(solaceDBModelsPlayerTokenEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase2, dailyLoginToken.FindProperty("AccountId")!, solaceDBModelsPlayerTokenEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)tokenIdColumnBase, dailyLoginToken.FindProperty("TokenId")!, solaceDBModelsPlayerTokenEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)claimedColumnBase, dailyLoginToken.FindProperty("Claimed")!, solaceDBModelsPlayerTokenEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)claimedOnColumnBase, dailyLoginToken.FindProperty("ClaimedOn")!, solaceDBModelsPlayerTokenEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)dateColumnBase, dailyLoginToken.FindProperty("Date")!, solaceDBModelsPlayerTokenEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)token_typeColumnBase, dailyLoginToken.FindProperty("token_type")!, solaceDBModelsPlayerTokenEFMappingBase);
+            defaultTableMappings13.Add(solaceDBModelsPlayerTokenEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase2, dailyLoginTokenEF.FindProperty("AccountId")!, solaceDBModelsPlayerTokenEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)tokenIdColumnBase, dailyLoginTokenEF.FindProperty("TokenId")!, solaceDBModelsPlayerTokenEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)claimedOnColumnBase, dailyLoginTokenEF.FindProperty("ClaimedOn")!, solaceDBModelsPlayerTokenEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)dateColumnBase, dailyLoginTokenEF.FindProperty("Date")!, solaceDBModelsPlayerTokenEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)token_typeColumnBase, dailyLoginTokenEF.FindProperty("token_type")!, solaceDBModelsPlayerTokenEFMappingBase);
 
-            var tableMappings12 = new List<TableMapping>();
-            dailyLoginToken.SetRuntimeAnnotation("Relational:TableMappings", tableMappings12);
+            var tableMappings13 = new List<TableMapping>();
+            dailyLoginTokenEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings13);
             var tokensTable = new Table("Tokens", null, relationalModel);
             var accountIdColumn2 = new Column("AccountId", "uuid", tokensTable);
             tokensTable.Columns.Add("AccountId", accountIdColumn2);
             accountIdColumn2.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(accountIdColumn2);
-            var tokenIdColumn = new Column("TokenId", "bigint", tokensTable);
+            var tokenIdColumn = new Column("TokenId", "uuid", tokensTable);
             tokensTable.Columns.Add("TokenId", tokenIdColumn);
-            tokenIdColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<long>(tokenIdColumn);
-            tokenIdColumn.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
-            var claimedColumn = new Column("Claimed", "boolean", tokensTable)
-            {
-                IsNullable = true
-            };
-            tokensTable.Columns.Add("Claimed", claimedColumn);
-            claimedColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<bool>(claimedColumn);
+            tokenIdColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(tokenIdColumn);
             var claimedOnColumn = new Column("ClaimedOn", "timestamp with time zone", tokensTable)
             {
                 IsNullable = true
@@ -1098,87 +1158,79 @@ namespace Solace.DB.CompiledModels
             tokensTable.Columns.Add("token_type", token_typeColumn);
             token_typeColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<string>(token_typeColumn);
             relationalModel.Tables.Add(("Tokens", null), tokensTable);
-            var tokensTableMapping = new TableMapping(dailyLoginToken, tokensTable, null)
+            var tokensTableMapping = new TableMapping(dailyLoginTokenEF, tokensTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             tokensTable.AddTypeMapping(tokensTableMapping, false);
-            tableMappings12.Add(tokensTableMapping);
-            RelationalModel.CreateColumnMapping(accountIdColumn2, dailyLoginToken.FindProperty("AccountId")!, tokensTableMapping);
-            RelationalModel.CreateColumnMapping(tokenIdColumn, dailyLoginToken.FindProperty("TokenId")!, tokensTableMapping);
-            RelationalModel.CreateColumnMapping(claimedColumn, dailyLoginToken.FindProperty("Claimed")!, tokensTableMapping);
-            RelationalModel.CreateColumnMapping(claimedOnColumn, dailyLoginToken.FindProperty("ClaimedOn")!, tokensTableMapping);
-            RelationalModel.CreateColumnMapping(dateColumn, dailyLoginToken.FindProperty("Date")!, tokensTableMapping);
-            RelationalModel.CreateColumnMapping(token_typeColumn, dailyLoginToken.FindProperty("token_type")!, tokensTableMapping);
+            tableMappings13.Add(tokensTableMapping);
+            RelationalModel.CreateColumnMapping(accountIdColumn2, dailyLoginTokenEF.FindProperty("AccountId")!, tokensTableMapping);
+            RelationalModel.CreateColumnMapping(tokenIdColumn, dailyLoginTokenEF.FindProperty("TokenId")!, tokensTableMapping);
+            RelationalModel.CreateColumnMapping(claimedOnColumn, dailyLoginTokenEF.FindProperty("ClaimedOn")!, tokensTableMapping);
+            RelationalModel.CreateColumnMapping(dateColumn, dailyLoginTokenEF.FindProperty("Date")!, tokensTableMapping);
+            RelationalModel.CreateColumnMapping(token_typeColumn, dailyLoginTokenEF.FindProperty("token_type")!, tokensTableMapping);
 
             var hotbarEF = FindEntityType("Solace.DB.Models.Player.HotbarEF")!;
 
-            var defaultTableMappings13 = new List<TableMappingBase<ColumnMappingBase>>();
-            hotbarEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings13);
+            var defaultTableMappings14 = new List<TableMappingBase<ColumnMappingBase>>();
+            hotbarEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings14);
             var solaceDBModelsPlayerHotbarEFTableBase = new TableBase("Solace.DB.Models.Player.HotbarEF", null, relationalModel);
-            var idColumnBase7 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsPlayerHotbarEFTableBase);
-            solaceDBModelsPlayerHotbarEFTableBase.Columns.Add("Id", idColumnBase7);
+            var idColumnBase8 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsPlayerHotbarEFTableBase);
+            solaceDBModelsPlayerHotbarEFTableBase.Columns.Add("Id", idColumnBase8);
             var itemsColumnBase = new JsonColumnBase("Items", "jsonb", solaceDBModelsPlayerHotbarEFTableBase)
             {
                 IsNullable = true
             };
             solaceDBModelsPlayerHotbarEFTableBase.Columns.Add("Items", itemsColumnBase);
-            var versionColumnBase3 = new ColumnBase<ColumnMappingBase>("Version", "integer", solaceDBModelsPlayerHotbarEFTableBase);
-            solaceDBModelsPlayerHotbarEFTableBase.Columns.Add("Version", versionColumnBase3);
             relationalModel.DefaultTables.Add("Solace.DB.Models.Player.HotbarEF", solaceDBModelsPlayerHotbarEFTableBase);
             var solaceDBModelsPlayerHotbarEFMappingBase = new TableMappingBase<ColumnMappingBase>(hotbarEF, solaceDBModelsPlayerHotbarEFTableBase, null);
             solaceDBModelsPlayerHotbarEFTableBase.AddTypeMapping(solaceDBModelsPlayerHotbarEFMappingBase, false);
-            defaultTableMappings13.Add(solaceDBModelsPlayerHotbarEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase7, hotbarEF.FindProperty("Id")!, solaceDBModelsPlayerHotbarEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)versionColumnBase3, hotbarEF.FindProperty("Version")!, solaceDBModelsPlayerHotbarEFMappingBase);
+            defaultTableMappings14.Add(solaceDBModelsPlayerHotbarEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase8, hotbarEF.FindProperty("Id")!, solaceDBModelsPlayerHotbarEFMappingBase);
 
-            var tableMappings13 = new List<TableMapping>();
-            hotbarEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings13);
+            var tableMappings14 = new List<TableMapping>();
+            hotbarEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings14);
             var hotbarsTable = new Table("Hotbars", null, relationalModel);
-            var idColumn7 = new Column("Id", "uuid", hotbarsTable);
-            hotbarsTable.Columns.Add("Id", idColumn7);
-            idColumn7.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn7);
+            var idColumn8 = new Column("Id", "uuid", hotbarsTable);
+            hotbarsTable.Columns.Add("Id", idColumn8);
+            idColumn8.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn8);
             var itemsColumn = new JsonColumn("Items", "jsonb", hotbarsTable)
             {
                 IsNullable = true
             };
             hotbarsTable.Columns.Add("Items", itemsColumn);
             itemsColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<JsonTypePlaceholder>(itemsColumn);
-            var versionColumn3 = new Column("Version", "integer", hotbarsTable);
-            hotbarsTable.Columns.Add("Version", versionColumn3);
-            versionColumn3.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(versionColumn3);
             relationalModel.Tables.Add(("Hotbars", null), hotbarsTable);
             var hotbarsTableMapping = new TableMapping(hotbarEF, hotbarsTable, null)
             {
                 IsSharedTablePrincipal = true,
             };
             hotbarsTable.AddTypeMapping(hotbarsTableMapping, false);
-            tableMappings13.Add(hotbarsTableMapping);
-            RelationalModel.CreateColumnMapping(idColumn7, hotbarEF.FindProperty("Id")!, hotbarsTableMapping);
-            RelationalModel.CreateColumnMapping(versionColumn3, hotbarEF.FindProperty("Version")!, hotbarsTableMapping);
+            tableMappings14.Add(hotbarsTableMapping);
+            RelationalModel.CreateColumnMapping(idColumn8, hotbarEF.FindProperty("Id")!, hotbarsTableMapping);
 
             var item = FindEntityType("Solace.DB.Models.Player.HotbarEF+Item")!;
 
-            var defaultTableMappings14 = new List<TableMappingBase<ColumnMappingBase>>();
-            item.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings14);
+            var defaultTableMappings15 = new List<TableMappingBase<ColumnMappingBase>>();
+            item.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings15);
             var solaceDBModelsPlayerHotbarEFMappingBase0 = new TableMappingBase<ColumnMappingBase>(item, solaceDBModelsPlayerHotbarEFTableBase, null);
             solaceDBModelsPlayerHotbarEFTableBase.AddTypeMapping(solaceDBModelsPlayerHotbarEFMappingBase0, null);
-            defaultTableMappings14.Add(solaceDBModelsPlayerHotbarEFMappingBase0);
+            defaultTableMappings15.Add(solaceDBModelsPlayerHotbarEFMappingBase0);
 
-            var tableMappings14 = new List<TableMapping>();
-            item.SetRuntimeAnnotation("Relational:TableMappings", tableMappings14);
+            var tableMappings15 = new List<TableMapping>();
+            item.SetRuntimeAnnotation("Relational:TableMappings", tableMappings15);
             var hotbarsTableMapping0 = new TableMapping(item, hotbarsTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             hotbarsTable.AddTypeMapping(hotbarsTableMapping0, null);
-            tableMappings14.Add(hotbarsTableMapping0);
+            tableMappings15.Add(hotbarsTableMapping0);
             hotbarsTable.AddRowInternalForeignKey(item, RelationalModel.GetForeignKey(this,
                 "Solace.DB.Models.Player.HotbarEF+Item",
                 new[] { "HotbarEFId" },
                 "Solace.DB.Models.Player.HotbarEF",
                 new[] { "Id" }));
-            var pK_Hotbars = new UniqueConstraint("PK_Hotbars", hotbarsTable, new[] { idColumn7 });
+            var pK_Hotbars = new UniqueConstraint("PK_Hotbars", hotbarsTable, new[] { idColumn8 });
             hotbarsTable.PrimaryKey = pK_Hotbars;
             pK_Hotbars.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<Guid>(pK_Hotbars));
             var pK_HotbarsKey = RelationalModel.GetKey(this,
@@ -1188,33 +1240,33 @@ namespace Solace.DB.CompiledModels
             RelationalModel.GetOrCreateUniqueConstraints(pK_HotbarsKey).Add(pK_Hotbars);
             hotbarsTable.UniqueConstraints.Add("PK_Hotbars", pK_Hotbars);
 
-            var itemJournalEntry = FindEntityType("Solace.DB.Models.Player.ItemJournalEntry")!;
+            var itemJournalEntryEF = FindEntityType("Solace.DB.Models.Player.ItemJournalEntryEF")!;
 
-            var defaultTableMappings15 = new List<TableMappingBase<ColumnMappingBase>>();
-            itemJournalEntry.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings15);
-            var solaceDBModelsPlayerItemJournalEntryTableBase = new TableBase("Solace.DB.Models.Player.ItemJournalEntry", null, relationalModel);
-            var accountIdColumnBase3 = new ColumnBase<ColumnMappingBase>("AccountId", "uuid", solaceDBModelsPlayerItemJournalEntryTableBase);
-            solaceDBModelsPlayerItemJournalEntryTableBase.Columns.Add("AccountId", accountIdColumnBase3);
-            var amountCollectedColumnBase = new ColumnBase<ColumnMappingBase>("AmountCollected", "integer", solaceDBModelsPlayerItemJournalEntryTableBase);
-            solaceDBModelsPlayerItemJournalEntryTableBase.Columns.Add("AmountCollected", amountCollectedColumnBase);
-            var firstSeenColumnBase = new ColumnBase<ColumnMappingBase>("FirstSeen", "timestamp with time zone", solaceDBModelsPlayerItemJournalEntryTableBase);
-            solaceDBModelsPlayerItemJournalEntryTableBase.Columns.Add("FirstSeen", firstSeenColumnBase);
-            var itemIdColumnBase1 = new ColumnBase<ColumnMappingBase>("ItemId", "uuid", solaceDBModelsPlayerItemJournalEntryTableBase);
-            solaceDBModelsPlayerItemJournalEntryTableBase.Columns.Add("ItemId", itemIdColumnBase1);
-            var lastSeenColumnBase = new ColumnBase<ColumnMappingBase>("LastSeen", "timestamp with time zone", solaceDBModelsPlayerItemJournalEntryTableBase);
-            solaceDBModelsPlayerItemJournalEntryTableBase.Columns.Add("LastSeen", lastSeenColumnBase);
-            relationalModel.DefaultTables.Add("Solace.DB.Models.Player.ItemJournalEntry", solaceDBModelsPlayerItemJournalEntryTableBase);
-            var solaceDBModelsPlayerItemJournalEntryMappingBase = new TableMappingBase<ColumnMappingBase>(itemJournalEntry, solaceDBModelsPlayerItemJournalEntryTableBase, null);
-            solaceDBModelsPlayerItemJournalEntryTableBase.AddTypeMapping(solaceDBModelsPlayerItemJournalEntryMappingBase, false);
-            defaultTableMappings15.Add(solaceDBModelsPlayerItemJournalEntryMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase3, itemJournalEntry.FindProperty("AccountId")!, solaceDBModelsPlayerItemJournalEntryMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)itemIdColumnBase1, itemJournalEntry.FindProperty("ItemId")!, solaceDBModelsPlayerItemJournalEntryMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)amountCollectedColumnBase, itemJournalEntry.FindProperty("AmountCollected")!, solaceDBModelsPlayerItemJournalEntryMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)firstSeenColumnBase, itemJournalEntry.FindProperty("FirstSeen")!, solaceDBModelsPlayerItemJournalEntryMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)lastSeenColumnBase, itemJournalEntry.FindProperty("LastSeen")!, solaceDBModelsPlayerItemJournalEntryMappingBase);
+            var defaultTableMappings16 = new List<TableMappingBase<ColumnMappingBase>>();
+            itemJournalEntryEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings16);
+            var solaceDBModelsPlayerItemJournalEntryEFTableBase = new TableBase("Solace.DB.Models.Player.ItemJournalEntryEF", null, relationalModel);
+            var accountIdColumnBase3 = new ColumnBase<ColumnMappingBase>("AccountId", "uuid", solaceDBModelsPlayerItemJournalEntryEFTableBase);
+            solaceDBModelsPlayerItemJournalEntryEFTableBase.Columns.Add("AccountId", accountIdColumnBase3);
+            var amountCollectedColumnBase = new ColumnBase<ColumnMappingBase>("AmountCollected", "integer", solaceDBModelsPlayerItemJournalEntryEFTableBase);
+            solaceDBModelsPlayerItemJournalEntryEFTableBase.Columns.Add("AmountCollected", amountCollectedColumnBase);
+            var firstSeenColumnBase = new ColumnBase<ColumnMappingBase>("FirstSeen", "timestamp with time zone", solaceDBModelsPlayerItemJournalEntryEFTableBase);
+            solaceDBModelsPlayerItemJournalEntryEFTableBase.Columns.Add("FirstSeen", firstSeenColumnBase);
+            var itemIdColumnBase1 = new ColumnBase<ColumnMappingBase>("ItemId", "uuid", solaceDBModelsPlayerItemJournalEntryEFTableBase);
+            solaceDBModelsPlayerItemJournalEntryEFTableBase.Columns.Add("ItemId", itemIdColumnBase1);
+            var lastSeenColumnBase = new ColumnBase<ColumnMappingBase>("LastSeen", "timestamp with time zone", solaceDBModelsPlayerItemJournalEntryEFTableBase);
+            solaceDBModelsPlayerItemJournalEntryEFTableBase.Columns.Add("LastSeen", lastSeenColumnBase);
+            relationalModel.DefaultTables.Add("Solace.DB.Models.Player.ItemJournalEntryEF", solaceDBModelsPlayerItemJournalEntryEFTableBase);
+            var solaceDBModelsPlayerItemJournalEntryEFMappingBase = new TableMappingBase<ColumnMappingBase>(itemJournalEntryEF, solaceDBModelsPlayerItemJournalEntryEFTableBase, null);
+            solaceDBModelsPlayerItemJournalEntryEFTableBase.AddTypeMapping(solaceDBModelsPlayerItemJournalEntryEFMappingBase, false);
+            defaultTableMappings16.Add(solaceDBModelsPlayerItemJournalEntryEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase3, itemJournalEntryEF.FindProperty("AccountId")!, solaceDBModelsPlayerItemJournalEntryEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)itemIdColumnBase1, itemJournalEntryEF.FindProperty("ItemId")!, solaceDBModelsPlayerItemJournalEntryEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)amountCollectedColumnBase, itemJournalEntryEF.FindProperty("AmountCollected")!, solaceDBModelsPlayerItemJournalEntryEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)firstSeenColumnBase, itemJournalEntryEF.FindProperty("FirstSeen")!, solaceDBModelsPlayerItemJournalEntryEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)lastSeenColumnBase, itemJournalEntryEF.FindProperty("LastSeen")!, solaceDBModelsPlayerItemJournalEntryEFMappingBase);
 
-            var tableMappings15 = new List<TableMapping>();
-            itemJournalEntry.SetRuntimeAnnotation("Relational:TableMappings", tableMappings15);
+            var tableMappings16 = new List<TableMapping>();
+            itemJournalEntryEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings16);
             var journalEntriesTable = new Table("JournalEntries", null, relationalModel);
             var accountIdColumn3 = new Column("AccountId", "uuid", journalEntriesTable);
             journalEntriesTable.Columns.Add("AccountId", accountIdColumn3);
@@ -1232,132 +1284,132 @@ namespace Solace.DB.CompiledModels
             journalEntriesTable.Columns.Add("LastSeen", lastSeenColumn);
             lastSeenColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<DateTimeOffset>(lastSeenColumn);
             relationalModel.Tables.Add(("JournalEntries", null), journalEntriesTable);
-            var journalEntriesTableMapping = new TableMapping(itemJournalEntry, journalEntriesTable, null);
+            var journalEntriesTableMapping = new TableMapping(itemJournalEntryEF, journalEntriesTable, null);
             journalEntriesTable.AddTypeMapping(journalEntriesTableMapping, false);
-            tableMappings15.Add(journalEntriesTableMapping);
-            RelationalModel.CreateColumnMapping(accountIdColumn3, itemJournalEntry.FindProperty("AccountId")!, journalEntriesTableMapping);
-            RelationalModel.CreateColumnMapping(itemIdColumn1, itemJournalEntry.FindProperty("ItemId")!, journalEntriesTableMapping);
-            RelationalModel.CreateColumnMapping(amountCollectedColumn, itemJournalEntry.FindProperty("AmountCollected")!, journalEntriesTableMapping);
-            RelationalModel.CreateColumnMapping(firstSeenColumn, itemJournalEntry.FindProperty("FirstSeen")!, journalEntriesTableMapping);
-            RelationalModel.CreateColumnMapping(lastSeenColumn, itemJournalEntry.FindProperty("LastSeen")!, journalEntriesTableMapping);
+            tableMappings16.Add(journalEntriesTableMapping);
+            RelationalModel.CreateColumnMapping(accountIdColumn3, itemJournalEntryEF.FindProperty("AccountId")!, journalEntriesTableMapping);
+            RelationalModel.CreateColumnMapping(itemIdColumn1, itemJournalEntryEF.FindProperty("ItemId")!, journalEntriesTableMapping);
+            RelationalModel.CreateColumnMapping(amountCollectedColumn, itemJournalEntryEF.FindProperty("AmountCollected")!, journalEntriesTableMapping);
+            RelationalModel.CreateColumnMapping(firstSeenColumn, itemJournalEntryEF.FindProperty("FirstSeen")!, journalEntriesTableMapping);
+            RelationalModel.CreateColumnMapping(lastSeenColumn, itemJournalEntryEF.FindProperty("LastSeen")!, journalEntriesTableMapping);
             var pK_JournalEntries = new UniqueConstraint("PK_JournalEntries", journalEntriesTable, new[] { accountIdColumn3, itemIdColumn1 });
             journalEntriesTable.PrimaryKey = pK_JournalEntries;
             pK_JournalEntries.SetRowKeyValueFactory(new CompositeRowKeyValueFactory(pK_JournalEntries));
             var pK_JournalEntriesKey = RelationalModel.GetKey(this,
-                "Solace.DB.Models.Player.ItemJournalEntry",
+                "Solace.DB.Models.Player.ItemJournalEntryEF",
                 new[] { "AccountId", "ItemId" });
             pK_JournalEntries.MappedKeys.Add(pK_JournalEntriesKey);
             RelationalModel.GetOrCreateUniqueConstraints(pK_JournalEntriesKey).Add(pK_JournalEntries);
             journalEntriesTable.UniqueConstraints.Add("PK_JournalEntries", pK_JournalEntries);
 
-            var journalItemUnlockedEntry = FindEntityType("Solace.DB.Models.Player.JournalItemUnlockedEntry")!;
+            var journalItemUnlockedEntryEF = FindEntityType("Solace.DB.Models.Player.JournalItemUnlockedEntryEF")!;
 
-            var defaultTableMappings16 = new List<TableMappingBase<ColumnMappingBase>>();
-            journalItemUnlockedEntry.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings16);
-            var solaceDBModelsPlayerActivityLogEntryEFMappingBase2 = new TableMappingBase<ColumnMappingBase>(journalItemUnlockedEntry, solaceDBModelsPlayerActivityLogEntryEFTableBase, null);
+            var defaultTableMappings17 = new List<TableMappingBase<ColumnMappingBase>>();
+            journalItemUnlockedEntryEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings17);
+            var solaceDBModelsPlayerActivityLogEntryEFMappingBase2 = new TableMappingBase<ColumnMappingBase>(journalItemUnlockedEntryEF, solaceDBModelsPlayerActivityLogEntryEFTableBase, null);
             solaceDBModelsPlayerActivityLogEntryEFTableBase.AddTypeMapping(solaceDBModelsPlayerActivityLogEntryEFMappingBase2, false);
-            defaultTableMappings16.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase2);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, journalItemUnlockedEntry.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase2);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, journalItemUnlockedEntry.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase2);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)itemIdColumnBase, journalItemUnlockedEntry.FindProperty("ItemId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase2);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, journalItemUnlockedEntry.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase2);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, journalItemUnlockedEntry.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase2);
+            defaultTableMappings17.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase2);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, journalItemUnlockedEntryEF.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase2);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, journalItemUnlockedEntryEF.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase2);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)itemIdColumnBase, journalItemUnlockedEntryEF.FindProperty("ItemId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase2);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, journalItemUnlockedEntryEF.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase2);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, journalItemUnlockedEntryEF.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase2);
 
-            var tableMappings16 = new List<TableMapping>();
-            journalItemUnlockedEntry.SetRuntimeAnnotation("Relational:TableMappings", tableMappings16);
-            var activityLogsTableMapping2 = new TableMapping(journalItemUnlockedEntry, activityLogsTable, null)
+            var tableMappings17 = new List<TableMapping>();
+            journalItemUnlockedEntryEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings17);
+            var activityLogsTableMapping2 = new TableMapping(journalItemUnlockedEntryEF, activityLogsTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             activityLogsTable.AddTypeMapping(activityLogsTableMapping2, false);
-            tableMappings16.Add(activityLogsTableMapping2);
-            RelationalModel.CreateColumnMapping(accountIdColumn0, journalItemUnlockedEntry.FindProperty("AccountId")!, activityLogsTableMapping2);
-            RelationalModel.CreateColumnMapping(entryIdColumn, journalItemUnlockedEntry.FindProperty("EntryId")!, activityLogsTableMapping2);
-            RelationalModel.CreateColumnMapping(itemIdColumn, journalItemUnlockedEntry.FindProperty("ItemId")!, activityLogsTableMapping2);
-            RelationalModel.CreateColumnMapping(timestampColumn, journalItemUnlockedEntry.FindProperty("Timestamp")!, activityLogsTableMapping2);
-            RelationalModel.CreateColumnMapping(entity_typeColumn, journalItemUnlockedEntry.FindProperty("entity_type")!, activityLogsTableMapping2);
+            tableMappings17.Add(activityLogsTableMapping2);
+            RelationalModel.CreateColumnMapping(accountIdColumn0, journalItemUnlockedEntryEF.FindProperty("AccountId")!, activityLogsTableMapping2);
+            RelationalModel.CreateColumnMapping(entryIdColumn, journalItemUnlockedEntryEF.FindProperty("EntryId")!, activityLogsTableMapping2);
+            RelationalModel.CreateColumnMapping(itemIdColumn, journalItemUnlockedEntryEF.FindProperty("ItemId")!, activityLogsTableMapping2);
+            RelationalModel.CreateColumnMapping(timestampColumn, journalItemUnlockedEntryEF.FindProperty("Timestamp")!, activityLogsTableMapping2);
+            RelationalModel.CreateColumnMapping(entity_typeColumn, journalItemUnlockedEntryEF.FindProperty("entity_type")!, activityLogsTableMapping2);
 
-            var journalItemUnlockedToken = FindEntityType("Solace.DB.Models.Player.JournalItemUnlockedToken")!;
+            var journalItemUnlockedTokenEF = FindEntityType("Solace.DB.Models.Player.JournalItemUnlockedTokenEF")!;
 
-            var defaultTableMappings17 = new List<TableMappingBase<ColumnMappingBase>>();
-            journalItemUnlockedToken.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings17);
-            var solaceDBModelsPlayerTokenEFMappingBase0 = new TableMappingBase<ColumnMappingBase>(journalItemUnlockedToken, solaceDBModelsPlayerTokenEFTableBase, null);
+            var defaultTableMappings18 = new List<TableMappingBase<ColumnMappingBase>>();
+            journalItemUnlockedTokenEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings18);
+            var solaceDBModelsPlayerTokenEFMappingBase0 = new TableMappingBase<ColumnMappingBase>(journalItemUnlockedTokenEF, solaceDBModelsPlayerTokenEFTableBase, null);
             solaceDBModelsPlayerTokenEFTableBase.AddTypeMapping(solaceDBModelsPlayerTokenEFMappingBase0, false);
-            defaultTableMappings17.Add(solaceDBModelsPlayerTokenEFMappingBase0);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase2, journalItemUnlockedToken.FindProperty("AccountId")!, solaceDBModelsPlayerTokenEFMappingBase0);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)tokenIdColumnBase, journalItemUnlockedToken.FindProperty("TokenId")!, solaceDBModelsPlayerTokenEFMappingBase0);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)itemIdColumnBase0, journalItemUnlockedToken.FindProperty("ItemId")!, solaceDBModelsPlayerTokenEFMappingBase0);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)token_typeColumnBase, journalItemUnlockedToken.FindProperty("token_type")!, solaceDBModelsPlayerTokenEFMappingBase0);
+            defaultTableMappings18.Add(solaceDBModelsPlayerTokenEFMappingBase0);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase2, journalItemUnlockedTokenEF.FindProperty("AccountId")!, solaceDBModelsPlayerTokenEFMappingBase0);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)tokenIdColumnBase, journalItemUnlockedTokenEF.FindProperty("TokenId")!, solaceDBModelsPlayerTokenEFMappingBase0);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)itemIdColumnBase0, journalItemUnlockedTokenEF.FindProperty("ItemId")!, solaceDBModelsPlayerTokenEFMappingBase0);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)token_typeColumnBase, journalItemUnlockedTokenEF.FindProperty("token_type")!, solaceDBModelsPlayerTokenEFMappingBase0);
 
-            var tableMappings17 = new List<TableMapping>();
-            journalItemUnlockedToken.SetRuntimeAnnotation("Relational:TableMappings", tableMappings17);
-            var tokensTableMapping0 = new TableMapping(journalItemUnlockedToken, tokensTable, null)
+            var tableMappings18 = new List<TableMapping>();
+            journalItemUnlockedTokenEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings18);
+            var tokensTableMapping0 = new TableMapping(journalItemUnlockedTokenEF, tokensTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             tokensTable.AddTypeMapping(tokensTableMapping0, false);
-            tableMappings17.Add(tokensTableMapping0);
-            RelationalModel.CreateColumnMapping(accountIdColumn2, journalItemUnlockedToken.FindProperty("AccountId")!, tokensTableMapping0);
-            RelationalModel.CreateColumnMapping(tokenIdColumn, journalItemUnlockedToken.FindProperty("TokenId")!, tokensTableMapping0);
-            RelationalModel.CreateColumnMapping(itemIdColumn0, journalItemUnlockedToken.FindProperty("ItemId")!, tokensTableMapping0);
-            RelationalModel.CreateColumnMapping(token_typeColumn, journalItemUnlockedToken.FindProperty("token_type")!, tokensTableMapping0);
+            tableMappings18.Add(tokensTableMapping0);
+            RelationalModel.CreateColumnMapping(accountIdColumn2, journalItemUnlockedTokenEF.FindProperty("AccountId")!, tokensTableMapping0);
+            RelationalModel.CreateColumnMapping(tokenIdColumn, journalItemUnlockedTokenEF.FindProperty("TokenId")!, tokensTableMapping0);
+            RelationalModel.CreateColumnMapping(itemIdColumn0, journalItemUnlockedTokenEF.FindProperty("ItemId")!, tokensTableMapping0);
+            RelationalModel.CreateColumnMapping(token_typeColumn, journalItemUnlockedTokenEF.FindProperty("token_type")!, tokensTableMapping0);
 
-            var levelUpEntry = FindEntityType("Solace.DB.Models.Player.LevelUpEntry")!;
+            var levelUpEntryEF = FindEntityType("Solace.DB.Models.Player.LevelUpEntryEF")!;
 
-            var defaultTableMappings18 = new List<TableMappingBase<ColumnMappingBase>>();
-            levelUpEntry.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings18);
-            var solaceDBModelsPlayerActivityLogEntryEFMappingBase3 = new TableMappingBase<ColumnMappingBase>(levelUpEntry, solaceDBModelsPlayerActivityLogEntryEFTableBase, null);
+            var defaultTableMappings19 = new List<TableMappingBase<ColumnMappingBase>>();
+            levelUpEntryEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings19);
+            var solaceDBModelsPlayerActivityLogEntryEFMappingBase3 = new TableMappingBase<ColumnMappingBase>(levelUpEntryEF, solaceDBModelsPlayerActivityLogEntryEFTableBase, null);
             solaceDBModelsPlayerActivityLogEntryEFTableBase.AddTypeMapping(solaceDBModelsPlayerActivityLogEntryEFMappingBase3, false);
-            defaultTableMappings18.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase3);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, levelUpEntry.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase3);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, levelUpEntry.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase3);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)levelColumnBase, levelUpEntry.FindProperty("Level")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase3);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, levelUpEntry.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase3);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, levelUpEntry.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase3);
+            defaultTableMappings19.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase3);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, levelUpEntryEF.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase3);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, levelUpEntryEF.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase3);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)levelColumnBase, levelUpEntryEF.FindProperty("Level")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase3);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, levelUpEntryEF.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase3);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, levelUpEntryEF.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase3);
 
-            var tableMappings18 = new List<TableMapping>();
-            levelUpEntry.SetRuntimeAnnotation("Relational:TableMappings", tableMappings18);
-            var activityLogsTableMapping3 = new TableMapping(levelUpEntry, activityLogsTable, null)
+            var tableMappings19 = new List<TableMapping>();
+            levelUpEntryEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings19);
+            var activityLogsTableMapping3 = new TableMapping(levelUpEntryEF, activityLogsTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             activityLogsTable.AddTypeMapping(activityLogsTableMapping3, false);
-            tableMappings18.Add(activityLogsTableMapping3);
-            RelationalModel.CreateColumnMapping(accountIdColumn0, levelUpEntry.FindProperty("AccountId")!, activityLogsTableMapping3);
-            RelationalModel.CreateColumnMapping(entryIdColumn, levelUpEntry.FindProperty("EntryId")!, activityLogsTableMapping3);
-            RelationalModel.CreateColumnMapping(levelColumn, levelUpEntry.FindProperty("Level")!, activityLogsTableMapping3);
-            RelationalModel.CreateColumnMapping(timestampColumn, levelUpEntry.FindProperty("Timestamp")!, activityLogsTableMapping3);
-            RelationalModel.CreateColumnMapping(entity_typeColumn, levelUpEntry.FindProperty("entity_type")!, activityLogsTableMapping3);
+            tableMappings19.Add(activityLogsTableMapping3);
+            RelationalModel.CreateColumnMapping(accountIdColumn0, levelUpEntryEF.FindProperty("AccountId")!, activityLogsTableMapping3);
+            RelationalModel.CreateColumnMapping(entryIdColumn, levelUpEntryEF.FindProperty("EntryId")!, activityLogsTableMapping3);
+            RelationalModel.CreateColumnMapping(levelColumn, levelUpEntryEF.FindProperty("Level")!, activityLogsTableMapping3);
+            RelationalModel.CreateColumnMapping(timestampColumn, levelUpEntryEF.FindProperty("Timestamp")!, activityLogsTableMapping3);
+            RelationalModel.CreateColumnMapping(entity_typeColumn, levelUpEntryEF.FindProperty("entity_type")!, activityLogsTableMapping3);
 
-            var levelUpToken = FindEntityType("Solace.DB.Models.Player.LevelUpToken")!;
+            var levelUpTokenEF = FindEntityType("Solace.DB.Models.Player.LevelUpTokenEF")!;
 
-            var defaultTableMappings19 = new List<TableMappingBase<ColumnMappingBase>>();
-            levelUpToken.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings19);
-            var solaceDBModelsPlayerTokenEFMappingBase1 = new TableMappingBase<ColumnMappingBase>(levelUpToken, solaceDBModelsPlayerTokenEFTableBase, null);
+            var defaultTableMappings20 = new List<TableMappingBase<ColumnMappingBase>>();
+            levelUpTokenEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings20);
+            var solaceDBModelsPlayerTokenEFMappingBase1 = new TableMappingBase<ColumnMappingBase>(levelUpTokenEF, solaceDBModelsPlayerTokenEFTableBase, null);
             solaceDBModelsPlayerTokenEFTableBase.AddTypeMapping(solaceDBModelsPlayerTokenEFMappingBase1, false);
-            defaultTableMappings19.Add(solaceDBModelsPlayerTokenEFMappingBase1);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase2, levelUpToken.FindProperty("AccountId")!, solaceDBModelsPlayerTokenEFMappingBase1);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)tokenIdColumnBase, levelUpToken.FindProperty("TokenId")!, solaceDBModelsPlayerTokenEFMappingBase1);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)levelColumnBase0, levelUpToken.FindProperty("Level")!, solaceDBModelsPlayerTokenEFMappingBase1);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)token_typeColumnBase, levelUpToken.FindProperty("token_type")!, solaceDBModelsPlayerTokenEFMappingBase1);
+            defaultTableMappings20.Add(solaceDBModelsPlayerTokenEFMappingBase1);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase2, levelUpTokenEF.FindProperty("AccountId")!, solaceDBModelsPlayerTokenEFMappingBase1);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)tokenIdColumnBase, levelUpTokenEF.FindProperty("TokenId")!, solaceDBModelsPlayerTokenEFMappingBase1);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)levelColumnBase0, levelUpTokenEF.FindProperty("Level")!, solaceDBModelsPlayerTokenEFMappingBase1);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)token_typeColumnBase, levelUpTokenEF.FindProperty("token_type")!, solaceDBModelsPlayerTokenEFMappingBase1);
 
-            var tableMappings19 = new List<TableMapping>();
-            levelUpToken.SetRuntimeAnnotation("Relational:TableMappings", tableMappings19);
-            var tokensTableMapping1 = new TableMapping(levelUpToken, tokensTable, null)
+            var tableMappings20 = new List<TableMapping>();
+            levelUpTokenEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings20);
+            var tokensTableMapping1 = new TableMapping(levelUpTokenEF, tokensTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             tokensTable.AddTypeMapping(tokensTableMapping1, false);
-            tableMappings19.Add(tokensTableMapping1);
-            RelationalModel.CreateColumnMapping(accountIdColumn2, levelUpToken.FindProperty("AccountId")!, tokensTableMapping1);
-            RelationalModel.CreateColumnMapping(tokenIdColumn, levelUpToken.FindProperty("TokenId")!, tokensTableMapping1);
-            RelationalModel.CreateColumnMapping(levelColumn0, levelUpToken.FindProperty("Level")!, tokensTableMapping1);
-            RelationalModel.CreateColumnMapping(token_typeColumn, levelUpToken.FindProperty("token_type")!, tokensTableMapping1);
+            tableMappings20.Add(tokensTableMapping1);
+            RelationalModel.CreateColumnMapping(accountIdColumn2, levelUpTokenEF.FindProperty("AccountId")!, tokensTableMapping1);
+            RelationalModel.CreateColumnMapping(tokenIdColumn, levelUpTokenEF.FindProperty("TokenId")!, tokensTableMapping1);
+            RelationalModel.CreateColumnMapping(levelColumn0, levelUpTokenEF.FindProperty("Level")!, tokensTableMapping1);
+            RelationalModel.CreateColumnMapping(token_typeColumn, levelUpTokenEF.FindProperty("token_type")!, tokensTableMapping1);
 
             var nonStackableItemInstanceEF = FindEntityType("Solace.DB.Models.Player.NonStackableItemInstanceEF")!;
 
-            var defaultTableMappings20 = new List<TableMappingBase<ColumnMappingBase>>();
-            nonStackableItemInstanceEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings20);
+            var defaultTableMappings21 = new List<TableMappingBase<ColumnMappingBase>>();
+            nonStackableItemInstanceEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings21);
             var solaceDBModelsPlayerNonStackableItemInstanceEFTableBase = new TableBase("Solace.DB.Models.Player.NonStackableItemInstanceEF", null, relationalModel);
             var accountIdColumnBase4 = new ColumnBase<ColumnMappingBase>("AccountId", "uuid", solaceDBModelsPlayerNonStackableItemInstanceEFTableBase);
             solaceDBModelsPlayerNonStackableItemInstanceEFTableBase.Columns.Add("AccountId", accountIdColumnBase4);
@@ -1370,78 +1422,75 @@ namespace Solace.DB.CompiledModels
             relationalModel.DefaultTables.Add("Solace.DB.Models.Player.NonStackableItemInstanceEF", solaceDBModelsPlayerNonStackableItemInstanceEFTableBase);
             var solaceDBModelsPlayerNonStackableItemInstanceEFMappingBase = new TableMappingBase<ColumnMappingBase>(nonStackableItemInstanceEF, solaceDBModelsPlayerNonStackableItemInstanceEFTableBase, null);
             solaceDBModelsPlayerNonStackableItemInstanceEFTableBase.AddTypeMapping(solaceDBModelsPlayerNonStackableItemInstanceEFMappingBase, false);
-            defaultTableMappings20.Add(solaceDBModelsPlayerNonStackableItemInstanceEFMappingBase);
+            defaultTableMappings21.Add(solaceDBModelsPlayerNonStackableItemInstanceEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase4, nonStackableItemInstanceEF.FindProperty("AccountId")!, solaceDBModelsPlayerNonStackableItemInstanceEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)instanceIdColumnBase, nonStackableItemInstanceEF.FindProperty("InstanceId")!, solaceDBModelsPlayerNonStackableItemInstanceEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)itemIdColumnBase2, nonStackableItemInstanceEF.FindProperty("ItemId")!, solaceDBModelsPlayerNonStackableItemInstanceEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)wearColumnBase, nonStackableItemInstanceEF.FindProperty("Wear")!, solaceDBModelsPlayerNonStackableItemInstanceEFMappingBase);
 
-            var tableMappings20 = new List<TableMapping>();
-            nonStackableItemInstanceEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings20);
-            var nonStackableItemInstancesTable = new Table("NonStackableItemInstances", null, relationalModel);
-            var accountIdColumn4 = new Column("AccountId", "uuid", nonStackableItemInstancesTable);
-            nonStackableItemInstancesTable.Columns.Add("AccountId", accountIdColumn4);
+            var tableMappings21 = new List<TableMapping>();
+            nonStackableItemInstanceEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings21);
+            var nonStackableItemsTable = new Table("NonStackableItems", null, relationalModel);
+            var accountIdColumn4 = new Column("AccountId", "uuid", nonStackableItemsTable);
+            nonStackableItemsTable.Columns.Add("AccountId", accountIdColumn4);
             accountIdColumn4.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(accountIdColumn4);
-            var itemIdColumn2 = new Column("ItemId", "uuid", nonStackableItemInstancesTable);
-            nonStackableItemInstancesTable.Columns.Add("ItemId", itemIdColumn2);
+            var itemIdColumn2 = new Column("ItemId", "uuid", nonStackableItemsTable);
+            nonStackableItemsTable.Columns.Add("ItemId", itemIdColumn2);
             itemIdColumn2.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(itemIdColumn2);
-            var instanceIdColumn = new Column("InstanceId", "uuid", nonStackableItemInstancesTable);
-            nonStackableItemInstancesTable.Columns.Add("InstanceId", instanceIdColumn);
+            var instanceIdColumn = new Column("InstanceId", "uuid", nonStackableItemsTable);
+            nonStackableItemsTable.Columns.Add("InstanceId", instanceIdColumn);
             instanceIdColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(instanceIdColumn);
-            var wearColumn = new Column("Wear", "integer", nonStackableItemInstancesTable);
-            nonStackableItemInstancesTable.Columns.Add("Wear", wearColumn);
+            var wearColumn = new Column("Wear", "integer", nonStackableItemsTable);
+            nonStackableItemsTable.Columns.Add("Wear", wearColumn);
             wearColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(wearColumn);
-            relationalModel.Tables.Add(("NonStackableItemInstances", null), nonStackableItemInstancesTable);
-            var nonStackableItemInstancesTableMapping = new TableMapping(nonStackableItemInstanceEF, nonStackableItemInstancesTable, null);
-            nonStackableItemInstancesTable.AddTypeMapping(nonStackableItemInstancesTableMapping, false);
-            tableMappings20.Add(nonStackableItemInstancesTableMapping);
-            RelationalModel.CreateColumnMapping(accountIdColumn4, nonStackableItemInstanceEF.FindProperty("AccountId")!, nonStackableItemInstancesTableMapping);
-            RelationalModel.CreateColumnMapping(instanceIdColumn, nonStackableItemInstanceEF.FindProperty("InstanceId")!, nonStackableItemInstancesTableMapping);
-            RelationalModel.CreateColumnMapping(itemIdColumn2, nonStackableItemInstanceEF.FindProperty("ItemId")!, nonStackableItemInstancesTableMapping);
-            RelationalModel.CreateColumnMapping(wearColumn, nonStackableItemInstanceEF.FindProperty("Wear")!, nonStackableItemInstancesTableMapping);
-            var pK_NonStackableItemInstances = new UniqueConstraint("PK_NonStackableItemInstances", nonStackableItemInstancesTable, new[] { accountIdColumn4, itemIdColumn2, instanceIdColumn });
-            nonStackableItemInstancesTable.PrimaryKey = pK_NonStackableItemInstances;
-            pK_NonStackableItemInstances.SetRowKeyValueFactory(new CompositeRowKeyValueFactory(pK_NonStackableItemInstances));
-            var pK_NonStackableItemInstancesKey = RelationalModel.GetKey(this,
+            relationalModel.Tables.Add(("NonStackableItems", null), nonStackableItemsTable);
+            var nonStackableItemsTableMapping = new TableMapping(nonStackableItemInstanceEF, nonStackableItemsTable, null);
+            nonStackableItemsTable.AddTypeMapping(nonStackableItemsTableMapping, false);
+            tableMappings21.Add(nonStackableItemsTableMapping);
+            RelationalModel.CreateColumnMapping(accountIdColumn4, nonStackableItemInstanceEF.FindProperty("AccountId")!, nonStackableItemsTableMapping);
+            RelationalModel.CreateColumnMapping(instanceIdColumn, nonStackableItemInstanceEF.FindProperty("InstanceId")!, nonStackableItemsTableMapping);
+            RelationalModel.CreateColumnMapping(itemIdColumn2, nonStackableItemInstanceEF.FindProperty("ItemId")!, nonStackableItemsTableMapping);
+            RelationalModel.CreateColumnMapping(wearColumn, nonStackableItemInstanceEF.FindProperty("Wear")!, nonStackableItemsTableMapping);
+            var pK_NonStackableItems = new UniqueConstraint("PK_NonStackableItems", nonStackableItemsTable, new[] { accountIdColumn4, itemIdColumn2, instanceIdColumn });
+            nonStackableItemsTable.PrimaryKey = pK_NonStackableItems;
+            pK_NonStackableItems.SetRowKeyValueFactory(new CompositeRowKeyValueFactory(pK_NonStackableItems));
+            var pK_NonStackableItemsKey = RelationalModel.GetKey(this,
                 "Solace.DB.Models.Player.NonStackableItemInstanceEF",
                 new[] { "AccountId", "ItemId", "InstanceId" });
-            pK_NonStackableItemInstances.MappedKeys.Add(pK_NonStackableItemInstancesKey);
-            RelationalModel.GetOrCreateUniqueConstraints(pK_NonStackableItemInstancesKey).Add(pK_NonStackableItemInstances);
-            nonStackableItemInstancesTable.UniqueConstraints.Add("PK_NonStackableItemInstances", pK_NonStackableItemInstances);
+            pK_NonStackableItems.MappedKeys.Add(pK_NonStackableItemsKey);
+            RelationalModel.GetOrCreateUniqueConstraints(pK_NonStackableItemsKey).Add(pK_NonStackableItems);
+            nonStackableItemsTable.UniqueConstraints.Add("PK_NonStackableItems", pK_NonStackableItems);
 
             var profileEF = FindEntityType("Solace.DB.Models.Player.ProfileEF")!;
 
-            var defaultTableMappings21 = new List<TableMappingBase<ColumnMappingBase>>();
-            profileEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings21);
+            var defaultTableMappings22 = new List<TableMappingBase<ColumnMappingBase>>();
+            profileEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings22);
             var solaceDBModelsPlayerProfileEFTableBase = new TableBase("Solace.DB.Models.Player.ProfileEF", null, relationalModel);
             var experienceColumnBase = new ColumnBase<ColumnMappingBase>("Experience", "integer", solaceDBModelsPlayerProfileEFTableBase);
             solaceDBModelsPlayerProfileEFTableBase.Columns.Add("Experience", experienceColumnBase);
             var healthColumnBase = new ColumnBase<ColumnMappingBase>("Health", "integer", solaceDBModelsPlayerProfileEFTableBase);
             solaceDBModelsPlayerProfileEFTableBase.Columns.Add("Health", healthColumnBase);
-            var idColumnBase8 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsPlayerProfileEFTableBase);
-            solaceDBModelsPlayerProfileEFTableBase.Columns.Add("Id", idColumnBase8);
+            var idColumnBase9 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsPlayerProfileEFTableBase);
+            solaceDBModelsPlayerProfileEFTableBase.Columns.Add("Id", idColumnBase9);
             var levelColumnBase1 = new ColumnBase<ColumnMappingBase>("Level", "integer", solaceDBModelsPlayerProfileEFTableBase);
             solaceDBModelsPlayerProfileEFTableBase.Columns.Add("Level", levelColumnBase1);
             var rubiesColumnBase = new JsonColumnBase("Rubies", "jsonb", solaceDBModelsPlayerProfileEFTableBase);
             solaceDBModelsPlayerProfileEFTableBase.Columns.Add("Rubies", rubiesColumnBase);
-            var versionColumnBase4 = new ColumnBase<ColumnMappingBase>("Version", "integer", solaceDBModelsPlayerProfileEFTableBase);
-            solaceDBModelsPlayerProfileEFTableBase.Columns.Add("Version", versionColumnBase4);
             relationalModel.DefaultTables.Add("Solace.DB.Models.Player.ProfileEF", solaceDBModelsPlayerProfileEFTableBase);
             var solaceDBModelsPlayerProfileEFMappingBase = new TableMappingBase<ColumnMappingBase>(profileEF, solaceDBModelsPlayerProfileEFTableBase, null);
             solaceDBModelsPlayerProfileEFTableBase.AddTypeMapping(solaceDBModelsPlayerProfileEFMappingBase, false);
-            defaultTableMappings21.Add(solaceDBModelsPlayerProfileEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase8, profileEF.FindProperty("Id")!, solaceDBModelsPlayerProfileEFMappingBase);
+            defaultTableMappings22.Add(solaceDBModelsPlayerProfileEFMappingBase);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase9, profileEF.FindProperty("Id")!, solaceDBModelsPlayerProfileEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)experienceColumnBase, profileEF.FindProperty("Experience")!, solaceDBModelsPlayerProfileEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)healthColumnBase, profileEF.FindProperty("Health")!, solaceDBModelsPlayerProfileEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)levelColumnBase1, profileEF.FindProperty("Level")!, solaceDBModelsPlayerProfileEFMappingBase);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)versionColumnBase4, profileEF.FindProperty("Version")!, solaceDBModelsPlayerProfileEFMappingBase);
 
-            var tableMappings21 = new List<TableMapping>();
-            profileEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings21);
+            var tableMappings22 = new List<TableMapping>();
+            profileEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings22);
             var profilesTable = new Table("Profiles", null, relationalModel);
-            var idColumn8 = new Column("Id", "uuid", profilesTable);
-            profilesTable.Columns.Add("Id", idColumn8);
-            idColumn8.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn8);
+            var idColumn9 = new Column("Id", "uuid", profilesTable);
+            profilesTable.Columns.Add("Id", idColumn9);
+            idColumn9.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn9);
             var experienceColumn = new Column("Experience", "integer", profilesTable);
             profilesTable.Columns.Add("Experience", experienceColumn);
             experienceColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(experienceColumn);
@@ -1454,26 +1503,22 @@ namespace Solace.DB.CompiledModels
             var rubiesColumn = new JsonColumn("Rubies", "jsonb", profilesTable);
             profilesTable.Columns.Add("Rubies", rubiesColumn);
             rubiesColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<JsonTypePlaceholder>(rubiesColumn);
-            var versionColumn4 = new Column("Version", "integer", profilesTable);
-            profilesTable.Columns.Add("Version", versionColumn4);
-            versionColumn4.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(versionColumn4);
             relationalModel.Tables.Add(("Profiles", null), profilesTable);
             var profilesTableMapping = new TableMapping(profileEF, profilesTable, null)
             {
                 IsSharedTablePrincipal = true,
             };
             profilesTable.AddTypeMapping(profilesTableMapping, false);
-            tableMappings21.Add(profilesTableMapping);
-            RelationalModel.CreateColumnMapping(idColumn8, profileEF.FindProperty("Id")!, profilesTableMapping);
+            tableMappings22.Add(profilesTableMapping);
+            RelationalModel.CreateColumnMapping(idColumn9, profileEF.FindProperty("Id")!, profilesTableMapping);
             RelationalModel.CreateColumnMapping(experienceColumn, profileEF.FindProperty("Experience")!, profilesTableMapping);
             RelationalModel.CreateColumnMapping(healthColumn, profileEF.FindProperty("Health")!, profilesTableMapping);
             RelationalModel.CreateColumnMapping(levelColumn1, profileEF.FindProperty("Level")!, profilesTableMapping);
-            RelationalModel.CreateColumnMapping(versionColumn4, profileEF.FindProperty("Version")!, profilesTableMapping);
 
             var redeemedTappableEF = FindEntityType("Solace.DB.Models.Player.RedeemedTappableEF")!;
 
-            var defaultTableMappings22 = new List<TableMappingBase<ColumnMappingBase>>();
-            redeemedTappableEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings22);
+            var defaultTableMappings23 = new List<TableMappingBase<ColumnMappingBase>>();
+            redeemedTappableEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings23);
             var solaceDBModelsPlayerRedeemedTappableEFTableBase = new TableBase("Solace.DB.Models.Player.RedeemedTappableEF", null, relationalModel);
             var accountIdColumnBase5 = new ColumnBase<ColumnMappingBase>("AccountId", "uuid", solaceDBModelsPlayerRedeemedTappableEFTableBase);
             solaceDBModelsPlayerRedeemedTappableEFTableBase.Columns.Add("AccountId", accountIdColumnBase5);
@@ -1484,13 +1529,13 @@ namespace Solace.DB.CompiledModels
             relationalModel.DefaultTables.Add("Solace.DB.Models.Player.RedeemedTappableEF", solaceDBModelsPlayerRedeemedTappableEFTableBase);
             var solaceDBModelsPlayerRedeemedTappableEFMappingBase = new TableMappingBase<ColumnMappingBase>(redeemedTappableEF, solaceDBModelsPlayerRedeemedTappableEFTableBase, null);
             solaceDBModelsPlayerRedeemedTappableEFTableBase.AddTypeMapping(solaceDBModelsPlayerRedeemedTappableEFMappingBase, false);
-            defaultTableMappings22.Add(solaceDBModelsPlayerRedeemedTappableEFMappingBase);
+            defaultTableMappings23.Add(solaceDBModelsPlayerRedeemedTappableEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase5, redeemedTappableEF.FindProperty("AccountId")!, solaceDBModelsPlayerRedeemedTappableEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)tappableIdColumnBase, redeemedTappableEF.FindProperty("TappableId")!, solaceDBModelsPlayerRedeemedTappableEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)expiresAtColumnBase, redeemedTappableEF.FindProperty("ExpiresAt")!, solaceDBModelsPlayerRedeemedTappableEFMappingBase);
 
-            var tableMappings22 = new List<TableMapping>();
-            redeemedTappableEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings22);
+            var tableMappings23 = new List<TableMapping>();
+            redeemedTappableEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings23);
             var redeemedTappablesTable = new Table("RedeemedTappables", null, relationalModel);
             var accountIdColumn5 = new Column("AccountId", "uuid", redeemedTappablesTable);
             redeemedTappablesTable.Columns.Add("AccountId", accountIdColumn5);
@@ -1504,7 +1549,7 @@ namespace Solace.DB.CompiledModels
             relationalModel.Tables.Add(("RedeemedTappables", null), redeemedTappablesTable);
             var redeemedTappablesTableMapping = new TableMapping(redeemedTappableEF, redeemedTappablesTable, null);
             redeemedTappablesTable.AddTypeMapping(redeemedTappablesTableMapping, false);
-            tableMappings22.Add(redeemedTappablesTableMapping);
+            tableMappings23.Add(redeemedTappablesTableMapping);
             RelationalModel.CreateColumnMapping(accountIdColumn5, redeemedTappableEF.FindProperty("AccountId")!, redeemedTappablesTableMapping);
             RelationalModel.CreateColumnMapping(tappableIdColumn, redeemedTappableEF.FindProperty("TappableId")!, redeemedTappablesTableMapping);
             RelationalModel.CreateColumnMapping(expiresAtColumn, redeemedTappableEF.FindProperty("ExpiresAt")!, redeemedTappablesTableMapping);
@@ -1518,96 +1563,96 @@ namespace Solace.DB.CompiledModels
             RelationalModel.GetOrCreateUniqueConstraints(pK_RedeemedTappablesKey).Add(pK_RedeemedTappables);
             redeemedTappablesTable.UniqueConstraints.Add("PK_RedeemedTappables", pK_RedeemedTappables);
 
-            var rewardedActivityLogEntry = FindEntityType("Solace.DB.Models.Player.RewardedActivityLogEntry")!;
+            var rewardedActivityLogEntryEF = FindEntityType("Solace.DB.Models.Player.RewardedActivityLogEntryEF")!;
 
-            var defaultTableMappings23 = new List<TableMappingBase<ColumnMappingBase>>();
-            rewardedActivityLogEntry.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings23);
-            var solaceDBModelsPlayerActivityLogEntryEFMappingBase4 = new TableMappingBase<ColumnMappingBase>(rewardedActivityLogEntry, solaceDBModelsPlayerActivityLogEntryEFTableBase, true);
+            var defaultTableMappings24 = new List<TableMappingBase<ColumnMappingBase>>();
+            rewardedActivityLogEntryEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings24);
+            var solaceDBModelsPlayerActivityLogEntryEFMappingBase4 = new TableMappingBase<ColumnMappingBase>(rewardedActivityLogEntryEF, solaceDBModelsPlayerActivityLogEntryEFTableBase, true);
             solaceDBModelsPlayerActivityLogEntryEFTableBase.AddTypeMapping(solaceDBModelsPlayerActivityLogEntryEFMappingBase4, false);
-            defaultTableMappings23.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase4);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, rewardedActivityLogEntry.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase4);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, rewardedActivityLogEntry.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase4);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, rewardedActivityLogEntry.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase4);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, rewardedActivityLogEntry.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase4);
+            defaultTableMappings24.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase4);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, rewardedActivityLogEntryEF.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase4);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, rewardedActivityLogEntryEF.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase4);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, rewardedActivityLogEntryEF.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase4);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, rewardedActivityLogEntryEF.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase4);
 
-            var tableMappings23 = new List<TableMapping>();
-            rewardedActivityLogEntry.SetRuntimeAnnotation("Relational:TableMappings", tableMappings23);
-            var activityLogsTableMapping4 = new TableMapping(rewardedActivityLogEntry, activityLogsTable, true)
+            var tableMappings24 = new List<TableMapping>();
+            rewardedActivityLogEntryEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings24);
+            var activityLogsTableMapping4 = new TableMapping(rewardedActivityLogEntryEF, activityLogsTable, true)
             {
                 IsSharedTablePrincipal = false,
             };
             activityLogsTable.AddTypeMapping(activityLogsTableMapping4, false);
-            tableMappings23.Add(activityLogsTableMapping4);
-            RelationalModel.CreateColumnMapping(accountIdColumn0, rewardedActivityLogEntry.FindProperty("AccountId")!, activityLogsTableMapping4);
-            RelationalModel.CreateColumnMapping(entryIdColumn, rewardedActivityLogEntry.FindProperty("EntryId")!, activityLogsTableMapping4);
-            RelationalModel.CreateColumnMapping(timestampColumn, rewardedActivityLogEntry.FindProperty("Timestamp")!, activityLogsTableMapping4);
-            RelationalModel.CreateColumnMapping(entity_typeColumn, rewardedActivityLogEntry.FindProperty("entity_type")!, activityLogsTableMapping4);
+            tableMappings24.Add(activityLogsTableMapping4);
+            RelationalModel.CreateColumnMapping(accountIdColumn0, rewardedActivityLogEntryEF.FindProperty("AccountId")!, activityLogsTableMapping4);
+            RelationalModel.CreateColumnMapping(entryIdColumn, rewardedActivityLogEntryEF.FindProperty("EntryId")!, activityLogsTableMapping4);
+            RelationalModel.CreateColumnMapping(timestampColumn, rewardedActivityLogEntryEF.FindProperty("Timestamp")!, activityLogsTableMapping4);
+            RelationalModel.CreateColumnMapping(entity_typeColumn, rewardedActivityLogEntryEF.FindProperty("entity_type")!, activityLogsTableMapping4);
 
-            var rewards = FindEntityType("Solace.DB.Models.Player.RewardedActivityLogEntry.Rewards#Rewards")!;
+            var rewards = FindEntityType("Solace.DB.Models.Player.RewardedActivityLogEntryEF.Rewards#Rewards")!;
 
-            var defaultTableMappings24 = new List<TableMappingBase<ColumnMappingBase>>();
-            rewards.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings24);
+            var defaultTableMappings25 = new List<TableMappingBase<ColumnMappingBase>>();
+            rewards.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings25);
             var solaceDBModelsPlayerActivityLogEntryEFMappingBase5 = new TableMappingBase<ColumnMappingBase>(rewards, solaceDBModelsPlayerActivityLogEntryEFTableBase, null);
             solaceDBModelsPlayerActivityLogEntryEFTableBase.AddTypeMapping(solaceDBModelsPlayerActivityLogEntryEFMappingBase5, null);
-            defaultTableMappings24.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase5);
+            defaultTableMappings25.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase5);
 
-            var tableMappings24 = new List<TableMapping>();
-            rewards.SetRuntimeAnnotation("Relational:TableMappings", tableMappings24);
+            var tableMappings25 = new List<TableMapping>();
+            rewards.SetRuntimeAnnotation("Relational:TableMappings", tableMappings25);
             var activityLogsTableMapping5 = new TableMapping(rewards, activityLogsTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             activityLogsTable.AddTypeMapping(activityLogsTableMapping5, null);
-            tableMappings24.Add(activityLogsTableMapping5);
+            tableMappings25.Add(activityLogsTableMapping5);
             activityLogsTable.AddRowInternalForeignKey(rewards, RelationalModel.GetForeignKey(this,
-                "Solace.DB.Models.Player.RewardedActivityLogEntry.Rewards#Rewards",
-                new[] { "RewardedActivityLogEntryAccountId", "RewardedActivityLogEntryEntryId" },
-                "Solace.DB.Models.Player.RewardedActivityLogEntry",
+                "Solace.DB.Models.Player.RewardedActivityLogEntryEF.Rewards#Rewards",
+                new[] { "RewardedActivityLogEntryEFAccountId", "RewardedActivityLogEntryEFEntryId" },
+                "Solace.DB.Models.Player.RewardedActivityLogEntryEF",
                 new[] { "AccountId", "EntryId" }));
 
-            var rewardedToken = FindEntityType("Solace.DB.Models.Player.RewardedToken")!;
+            var rewardedTokenEF = FindEntityType("Solace.DB.Models.Player.RewardedTokenEF")!;
 
-            var defaultTableMappings25 = new List<TableMappingBase<ColumnMappingBase>>();
-            rewardedToken.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings25);
-            var solaceDBModelsPlayerTokenEFMappingBase2 = new TableMappingBase<ColumnMappingBase>(rewardedToken, solaceDBModelsPlayerTokenEFTableBase, true);
+            var defaultTableMappings26 = new List<TableMappingBase<ColumnMappingBase>>();
+            rewardedTokenEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings26);
+            var solaceDBModelsPlayerTokenEFMappingBase2 = new TableMappingBase<ColumnMappingBase>(rewardedTokenEF, solaceDBModelsPlayerTokenEFTableBase, true);
             solaceDBModelsPlayerTokenEFTableBase.AddTypeMapping(solaceDBModelsPlayerTokenEFMappingBase2, false);
-            defaultTableMappings25.Add(solaceDBModelsPlayerTokenEFMappingBase2);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase2, rewardedToken.FindProperty("AccountId")!, solaceDBModelsPlayerTokenEFMappingBase2);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)tokenIdColumnBase, rewardedToken.FindProperty("TokenId")!, solaceDBModelsPlayerTokenEFMappingBase2);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)token_typeColumnBase, rewardedToken.FindProperty("token_type")!, solaceDBModelsPlayerTokenEFMappingBase2);
+            defaultTableMappings26.Add(solaceDBModelsPlayerTokenEFMappingBase2);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase2, rewardedTokenEF.FindProperty("AccountId")!, solaceDBModelsPlayerTokenEFMappingBase2);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)tokenIdColumnBase, rewardedTokenEF.FindProperty("TokenId")!, solaceDBModelsPlayerTokenEFMappingBase2);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)token_typeColumnBase, rewardedTokenEF.FindProperty("token_type")!, solaceDBModelsPlayerTokenEFMappingBase2);
 
-            var tableMappings25 = new List<TableMapping>();
-            rewardedToken.SetRuntimeAnnotation("Relational:TableMappings", tableMappings25);
-            var tokensTableMapping2 = new TableMapping(rewardedToken, tokensTable, true)
+            var tableMappings26 = new List<TableMapping>();
+            rewardedTokenEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings26);
+            var tokensTableMapping2 = new TableMapping(rewardedTokenEF, tokensTable, true)
             {
                 IsSharedTablePrincipal = false,
             };
             tokensTable.AddTypeMapping(tokensTableMapping2, false);
-            tableMappings25.Add(tokensTableMapping2);
-            RelationalModel.CreateColumnMapping(accountIdColumn2, rewardedToken.FindProperty("AccountId")!, tokensTableMapping2);
-            RelationalModel.CreateColumnMapping(tokenIdColumn, rewardedToken.FindProperty("TokenId")!, tokensTableMapping2);
-            RelationalModel.CreateColumnMapping(token_typeColumn, rewardedToken.FindProperty("token_type")!, tokensTableMapping2);
+            tableMappings26.Add(tokensTableMapping2);
+            RelationalModel.CreateColumnMapping(accountIdColumn2, rewardedTokenEF.FindProperty("AccountId")!, tokensTableMapping2);
+            RelationalModel.CreateColumnMapping(tokenIdColumn, rewardedTokenEF.FindProperty("TokenId")!, tokensTableMapping2);
+            RelationalModel.CreateColumnMapping(token_typeColumn, rewardedTokenEF.FindProperty("token_type")!, tokensTableMapping2);
 
-            var rewards0 = FindEntityType("Solace.DB.Models.Player.RewardedToken.Rewards#Rewards")!;
+            var rewards0 = FindEntityType("Solace.DB.Models.Player.RewardedTokenEF.Rewards#Rewards")!;
 
-            var defaultTableMappings26 = new List<TableMappingBase<ColumnMappingBase>>();
-            rewards0.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings26);
+            var defaultTableMappings27 = new List<TableMappingBase<ColumnMappingBase>>();
+            rewards0.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings27);
             var solaceDBModelsPlayerTokenEFMappingBase3 = new TableMappingBase<ColumnMappingBase>(rewards0, solaceDBModelsPlayerTokenEFTableBase, null);
             solaceDBModelsPlayerTokenEFTableBase.AddTypeMapping(solaceDBModelsPlayerTokenEFMappingBase3, null);
-            defaultTableMappings26.Add(solaceDBModelsPlayerTokenEFMappingBase3);
+            defaultTableMappings27.Add(solaceDBModelsPlayerTokenEFMappingBase3);
 
-            var tableMappings26 = new List<TableMapping>();
-            rewards0.SetRuntimeAnnotation("Relational:TableMappings", tableMappings26);
+            var tableMappings27 = new List<TableMapping>();
+            rewards0.SetRuntimeAnnotation("Relational:TableMappings", tableMappings27);
             var tokensTableMapping3 = new TableMapping(rewards0, tokensTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             tokensTable.AddTypeMapping(tokensTableMapping3, null);
-            tableMappings26.Add(tokensTableMapping3);
+            tableMappings27.Add(tokensTableMapping3);
             tokensTable.AddRowInternalForeignKey(rewards0, RelationalModel.GetForeignKey(this,
-                "Solace.DB.Models.Player.RewardedToken.Rewards#Rewards",
-                new[] { "RewardedTokenAccountId", "RewardedTokenTokenId" },
-                "Solace.DB.Models.Player.RewardedToken",
+                "Solace.DB.Models.Player.RewardedTokenEF.Rewards#Rewards",
+                new[] { "RewardedTokenEFAccountId", "RewardedTokenEFTokenId" },
+                "Solace.DB.Models.Player.RewardedTokenEF",
                 new[] { "AccountId", "TokenId" }));
             var pK_Tokens = new UniqueConstraint("PK_Tokens", tokensTable, new[] { accountIdColumn2, tokenIdColumn });
             tokensTable.PrimaryKey = pK_Tokens;
@@ -1618,29 +1663,38 @@ namespace Solace.DB.CompiledModels
             pK_Tokens.MappedKeys.Add(pK_TokensKey);
             RelationalModel.GetOrCreateUniqueConstraints(pK_TokensKey).Add(pK_Tokens);
             tokensTable.UniqueConstraints.Add("PK_Tokens", pK_Tokens);
+            var iX_Tokens_Date = new TableIndex(
+            "IX_Tokens_Date", tokensTable, new[] { dateColumn }, false);
+            iX_Tokens_Date.SetRowIndexValueFactory(new SimpleRowIndexValueFactory<DateOnly>(iX_Tokens_Date));
+            var iX_Tokens_DateIx = RelationalModel.GetIndex(this,
+                "Solace.DB.Models.Player.DailyLoginTokenEF",
+                new[] { "Date" });
+            iX_Tokens_Date.MappedIndexes.Add(iX_Tokens_DateIx);
+            RelationalModel.GetOrCreateTableIndexes(iX_Tokens_DateIx).Add(iX_Tokens_Date);
+            tokensTable.Indexes.Add("IX_Tokens_Date", iX_Tokens_Date);
 
             var rubies = FindEntityType("Solace.DB.Models.Player.Rubies")!;
 
-            var defaultTableMappings27 = new List<TableMappingBase<ColumnMappingBase>>();
-            rubies.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings27);
+            var defaultTableMappings28 = new List<TableMappingBase<ColumnMappingBase>>();
+            rubies.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings28);
             var solaceDBModelsPlayerProfileEFMappingBase0 = new TableMappingBase<ColumnMappingBase>(rubies, solaceDBModelsPlayerProfileEFTableBase, null);
             solaceDBModelsPlayerProfileEFTableBase.AddTypeMapping(solaceDBModelsPlayerProfileEFMappingBase0, null);
-            defaultTableMappings27.Add(solaceDBModelsPlayerProfileEFMappingBase0);
+            defaultTableMappings28.Add(solaceDBModelsPlayerProfileEFMappingBase0);
 
-            var tableMappings27 = new List<TableMapping>();
-            rubies.SetRuntimeAnnotation("Relational:TableMappings", tableMappings27);
+            var tableMappings28 = new List<TableMapping>();
+            rubies.SetRuntimeAnnotation("Relational:TableMappings", tableMappings28);
             var profilesTableMapping0 = new TableMapping(rubies, profilesTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             profilesTable.AddTypeMapping(profilesTableMapping0, null);
-            tableMappings27.Add(profilesTableMapping0);
+            tableMappings28.Add(profilesTableMapping0);
             profilesTable.AddRowInternalForeignKey(rubies, RelationalModel.GetForeignKey(this,
                 "Solace.DB.Models.Player.Rubies",
                 new[] { "ProfileEFId" },
                 "Solace.DB.Models.Player.ProfileEF",
                 new[] { "Id" }));
-            var pK_Profiles = new UniqueConstraint("PK_Profiles", profilesTable, new[] { idColumn8 });
+            var pK_Profiles = new UniqueConstraint("PK_Profiles", profilesTable, new[] { idColumn9 });
             profilesTable.PrimaryKey = pK_Profiles;
             pK_Profiles.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<Guid>(pK_Profiles));
             var pK_ProfilesKey = RelationalModel.GetKey(this,
@@ -1650,35 +1704,35 @@ namespace Solace.DB.CompiledModels
             RelationalModel.GetOrCreateUniqueConstraints(pK_ProfilesKey).Add(pK_Profiles);
             profilesTable.UniqueConstraints.Add("PK_Profiles", pK_Profiles);
 
-            var smeltingCompletedEntry = FindEntityType("Solace.DB.Models.Player.SmeltingCompletedEntry")!;
+            var smeltingCompletedEntryEF = FindEntityType("Solace.DB.Models.Player.SmeltingCompletedEntryEF")!;
 
-            var defaultTableMappings28 = new List<TableMappingBase<ColumnMappingBase>>();
-            smeltingCompletedEntry.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings28);
-            var solaceDBModelsPlayerActivityLogEntryEFMappingBase6 = new TableMappingBase<ColumnMappingBase>(smeltingCompletedEntry, solaceDBModelsPlayerActivityLogEntryEFTableBase, null);
+            var defaultTableMappings29 = new List<TableMappingBase<ColumnMappingBase>>();
+            smeltingCompletedEntryEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings29);
+            var solaceDBModelsPlayerActivityLogEntryEFMappingBase6 = new TableMappingBase<ColumnMappingBase>(smeltingCompletedEntryEF, solaceDBModelsPlayerActivityLogEntryEFTableBase, null);
             solaceDBModelsPlayerActivityLogEntryEFTableBase.AddTypeMapping(solaceDBModelsPlayerActivityLogEntryEFMappingBase6, false);
-            defaultTableMappings28.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase6);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, smeltingCompletedEntry.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase6);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, smeltingCompletedEntry.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase6);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, smeltingCompletedEntry.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase6);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, smeltingCompletedEntry.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase6);
+            defaultTableMappings29.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase6);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, smeltingCompletedEntryEF.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase6);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, smeltingCompletedEntryEF.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase6);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, smeltingCompletedEntryEF.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase6);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, smeltingCompletedEntryEF.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase6);
 
-            var tableMappings28 = new List<TableMapping>();
-            smeltingCompletedEntry.SetRuntimeAnnotation("Relational:TableMappings", tableMappings28);
-            var activityLogsTableMapping6 = new TableMapping(smeltingCompletedEntry, activityLogsTable, null)
+            var tableMappings29 = new List<TableMapping>();
+            smeltingCompletedEntryEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings29);
+            var activityLogsTableMapping6 = new TableMapping(smeltingCompletedEntryEF, activityLogsTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             activityLogsTable.AddTypeMapping(activityLogsTableMapping6, false);
-            tableMappings28.Add(activityLogsTableMapping6);
-            RelationalModel.CreateColumnMapping(accountIdColumn0, smeltingCompletedEntry.FindProperty("AccountId")!, activityLogsTableMapping6);
-            RelationalModel.CreateColumnMapping(entryIdColumn, smeltingCompletedEntry.FindProperty("EntryId")!, activityLogsTableMapping6);
-            RelationalModel.CreateColumnMapping(timestampColumn, smeltingCompletedEntry.FindProperty("Timestamp")!, activityLogsTableMapping6);
-            RelationalModel.CreateColumnMapping(entity_typeColumn, smeltingCompletedEntry.FindProperty("entity_type")!, activityLogsTableMapping6);
+            tableMappings29.Add(activityLogsTableMapping6);
+            RelationalModel.CreateColumnMapping(accountIdColumn0, smeltingCompletedEntryEF.FindProperty("AccountId")!, activityLogsTableMapping6);
+            RelationalModel.CreateColumnMapping(entryIdColumn, smeltingCompletedEntryEF.FindProperty("EntryId")!, activityLogsTableMapping6);
+            RelationalModel.CreateColumnMapping(timestampColumn, smeltingCompletedEntryEF.FindProperty("Timestamp")!, activityLogsTableMapping6);
+            RelationalModel.CreateColumnMapping(entity_typeColumn, smeltingCompletedEntryEF.FindProperty("entity_type")!, activityLogsTableMapping6);
 
             var stackableItemEF = FindEntityType("Solace.DB.Models.Player.StackableItemEF")!;
 
-            var defaultTableMappings29 = new List<TableMappingBase<ColumnMappingBase>>();
-            stackableItemEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings29);
+            var defaultTableMappings30 = new List<TableMappingBase<ColumnMappingBase>>();
+            stackableItemEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings30);
             var solaceDBModelsPlayerStackableItemEFTableBase = new TableBase("Solace.DB.Models.Player.StackableItemEF", null, relationalModel);
             var accountIdColumnBase6 = new ColumnBase<ColumnMappingBase>("AccountId", "uuid", solaceDBModelsPlayerStackableItemEFTableBase);
             solaceDBModelsPlayerStackableItemEFTableBase.Columns.Add("AccountId", accountIdColumnBase6);
@@ -1689,13 +1743,13 @@ namespace Solace.DB.CompiledModels
             relationalModel.DefaultTables.Add("Solace.DB.Models.Player.StackableItemEF", solaceDBModelsPlayerStackableItemEFTableBase);
             var solaceDBModelsPlayerStackableItemEFMappingBase = new TableMappingBase<ColumnMappingBase>(stackableItemEF, solaceDBModelsPlayerStackableItemEFTableBase, null);
             solaceDBModelsPlayerStackableItemEFTableBase.AddTypeMapping(solaceDBModelsPlayerStackableItemEFMappingBase, false);
-            defaultTableMappings29.Add(solaceDBModelsPlayerStackableItemEFMappingBase);
+            defaultTableMappings30.Add(solaceDBModelsPlayerStackableItemEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase6, stackableItemEF.FindProperty("AccountId")!, solaceDBModelsPlayerStackableItemEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)itemIdColumnBase3, stackableItemEF.FindProperty("ItemId")!, solaceDBModelsPlayerStackableItemEFMappingBase);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)countColumnBase, stackableItemEF.FindProperty("Count")!, solaceDBModelsPlayerStackableItemEFMappingBase);
 
-            var tableMappings29 = new List<TableMapping>();
-            stackableItemEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings29);
+            var tableMappings30 = new List<TableMapping>();
+            stackableItemEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings30);
             var stackableItemsTable = new Table("StackableItems", null, relationalModel);
             var accountIdColumn6 = new Column("AccountId", "uuid", stackableItemsTable);
             stackableItemsTable.Columns.Add("AccountId", accountIdColumn6);
@@ -1709,7 +1763,7 @@ namespace Solace.DB.CompiledModels
             relationalModel.Tables.Add(("StackableItems", null), stackableItemsTable);
             var stackableItemsTableMapping = new TableMapping(stackableItemEF, stackableItemsTable, null);
             stackableItemsTable.AddTypeMapping(stackableItemsTableMapping, false);
-            tableMappings29.Add(stackableItemsTableMapping);
+            tableMappings30.Add(stackableItemsTableMapping);
             RelationalModel.CreateColumnMapping(accountIdColumn6, stackableItemEF.FindProperty("AccountId")!, stackableItemsTableMapping);
             RelationalModel.CreateColumnMapping(itemIdColumn3, stackableItemEF.FindProperty("ItemId")!, stackableItemsTableMapping);
             RelationalModel.CreateColumnMapping(countColumn, stackableItemEF.FindProperty("Count")!, stackableItemsTableMapping);
@@ -1723,30 +1777,30 @@ namespace Solace.DB.CompiledModels
             RelationalModel.GetOrCreateUniqueConstraints(pK_StackableItemsKey).Add(pK_StackableItems);
             stackableItemsTable.UniqueConstraints.Add("PK_StackableItems", pK_StackableItems);
 
-            var tappableEntry = FindEntityType("Solace.DB.Models.Player.TappableEntry")!;
+            var tappableEntryEF = FindEntityType("Solace.DB.Models.Player.TappableEntryEF")!;
 
-            var defaultTableMappings30 = new List<TableMappingBase<ColumnMappingBase>>();
-            tappableEntry.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings30);
-            var solaceDBModelsPlayerActivityLogEntryEFMappingBase7 = new TableMappingBase<ColumnMappingBase>(tappableEntry, solaceDBModelsPlayerActivityLogEntryEFTableBase, null);
+            var defaultTableMappings31 = new List<TableMappingBase<ColumnMappingBase>>();
+            tappableEntryEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings31);
+            var solaceDBModelsPlayerActivityLogEntryEFMappingBase7 = new TableMappingBase<ColumnMappingBase>(tappableEntryEF, solaceDBModelsPlayerActivityLogEntryEFTableBase, null);
             solaceDBModelsPlayerActivityLogEntryEFTableBase.AddTypeMapping(solaceDBModelsPlayerActivityLogEntryEFMappingBase7, false);
-            defaultTableMappings30.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase7);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, tappableEntry.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase7);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, tappableEntry.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase7);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, tappableEntry.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase7);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, tappableEntry.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase7);
+            defaultTableMappings31.Add(solaceDBModelsPlayerActivityLogEntryEFMappingBase7);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase0, tappableEntryEF.FindProperty("AccountId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase7);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entryIdColumnBase, tappableEntryEF.FindProperty("EntryId")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase7);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)timestampColumnBase, tappableEntryEF.FindProperty("Timestamp")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase7);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)entity_typeColumnBase, tappableEntryEF.FindProperty("entity_type")!, solaceDBModelsPlayerActivityLogEntryEFMappingBase7);
 
-            var tableMappings30 = new List<TableMapping>();
-            tappableEntry.SetRuntimeAnnotation("Relational:TableMappings", tableMappings30);
-            var activityLogsTableMapping7 = new TableMapping(tappableEntry, activityLogsTable, null)
+            var tableMappings31 = new List<TableMapping>();
+            tappableEntryEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings31);
+            var activityLogsTableMapping7 = new TableMapping(tappableEntryEF, activityLogsTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             activityLogsTable.AddTypeMapping(activityLogsTableMapping7, false);
-            tableMappings30.Add(activityLogsTableMapping7);
-            RelationalModel.CreateColumnMapping(accountIdColumn0, tappableEntry.FindProperty("AccountId")!, activityLogsTableMapping7);
-            RelationalModel.CreateColumnMapping(entryIdColumn, tappableEntry.FindProperty("EntryId")!, activityLogsTableMapping7);
-            RelationalModel.CreateColumnMapping(timestampColumn, tappableEntry.FindProperty("Timestamp")!, activityLogsTableMapping7);
-            RelationalModel.CreateColumnMapping(entity_typeColumn, tappableEntry.FindProperty("entity_type")!, activityLogsTableMapping7);
+            tableMappings31.Add(activityLogsTableMapping7);
+            RelationalModel.CreateColumnMapping(accountIdColumn0, tappableEntryEF.FindProperty("AccountId")!, activityLogsTableMapping7);
+            RelationalModel.CreateColumnMapping(entryIdColumn, tappableEntryEF.FindProperty("EntryId")!, activityLogsTableMapping7);
+            RelationalModel.CreateColumnMapping(timestampColumn, tappableEntryEF.FindProperty("Timestamp")!, activityLogsTableMapping7);
+            RelationalModel.CreateColumnMapping(entity_typeColumn, tappableEntryEF.FindProperty("entity_type")!, activityLogsTableMapping7);
             var pK_ActivityLogs = new UniqueConstraint("PK_ActivityLogs", activityLogsTable, new[] { accountIdColumn0, entryIdColumn });
             activityLogsTable.PrimaryKey = pK_ActivityLogs;
             pK_ActivityLogs.SetRowKeyValueFactory(new CompositeRowKeyValueFactory(pK_ActivityLogs));
@@ -1759,74 +1813,69 @@ namespace Solace.DB.CompiledModels
 
             var tokenEF = FindEntityType("Solace.DB.Models.Player.TokenEF")!;
 
-            var defaultTableMappings31 = new List<TableMappingBase<ColumnMappingBase>>();
-            tokenEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings31);
+            var defaultTableMappings32 = new List<TableMappingBase<ColumnMappingBase>>();
+            tokenEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings32);
             var solaceDBModelsPlayerTokenEFMappingBase4 = new TableMappingBase<ColumnMappingBase>(tokenEF, solaceDBModelsPlayerTokenEFTableBase, true);
             solaceDBModelsPlayerTokenEFTableBase.AddTypeMapping(solaceDBModelsPlayerTokenEFMappingBase4, false);
-            defaultTableMappings31.Add(solaceDBModelsPlayerTokenEFMappingBase4);
+            defaultTableMappings32.Add(solaceDBModelsPlayerTokenEFMappingBase4);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)accountIdColumnBase2, tokenEF.FindProperty("AccountId")!, solaceDBModelsPlayerTokenEFMappingBase4);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)tokenIdColumnBase, tokenEF.FindProperty("TokenId")!, solaceDBModelsPlayerTokenEFMappingBase4);
             RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)token_typeColumnBase, tokenEF.FindProperty("token_type")!, solaceDBModelsPlayerTokenEFMappingBase4);
 
-            var tableMappings31 = new List<TableMapping>();
-            tokenEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings31);
+            var tableMappings32 = new List<TableMapping>();
+            tokenEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings32);
             var tokensTableMapping4 = new TableMapping(tokenEF, tokensTable, true)
             {
                 IsSharedTablePrincipal = true,
             };
             tokensTable.AddTypeMapping(tokensTableMapping4, false);
-            tableMappings31.Add(tokensTableMapping4);
+            tableMappings32.Add(tokensTableMapping4);
             RelationalModel.CreateColumnMapping(accountIdColumn2, tokenEF.FindProperty("AccountId")!, tokensTableMapping4);
             RelationalModel.CreateColumnMapping(tokenIdColumn, tokenEF.FindProperty("TokenId")!, tokensTableMapping4);
             RelationalModel.CreateColumnMapping(token_typeColumn, tokenEF.FindProperty("token_type")!, tokensTableMapping4);
 
             var craftingSlotEF = FindEntityType("Solace.DB.Models.Player.Workshop.CraftingSlotEF")!;
 
-            var defaultTableMappings32 = new List<TableMappingBase<ColumnMappingBase>>();
-            craftingSlotEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings32);
+            var defaultTableMappings33 = new List<TableMappingBase<ColumnMappingBase>>();
+            craftingSlotEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings33);
             var solaceDBModelsPlayerWorkshopCraftingSlotsEFTableBase = new TableBase("Solace.DB.Models.Player.Workshop.CraftingSlotsEF", null, relationalModel);
-            var idColumnBase9 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsPlayerWorkshopCraftingSlotsEFTableBase);
-            solaceDBModelsPlayerWorkshopCraftingSlotsEFTableBase.Columns.Add("Id", idColumnBase9);
+            var idColumnBase10 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsPlayerWorkshopCraftingSlotsEFTableBase);
+            solaceDBModelsPlayerWorkshopCraftingSlotsEFTableBase.Columns.Add("Id", idColumnBase10);
             var slotsColumnBase = new JsonColumnBase("Slots", "jsonb", solaceDBModelsPlayerWorkshopCraftingSlotsEFTableBase)
             {
                 IsNullable = true
             };
             solaceDBModelsPlayerWorkshopCraftingSlotsEFTableBase.Columns.Add("Slots", slotsColumnBase);
-            var versionColumnBase5 = new ColumnBase<ColumnMappingBase>("Version", "integer", solaceDBModelsPlayerWorkshopCraftingSlotsEFTableBase);
-            solaceDBModelsPlayerWorkshopCraftingSlotsEFTableBase.Columns.Add("Version", versionColumnBase5);
             relationalModel.DefaultTables.Add("Solace.DB.Models.Player.Workshop.CraftingSlotsEF", solaceDBModelsPlayerWorkshopCraftingSlotsEFTableBase);
             var solaceDBModelsPlayerWorkshopCraftingSlotsEFMappingBase = new TableMappingBase<ColumnMappingBase>(craftingSlotEF, solaceDBModelsPlayerWorkshopCraftingSlotsEFTableBase, null);
             solaceDBModelsPlayerWorkshopCraftingSlotsEFTableBase.AddTypeMapping(solaceDBModelsPlayerWorkshopCraftingSlotsEFMappingBase, null);
-            defaultTableMappings32.Add(solaceDBModelsPlayerWorkshopCraftingSlotsEFMappingBase);
+            defaultTableMappings33.Add(solaceDBModelsPlayerWorkshopCraftingSlotsEFMappingBase);
 
-            var tableMappings32 = new List<TableMapping>();
-            craftingSlotEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings32);
+            var tableMappings33 = new List<TableMapping>();
+            craftingSlotEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings33);
             var craftingSlotsTable = new Table("CraftingSlots", null, relationalModel);
-            var idColumn9 = new Column("Id", "uuid", craftingSlotsTable);
-            craftingSlotsTable.Columns.Add("Id", idColumn9);
-            idColumn9.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn9);
+            var idColumn10 = new Column("Id", "uuid", craftingSlotsTable);
+            craftingSlotsTable.Columns.Add("Id", idColumn10);
+            idColumn10.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn10);
             var slotsColumn = new JsonColumn("Slots", "jsonb", craftingSlotsTable)
             {
                 IsNullable = true
             };
             craftingSlotsTable.Columns.Add("Slots", slotsColumn);
             slotsColumn.Accessors = ColumnAccessorsFactory.CreateGeneric<JsonTypePlaceholder>(slotsColumn);
-            var versionColumn5 = new Column("Version", "integer", craftingSlotsTable);
-            craftingSlotsTable.Columns.Add("Version", versionColumn5);
-            versionColumn5.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(versionColumn5);
             relationalModel.Tables.Add(("CraftingSlots", null), craftingSlotsTable);
             var craftingSlotsTableMapping = new TableMapping(craftingSlotEF, craftingSlotsTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             craftingSlotsTable.AddTypeMapping(craftingSlotsTableMapping, null);
-            tableMappings32.Add(craftingSlotsTableMapping);
+            tableMappings33.Add(craftingSlotsTableMapping);
             craftingSlotsTable.AddRowInternalForeignKey(craftingSlotEF, RelationalModel.GetForeignKey(this,
                 "Solace.DB.Models.Player.Workshop.CraftingSlotEF",
                 new[] { "CraftingSlotsEFId" },
                 "Solace.DB.Models.Player.Workshop.CraftingSlotsEF",
                 new[] { "Id" }));
-            var pK_CraftingSlots = new UniqueConstraint("PK_CraftingSlots", craftingSlotsTable, new[] { idColumn9 });
+            var pK_CraftingSlots = new UniqueConstraint("PK_CraftingSlots", craftingSlotsTable, new[] { idColumn10 });
             craftingSlotsTable.PrimaryKey = pK_CraftingSlots;
             pK_CraftingSlots.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<Guid>(pK_CraftingSlots));
             var pK_CraftingSlotsKey = RelationalModel.GetKey(this,
@@ -1838,72 +1887,65 @@ namespace Solace.DB.CompiledModels
 
             var craftingSlotsEF = FindEntityType("Solace.DB.Models.Player.Workshop.CraftingSlotsEF")!;
 
-            var defaultTableMappings33 = new List<TableMappingBase<ColumnMappingBase>>();
-            craftingSlotsEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings33);
+            var defaultTableMappings34 = new List<TableMappingBase<ColumnMappingBase>>();
+            craftingSlotsEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings34);
             var solaceDBModelsPlayerWorkshopCraftingSlotsEFMappingBase0 = new TableMappingBase<ColumnMappingBase>(craftingSlotsEF, solaceDBModelsPlayerWorkshopCraftingSlotsEFTableBase, null);
             solaceDBModelsPlayerWorkshopCraftingSlotsEFTableBase.AddTypeMapping(solaceDBModelsPlayerWorkshopCraftingSlotsEFMappingBase0, false);
-            defaultTableMappings33.Add(solaceDBModelsPlayerWorkshopCraftingSlotsEFMappingBase0);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase9, craftingSlotsEF.FindProperty("Id")!, solaceDBModelsPlayerWorkshopCraftingSlotsEFMappingBase0);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)versionColumnBase5, craftingSlotsEF.FindProperty("Version")!, solaceDBModelsPlayerWorkshopCraftingSlotsEFMappingBase0);
+            defaultTableMappings34.Add(solaceDBModelsPlayerWorkshopCraftingSlotsEFMappingBase0);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase10, craftingSlotsEF.FindProperty("Id")!, solaceDBModelsPlayerWorkshopCraftingSlotsEFMappingBase0);
 
-            var tableMappings33 = new List<TableMapping>();
-            craftingSlotsEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings33);
+            var tableMappings34 = new List<TableMapping>();
+            craftingSlotsEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings34);
             var craftingSlotsTableMapping0 = new TableMapping(craftingSlotsEF, craftingSlotsTable, null)
             {
                 IsSharedTablePrincipal = true,
             };
             craftingSlotsTable.AddTypeMapping(craftingSlotsTableMapping0, false);
-            tableMappings33.Add(craftingSlotsTableMapping0);
-            RelationalModel.CreateColumnMapping(idColumn9, craftingSlotsEF.FindProperty("Id")!, craftingSlotsTableMapping0);
-            RelationalModel.CreateColumnMapping(versionColumn5, craftingSlotsEF.FindProperty("Version")!, craftingSlotsTableMapping0);
+            tableMappings34.Add(craftingSlotsTableMapping0);
+            RelationalModel.CreateColumnMapping(idColumn10, craftingSlotsEF.FindProperty("Id")!, craftingSlotsTableMapping0);
 
             var smeltingSlot = FindEntityType("Solace.DB.Models.Player.Workshop.SmeltingSlot")!;
 
-            var defaultTableMappings34 = new List<TableMappingBase<ColumnMappingBase>>();
-            smeltingSlot.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings34);
+            var defaultTableMappings35 = new List<TableMappingBase<ColumnMappingBase>>();
+            smeltingSlot.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings35);
             var solaceDBModelsPlayerWorkshopSmeltingSlotsEFTableBase = new TableBase("Solace.DB.Models.Player.Workshop.SmeltingSlotsEF", null, relationalModel);
-            var idColumnBase10 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsPlayerWorkshopSmeltingSlotsEFTableBase);
-            solaceDBModelsPlayerWorkshopSmeltingSlotsEFTableBase.Columns.Add("Id", idColumnBase10);
+            var idColumnBase11 = new ColumnBase<ColumnMappingBase>("Id", "uuid", solaceDBModelsPlayerWorkshopSmeltingSlotsEFTableBase);
+            solaceDBModelsPlayerWorkshopSmeltingSlotsEFTableBase.Columns.Add("Id", idColumnBase11);
             var slotsColumnBase0 = new JsonColumnBase("Slots", "jsonb", solaceDBModelsPlayerWorkshopSmeltingSlotsEFTableBase)
             {
                 IsNullable = true
             };
             solaceDBModelsPlayerWorkshopSmeltingSlotsEFTableBase.Columns.Add("Slots", slotsColumnBase0);
-            var versionColumnBase6 = new ColumnBase<ColumnMappingBase>("Version", "integer", solaceDBModelsPlayerWorkshopSmeltingSlotsEFTableBase);
-            solaceDBModelsPlayerWorkshopSmeltingSlotsEFTableBase.Columns.Add("Version", versionColumnBase6);
             relationalModel.DefaultTables.Add("Solace.DB.Models.Player.Workshop.SmeltingSlotsEF", solaceDBModelsPlayerWorkshopSmeltingSlotsEFTableBase);
             var solaceDBModelsPlayerWorkshopSmeltingSlotsEFMappingBase = new TableMappingBase<ColumnMappingBase>(smeltingSlot, solaceDBModelsPlayerWorkshopSmeltingSlotsEFTableBase, null);
             solaceDBModelsPlayerWorkshopSmeltingSlotsEFTableBase.AddTypeMapping(solaceDBModelsPlayerWorkshopSmeltingSlotsEFMappingBase, null);
-            defaultTableMappings34.Add(solaceDBModelsPlayerWorkshopSmeltingSlotsEFMappingBase);
+            defaultTableMappings35.Add(solaceDBModelsPlayerWorkshopSmeltingSlotsEFMappingBase);
 
-            var tableMappings34 = new List<TableMapping>();
-            smeltingSlot.SetRuntimeAnnotation("Relational:TableMappings", tableMappings34);
+            var tableMappings35 = new List<TableMapping>();
+            smeltingSlot.SetRuntimeAnnotation("Relational:TableMappings", tableMappings35);
             var smeltingSlotsTable = new Table("SmeltingSlots", null, relationalModel);
-            var idColumn10 = new Column("Id", "uuid", smeltingSlotsTable);
-            smeltingSlotsTable.Columns.Add("Id", idColumn10);
-            idColumn10.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn10);
+            var idColumn11 = new Column("Id", "uuid", smeltingSlotsTable);
+            smeltingSlotsTable.Columns.Add("Id", idColumn11);
+            idColumn11.Accessors = ColumnAccessorsFactory.CreateGeneric<Guid>(idColumn11);
             var slotsColumn0 = new JsonColumn("Slots", "jsonb", smeltingSlotsTable)
             {
                 IsNullable = true
             };
             smeltingSlotsTable.Columns.Add("Slots", slotsColumn0);
             slotsColumn0.Accessors = ColumnAccessorsFactory.CreateGeneric<JsonTypePlaceholder>(slotsColumn0);
-            var versionColumn6 = new Column("Version", "integer", smeltingSlotsTable);
-            smeltingSlotsTable.Columns.Add("Version", versionColumn6);
-            versionColumn6.Accessors = ColumnAccessorsFactory.CreateGeneric<int>(versionColumn6);
             relationalModel.Tables.Add(("SmeltingSlots", null), smeltingSlotsTable);
             var smeltingSlotsTableMapping = new TableMapping(smeltingSlot, smeltingSlotsTable, null)
             {
                 IsSharedTablePrincipal = false,
             };
             smeltingSlotsTable.AddTypeMapping(smeltingSlotsTableMapping, null);
-            tableMappings34.Add(smeltingSlotsTableMapping);
+            tableMappings35.Add(smeltingSlotsTableMapping);
             smeltingSlotsTable.AddRowInternalForeignKey(smeltingSlot, RelationalModel.GetForeignKey(this,
                 "Solace.DB.Models.Player.Workshop.SmeltingSlot",
                 new[] { "SmeltingSlotsEFId" },
                 "Solace.DB.Models.Player.Workshop.SmeltingSlotsEF",
                 new[] { "Id" }));
-            var pK_SmeltingSlots = new UniqueConstraint("PK_SmeltingSlots", smeltingSlotsTable, new[] { idColumn10 });
+            var pK_SmeltingSlots = new UniqueConstraint("PK_SmeltingSlots", smeltingSlotsTable, new[] { idColumn11 });
             smeltingSlotsTable.PrimaryKey = pK_SmeltingSlots;
             pK_SmeltingSlots.SetRowKeyValueFactory(new SimpleRowKeyValueFactory<Guid>(pK_SmeltingSlots));
             var pK_SmeltingSlotsKey = RelationalModel.GetKey(this,
@@ -1915,24 +1957,36 @@ namespace Solace.DB.CompiledModels
 
             var smeltingSlotsEF = FindEntityType("Solace.DB.Models.Player.Workshop.SmeltingSlotsEF")!;
 
-            var defaultTableMappings35 = new List<TableMappingBase<ColumnMappingBase>>();
-            smeltingSlotsEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings35);
+            var defaultTableMappings36 = new List<TableMappingBase<ColumnMappingBase>>();
+            smeltingSlotsEF.SetRuntimeAnnotation("Relational:DefaultMappings", defaultTableMappings36);
             var solaceDBModelsPlayerWorkshopSmeltingSlotsEFMappingBase0 = new TableMappingBase<ColumnMappingBase>(smeltingSlotsEF, solaceDBModelsPlayerWorkshopSmeltingSlotsEFTableBase, null);
             solaceDBModelsPlayerWorkshopSmeltingSlotsEFTableBase.AddTypeMapping(solaceDBModelsPlayerWorkshopSmeltingSlotsEFMappingBase0, false);
-            defaultTableMappings35.Add(solaceDBModelsPlayerWorkshopSmeltingSlotsEFMappingBase0);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase10, smeltingSlotsEF.FindProperty("Id")!, solaceDBModelsPlayerWorkshopSmeltingSlotsEFMappingBase0);
-            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)versionColumnBase6, smeltingSlotsEF.FindProperty("Version")!, solaceDBModelsPlayerWorkshopSmeltingSlotsEFMappingBase0);
+            defaultTableMappings36.Add(solaceDBModelsPlayerWorkshopSmeltingSlotsEFMappingBase0);
+            RelationalModel.CreateColumnMapping((ColumnBase<ColumnMappingBase>)idColumnBase11, smeltingSlotsEF.FindProperty("Id")!, solaceDBModelsPlayerWorkshopSmeltingSlotsEFMappingBase0);
 
-            var tableMappings35 = new List<TableMapping>();
-            smeltingSlotsEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings35);
+            var tableMappings36 = new List<TableMapping>();
+            smeltingSlotsEF.SetRuntimeAnnotation("Relational:TableMappings", tableMappings36);
             var smeltingSlotsTableMapping0 = new TableMapping(smeltingSlotsEF, smeltingSlotsTable, null)
             {
                 IsSharedTablePrincipal = true,
             };
             smeltingSlotsTable.AddTypeMapping(smeltingSlotsTableMapping0, false);
-            tableMappings35.Add(smeltingSlotsTableMapping0);
-            RelationalModel.CreateColumnMapping(idColumn10, smeltingSlotsEF.FindProperty("Id")!, smeltingSlotsTableMapping0);
-            RelationalModel.CreateColumnMapping(versionColumn6, smeltingSlotsEF.FindProperty("Version")!, smeltingSlotsTableMapping0);
+            tableMappings36.Add(smeltingSlotsTableMapping0);
+            RelationalModel.CreateColumnMapping(idColumn11, smeltingSlotsEF.FindProperty("Id")!, smeltingSlotsTableMapping0);
+            var fK_AccountVersions_Accounts_Id = new ForeignKeyConstraint(
+                "FK_AccountVersions_Accounts_Id", accountVersionsTable, accountsTable,
+                new[] { idColumn0 },
+                accountsTable.FindUniqueConstraint("PK_Accounts")!, ReferentialAction.Cascade);
+            fK_AccountVersions_Accounts_Id.SetRowForeignKeyValueFactory(RowForeignKeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid, Guid>(fK_AccountVersions_Accounts_Id));
+            var fK_AccountVersions_Accounts_IdFk = RelationalModel.GetForeignKey(this,
+                "Solace.DB.Models.AccountVersions",
+                new[] { "Id" },
+                "Solace.DB.Models.Account",
+                new[] { "Id" });
+            fK_AccountVersions_Accounts_Id.MappedForeignKeys.Add(fK_AccountVersions_Accounts_IdFk);
+            RelationalModel.GetOrCreateForeignKeyConstraints(fK_AccountVersions_Accounts_IdFk).Add(fK_AccountVersions_Accounts_Id);
+            accountVersionsTable.ForeignKeyConstraints.Add(fK_AccountVersions_Accounts_Id);
+            accountsTable.ReferencingForeignKeyConstraints.Add(fK_AccountVersions_Accounts_Id);
             var fK_ActivityLogs_Accounts_AccountId = new ForeignKeyConstraint(
                 "FK_ActivityLogs_Accounts_AccountId", activityLogsTable, accountsTable,
                 new[] { accountIdColumn0 },
@@ -1949,7 +2003,7 @@ namespace Solace.DB.CompiledModels
             accountsTable.ReferencingForeignKeyConstraints.Add(fK_ActivityLogs_Accounts_AccountId);
             var fK_Boosts_Accounts_Id = new ForeignKeyConstraint(
                 "FK_Boosts_Accounts_Id", boostsTable, accountsTable,
-                new[] { idColumn5 },
+                new[] { idColumn6 },
                 accountsTable.FindUniqueConstraint("PK_Accounts")!, ReferentialAction.Cascade);
             fK_Boosts_Accounts_Id.SetRowForeignKeyValueFactory(RowForeignKeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid, Guid>(fK_Boosts_Accounts_Id));
             var fK_Boosts_Accounts_IdFk = RelationalModel.GetForeignKey(this,
@@ -1963,7 +2017,7 @@ namespace Solace.DB.CompiledModels
             accountsTable.ReferencingForeignKeyConstraints.Add(fK_Boosts_Accounts_Id);
             var fK_CraftingSlots_Accounts_Id = new ForeignKeyConstraint(
                 "FK_CraftingSlots_Accounts_Id", craftingSlotsTable, accountsTable,
-                new[] { idColumn9 },
+                new[] { idColumn10 },
                 accountsTable.FindUniqueConstraint("PK_Accounts")!, ReferentialAction.Cascade);
             fK_CraftingSlots_Accounts_Id.SetRowForeignKeyValueFactory(RowForeignKeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid, Guid>(fK_CraftingSlots_Accounts_Id));
             var fK_CraftingSlots_Accounts_IdFk = RelationalModel.GetForeignKey(this,
@@ -1977,7 +2031,7 @@ namespace Solace.DB.CompiledModels
             accountsTable.ReferencingForeignKeyConstraints.Add(fK_CraftingSlots_Accounts_Id);
             var fK_Hotbars_Accounts_Id = new ForeignKeyConstraint(
                 "FK_Hotbars_Accounts_Id", hotbarsTable, accountsTable,
-                new[] { idColumn7 },
+                new[] { idColumn8 },
                 accountsTable.FindUniqueConstraint("PK_Accounts")!, ReferentialAction.Cascade);
             fK_Hotbars_Accounts_Id.SetRowForeignKeyValueFactory(RowForeignKeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid, Guid>(fK_Hotbars_Accounts_Id));
             var fK_Hotbars_Accounts_IdFk = RelationalModel.GetForeignKey(this,
@@ -1995,7 +2049,7 @@ namespace Solace.DB.CompiledModels
                 accountsTable.FindUniqueConstraint("PK_Accounts")!, ReferentialAction.Cascade);
             fK_JournalEntries_Accounts_AccountId.SetRowForeignKeyValueFactory(RowForeignKeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid, Guid>(fK_JournalEntries_Accounts_AccountId));
             var fK_JournalEntries_Accounts_AccountIdFk = RelationalModel.GetForeignKey(this,
-                "Solace.DB.Models.Player.ItemJournalEntry",
+                "Solace.DB.Models.Player.ItemJournalEntryEF",
                 new[] { "AccountId" },
                 "Solace.DB.Models.Account",
                 new[] { "Id" });
@@ -2003,20 +2057,20 @@ namespace Solace.DB.CompiledModels
             RelationalModel.GetOrCreateForeignKeyConstraints(fK_JournalEntries_Accounts_AccountIdFk).Add(fK_JournalEntries_Accounts_AccountId);
             journalEntriesTable.ForeignKeyConstraints.Add(fK_JournalEntries_Accounts_AccountId);
             accountsTable.ReferencingForeignKeyConstraints.Add(fK_JournalEntries_Accounts_AccountId);
-            var fK_NonStackableItemInstances_Accounts_AccountId = new ForeignKeyConstraint(
-                "FK_NonStackableItemInstances_Accounts_AccountId", nonStackableItemInstancesTable, accountsTable,
+            var fK_NonStackableItems_Accounts_AccountId = new ForeignKeyConstraint(
+                "FK_NonStackableItems_Accounts_AccountId", nonStackableItemsTable, accountsTable,
                 new[] { accountIdColumn4 },
                 accountsTable.FindUniqueConstraint("PK_Accounts")!, ReferentialAction.Cascade);
-            fK_NonStackableItemInstances_Accounts_AccountId.SetRowForeignKeyValueFactory(RowForeignKeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid, Guid>(fK_NonStackableItemInstances_Accounts_AccountId));
-            var fK_NonStackableItemInstances_Accounts_AccountIdFk = RelationalModel.GetForeignKey(this,
+            fK_NonStackableItems_Accounts_AccountId.SetRowForeignKeyValueFactory(RowForeignKeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid, Guid>(fK_NonStackableItems_Accounts_AccountId));
+            var fK_NonStackableItems_Accounts_AccountIdFk = RelationalModel.GetForeignKey(this,
                 "Solace.DB.Models.Player.NonStackableItemInstanceEF",
                 new[] { "AccountId" },
                 "Solace.DB.Models.Account",
                 new[] { "Id" });
-            fK_NonStackableItemInstances_Accounts_AccountId.MappedForeignKeys.Add(fK_NonStackableItemInstances_Accounts_AccountIdFk);
-            RelationalModel.GetOrCreateForeignKeyConstraints(fK_NonStackableItemInstances_Accounts_AccountIdFk).Add(fK_NonStackableItemInstances_Accounts_AccountId);
-            nonStackableItemInstancesTable.ForeignKeyConstraints.Add(fK_NonStackableItemInstances_Accounts_AccountId);
-            accountsTable.ReferencingForeignKeyConstraints.Add(fK_NonStackableItemInstances_Accounts_AccountId);
+            fK_NonStackableItems_Accounts_AccountId.MappedForeignKeys.Add(fK_NonStackableItems_Accounts_AccountIdFk);
+            RelationalModel.GetOrCreateForeignKeyConstraints(fK_NonStackableItems_Accounts_AccountIdFk).Add(fK_NonStackableItems_Accounts_AccountId);
+            nonStackableItemsTable.ForeignKeyConstraints.Add(fK_NonStackableItems_Accounts_AccountId);
+            accountsTable.ReferencingForeignKeyConstraints.Add(fK_NonStackableItems_Accounts_AccountId);
             var fK_PlayerBuildplates_Accounts_AccountId = new ForeignKeyConstraint(
                 "FK_PlayerBuildplates_Accounts_AccountId", playerBuildplatesTable, accountsTable,
                 new[] { accountIdColumn1 },
@@ -2033,7 +2087,7 @@ namespace Solace.DB.CompiledModels
             accountsTable.ReferencingForeignKeyConstraints.Add(fK_PlayerBuildplates_Accounts_AccountId);
             var fK_Profiles_Accounts_Id = new ForeignKeyConstraint(
                 "FK_Profiles_Accounts_Id", profilesTable, accountsTable,
-                new[] { idColumn8 },
+                new[] { idColumn9 },
                 accountsTable.FindUniqueConstraint("PK_Accounts")!, ReferentialAction.Cascade);
             fK_Profiles_Accounts_Id.SetRowForeignKeyValueFactory(RowForeignKeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid, Guid>(fK_Profiles_Accounts_Id));
             var fK_Profiles_Accounts_IdFk = RelationalModel.GetForeignKey(this,
@@ -2075,7 +2129,7 @@ namespace Solace.DB.CompiledModels
             accountsTable.ReferencingForeignKeyConstraints.Add(fK_SharedBuildplates_Accounts_AccountId);
             var fK_SmeltingSlots_Accounts_Id = new ForeignKeyConstraint(
                 "FK_SmeltingSlots_Accounts_Id", smeltingSlotsTable, accountsTable,
-                new[] { idColumn10 },
+                new[] { idColumn11 },
                 accountsTable.FindUniqueConstraint("PK_Accounts")!, ReferentialAction.Cascade);
             fK_SmeltingSlots_Accounts_Id.SetRowForeignKeyValueFactory(RowForeignKeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid, Guid>(fK_SmeltingSlots_Accounts_Id));
             var fK_SmeltingSlots_Accounts_IdFk = RelationalModel.GetForeignKey(this,

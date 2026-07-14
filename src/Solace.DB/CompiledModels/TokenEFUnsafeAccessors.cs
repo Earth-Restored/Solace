@@ -15,7 +15,7 @@ namespace Solace.DB.CompiledModels
         public static extern ref Guid AccountId(TokenEF @this);
 
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<TokenId>k__BackingField")]
-        public static extern ref long TokenId(TokenEF @this);
+        public static extern ref Guid TokenId(TokenEF @this);
 
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Account>k__BackingField")]
         public static extern ref Account Account(TokenEF @this);

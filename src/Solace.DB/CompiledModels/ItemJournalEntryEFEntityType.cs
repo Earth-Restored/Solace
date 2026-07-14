@@ -20,12 +20,12 @@ using Solace.DB.Models.Player;
 namespace Solace.DB.CompiledModels
 {
     [EntityFrameworkInternal]
-    public partial class ItemJournalEntryEntityType
+    public partial class ItemJournalEntryEFEntityType
     {
         public static RuntimeEntityType Create(RuntimeModel model, RuntimeEntityType baseEntityType = null)
         {
             var runtimeEntityType = model.AddEntityType(
-                "Solace.DB.Models.Player.ItemJournalEntry",
+                "Solace.DB.Models.Player.ItemJournalEntryEF",
                 typeof(ItemJournalEntryEF),
                 baseEntityType,
                 propertyCount: 5,
@@ -41,23 +41,23 @@ namespace Solace.DB.CompiledModels
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
             accountId.SetGetter(
-                Guid (ItemJournalEntryEF instance) => ItemJournalEntryUnsafeAccessors.AccountId(instance),
-                bool (ItemJournalEntryEF instance) => ItemJournalEntryUnsafeAccessors.AccountId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
+                Guid (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.AccountId(instance),
+                bool (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.AccountId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
             accountId.SetSetter(
                 ItemJournalEntryEF (ItemJournalEntryEF instance, Guid value) =>
                 {
-                    ItemJournalEntryUnsafeAccessors.AccountId(instance) = value;
+                    ItemJournalEntryEFUnsafeAccessors.AccountId(instance) = value;
                     return instance;
                 });
             accountId.SetMaterializationSetter(
                 ItemJournalEntryEF (ItemJournalEntryEF instance, Guid value) =>
                 {
-                    ItemJournalEntryUnsafeAccessors.AccountId(instance) = value;
+                    ItemJournalEntryEFUnsafeAccessors.AccountId(instance) = value;
                     return instance;
                 });
             accountId.SetAccessors(
-                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(0) ? entry.ReadStoreGeneratedValue<Guid>(0) : (entry.FlaggedAsTemporary(0) && ItemJournalEntryUnsafeAccessors.AccountId(((ItemJournalEntryEF)(entry.Entity))) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(0) : ItemJournalEntryUnsafeAccessors.AccountId(((ItemJournalEntryEF)(entry.Entity))))),
-                Guid (IInternalEntry entry) => ItemJournalEntryUnsafeAccessors.AccountId(((ItemJournalEntryEF)(entry.Entity))),
+                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(0) ? entry.ReadStoreGeneratedValue<Guid>(0) : (entry.FlaggedAsTemporary(0) && ItemJournalEntryEFUnsafeAccessors.AccountId(((ItemJournalEntryEF)(entry.Entity))) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(0) : ItemJournalEntryEFUnsafeAccessors.AccountId(((ItemJournalEntryEF)(entry.Entity))))),
+                Guid (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.AccountId(((ItemJournalEntryEF)(entry.Entity))),
                 Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(accountId, 0),
                 Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(accountId, 0));
             accountId.SetPropertyIndexes(
@@ -92,23 +92,23 @@ namespace Solace.DB.CompiledModels
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
             itemId.SetGetter(
-                Guid (ItemJournalEntryEF instance) => ItemJournalEntryUnsafeAccessors.ItemId(instance),
-                bool (ItemJournalEntryEF instance) => ItemJournalEntryUnsafeAccessors.ItemId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
+                Guid (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.ItemId(instance),
+                bool (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.ItemId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
             itemId.SetSetter(
                 ItemJournalEntryEF (ItemJournalEntryEF instance, Guid value) =>
                 {
-                    ItemJournalEntryUnsafeAccessors.ItemId(instance) = value;
+                    ItemJournalEntryEFUnsafeAccessors.ItemId(instance) = value;
                     return instance;
                 });
             itemId.SetMaterializationSetter(
                 ItemJournalEntryEF (ItemJournalEntryEF instance, Guid value) =>
                 {
-                    ItemJournalEntryUnsafeAccessors.ItemId(instance) = value;
+                    ItemJournalEntryEFUnsafeAccessors.ItemId(instance) = value;
                     return instance;
                 });
             itemId.SetAccessors(
-                Guid (IInternalEntry entry) => ItemJournalEntryUnsafeAccessors.ItemId(((ItemJournalEntryEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => ItemJournalEntryUnsafeAccessors.ItemId(((ItemJournalEntryEF)(entry.Entity))),
+                Guid (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.ItemId(((ItemJournalEntryEF)(entry.Entity))),
+                Guid (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.ItemId(((ItemJournalEntryEF)(entry.Entity))),
                 Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(itemId, 1),
                 Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(itemId, 1));
             itemId.SetPropertyIndexes(
@@ -142,23 +142,23 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(ItemJournalEntryEF).GetField("<AmountCollected>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: 0);
             amountCollected.SetGetter(
-                int (ItemJournalEntryEF instance) => ItemJournalEntryUnsafeAccessors.AmountCollected(instance),
-                bool (ItemJournalEntryEF instance) => ItemJournalEntryUnsafeAccessors.AmountCollected(instance) == 0);
+                int (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.AmountCollected(instance),
+                bool (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.AmountCollected(instance) == 0);
             amountCollected.SetSetter(
                 ItemJournalEntryEF (ItemJournalEntryEF instance, int value) =>
                 {
-                    ItemJournalEntryUnsafeAccessors.AmountCollected(instance) = value;
+                    ItemJournalEntryEFUnsafeAccessors.AmountCollected(instance) = value;
                     return instance;
                 });
             amountCollected.SetMaterializationSetter(
                 ItemJournalEntryEF (ItemJournalEntryEF instance, int value) =>
                 {
-                    ItemJournalEntryUnsafeAccessors.AmountCollected(instance) = value;
+                    ItemJournalEntryEFUnsafeAccessors.AmountCollected(instance) = value;
                     return instance;
                 });
             amountCollected.SetAccessors(
-                int (IInternalEntry entry) => ItemJournalEntryUnsafeAccessors.AmountCollected(((ItemJournalEntryEF)(entry.Entity))),
-                int (IInternalEntry entry) => ItemJournalEntryUnsafeAccessors.AmountCollected(((ItemJournalEntryEF)(entry.Entity))),
+                int (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.AmountCollected(((ItemJournalEntryEF)(entry.Entity))),
+                int (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.AmountCollected(((ItemJournalEntryEF)(entry.Entity))),
                 int (IInternalEntry entry) => entry.ReadOriginalValue<int>(amountCollected, 2),
                 int (IInternalEntry entry) => entry.GetCurrentValue<int>(amountCollected));
             amountCollected.SetPropertyIndexes(
@@ -191,23 +191,23 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(ItemJournalEntryEF).GetField("<FirstSeen>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)));
             firstSeen.SetGetter(
-                DateTimeOffset (ItemJournalEntryEF instance) => ItemJournalEntryUnsafeAccessors.FirstSeen(instance),
-                bool (ItemJournalEntryEF instance) => ItemJournalEntryUnsafeAccessors.FirstSeen(instance).EqualsExact(default(DateTimeOffset)));
+                DateTimeOffset (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.FirstSeen(instance),
+                bool (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.FirstSeen(instance).EqualsExact(default(DateTimeOffset)));
             firstSeen.SetSetter(
                 ItemJournalEntryEF (ItemJournalEntryEF instance, DateTimeOffset value) =>
                 {
-                    ItemJournalEntryUnsafeAccessors.FirstSeen(instance) = value;
+                    ItemJournalEntryEFUnsafeAccessors.FirstSeen(instance) = value;
                     return instance;
                 });
             firstSeen.SetMaterializationSetter(
                 ItemJournalEntryEF (ItemJournalEntryEF instance, DateTimeOffset value) =>
                 {
-                    ItemJournalEntryUnsafeAccessors.FirstSeen(instance) = value;
+                    ItemJournalEntryEFUnsafeAccessors.FirstSeen(instance) = value;
                     return instance;
                 });
             firstSeen.SetAccessors(
-                DateTimeOffset (IInternalEntry entry) => ItemJournalEntryUnsafeAccessors.FirstSeen(((ItemJournalEntryEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => ItemJournalEntryUnsafeAccessors.FirstSeen(((ItemJournalEntryEF)(entry.Entity))),
+                DateTimeOffset (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.FirstSeen(((ItemJournalEntryEF)(entry.Entity))),
+                DateTimeOffset (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.FirstSeen(((ItemJournalEntryEF)(entry.Entity))),
                 DateTimeOffset (IInternalEntry entry) => entry.ReadOriginalValue<DateTimeOffset>(firstSeen, 3),
                 DateTimeOffset (IInternalEntry entry) => entry.GetCurrentValue<DateTimeOffset>(firstSeen));
             firstSeen.SetPropertyIndexes(
@@ -240,23 +240,23 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(ItemJournalEntryEF).GetField("<LastSeen>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)));
             lastSeen.SetGetter(
-                DateTimeOffset (ItemJournalEntryEF instance) => ItemJournalEntryUnsafeAccessors.LastSeen(instance),
-                bool (ItemJournalEntryEF instance) => ItemJournalEntryUnsafeAccessors.LastSeen(instance).EqualsExact(default(DateTimeOffset)));
+                DateTimeOffset (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.LastSeen(instance),
+                bool (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.LastSeen(instance).EqualsExact(default(DateTimeOffset)));
             lastSeen.SetSetter(
                 ItemJournalEntryEF (ItemJournalEntryEF instance, DateTimeOffset value) =>
                 {
-                    ItemJournalEntryUnsafeAccessors.LastSeen(instance) = value;
+                    ItemJournalEntryEFUnsafeAccessors.LastSeen(instance) = value;
                     return instance;
                 });
             lastSeen.SetMaterializationSetter(
                 ItemJournalEntryEF (ItemJournalEntryEF instance, DateTimeOffset value) =>
                 {
-                    ItemJournalEntryUnsafeAccessors.LastSeen(instance) = value;
+                    ItemJournalEntryEFUnsafeAccessors.LastSeen(instance) = value;
                     return instance;
                 });
             lastSeen.SetAccessors(
-                DateTimeOffset (IInternalEntry entry) => ItemJournalEntryUnsafeAccessors.LastSeen(((ItemJournalEntryEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => ItemJournalEntryUnsafeAccessors.LastSeen(((ItemJournalEntryEF)(entry.Entity))),
+                DateTimeOffset (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.LastSeen(((ItemJournalEntryEF)(entry.Entity))),
+                DateTimeOffset (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.LastSeen(((ItemJournalEntryEF)(entry.Entity))),
                 DateTimeOffset (IInternalEntry entry) => entry.ReadOriginalValue<DateTimeOffset>(lastSeen, 4),
                 DateTimeOffset (IInternalEntry entry) => entry.GetCurrentValue<DateTimeOffset>(lastSeen));
             lastSeen.SetPropertyIndexes(
@@ -305,23 +305,23 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(ItemJournalEntryEF).GetField("<Account>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
 
             account.SetGetter(
-                Account (ItemJournalEntryEF instance) => ItemJournalEntryUnsafeAccessors.Account(instance),
-                bool (ItemJournalEntryEF instance) => ItemJournalEntryUnsafeAccessors.Account(instance) == null);
+                Account (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.Account(instance),
+                bool (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.Account(instance) == null);
             account.SetSetter(
                 ItemJournalEntryEF (ItemJournalEntryEF instance, Account value) =>
                 {
-                    ItemJournalEntryUnsafeAccessors.Account(instance) = value;
+                    ItemJournalEntryEFUnsafeAccessors.Account(instance) = value;
                     return instance;
                 });
             account.SetMaterializationSetter(
                 ItemJournalEntryEF (ItemJournalEntryEF instance, Account value) =>
                 {
-                    ItemJournalEntryUnsafeAccessors.Account(instance) = value;
+                    ItemJournalEntryEFUnsafeAccessors.Account(instance) = value;
                     return instance;
                 });
             account.SetAccessors(
-                Account (IInternalEntry entry) => ItemJournalEntryUnsafeAccessors.Account(((ItemJournalEntryEF)(entry.Entity))),
-                Account (IInternalEntry entry) => ItemJournalEntryUnsafeAccessors.Account(((ItemJournalEntryEF)(entry.Entity))),
+                Account (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.Account(((ItemJournalEntryEF)(entry.Entity))),
+                Account (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.Account(((ItemJournalEntryEF)(entry.Entity))),
                 null,
                 Account (IInternalEntry entry) => entry.GetCurrentValue<Account>(account));
             account.SetPropertyIndexes(
@@ -358,10 +358,10 @@ namespace Solace.DB.CompiledModels
                 null,
                 ICollection<ItemJournalEntryEF> (IInternalEntry entry) => entry.GetCurrentValue<ICollection<ItemJournalEntryEF>>(journalEntries));
             journalEntries.SetPropertyIndexes(
-                index: 5,
+                index: 6,
                 originalValueIndex: -1,
                 shadowIndex: -1,
-                relationshipIndex: 6,
+                relationshipIndex: 7,
                 storeGenerationIndex: -1);
             journalEntries.SetCollectionAccessor<Account, ICollection<ItemJournalEntryEF>, ItemJournalEntryEF>(
                 ICollection<ItemJournalEntryEF> (Account entity) => AccountUnsafeAccessors.JournalEntries(entity),

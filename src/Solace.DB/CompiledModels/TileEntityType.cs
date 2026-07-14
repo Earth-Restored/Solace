@@ -8,10 +8,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.EntityFrameworkCore.Storage.Json;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.Mapping;
 using Solace.DB.Models.Global;
 
 #pragma warning disable 219, 612, 618
@@ -33,112 +30,101 @@ namespace Solace.DB.CompiledModels
 
             var id = runtimeEntityType.AddProperty(
                 "Id",
-                typeof(ulong),
+                typeof(long),
                 propertyInfo: typeof(Tile).GetProperty("Id", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(Tile).GetField("<Id>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 valueGenerated: ValueGenerated.OnAdd,
-                afterSaveBehavior: PropertySaveBehavior.Throw);
+                afterSaveBehavior: PropertySaveBehavior.Throw,
+                sentinel: 0L);
             id.SetGetter(
-                ulong (Tile instance) => TileUnsafeAccessors.Id(instance),
-                bool (Tile instance) => TileUnsafeAccessors.Id(instance) == 0UL);
+                long (Tile instance) => TileUnsafeAccessors.Id(instance),
+                bool (Tile instance) => TileUnsafeAccessors.Id(instance) == 0L);
             id.SetSetter(
-                Tile (Tile instance, ulong value) =>
+                Tile (Tile instance, long value) =>
                 {
                     TileUnsafeAccessors.Id(instance) = value;
                     return instance;
                 });
             id.SetMaterializationSetter(
-                Tile (Tile instance, ulong value) =>
+                Tile (Tile instance, long value) =>
                 {
                     TileUnsafeAccessors.Id(instance) = value;
                     return instance;
                 });
             id.SetAccessors(
-                ulong (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(0) ? entry.ReadStoreGeneratedValue<ulong>(0) : (entry.FlaggedAsTemporary(0) && TileUnsafeAccessors.Id(((Tile)(entry.Entity))) == 0UL ? entry.ReadTemporaryValue<ulong>(0) : TileUnsafeAccessors.Id(((Tile)(entry.Entity))))),
-                ulong (IInternalEntry entry) => TileUnsafeAccessors.Id(((Tile)(entry.Entity))),
-                ulong (IInternalEntry entry) => entry.ReadOriginalValue<ulong>(id, 0),
-                ulong (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<ulong>(id, 0));
+                long (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(0) ? entry.ReadStoreGeneratedValue<long>(0) : (entry.FlaggedAsTemporary(0) && TileUnsafeAccessors.Id(((Tile)(entry.Entity))) == 0L ? entry.ReadTemporaryValue<long>(0) : TileUnsafeAccessors.Id(((Tile)(entry.Entity))))),
+                long (IInternalEntry entry) => TileUnsafeAccessors.Id(((Tile)(entry.Entity))),
+                long (IInternalEntry entry) => entry.ReadOriginalValue<long>(id, 0),
+                long (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<long>(id, 0));
             id.SetPropertyIndexes(
                 index: 0,
                 originalValueIndex: 0,
                 shadowIndex: -1,
                 relationshipIndex: 0,
                 storeGenerationIndex: 0);
-            id.TypeMapping = NpgsqlDecimalTypeMapping.Default.Clone(
-                comparer: new ValueComparer<ulong>(
-                    bool (ulong v1, ulong v2) => v1 == v2,
-                    int (ulong v) => ((object)v).GetHashCode(),
-                    ulong (ulong v) => v),
-                keyComparer: new ValueComparer<ulong>(
-                    bool (ulong v1, ulong v2) => v1 == v2,
-                    int (ulong v) => ((object)v).GetHashCode(),
-                    ulong (ulong v) => v),
-                providerValueComparer: new ValueComparer<decimal>(
-                    bool (decimal v1, decimal v2) => v1 == v2,
-                    int (decimal v) => ((object)v).GetHashCode(),
-                    decimal (decimal v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "numeric(20,0)",
-                    precision: 20,
-                    scale: 0),
-                converter: new ValueConverter<ulong, decimal>(
-                    decimal (ulong v) => ((decimal)v),
-                    ulong (decimal v) => ((ulong)v)),
-                jsonValueReaderWriter: new JsonConvertedValueReaderWriter<ulong, decimal>(
-                    JsonDecimalReaderWriter.Instance,
-                    new ValueConverter<ulong, decimal>(
-                        decimal (ulong v) => ((decimal)v),
-                        ulong (decimal v) => ((ulong)v))));
-            id.SetCurrentValueComparer(new EntryCurrentValueComparer<ulong>(id));
-            id.SetSentinelFromProviderValue(0m);
-            id.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
+            id.TypeMapping = LongTypeMapping.Default.Clone(
+                comparer: new ValueComparer<long>(
+                    bool (long v1, long v2) => v1 == v2,
+                    int (long v) => ((object)v).GetHashCode(),
+                    long (long v) => v),
+                keyComparer: new ValueComparer<long>(
+                    bool (long v1, long v2) => v1 == v2,
+                    int (long v) => ((object)v).GetHashCode(),
+                    long (long v) => v),
+                providerValueComparer: new ValueComparer<long>(
+                    bool (long v1, long v2) => v1 == v2,
+                    int (long v) => ((object)v).GetHashCode(),
+                    long (long v) => v));
+            id.SetCurrentValueComparer(new EntryCurrentValueComparer<long>(id));
+            id.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
 
             var objectStoreId = runtimeEntityType.AddProperty(
                 "ObjectStoreId",
-                typeof(string),
+                typeof(Guid),
                 propertyInfo: typeof(Tile).GetProperty("ObjectStoreId", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                fieldInfo: typeof(Tile).GetField("<ObjectStoreId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
+                fieldInfo: typeof(Tile).GetField("<ObjectStoreId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
             objectStoreId.SetGetter(
-                string (Tile instance) => TileUnsafeAccessors.ObjectStoreId(instance),
-                bool (Tile instance) => TileUnsafeAccessors.ObjectStoreId(instance) == null);
+                Guid (Tile instance) => TileUnsafeAccessors.ObjectStoreId(instance),
+                bool (Tile instance) => TileUnsafeAccessors.ObjectStoreId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
             objectStoreId.SetSetter(
-                Tile (Tile instance, string value) =>
+                Tile (Tile instance, Guid value) =>
                 {
                     TileUnsafeAccessors.ObjectStoreId(instance) = value;
                     return instance;
                 });
             objectStoreId.SetMaterializationSetter(
-                Tile (Tile instance, string value) =>
+                Tile (Tile instance, Guid value) =>
                 {
                     TileUnsafeAccessors.ObjectStoreId(instance) = value;
                     return instance;
                 });
             objectStoreId.SetAccessors(
-                string (IInternalEntry entry) => TileUnsafeAccessors.ObjectStoreId(((Tile)(entry.Entity))),
-                string (IInternalEntry entry) => TileUnsafeAccessors.ObjectStoreId(((Tile)(entry.Entity))),
-                string (IInternalEntry entry) => entry.ReadOriginalValue<string>(objectStoreId, 1),
-                string (IInternalEntry entry) => entry.GetCurrentValue<string>(objectStoreId));
+                Guid (IInternalEntry entry) => TileUnsafeAccessors.ObjectStoreId(((Tile)(entry.Entity))),
+                Guid (IInternalEntry entry) => TileUnsafeAccessors.ObjectStoreId(((Tile)(entry.Entity))),
+                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(objectStoreId, 1),
+                Guid (IInternalEntry entry) => entry.GetCurrentValue<Guid>(objectStoreId));
             objectStoreId.SetPropertyIndexes(
                 index: 1,
                 originalValueIndex: 1,
                 shadowIndex: -1,
                 relationshipIndex: -1,
                 storeGenerationIndex: -1);
-            objectStoreId.TypeMapping = StringTypeMapping.Default.Clone(
-                comparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
-                keyComparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
-                providerValueComparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
+            objectStoreId.TypeMapping = GuidTypeMapping.Default.Clone(
+                comparer: new ValueComparer<Guid>(
+                    bool (Guid v1, Guid v2) => v1 == v2,
+                    int (Guid v) => ((object)v).GetHashCode(),
+                    Guid (Guid v) => v),
+                keyComparer: new ValueComparer<Guid>(
+                    bool (Guid v1, Guid v2) => v1 == v2,
+                    int (Guid v) => ((object)v).GetHashCode(),
+                    Guid (Guid v) => v),
+                providerValueComparer: new ValueComparer<Guid>(
+                    bool (Guid v1, Guid v2) => v1 == v2,
+                    int (Guid v) => ((object)v).GetHashCode(),
+                    Guid (Guid v) => v),
                 mappingInfo: new RelationalTypeMappingInfo(
-                    dbType: System.Data.DbType.String));
+                    storeTypeName: "uuid"));
             objectStoreId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var key = runtimeEntityType.AddKey(
@@ -153,18 +139,18 @@ namespace Solace.DB.CompiledModels
             var id = runtimeEntityType.FindProperty("Id");
             var objectStoreId = runtimeEntityType.FindProperty("ObjectStoreId");
             var key = runtimeEntityType.FindKey(new[] { id });
-            key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateSimpleNonNullableFactory<ulong>(key));
-            key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<ulong>(key));
+            key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateSimpleNonNullableFactory<long>(key));
+            key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<long>(key));
             runtimeEntityType.SetOriginalValuesFactory(
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((Tile)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<ulong, string>(((ValueComparer<ulong>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<ulong>(id)), (source.GetCurrentValue<string>(objectStoreId) == null ? null : ((ValueComparer<string>)(((IProperty)objectStoreId).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(objectStoreId))))));
+                    return ((ISnapshot)(new Snapshot<long, Guid>(((ValueComparer<long>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<long>(id)), ((ValueComparer<Guid>)(((IProperty)objectStoreId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(objectStoreId)))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
-                ISnapshot () => ((ISnapshot)(new Snapshot<ulong>(((ValueComparer<ulong>)(((IProperty)id).GetValueComparer())).Snapshot(default(ulong))))));
+                ISnapshot () => ((ISnapshot)(new Snapshot<long>(((ValueComparer<long>)(((IProperty)id).GetValueComparer())).Snapshot(default(long))))));
             runtimeEntityType.SetTemporaryValuesFactory(
-                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<ulong>(default(ulong)))));
+                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<long>(default(long)))));
             runtimeEntityType.SetShadowValuesFactory(
                 ISnapshot (IDictionary<string, object> source) => Snapshot.Empty);
             runtimeEntityType.SetEmptyShadowValuesFactory(
@@ -173,7 +159,7 @@ namespace Solace.DB.CompiledModels
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((Tile)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<ulong>(((ValueComparer<ulong>)(((IProperty)id).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<ulong>(id)))));
+                    return ((ISnapshot)(new Snapshot<long>(((ValueComparer<long>)(((IProperty)id).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<long>(id)))));
                 });
             runtimeEntityType.SetCounts(new PropertyCounts(
                 propertyCount: 2,

@@ -20,7 +20,7 @@ namespace Solace.DB.CompiledModels
         public static extern ref int Scale(EncounterBuildplateEF @this);
 
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<ServerDataObjectId>k__BackingField")]
-        public static extern ref string ServerDataObjectId(EncounterBuildplateEF @this);
+        public static extern ref Guid ServerDataObjectId(EncounterBuildplateEF @this);
 
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Size>k__BackingField")]
         public static extern ref int Size(EncounterBuildplateEF @this);

@@ -260,10 +260,10 @@ namespace Solace.DB.CompiledModels
                 null,
                 ICollection<RedeemedTappableEF> (IInternalEntry entry) => entry.GetCurrentValue<ICollection<RedeemedTappableEF>>(redeemedTappables));
             redeemedTappables.SetPropertyIndexes(
-                index: 8,
+                index: 9,
                 originalValueIndex: -1,
                 shadowIndex: -1,
-                relationshipIndex: 9,
+                relationshipIndex: 10,
                 storeGenerationIndex: -1);
             redeemedTappables.SetCollectionAccessor<Account, ICollection<RedeemedTappableEF>, RedeemedTappableEF>(
                 ICollection<RedeemedTappableEF> (Account entity) => AccountUnsafeAccessors.RedeemedTappables(entity),

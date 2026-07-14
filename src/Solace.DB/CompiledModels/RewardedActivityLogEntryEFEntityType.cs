@@ -17,17 +17,17 @@ using Solace.DB.Models.Player;
 namespace Solace.DB.CompiledModels
 {
     [EntityFrameworkInternal]
-    public partial class RewardedTokenEntityType
+    public partial class RewardedActivityLogEntryEFEntityType
     {
         public static RuntimeEntityType Create(RuntimeModel model, RuntimeEntityType baseEntityType = null)
         {
             var runtimeEntityType = model.AddEntityType(
-                "Solace.DB.Models.Player.RewardedToken",
-                typeof(RewardedTokenEF),
+                "Solace.DB.Models.Player.RewardedActivityLogEntryEF",
+                typeof(RewardedActivityLogEntryEF),
                 baseEntityType,
-                discriminatorProperty: "token_type",
-                discriminatorValue: "RewardedToken",
-                derivedTypesCount: 2,
+                discriminatorProperty: "entity_type",
+                discriminatorValue: "RewardedActivityLogEntryEF",
+                derivedTypesCount: 3,
                 propertyCount: 0,
                 navigationCount: 1);
 
@@ -37,43 +37,44 @@ namespace Solace.DB.CompiledModels
         public static void CreateAnnotations(RuntimeEntityType runtimeEntityType)
         {
             var accountId = runtimeEntityType.FindProperty("AccountId");
-            var tokenId = runtimeEntityType.FindProperty("TokenId");
-            var token_type = runtimeEntityType.FindProperty("token_type");
+            var entryId = runtimeEntityType.FindProperty("EntryId");
+            var timestamp = runtimeEntityType.FindProperty("Timestamp");
+            var entity_type = runtimeEntityType.FindProperty("entity_type");
             var account = runtimeEntityType.FindNavigation("Account");
             var rewards = runtimeEntityType.FindNavigation("Rewards");
             runtimeEntityType.SetOriginalValuesFactory(
                 ISnapshot (IInternalEntry source) =>
                 {
-                    var structuralType = ((RewardedTokenEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, long, string>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)tokenId).GetValueComparer())).Snapshot(source.GetCurrentValue<long>(tokenId)), (source.GetCurrentValue<string>(token_type) == null ? null : ((ValueComparer<string>)(((IProperty)token_type).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(token_type))))));
+                    var structuralType = ((RewardedActivityLogEntryEF)(source.Entity));
+                    return ((ISnapshot)(new Snapshot<Guid, long, DateTimeOffset, string>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)entryId).GetValueComparer())).Snapshot(source.GetCurrentValue<long>(entryId)), ((ValueComparer<DateTimeOffset>)(((IProperty)timestamp).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(timestamp)), (source.GetCurrentValue<string>(entity_type) == null ? null : ((ValueComparer<string>)(((IProperty)entity_type).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(entity_type))))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
-                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, long>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<long>)(((IProperty)tokenId).GetValueComparer())).Snapshot(default(long))))));
+                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, long>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<long>)(((IProperty)entryId).GetValueComparer())).Snapshot(default(long))))));
             runtimeEntityType.SetTemporaryValuesFactory(
                 ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid, long>(default(Guid), default(long)))));
             runtimeEntityType.SetShadowValuesFactory(
-                ISnapshot (IDictionary<string, object> source) => ((ISnapshot)(new Snapshot<string>((source.ContainsKey("token_type") ? ((string)(source["token_type"])) : null)))));
+                ISnapshot (IDictionary<string, object> source) => ((ISnapshot)(new Snapshot<string>((source.ContainsKey("entity_type") ? ((string)(source["entity_type"])) : null)))));
             runtimeEntityType.SetEmptyShadowValuesFactory(
                 ISnapshot () => ((ISnapshot)(new Snapshot<string>(default(string)))));
             runtimeEntityType.SetRelationshipSnapshotFactory(
                 ISnapshot (IInternalEntry source) =>
                 {
-                    var structuralType = ((RewardedTokenEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, long, object, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)tokenId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<long>(tokenId)), source.GetCurrentValue<Account>(account), source.GetCurrentValue<Rewards>(rewards))));
+                    var structuralType = ((RewardedActivityLogEntryEF)(source.Entity));
+                    return ((ISnapshot)(new Snapshot<Guid, long, object, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)entryId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<long>(entryId)), source.GetCurrentValue<Account>(account), source.GetCurrentValue<Rewards>(rewards))));
                 });
             runtimeEntityType.SetCounts(new PropertyCounts(
-                propertyCount: 3,
+                propertyCount: 4,
                 navigationCount: 2,
                 complexPropertyCount: 0,
                 complexCollectionCount: 0,
-                originalValueCount: 3,
+                originalValueCount: 4,
                 shadowCount: 1,
                 relationshipCount: 4,
                 storeGeneratedCount: 2));
             runtimeEntityType.AddAnnotation("Relational:FunctionName", null);
             runtimeEntityType.AddAnnotation("Relational:Schema", null);
             runtimeEntityType.AddAnnotation("Relational:SqlQuery", null);
-            runtimeEntityType.AddAnnotation("Relational:TableName", "Tokens");
+            runtimeEntityType.AddAnnotation("Relational:TableName", "ActivityLogs");
             runtimeEntityType.AddAnnotation("Relational:ViewName", null);
             runtimeEntityType.AddAnnotation("Relational:ViewSchema", null);
 

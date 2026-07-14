@@ -17,16 +17,16 @@ using Solace.DB.Models.Player;
 namespace Solace.DB.CompiledModels
 {
     [EntityFrameworkInternal]
-    public partial class CraftingCompletedEntryEntityType
+    public partial class SmeltingCompletedEntryEFEntityType
     {
         public static RuntimeEntityType Create(RuntimeModel model, RuntimeEntityType baseEntityType = null)
         {
             var runtimeEntityType = model.AddEntityType(
-                "Solace.DB.Models.Player.CraftingCompletedEntry",
-                typeof(CraftingCompletedEntryEF),
+                "Solace.DB.Models.Player.SmeltingCompletedEntryEF",
+                typeof(SmeltingCompletedEntryEF),
                 baseEntityType,
                 discriminatorProperty: "entity_type",
-                discriminatorValue: "crafting_completed",
+                discriminatorValue: "smelting_completed",
                 propertyCount: 0);
 
             return runtimeEntityType;
@@ -43,7 +43,7 @@ namespace Solace.DB.CompiledModels
             runtimeEntityType.SetOriginalValuesFactory(
                 ISnapshot (IInternalEntry source) =>
                 {
-                    var structuralType = ((CraftingCompletedEntryEF)(source.Entity));
+                    var structuralType = ((SmeltingCompletedEntryEF)(source.Entity));
                     return ((ISnapshot)(new Snapshot<Guid, long, DateTimeOffset, string>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)entryId).GetValueComparer())).Snapshot(source.GetCurrentValue<long>(entryId)), ((ValueComparer<DateTimeOffset>)(((IProperty)timestamp).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(timestamp)), (source.GetCurrentValue<string>(entity_type) == null ? null : ((ValueComparer<string>)(((IProperty)entity_type).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(entity_type))))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
@@ -57,7 +57,7 @@ namespace Solace.DB.CompiledModels
             runtimeEntityType.SetRelationshipSnapshotFactory(
                 ISnapshot (IInternalEntry source) =>
                 {
-                    var structuralType = ((CraftingCompletedEntryEF)(source.Entity));
+                    var structuralType = ((SmeltingCompletedEntryEF)(source.Entity));
                     return ((ISnapshot)(new Snapshot<Guid, long, object, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)entryId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<long>(entryId)), source.GetCurrentValue<Account>(account), source.GetCurrentValue<Rewards>(rewards))));
                 });
             runtimeEntityType.SetCounts(new PropertyCounts(

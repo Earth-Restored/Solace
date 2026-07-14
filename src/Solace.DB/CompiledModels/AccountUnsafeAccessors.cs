@@ -44,8 +44,8 @@ namespace Solace.DB.CompiledModels
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Username>k__BackingField")]
         public static extern ref string Username(Account @this);
 
-        [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Version>k__BackingField")]
-        public static extern ref int Version(Account @this);
+        [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<AccountVersions>k__BackingField")]
+        public static extern ref AccountVersions AccountVersions(Account @this);
 
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<ActivityLogs>k__BackingField")]
         public static extern ref ICollection<ActivityLogEntryEF> ActivityLogs(Account @this);

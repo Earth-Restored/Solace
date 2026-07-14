@@ -17,12 +17,12 @@ using Solace.DB.Models.Player;
 namespace Solace.DB.CompiledModels
 {
     [EntityFrameworkInternal]
-    public partial class TappableEntryEntityType
+    public partial class TappableEntryEFEntityType
     {
         public static RuntimeEntityType Create(RuntimeModel model, RuntimeEntityType baseEntityType = null)
         {
             var runtimeEntityType = model.AddEntityType(
-                "Solace.DB.Models.Player.TappableEntry",
+                "Solace.DB.Models.Player.TappableEntryEF",
                 typeof(TappableEntryEF),
                 baseEntityType,
                 discriminatorProperty: "entity_type",

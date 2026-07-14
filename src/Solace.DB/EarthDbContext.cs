@@ -86,52 +86,53 @@ public sealed class EarthDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         // triggers
-        modelBuilder.Entity<ProfileEF>(entity =>
-        {
-            entity.ToTable("Profiles", tb => tb.HasTrigger("trg_profiles_version"));
-        });
+        // bug when compiling - The given key 'EntityType: TokenEF Abstract' was not present in the dictionary.
+        // modelBuilder.Entity<ProfileEF>(entity =>
+        // {
+        //     entity.ToTable("Profiles", tb => tb.HasTrigger("trg_profiles_version"));
+        // });
 
-        modelBuilder.Entity<StackableItemEF>(entity =>
-        {
-            entity.ToTable("StackableItems", tb => tb.HasTrigger("trg_stackable_items_version"));
-        });
+        // modelBuilder.Entity<StackableItemEF>(entity =>
+        // {
+        //     entity.ToTable("StackableItems", tb => tb.HasTrigger("trg_stackable_items_version"));
+        // });
 
-        modelBuilder.Entity<NonStackableItemInstanceEF>(entity =>
-        {
-            entity.ToTable("NonStackableItems", tb => tb.HasTrigger("trg_non_stackable_items_version"));
-        });
+        // modelBuilder.Entity<NonStackableItemInstanceEF>(entity =>
+        // {
+        //     entity.ToTable("NonStackableItems", tb => tb.HasTrigger("trg_non_stackable_items_version"));
+        // });
 
-        modelBuilder.Entity<CraftingSlotsEF>(entity =>
-        {
-            entity.ToTable("CraftingSlots", tb => tb.HasTrigger("trg_crafting_slots_version"));
-        });
+        // modelBuilder.Entity<CraftingSlotsEF>(entity =>
+        // {
+        //     entity.ToTable("CraftingSlots", tb => tb.HasTrigger("trg_crafting_slots_version"));
+        // });
 
-        modelBuilder.Entity<SmeltingSlotsEF>(entity =>
-        {
-            entity.ToTable("SmeltingSlots", tb => tb.HasTrigger("trg_smelting_slots_version"));
-        });
+        // modelBuilder.Entity<SmeltingSlotsEF>(entity =>
+        // {
+        //     entity.ToTable("SmeltingSlots", tb => tb.HasTrigger("trg_smelting_slots_version"));
+        // });
 
-        modelBuilder.Entity<BoostsEF>(entity =>
-        {
-            entity.ToTable("Boosts", tb => tb.HasTrigger("trg_boosts_version"));
-        });
+        // modelBuilder.Entity<BoostsEF>(entity =>
+        // {
+        //     entity.ToTable("Boosts", tb => tb.HasTrigger("trg_boosts_version"));
+        // });
 
-        modelBuilder.Entity<BuildplateEF>(entity =>
-        {
-            entity.ToTable("PlayerBuildplates", tb => tb.HasTrigger("trg_buildplates_version"));
-        });
+        // modelBuilder.Entity<BuildplateEF>(entity =>
+        // {
+        //     entity.ToTable("PlayerBuildplates", tb => tb.HasTrigger("trg_buildplates_version"));
+        // });
 
-        modelBuilder.Entity<ItemJournalEntryEF>(entity =>
-        {
-            entity.ToTable("JournalEntries", tb => tb.HasTrigger("trg_journal_entries_version"));
-        });
+        // modelBuilder.Entity<ItemJournalEntryEF>(entity =>
+        // {
+        //     entity.ToTable("JournalEntries", tb => tb.HasTrigger("trg_journal_entries_version"));
+        // });
         
         // todo: challenges once implemented
 
-        modelBuilder.Entity<TokenEF>(entity =>
-        {
-            entity.ToTable("Tokens", tb => tb.HasTrigger("trg_tokens_version"));
-        });
+        // modelBuilder.Entity<TokenEF>(entity =>
+        // {
+        //     entity.ToTable("Tokens", tb => tb.HasTrigger("trg_tokens_version"));
+        // });
 
         // account
         modelBuilder.Entity<Account>()

@@ -31,8 +31,8 @@ namespace Solace.DB.CompiledModels
                 "Solace.DB.Models.Account",
                 typeof(Account),
                 baseEntityType,
-                propertyCount: 11,
-                navigationCount: 13,
+                propertyCount: 10,
+                navigationCount: 14,
                 unnamedIndexCount: 1,
                 keyCount: 1);
 
@@ -527,56 +527,6 @@ namespace Solace.DB.CompiledModels
             username.SetCurrentValueComparer(new EntryCurrentValueComparer<string>(username));
             username.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
-            var version = runtimeEntityType.AddProperty(
-                "Version",
-                typeof(int),
-                propertyInfo: typeof(Account).GetProperty("Version", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                fieldInfo: typeof(Account).GetField("<Version>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-                concurrencyToken: true,
-                sentinel: 0);
-            version.SetGetter(
-                int (Account instance) => AccountUnsafeAccessors.Version(instance),
-                bool (Account instance) => AccountUnsafeAccessors.Version(instance) == 0);
-            version.SetSetter(
-                Account (Account instance, int value) =>
-                {
-                    AccountUnsafeAccessors.Version(instance) = value;
-                    return instance;
-                });
-            version.SetMaterializationSetter(
-                Account (Account instance, int value) =>
-                {
-                    AccountUnsafeAccessors.Version(instance) = value;
-                    return instance;
-                });
-            version.SetAccessors(
-                int (IInternalEntry entry) => AccountUnsafeAccessors.Version(((Account)(entry.Entity))),
-                int (IInternalEntry entry) => AccountUnsafeAccessors.Version(((Account)(entry.Entity))),
-                int (IInternalEntry entry) => entry.ReadOriginalValue<int>(version, 10),
-                int (IInternalEntry entry) => entry.GetCurrentValue<int>(version));
-            version.SetPropertyIndexes(
-                index: 10,
-                originalValueIndex: 10,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            version.TypeMapping = IntTypeMapping.Default.Clone(
-                comparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                keyComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                providerValueComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "integer"));
-            version.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
-
             var key = runtimeEntityType.AddKey(
                 new[] { id });
             runtimeEntityType.SetPrimaryKey(key);
@@ -600,10 +550,10 @@ namespace Solace.DB.CompiledModels
             var profilePictureUrl = runtimeEntityType.FindProperty("ProfilePictureUrl");
             var skinImageData = runtimeEntityType.FindProperty("SkinImageData");
             var username = runtimeEntityType.FindProperty("Username");
-            var version = runtimeEntityType.FindProperty("Version");
             var key = runtimeEntityType.FindKey(new[] { id });
             key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid>(key));
             key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<Guid>(key));
+            var accountVersions = runtimeEntityType.FindNavigation("AccountVersions");
             var activityLogs = runtimeEntityType.FindNavigation("ActivityLogs");
             var boosts = runtimeEntityType.FindNavigation("Boosts");
             var buildplates = runtimeEntityType.FindNavigation("Buildplates");
@@ -621,7 +571,7 @@ namespace Solace.DB.CompiledModels
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((Account)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, long, string, bool, string, byte[], byte[], string, byte[], string, int>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), ((ValueComparer<long>)(((IProperty)createdDate).GetValueComparer())).Snapshot(source.GetCurrentValue<long>(createdDate)), (source.GetCurrentValue<string>(firstName) == null ? null : ((ValueComparer<string>)(((IProperty)firstName).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(firstName))), ((ValueComparer<bool>)(((IProperty)isSkinSlim).GetValueComparer())).Snapshot(source.GetCurrentValue<bool>(isSkinSlim)), (source.GetCurrentValue<string>(lastName) == null ? null : ((ValueComparer<string>)(((IProperty)lastName).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(lastName))), (source.GetCurrentValue<byte[]>(passwordHash) == null ? null : ((ValueComparer<byte[]>)(((IProperty)passwordHash).GetValueComparer())).Snapshot(source.GetCurrentValue<byte[]>(passwordHash))), (source.GetCurrentValue<byte[]>(passwordSalt) == null ? null : ((ValueComparer<byte[]>)(((IProperty)passwordSalt).GetValueComparer())).Snapshot(source.GetCurrentValue<byte[]>(passwordSalt))), (source.GetCurrentValue<string>(profilePictureUrl) == null ? null : ((ValueComparer<string>)(((IProperty)profilePictureUrl).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(profilePictureUrl))), (source.GetCurrentValue<byte[]>(skinImageData) == null ? null : ((ValueComparer<byte[]>)(((IProperty)skinImageData).GetValueComparer())).Snapshot(source.GetCurrentValue<byte[]>(skinImageData))), (source.GetCurrentValue<string>(username) == null ? null : ((ValueComparer<string>)(((IProperty)username).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(username))), ((ValueComparer<int>)(((IProperty)version).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(version)))));
+                    return ((ISnapshot)(new Snapshot<Guid, long, string, bool, string, byte[], byte[], string, byte[], string>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), ((ValueComparer<long>)(((IProperty)createdDate).GetValueComparer())).Snapshot(source.GetCurrentValue<long>(createdDate)), (source.GetCurrentValue<string>(firstName) == null ? null : ((ValueComparer<string>)(((IProperty)firstName).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(firstName))), ((ValueComparer<bool>)(((IProperty)isSkinSlim).GetValueComparer())).Snapshot(source.GetCurrentValue<bool>(isSkinSlim)), (source.GetCurrentValue<string>(lastName) == null ? null : ((ValueComparer<string>)(((IProperty)lastName).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(lastName))), (source.GetCurrentValue<byte[]>(passwordHash) == null ? null : ((ValueComparer<byte[]>)(((IProperty)passwordHash).GetValueComparer())).Snapshot(source.GetCurrentValue<byte[]>(passwordHash))), (source.GetCurrentValue<byte[]>(passwordSalt) == null ? null : ((ValueComparer<byte[]>)(((IProperty)passwordSalt).GetValueComparer())).Snapshot(source.GetCurrentValue<byte[]>(passwordSalt))), (source.GetCurrentValue<string>(profilePictureUrl) == null ? null : ((ValueComparer<string>)(((IProperty)profilePictureUrl).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(profilePictureUrl))), (source.GetCurrentValue<byte[]>(skinImageData) == null ? null : ((ValueComparer<byte[]>)(((IProperty)skinImageData).GetValueComparer())).Snapshot(source.GetCurrentValue<byte[]>(skinImageData))), (source.GetCurrentValue<string>(username) == null ? null : ((ValueComparer<string>)(((IProperty)username).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(username))))));
                 });
             runtimeEntityType.SetStoreGeneratedValuesFactory(
                 ISnapshot () => ((ISnapshot)(new Snapshot<Guid>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(default(Guid))))));
@@ -635,16 +585,16 @@ namespace Solace.DB.CompiledModels
                 ISnapshot (IInternalEntry source) =>
                 {
                     var structuralType = ((Account)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, object, object, object, object, object, object, object, object, object, object, object, object, object>(((ValueComparer<Guid>)(((IProperty)id).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<ActivityLogEntryEF>>(activityLogs)), source.GetCurrentValue<BoostsEF>(boosts), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<BuildplateEF>>(buildplates)), source.GetCurrentValue<CraftingSlotsEF>(craftingSlots), source.GetCurrentValue<HotbarEF>(hotbar), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<ItemJournalEntryEF>>(journalEntries)), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<NonStackableItemInstanceEF>>(nonStackableItems)), source.GetCurrentValue<ProfileEF>(profile), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<RedeemedTappableEF>>(redeemedTappables)), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<SharedBuildplateEF>>(sharedBuildplates)), source.GetCurrentValue<SmeltingSlotsEF>(smeltingSlots), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<StackableItemEF>>(stackableItems)), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<TokenEF>>(tokens)))));
+                    return ((ISnapshot)(new Snapshot<Guid, object, object, object, object, object, object, object, object, object, object, object, object, object, object>(((ValueComparer<Guid>)(((IProperty)id).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), source.GetCurrentValue<AccountVersions>(accountVersions), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<ActivityLogEntryEF>>(activityLogs)), source.GetCurrentValue<BoostsEF>(boosts), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<BuildplateEF>>(buildplates)), source.GetCurrentValue<CraftingSlotsEF>(craftingSlots), source.GetCurrentValue<HotbarEF>(hotbar), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<ItemJournalEntryEF>>(journalEntries)), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<NonStackableItemInstanceEF>>(nonStackableItems)), source.GetCurrentValue<ProfileEF>(profile), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<RedeemedTappableEF>>(redeemedTappables)), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<SharedBuildplateEF>>(sharedBuildplates)), source.GetCurrentValue<SmeltingSlotsEF>(smeltingSlots), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<StackableItemEF>>(stackableItems)), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<ICollection<TokenEF>>(tokens)))));
                 });
             runtimeEntityType.SetCounts(new PropertyCounts(
-                propertyCount: 11,
-                navigationCount: 13,
+                propertyCount: 10,
+                navigationCount: 14,
                 complexPropertyCount: 0,
                 complexCollectionCount: 0,
-                originalValueCount: 11,
+                originalValueCount: 10,
                 shadowCount: 0,
-                relationshipCount: 14,
+                relationshipCount: 15,
                 storeGeneratedCount: 1));
             runtimeEntityType.AddAnnotation("Relational:FunctionName", null);
             runtimeEntityType.AddAnnotation("Relational:Schema", null);
