@@ -118,7 +118,7 @@ public sealed class EarthDbContext : DbContext
 
         modelBuilder.Entity<BuildplateEF>(entity =>
         {
-            entity.ToTable("Buildplate", tb => tb.HasTrigger("trg_buildplates_version"));
+            entity.ToTable("PlayerBuildplates", tb => tb.HasTrigger("trg_buildplates_version"));
         });
 
         modelBuilder.Entity<ItemJournalEntryEF>(entity =>

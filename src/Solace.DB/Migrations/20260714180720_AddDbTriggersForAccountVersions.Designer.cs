@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Solace.DB;
@@ -11,9 +12,11 @@ using Solace.DB;
 namespace Solace.DB.Postgres.Migrations
 {
     [DbContext(typeof(EarthDbContext))]
-    partial class EarthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260714180720_AddDbTriggersForAccountVersions")]
+    partial class AddDbTriggersForAccountVersions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -316,7 +319,7 @@ namespace Solace.DB.Postgres.Migrations
 
                     b.HasIndex("AccountId");
 
-                    b.ToTable("PlayerBuildplates", null, t =>
+                    b.ToTable("Buildplate", null, t =>
                         {
                             t.HasTrigger("trg_buildplates_version");
                         });
