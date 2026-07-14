@@ -147,8 +147,8 @@ public sealed class EarthDbContext : DbContext
 
         modelBuilder.Entity<Account>()
             .HasOne(a => a.AccountVersions)
-            .WithOne(p => p.Account)
-            .HasForeignKey<ProfileEF>(p => p.Id)
+            .WithOne(av => av.Account)
+            .HasForeignKey<AccountVersions>(av => av.Id)
             .OnDelete(DeleteBehavior.Cascade)
             .IsRequired();
 
