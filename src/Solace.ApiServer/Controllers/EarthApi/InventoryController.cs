@@ -85,8 +85,8 @@ internal sealed class InventoryController : SolaceControllerBase
                 item.Uuid,
                 item.Count,
                 item.InstanceId,
-                item.InstanceId is not null 
-                    ? ItemWear.WearToHealth(item.Uuid, nonStackableItems.FirstOrDefault(nsi => nsi.Key == item.Uuid)?.FirstOrDefault(nsi => nsi.InstanceId == item.InstanceId.Value)?.Wear ?? 0, _catalog.ItemsCatalog) 
+                item.InstanceId is not null
+                    ? ItemWear.WearToHealth(item.Uuid, nonStackableItems.FirstOrDefault(nsi => nsi.Key == item.Uuid)?.FirstOrDefault(nsi => nsi.InstanceId == item.InstanceId.Value)?.Wear ?? 0, _catalog.ItemsCatalog)
                     : 0.0f
                 ) : null)],
             [.. stackableItems.Select(item =>
@@ -133,8 +133,8 @@ internal sealed class InventoryController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        SetHotbarRequestItem[]? setHotbarRequestItems = await Request.Body.AsJsonAsync<SetHotbarRequestItem[]>(cancellationToken);
-        if (setHotbarRequestItems is null || setHotbarRequestItems.Length != 7)
+        SetHotbarRequestItem[]? setHotbarRequestItems = await Request.Body.AsJsonAsync(AppJsonContext.Default.SetHotbarRequestItemArray, cancellationToken);
+        if (setHotbarRequestItems is null or { Length: not 7, })
         {
             return TypedResults.BadRequest();
         }
@@ -192,7 +192,7 @@ internal sealed class InventoryController : SolaceControllerBase
 
         var results = new ResultsEF.Builder();
 
-        if (!await InventoryUtils.TakeStackableItemsAsync(_earthDb, results, accountId,  itemId, 1, cancellationToken))
+        if (!await InventoryUtils.TakeStackableItemsAsync(_earthDb, results, accountId, itemId, 1, cancellationToken))
         {
             return TypedResults.Content(Json.Serialize(new EarthApiResponse(null, null)), "application/json");
         }
@@ -247,7 +247,7 @@ internal sealed class InventoryController : SolaceControllerBase
         return TypedResults.Content(resp, "application/json");
     }
 
-    private sealed record SetHotbarRequestItem(
+    internal sealed record SetHotbarRequestItem(
         Guid Id,
         int Count,
         Guid? InstanceId

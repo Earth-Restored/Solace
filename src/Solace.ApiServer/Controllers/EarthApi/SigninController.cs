@@ -39,7 +39,7 @@ internal sealed partial class SigninController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var signinRequest = await Request.Body.AsJsonAsync<SigninRequest>(cancellationToken);
+        var signinRequest = await Request.Body.AsJsonAsync(AppJsonContext.Default.SigninRequest, cancellationToken);
 
         if (signinRequest is null)
         {
@@ -128,7 +128,7 @@ internal sealed partial class SigninController : SolaceControllerBase
     [GeneratedRegex("^[0-9A-F]{15,16}$")]
     private static partial Regex GetUserIdRegex();
 
-    private sealed record SigninRequest(
+    internal sealed record SigninRequest(
         double Latitude,
         double Longitude,
         string DeviceId,

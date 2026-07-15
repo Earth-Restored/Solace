@@ -4,10 +4,4 @@ param (
     [string]$MigrationName
 )
 
-Push-Location ./../src/Solace.ApiServer
-try {
-    dotnet ef migrations add $MigrationName --project ../Solace.DB --context EarthDbContext
-}
-finally {
-    Pop-Location
-}
+dotnet ef migrations add $MigrationName --project ./../src/Solace.DB --startup-project ./../src/Solace.ApiServer --context EarthDbContext

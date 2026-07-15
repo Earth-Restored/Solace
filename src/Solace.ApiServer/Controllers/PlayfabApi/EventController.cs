@@ -9,7 +9,7 @@ namespace Solace.ApiServer.Controllers.PlayfabApi;
 [Route("20CA2.playfabapi.com/Event")]
 internal sealed class EventController : SolaceControllerBase
 {
-    private sealed record WriteTelemetryEventsRequest(
+    internal sealed record WriteTelemetryEventsRequest(
         object[] Events
     );
 
@@ -18,7 +18,7 @@ internal sealed class EventController : SolaceControllerBase
     {
         var cancellationToken = Request.HttpContext.RequestAborted;
 
-        var request = await Request.Body.AsJsonAsync<WriteTelemetryEventsRequest>(cancellationToken);
+        var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.WriteTelemetryEventsRequest, cancellationToken);
 
         if (request is null)
         {

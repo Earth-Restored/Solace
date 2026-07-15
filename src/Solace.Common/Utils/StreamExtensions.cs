@@ -1,11 +1,14 @@
-﻿namespace Solace.Common.Utils;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
+
+namespace Solace.Common.Utils;
 
 public static class StreamExtensions
 {
     extension(Stream stream)
     {
-        public ValueTask<T?> AsJsonAsync<T>(CancellationToken cancellationToken)
-            => Json.DeserializeAsync<T>(stream, cancellationToken);
+        public ValueTask<T?> AsJsonAsync<T>(JsonTypeInfo<T> jsonTypeInfo, CancellationToken cancellationToken)
+            => JsonSerializer.DeserializeAsync(stream, jsonTypeInfo, cancellationToken);
 
         public async Task<string> ReadAsString(CancellationToken cancellationToken = default)
         {

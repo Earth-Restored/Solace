@@ -19,35 +19,33 @@ internal sealed class AuthenticationController : LoginServerControllerBase
         _playfabApiEntityTokenValidityMinutes = configuration.GetValue<int>("Authentication:PlayfabApi:EntityTokenValidityMinutes");
     }
 
-    private sealed record GetEntityTokenRequest(
-        GetEntityTokenRequest.EntityR Entity
-    )
-    {
-        internal sealed record EntityR(
-            Guid Id,
-            string Type
-        );
-    }
+    internal sealed record GetEntityTokenRequest(
+        GetEntityTokenRequestEntity Entity
+    );
+
+    internal sealed record GetEntityTokenRequestEntity(
+        Guid Id,
+        string Type
+    );
 
     private sealed record GetEntityTokenResponse(
         string EntityToken,
         DateTime TokenExpiration,
-        GetEntityTokenResponse.EntityR Entity
-    )
-    {
-        internal sealed record EntityR(
-            Guid Id,
-            string Type,
-            string TypeString
-        );
-    }
+        GetEntityTokenResponseEntity Entity
+    );
+
+    internal sealed record GetEntityTokenResponseEntity(
+        Guid Id,
+        string Type,
+        string TypeString
+    );
 
     [HttpPost("GetEntityToken")]
     public async Task<Results<ContentHttpResult, ForbidHttpResult, BadRequest>> GetEntityTokenAsync()
     {
         var cancellationToken = Request.HttpContext.RequestAborted;
 
-        var request = await Request.Body.AsJsonAsync<GetEntityTokenRequest>(cancellationToken);
+        var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.GetEntityTokenRequest, cancellationToken);
 
         if (request is null)
         {

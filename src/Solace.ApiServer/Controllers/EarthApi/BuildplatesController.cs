@@ -293,12 +293,12 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
 
         // TODO: coordinates etc.
 
-        SharedBuildplateInstanceRequest sharedBuildplateInstanceRequest = (await Request.Body.AsJsonAsync<SharedBuildplateInstanceRequest>(cancellationToken))!;
+        SharedBuildplateInstanceRequest sharedBuildplateInstanceRequest = (await Request.Body.AsJsonAsync(AppJsonContext.Default.SharedBuildplateInstanceRequest, cancellationToken))!;
 
         return await GetNewSharedBuildplateInstanceResponse(accountId, sharedBuildplateId, sharedBuildplateInstanceRequest.FullSize ? BuildplateInstancesManager.InstanceType.SHARED_PLAY : BuildplateInstancesManager.InstanceType.SHARED_BUILD, cancellationToken);
     }
 
-    private sealed record EncounterInstanceRequest(
+    internal sealed record EncounterInstanceRequest(
         string TileId
     );
 
@@ -310,7 +310,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var encounterInstanceRequest = await Request.Body.AsJsonAsync<EncounterInstanceRequest>(cancellationToken);
+        var encounterInstanceRequest = await Request.Body.AsJsonAsync(AppJsonContext.Default.EncounterInstanceRequest, cancellationToken);
 
         return encounterInstanceRequest is null
             ? TypedResults.BadRequest()
@@ -604,7 +604,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             : new BuildplateGeometry(templateBuildplate.Size, templateBuildplate.Offset, templateBuildplate.BlocksPerMeter);
     }
 
-    private sealed record SharedBuildplateInstanceRequest(
+    internal sealed record SharedBuildplateInstanceRequest(
         bool FullSize
     );
 

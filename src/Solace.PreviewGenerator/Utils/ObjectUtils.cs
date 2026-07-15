@@ -1,9 +1,9 @@
 ﻿using System.Collections;
 using System.Reflection;
 
-namespace Solace.Common.Utils;
+namespace Solace.PreviewGenerator.Utils;
 
-public static class ObjectExtensions
+public static class ObjectUtils
 {
     public static bool DeepEquals(object? obj1, object? obj2)
     {

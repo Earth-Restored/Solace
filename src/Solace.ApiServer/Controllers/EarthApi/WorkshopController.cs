@@ -38,12 +38,12 @@ namespace Solace.ApiServer.Controllers.EarthApi;
 [Authorize]
 [ApiVersion("1.1")]
 [Route("1/api/v{version:apiVersion}")]
-internal sealed class WorkshopRouter : SolaceControllerBase
+internal sealed class WorkshopController : SolaceControllerBase
 {
     private readonly EarthDbContext _earthDb;
     private readonly StaticData.StaticData _staticData;
 
-    public WorkshopRouter(EarthDbContext earthDb, StaticData.StaticData staticData)
+    public WorkshopController(EarthDbContext earthDb, StaticData.StaticData staticData)
     {
         _earthDb = earthDb;
         _staticData = staticData;
@@ -149,7 +149,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        StartRequestCrafting? startRequest = await Request.Body.AsJsonAsync<StartRequestCrafting>(cancellationToken);
+        StartRequestCrafting? startRequest = await Request.Body.AsJsonAsync(AppJsonContext.Default.StartRequestCrafting, cancellationToken);
         if (startRequest is null || startRequest.Multiplier < 1)
         {
             return TypedResults.BadRequest();
@@ -192,7 +192,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         var providedItems = new InputItem[startRequest.Ingredients.Length];
         for (int index = 0; index < startRequest.Ingredients.Length; index++)
         {
-            StartRequestCrafting.Item item = startRequest.Ingredients[index];
+            StartRequestCraftingItem item = startRequest.Ingredients[index];
             if (item.ItemInstanceIds is null || item.ItemInstanceIds.Length == 0)
             {
                 if (!await InventoryUtils.TakeStackableItemsAsync(_earthDb, results, accountId, item.ItemId, item.Quantity, cancellationToken))
@@ -311,7 +311,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        StartRequestSmelting? startRequest = await Request.Body.AsJsonAsync<StartRequestSmelting>(cancellationToken);
+        StartRequestSmelting? startRequest = await Request.Body.AsJsonAsync(AppJsonContext.Default.StartRequestSmelting, cancellationToken);
         if (startRequest is null || startRequest.Multiplier < 1)
         {
             return TypedResults.BadRequest();
@@ -745,7 +745,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        ExpectedPurchasePriceR? expectedPurchasePrice = await Request.Body.AsJsonAsync<ExpectedPurchasePriceR>(cancellationToken);
+        ExpectedPurchasePriceR? expectedPurchasePrice = await Request.Body.AsJsonAsync(AppJsonContext.Default.ExpectedPurchasePriceR, cancellationToken);
         if (expectedPurchasePrice is null || expectedPurchasePrice.ExpectedPurchasePrice < 0)
         {
             return TypedResults.BadRequest();
@@ -813,7 +813,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        ExpectedPurchasePriceR? expectedPurchasePrice = await Request.Body.AsJsonAsync<ExpectedPurchasePriceR>(cancellationToken);
+        ExpectedPurchasePriceR? expectedPurchasePrice = await Request.Body.AsJsonAsync(AppJsonContext.Default.ExpectedPurchasePriceR, cancellationToken);
         if (expectedPurchasePrice is null || expectedPurchasePrice.ExpectedPurchasePrice < 0)
         {
             return TypedResults.BadRequest();
@@ -932,7 +932,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        ExpectedPurchasePriceR? expectedPurchasePrice = await Request.Body.AsJsonAsync<ExpectedPurchasePriceR>(cancellationToken);
+        ExpectedPurchasePriceR? expectedPurchasePrice = await Request.Body.AsJsonAsync(AppJsonContext.Default.ExpectedPurchasePriceR, cancellationToken);
         if (expectedPurchasePrice is null || expectedPurchasePrice.ExpectedPurchasePrice < 0)
         {
             return TypedResults.BadRequest();
@@ -984,7 +984,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        ExpectedPurchasePriceR? expectedPurchasePrice = await Request.Body.AsJsonAsync<ExpectedPurchasePriceR>(cancellationToken);
+        ExpectedPurchasePriceR? expectedPurchasePrice = await Request.Body.AsJsonAsync(AppJsonContext.Default.ExpectedPurchasePriceR, cancellationToken);
         if (expectedPurchasePrice is null || expectedPurchasePrice.ExpectedPurchasePrice < 0)
         {
             return TypedResults.BadRequest();
@@ -1166,32 +1166,30 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
     }
 
-    private sealed record StartRequestCrafting(
+    internal sealed record StartRequestCrafting(
         string SessionId,
         Guid RecipeId,
         int Multiplier,
-        StartRequestCrafting.Item[] Ingredients
-    )
-    {
-        internal sealed record Item(
-            Guid ItemId,
-            int Quantity,
-            Guid[] ItemInstanceIds
-        );
-    }
+        StartRequestCraftingItem[] Ingredients
+    );
 
-    private sealed record StartRequestSmelting(
+    internal sealed record StartRequestCraftingItem(
+        Guid ItemId,
+        int Quantity,
+        Guid[] ItemInstanceIds
+    );
+
+    internal sealed record StartRequestSmelting(
         string SessionId,
         Guid RecipeId,
         int Multiplier,
-        StartRequestSmelting.Item Input,
-        StartRequestSmelting.Item Fuel
-    )
-    {
-        internal sealed record Item(
-            Guid ItemId,
-            int Quantity,
-            Guid[] ItemInstanceIds
-        );
-    }
+        StartRequestSmeltingItem Input,
+        StartRequestSmeltingItem Fuel
+    );
+
+    internal sealed record StartRequestSmeltingItem(
+        Guid ItemId,
+        int Quantity,
+        Guid[] ItemInstanceIds
+    );
 }

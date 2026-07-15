@@ -33,7 +33,7 @@ internal sealed partial class LoginController : SolaceControllerBase
         _logger = logger;
     }
 
-    private sealed record LoginWithCustomIDRequest(
+    internal sealed record LoginWithCustomIDRequest(
         string TitleId,
         object? EncryptedRequest,
         object? PlayerSecret,
@@ -46,7 +46,7 @@ internal sealed partial class LoginController : SolaceControllerBase
     {
         var cancellationToken = Request.HttpContext.RequestAborted;
 
-        var request = await Request.Body.AsJsonAsync<LoginWithCustomIDRequest>(cancellationToken);
+        var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.LoginWithCustomIDRequest, cancellationToken);
 
         if (request is null || !GetTitleIdRegex().IsMatch(request.TitleId))
         {
@@ -63,7 +63,7 @@ internal sealed partial class LoginController : SolaceControllerBase
         ));
     }
 
-    private sealed record LoginWithXboxRequest(
+    internal sealed record LoginWithXboxRequest(
         string TitleId,
         object? EncryptedRequest,
         object? PlayerSecret,
@@ -76,7 +76,7 @@ internal sealed partial class LoginController : SolaceControllerBase
     {
         var cancellationToken = Request.HttpContext.RequestAborted;
 
-        var request = await Request.Body.AsJsonAsync<LoginWithXboxRequest>(cancellationToken);
+        var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.LoginWithXboxRequest, cancellationToken);
 
         if (request is null || !GetTitleIdRegex().IsMatch(request.TitleId))
         {

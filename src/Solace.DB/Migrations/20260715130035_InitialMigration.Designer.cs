@@ -9,18 +9,18 @@ using Solace.DB;
 
 #nullable disable
 
-namespace Solace.DB.Postgres.Migrations
+namespace Solace.DB.Migrations
 {
     [DbContext(typeof(EarthDbContext))]
-    [Migration("20260714180545_NewSchemas")]
-    partial class NewSchemas
+    [Migration("20260715130035_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -272,10 +272,7 @@ namespace Solace.DB.Postgres.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Boosts", null, t =>
-                        {
-                            t.HasTrigger("trg_boosts_version");
-                        });
+                    b.ToTable("Boosts");
                 });
 
             modelBuilder.Entity("Solace.DB.Models.Player.BuildplateEF", b =>
@@ -319,10 +316,7 @@ namespace Solace.DB.Postgres.Migrations
 
                     b.HasIndex("AccountId");
 
-                    b.ToTable("Buildplate", null, t =>
-                        {
-                            t.HasTrigger("trg_buildplates_version");
-                        });
+                    b.ToTable("PlayerBuildplates");
                 });
 
             modelBuilder.Entity("Solace.DB.Models.Player.HotbarEF", b =>
@@ -354,10 +348,7 @@ namespace Solace.DB.Postgres.Migrations
 
                     b.HasKey("AccountId", "ItemId");
 
-                    b.ToTable("JournalEntries", null, t =>
-                        {
-                            t.HasTrigger("trg_journal_entries_version");
-                        });
+                    b.ToTable("JournalEntries");
                 });
 
             modelBuilder.Entity("Solace.DB.Models.Player.NonStackableItemInstanceEF", b =>
@@ -376,10 +367,7 @@ namespace Solace.DB.Postgres.Migrations
 
                     b.HasKey("AccountId", "ItemId", "InstanceId");
 
-                    b.ToTable("NonStackableItems", null, t =>
-                        {
-                            t.HasTrigger("trg_non_stackable_items_version");
-                        });
+                    b.ToTable("NonStackableItems");
                 });
 
             modelBuilder.Entity("Solace.DB.Models.Player.ProfileEF", b =>
@@ -398,10 +386,7 @@ namespace Solace.DB.Postgres.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Profiles", null, t =>
-                        {
-                            t.HasTrigger("trg_profiles_version");
-                        });
+                    b.ToTable("Profiles");
                 });
 
             modelBuilder.Entity("Solace.DB.Models.Player.RedeemedTappableEF", b =>
@@ -433,10 +418,7 @@ namespace Solace.DB.Postgres.Migrations
 
                     b.HasKey("AccountId", "ItemId");
 
-                    b.ToTable("StackableItems", null, t =>
-                        {
-                            t.HasTrigger("trg_stackable_items_version");
-                        });
+                    b.ToTable("StackableItems");
                 });
 
             modelBuilder.Entity("Solace.DB.Models.Player.TokenEF", b =>
@@ -455,10 +437,7 @@ namespace Solace.DB.Postgres.Migrations
 
                     b.HasKey("AccountId", "TokenId");
 
-                    b.ToTable("Tokens", null, t =>
-                        {
-                            t.HasTrigger("trg_tokens_version");
-                        });
+                    b.ToTable("Tokens");
 
                     b.HasDiscriminator<string>("token_type").HasValue("TokenEF");
 
@@ -472,10 +451,7 @@ namespace Solace.DB.Postgres.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("CraftingSlots", null, t =>
-                        {
-                            t.HasTrigger("trg_crafting_slots_version");
-                        });
+                    b.ToTable("CraftingSlots");
                 });
 
             modelBuilder.Entity("Solace.DB.Models.Player.Workshop.SmeltingSlotsEF", b =>
@@ -485,10 +461,7 @@ namespace Solace.DB.Postgres.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SmeltingSlots", null, t =>
-                        {
-                            t.HasTrigger("trg_smelting_slots_version");
-                        });
+                    b.ToTable("SmeltingSlots");
                 });
 
             modelBuilder.Entity("Solace.DB.Models.Player.BoostActivatedEntryEF", b =>

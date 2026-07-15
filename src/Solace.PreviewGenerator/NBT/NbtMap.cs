@@ -1,6 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json.Serialization;
-using Solace.Common.Utils;
+using Solace.PreviewGenerator.Utils;
 
 namespace Solace.PreviewGenerator.NBT;
 
@@ -293,7 +293,7 @@ public sealed class NbtMap// : IDictionary<string, object>
                 }
                 else
                 {
-                    if (!ObjectExtensions.DeepEquals(value, m.Get(key)))
+                    if (!ObjectUtils.DeepEquals(value, m.Get(key)))
                     {
                         return false;
                     }

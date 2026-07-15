@@ -268,9 +268,6 @@ internal static partial class App
                 var appDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 await appDbContext.Database.MigrateAsync();
 
-                var earthDbContext = scope.ServiceProvider.GetRequiredService<EarthDbContext>();
-                await earthDbContext.Database.MigrateAsync();
-
                 var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
                 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
                 await EnsureBuiltInRolesAsync(roleManager, userManager);

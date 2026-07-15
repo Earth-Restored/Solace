@@ -108,7 +108,7 @@ internal sealed class TappablesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        TappableRequest? tappableRequest = await Request.Body.AsJsonAsync<TappableRequest>(cancellationToken);
+        TappableRequest? tappableRequest = await Request.Body.AsJsonAsync(AppJsonContext.Default.TappableRequest, cancellationToken);
         if (tappableRequest is null)
         {
             return TypedResults.BadRequest();
@@ -198,7 +198,7 @@ internal sealed class TappablesController : SolaceControllerBase
     [HttpPost("multiplayer/player/adventures/state")]
     public async Task<Results<ContentHttpResult, BadRequest>> EncountersState(CancellationToken cancellationToken)
     {
-        var requestedIds = await Request.Body.AsJsonAsync<Dictionary<string, object>>(cancellationToken);
+        var requestedIds = await Request.Body.AsJsonAsync(AppJsonContext.Default.DictionaryStringObject, cancellationToken);
 
         if (requestedIds is null)
         {
@@ -226,7 +226,7 @@ internal sealed class TappablesController : SolaceControllerBase
         return EarthJson(encounterStates);
     }
 
-    private sealed record TappableRequest(
+    internal sealed record TappableRequest(
         Guid Id,
         Coordinate PlayerCoordinate
     );

@@ -42,7 +42,7 @@ internal sealed partial class ProfileController : LoginServerControllerBase
     {
         var cancellationToken = Request.HttpContext.RequestAborted;
 
-        var request = await Request.Body.AsJsonAsync<BatchProfileSettingsRequest>(cancellationToken);
+        var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.BatchProfileSettingsRequest, cancellationToken);
 
         if (request is null)
         {

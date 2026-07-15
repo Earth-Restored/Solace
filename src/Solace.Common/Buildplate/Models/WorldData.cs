@@ -140,7 +140,7 @@ public sealed partial record class WorldData(
             }
             else
             {
-                var buildplateMetadataVersion = Json.Deserialize<BuildplateMetadataVersion>(buildplateMetadataString);
+                var buildplateMetadataVersion = JsonSerializer.Deserialize(buildplateMetadataString, AppJsonContext.Default.BuildplateMetadataVersion);
 
                 if (buildplateMetadataVersion is null)
                 {
@@ -152,7 +152,7 @@ public sealed partial record class WorldData(
                 {
                     case 1:
                         {
-                            var buildplateMetadata = Json.Deserialize<BuildplateMetadataV1>(buildplateMetadataString);
+                            var buildplateMetadata = JsonSerializer.Deserialize(buildplateMetadataString, AppJsonContext.Default.BuildplateMetadataV1);
 
                             if (buildplateMetadata is null)
                             {
@@ -189,12 +189,12 @@ public sealed partial record class WorldData(
         return new WorldData(serverData, size, offset, night);
     }
 
-    public static void WriteMetadata(Stream stream, BuildplateMetadataV1 data, JsonSerializerOptions? options = null)
+    public static void WriteMetadata(Stream stream, BuildplateMetadataV1 data)
     {
         var versionData = new BuildplateMetadataVersion(1);
 
-        var versionNode = JsonSerializer.SerializeToNode(versionData, options) as JsonObject;
-        var v1Node = JsonSerializer.SerializeToNode(data, options) as JsonObject;
+        var versionNode = JsonSerializer.SerializeToNode(versionData, AppJsonContext.Default.BuildplateMetadataVersion) as JsonObject;
+        var v1Node = JsonSerializer.SerializeToNode(data, AppJsonContext.Default.BuildplateMetadataV1) as JsonObject;
 
         if (versionNode is null || v1Node is null)
         {
@@ -214,7 +214,7 @@ public sealed partial record class WorldData(
         }
 
         using var writer = new Utf8JsonWriter(stream);
-        combinedObject.WriteTo(writer, options);
+        combinedObject.WriteTo(writer);
     }
 
     // LoggerMessage doesn't work in records???

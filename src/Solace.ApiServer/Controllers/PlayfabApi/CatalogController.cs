@@ -36,7 +36,7 @@ internal sealed class CatalogController : SolaceControllerBase
         _staticData = staticData;
     }
 
-    private sealed record CatalogSearchRequest(
+    internal sealed record CatalogSearchRequest(
         bool Count,
         string Filter,
         string? Select,
@@ -53,7 +53,7 @@ internal sealed class CatalogController : SolaceControllerBase
 
         var cancellationToken = Request.HttpContext.RequestAborted;
 
-        var request = await Request.Body.AsJsonAsync<CatalogSearchRequest>(cancellationToken);
+        var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.CatalogSearchRequest, cancellationToken);
 
         if (request is null)
         {
@@ -135,7 +135,7 @@ internal sealed class CatalogController : SolaceControllerBase
             }
         ));
 
-    private sealed record GetPublishedItemRequest(
+    internal sealed record GetPublishedItemRequest(
         string? ItemId
     );
 
@@ -148,7 +148,7 @@ internal sealed class CatalogController : SolaceControllerBase
     {
         var cancellationToken = Request.HttpContext.RequestAborted;
 
-        var request = await Request.Body.AsJsonAsync<GetPublishedItemRequest>(cancellationToken);
+        var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.GetPublishedItemRequest, cancellationToken);
 
         if (request is null)
         {

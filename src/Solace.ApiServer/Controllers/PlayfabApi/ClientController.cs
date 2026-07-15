@@ -21,23 +21,22 @@ internal sealed partial class ClientController : SolaceControllerBase
         _logger = logger;
     }
 
-    private sealed record GetUserPublisherDataRequest(
-        GetUserPublisherDataRequest.EntityR Entity,
+    internal sealed record GetUserPublisherDataRequest(
+        GetUserPublisherDataRequestEntity Entity,
         string[] Keys
-    )
-    {
-        internal sealed record EntityR(
-            string Id,
-            string Type
-        );
-    }
+    );
+
+    internal sealed record GetUserPublisherDataRequestEntity(
+        string Id,
+        string Type
+    );
 
     [HttpPost("GetUserPublisherData")]
     public async Task<Results<ContentHttpResult, ForbidHttpResult, BadRequest>> GetUserPublisherData()
     {
         var cancellationToken = Request.HttpContext.RequestAborted;
 
-        var request = await Request.Body.AsJsonAsync<GetUserPublisherDataRequest>(cancellationToken);
+        var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.GetUserPublisherDataRequest, cancellationToken);
 
         if (request is null)
         {
@@ -97,7 +96,7 @@ internal sealed partial class ClientController : SolaceControllerBase
         }
     }
 
-    private sealed record GetPlayerStatisticsRequest(
+    internal sealed record GetPlayerStatisticsRequest(
         string[] StatisticNames
     );
 
@@ -106,7 +105,7 @@ internal sealed partial class ClientController : SolaceControllerBase
     {
         var cancellationToken = Request.HttpContext.RequestAborted;
 
-        var request = await Request.Body.AsJsonAsync<GetPlayerStatisticsRequest>(cancellationToken);
+        var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.GetPlayerStatisticsRequest, cancellationToken);
 
         if (request is null)
         {

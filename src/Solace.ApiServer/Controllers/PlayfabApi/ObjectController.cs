@@ -9,16 +9,15 @@ namespace Solace.ApiServer.Controllers.PlayfabApi;
 [Route("20CA2.playfabapi.com/Object")]
 internal sealed class ObjectController : LoginServerControllerBase
 {
-    private sealed record GetObjectsRequest(
-        GetObjectsRequest.EntityR Entity,
+    internal sealed record GetObjectsRequest(
+        GetObjectsRequestEntity Entity,
         object? EscapeObject
-    )
-    {
-        internal sealed record EntityR(
-            Guid Id,
-            string Type
-        );
-    }
+    );
+
+    internal sealed record GetObjectsRequestEntity(
+        Guid Id,
+        string Type
+    );
 
     private static readonly string[] DataArray0 = ["#ff523d89", "#0", "#0", "#0"];
     private static readonly string[] DataArray1 = ["#ff2f1f0f", "#0", "#0", "#0"];
@@ -34,7 +33,7 @@ internal sealed class ObjectController : LoginServerControllerBase
     {
         var cancellationToken = Request.HttpContext.RequestAborted;
 
-        var request = await Request.Body.AsJsonAsync<GetObjectsRequest>(cancellationToken);
+        var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.GetObjectsRequest, cancellationToken);
 
         if (request is null)
         {
@@ -230,27 +229,28 @@ internal sealed class ObjectController : LoginServerControllerBase
         };
     }
 
-    private sealed record SetObjectsRequest(
-        SetObjectsRequest.EntityR Entity,
+    internal sealed record SetObjectsRequest(
+        SetObjectsRequestEntity Entity,
         object? Objects
     )
     {
-        internal sealed record EntityR(
-            Guid Id,
-            string Type
-        );
 
         internal sealed record ObjectsR(
         // TODO  
         );
     }
 
+    internal sealed record SetObjectsRequestEntity(
+        Guid Id,
+        string Type
+    );
+
     [HttpPost("SetObjects")]
     public async Task<Results<Ok, ForbidHttpResult, BadRequest>> SetObjects()
     {
         var cancellationToken = Request.HttpContext.RequestAborted;
 
-        var request = await Request.Body.AsJsonAsync<SetObjectsRequest>(cancellationToken);
+        var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.SetObjectsRequest, cancellationToken);
 
         if (request is null)
         {

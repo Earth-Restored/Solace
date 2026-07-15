@@ -39,12 +39,12 @@ internal sealed partial class ShopController : SolaceControllerBase
         _logger = logger;
     }
 
-    private sealed record StoreItemInfoRequest(string Id, string StoreItemType, uint StreamVersion);
+    internal sealed record StoreItemInfoRequest(string Id, string StoreItemType, uint StreamVersion);
 
     [HttpPost("storeItemInfo")]
     public async Task<ContentHttpResult> GetStoreItemInfo(CancellationToken cancellationToken)
     {
-        var request = await Request.Body.AsJsonAsync<StoreItemInfoRequest[]>(cancellationToken);
+        var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.StoreItemInfoRequestArray, cancellationToken);
 
         if (request is null or { Length: 0 })
         {
@@ -108,7 +108,7 @@ internal sealed partial class ShopController : SolaceControllerBase
         return EarthJson(result);
     }
 
-    private sealed record PurchaseItemRequest(
+    internal sealed record PurchaseItemRequest(
         int ExpectedPurchasePrice,
         Guid ItemId
     );
@@ -121,7 +121,7 @@ internal sealed partial class ShopController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var request = await Request.Body.AsJsonAsync<PurchaseItemRequest>(cancellationToken);
+        var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.PurchaseItemRequest, cancellationToken);
 
         if (request is null)
         {
@@ -146,7 +146,7 @@ internal sealed partial class ShopController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var request = await Request.Body.AsJsonAsync<PurchaseItemRequest>(cancellationToken);
+        var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.PurchaseItemRequest, cancellationToken);
 
         if (request is null)
         {

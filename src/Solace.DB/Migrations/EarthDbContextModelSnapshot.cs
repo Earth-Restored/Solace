@@ -8,7 +8,7 @@ using Solace.DB;
 
 #nullable disable
 
-namespace Solace.DB.Postgres.Migrations
+namespace Solace.DB.Migrations
 {
     [DbContext(typeof(EarthDbContext))]
     partial class EarthDbContextModelSnapshot : ModelSnapshot
@@ -17,7 +17,7 @@ namespace Solace.DB.Postgres.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
