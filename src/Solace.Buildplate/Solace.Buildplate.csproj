@@ -31,9 +31,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Cyotek.Data.Nbt" Version="4.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
-    <PackageReference Include="ReentrantAsyncLock" Version="0.3.2" />
+    <PackageReference Include="Cyotek.Data.Nbt" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="ReentrantAsyncLock" />
   </ItemGroup>
 
   <ItemGroup>

@@ -3,14 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.Mapping;
 using Solace.DB.Models;
 using Solace.DB.Models.Player;
 
@@ -40,48 +35,6 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(ItemJournalEntryEF).GetField("<AccountId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            accountId.SetGetter(
-                Guid (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.AccountId(instance),
-                bool (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.AccountId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
-            accountId.SetSetter(
-                ItemJournalEntryEF (ItemJournalEntryEF instance, Guid value) =>
-                {
-                    ItemJournalEntryEFUnsafeAccessors.AccountId(instance) = value;
-                    return instance;
-                });
-            accountId.SetMaterializationSetter(
-                ItemJournalEntryEF (ItemJournalEntryEF instance, Guid value) =>
-                {
-                    ItemJournalEntryEFUnsafeAccessors.AccountId(instance) = value;
-                    return instance;
-                });
-            accountId.SetAccessors(
-                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(0) ? entry.ReadStoreGeneratedValue<Guid>(0) : (entry.FlaggedAsTemporary(0) && ItemJournalEntryEFUnsafeAccessors.AccountId(((ItemJournalEntryEF)(entry.Entity))) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(0) : ItemJournalEntryEFUnsafeAccessors.AccountId(((ItemJournalEntryEF)(entry.Entity))))),
-                Guid (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.AccountId(((ItemJournalEntryEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(accountId, 0),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(accountId, 0));
-            accountId.SetPropertyIndexes(
-                index: 0,
-                originalValueIndex: 0,
-                shadowIndex: -1,
-                relationshipIndex: 0,
-                storeGenerationIndex: 0);
-            accountId.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
-            accountId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(accountId));
             accountId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var itemId = runtimeEntityType.AddProperty(
@@ -91,48 +44,6 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(ItemJournalEntryEF).GetField("<ItemId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            itemId.SetGetter(
-                Guid (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.ItemId(instance),
-                bool (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.ItemId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
-            itemId.SetSetter(
-                ItemJournalEntryEF (ItemJournalEntryEF instance, Guid value) =>
-                {
-                    ItemJournalEntryEFUnsafeAccessors.ItemId(instance) = value;
-                    return instance;
-                });
-            itemId.SetMaterializationSetter(
-                ItemJournalEntryEF (ItemJournalEntryEF instance, Guid value) =>
-                {
-                    ItemJournalEntryEFUnsafeAccessors.ItemId(instance) = value;
-                    return instance;
-                });
-            itemId.SetAccessors(
-                Guid (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.ItemId(((ItemJournalEntryEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.ItemId(((ItemJournalEntryEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(itemId, 1),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(itemId, 1));
-            itemId.SetPropertyIndexes(
-                index: 1,
-                originalValueIndex: 1,
-                shadowIndex: -1,
-                relationshipIndex: 1,
-                storeGenerationIndex: -1);
-            itemId.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
-            itemId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(itemId));
             itemId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var amountCollected = runtimeEntityType.AddProperty(
@@ -141,47 +52,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(ItemJournalEntryEF).GetProperty("AmountCollected", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(ItemJournalEntryEF).GetField("<AmountCollected>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: 0);
-            amountCollected.SetGetter(
-                int (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.AmountCollected(instance),
-                bool (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.AmountCollected(instance) == 0);
-            amountCollected.SetSetter(
-                ItemJournalEntryEF (ItemJournalEntryEF instance, int value) =>
-                {
-                    ItemJournalEntryEFUnsafeAccessors.AmountCollected(instance) = value;
-                    return instance;
-                });
-            amountCollected.SetMaterializationSetter(
-                ItemJournalEntryEF (ItemJournalEntryEF instance, int value) =>
-                {
-                    ItemJournalEntryEFUnsafeAccessors.AmountCollected(instance) = value;
-                    return instance;
-                });
-            amountCollected.SetAccessors(
-                int (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.AmountCollected(((ItemJournalEntryEF)(entry.Entity))),
-                int (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.AmountCollected(((ItemJournalEntryEF)(entry.Entity))),
-                int (IInternalEntry entry) => entry.ReadOriginalValue<int>(amountCollected, 2),
-                int (IInternalEntry entry) => entry.GetCurrentValue<int>(amountCollected));
-            amountCollected.SetPropertyIndexes(
-                index: 2,
-                originalValueIndex: 2,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            amountCollected.TypeMapping = IntTypeMapping.Default.Clone(
-                comparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                keyComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                providerValueComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "integer"));
             amountCollected.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var firstSeen = runtimeEntityType.AddProperty(
@@ -190,47 +60,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(ItemJournalEntryEF).GetProperty("FirstSeen", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(ItemJournalEntryEF).GetField("<FirstSeen>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)));
-            firstSeen.SetGetter(
-                DateTimeOffset (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.FirstSeen(instance),
-                bool (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.FirstSeen(instance).EqualsExact(default(DateTimeOffset)));
-            firstSeen.SetSetter(
-                ItemJournalEntryEF (ItemJournalEntryEF instance, DateTimeOffset value) =>
-                {
-                    ItemJournalEntryEFUnsafeAccessors.FirstSeen(instance) = value;
-                    return instance;
-                });
-            firstSeen.SetMaterializationSetter(
-                ItemJournalEntryEF (ItemJournalEntryEF instance, DateTimeOffset value) =>
-                {
-                    ItemJournalEntryEFUnsafeAccessors.FirstSeen(instance) = value;
-                    return instance;
-                });
-            firstSeen.SetAccessors(
-                DateTimeOffset (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.FirstSeen(((ItemJournalEntryEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.FirstSeen(((ItemJournalEntryEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => entry.ReadOriginalValue<DateTimeOffset>(firstSeen, 3),
-                DateTimeOffset (IInternalEntry entry) => entry.GetCurrentValue<DateTimeOffset>(firstSeen));
-            firstSeen.SetPropertyIndexes(
-                index: 3,
-                originalValueIndex: 3,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            firstSeen.TypeMapping = NpgsqlTimestampTzTypeMapping.Default.Clone(
-                comparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                keyComparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                providerValueComparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                clrType: typeof(DateTimeOffset),
-                jsonValueReaderWriter: new NpgsqlTimestampTzTypeMapping.NpgsqlJsonTimestampTzDateTimeOffsetReaderWriter());
             firstSeen.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var lastSeen = runtimeEntityType.AddProperty(
@@ -239,47 +68,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(ItemJournalEntryEF).GetProperty("LastSeen", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(ItemJournalEntryEF).GetField("<LastSeen>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)));
-            lastSeen.SetGetter(
-                DateTimeOffset (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.LastSeen(instance),
-                bool (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.LastSeen(instance).EqualsExact(default(DateTimeOffset)));
-            lastSeen.SetSetter(
-                ItemJournalEntryEF (ItemJournalEntryEF instance, DateTimeOffset value) =>
-                {
-                    ItemJournalEntryEFUnsafeAccessors.LastSeen(instance) = value;
-                    return instance;
-                });
-            lastSeen.SetMaterializationSetter(
-                ItemJournalEntryEF (ItemJournalEntryEF instance, DateTimeOffset value) =>
-                {
-                    ItemJournalEntryEFUnsafeAccessors.LastSeen(instance) = value;
-                    return instance;
-                });
-            lastSeen.SetAccessors(
-                DateTimeOffset (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.LastSeen(((ItemJournalEntryEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.LastSeen(((ItemJournalEntryEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => entry.ReadOriginalValue<DateTimeOffset>(lastSeen, 4),
-                DateTimeOffset (IInternalEntry entry) => entry.GetCurrentValue<DateTimeOffset>(lastSeen));
-            lastSeen.SetPropertyIndexes(
-                index: 4,
-                originalValueIndex: 4,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            lastSeen.TypeMapping = NpgsqlTimestampTzTypeMapping.Default.Clone(
-                comparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                keyComparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                providerValueComparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                clrType: typeof(DateTimeOffset),
-                jsonValueReaderWriter: new NpgsqlTimestampTzTypeMapping.NpgsqlJsonTimestampTzDateTimeOffsetReaderWriter());
             lastSeen.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var key = runtimeEntityType.AddKey(
@@ -304,32 +92,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(ItemJournalEntryEF).GetProperty("Account", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(ItemJournalEntryEF).GetField("<Account>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
 
-            account.SetGetter(
-                Account (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.Account(instance),
-                bool (ItemJournalEntryEF instance) => ItemJournalEntryEFUnsafeAccessors.Account(instance) == null);
-            account.SetSetter(
-                ItemJournalEntryEF (ItemJournalEntryEF instance, Account value) =>
-                {
-                    ItemJournalEntryEFUnsafeAccessors.Account(instance) = value;
-                    return instance;
-                });
-            account.SetMaterializationSetter(
-                ItemJournalEntryEF (ItemJournalEntryEF instance, Account value) =>
-                {
-                    ItemJournalEntryEFUnsafeAccessors.Account(instance) = value;
-                    return instance;
-                });
-            account.SetAccessors(
-                Account (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.Account(((ItemJournalEntryEF)(entry.Entity))),
-                Account (IInternalEntry entry) => ItemJournalEntryEFUnsafeAccessors.Account(((ItemJournalEntryEF)(entry.Entity))),
-                null,
-                Account (IInternalEntry entry) => entry.GetCurrentValue<Account>(account));
-            account.SetPropertyIndexes(
-                index: 0,
-                originalValueIndex: -1,
-                shadowIndex: -1,
-                relationshipIndex: 2,
-                storeGenerationIndex: -1);
             var journalEntries = principalEntityType.AddNavigation("JournalEntries",
                 runtimeForeignKey,
                 onDependent: false,
@@ -337,81 +99,11 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(Account).GetProperty("JournalEntries", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(Account).GetField("<JournalEntries>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
 
-            journalEntries.SetGetter(
-                ICollection<ItemJournalEntryEF> (Account instance) => AccountUnsafeAccessors.JournalEntries(instance),
-                bool (Account instance) => AccountUnsafeAccessors.JournalEntries(instance) == null);
-            journalEntries.SetSetter(
-                Account (Account instance, ICollection<ItemJournalEntryEF> value) =>
-                {
-                    AccountUnsafeAccessors.JournalEntries(instance) = value;
-                    return instance;
-                });
-            journalEntries.SetMaterializationSetter(
-                Account (Account instance, ICollection<ItemJournalEntryEF> value) =>
-                {
-                    AccountUnsafeAccessors.JournalEntries(instance) = value;
-                    return instance;
-                });
-            journalEntries.SetAccessors(
-                ICollection<ItemJournalEntryEF> (IInternalEntry entry) => AccountUnsafeAccessors.JournalEntries(((Account)(entry.Entity))),
-                ICollection<ItemJournalEntryEF> (IInternalEntry entry) => AccountUnsafeAccessors.JournalEntries(((Account)(entry.Entity))),
-                null,
-                ICollection<ItemJournalEntryEF> (IInternalEntry entry) => entry.GetCurrentValue<ICollection<ItemJournalEntryEF>>(journalEntries));
-            journalEntries.SetPropertyIndexes(
-                index: 6,
-                originalValueIndex: -1,
-                shadowIndex: -1,
-                relationshipIndex: 7,
-                storeGenerationIndex: -1);
-            journalEntries.SetCollectionAccessor<Account, ICollection<ItemJournalEntryEF>, ItemJournalEntryEF>(
-                ICollection<ItemJournalEntryEF> (Account entity) => AccountUnsafeAccessors.JournalEntries(entity),
-                (Account entity, ICollection<ItemJournalEntryEF> collection) => AccountUnsafeAccessors.JournalEntries(entity) = ((ICollection<ItemJournalEntryEF>)collection),
-                (Account entity, ICollection<ItemJournalEntryEF> collection) => AccountUnsafeAccessors.JournalEntries(entity) = ((ICollection<ItemJournalEntryEF>)collection),
-                ICollection<ItemJournalEntryEF> (Account entity, Action<Account, ICollection<ItemJournalEntryEF>> setter) => ClrCollectionAccessorFactory.CreateAndSetHashSet<Account, ICollection<ItemJournalEntryEF>, ItemJournalEntryEF>(entity, setter),
-                ICollection<ItemJournalEntryEF> () => ((ICollection<ItemJournalEntryEF>)(((ICollection<ItemJournalEntryEF>)(new HashSet<ItemJournalEntryEF>(ReferenceEqualityComparer.Instance))))));
             return runtimeForeignKey;
         }
 
         public static void CreateAnnotations(RuntimeEntityType runtimeEntityType)
         {
-            var accountId = runtimeEntityType.FindProperty("AccountId");
-            var itemId = runtimeEntityType.FindProperty("ItemId");
-            var amountCollected = runtimeEntityType.FindProperty("AmountCollected");
-            var firstSeen = runtimeEntityType.FindProperty("FirstSeen");
-            var lastSeen = runtimeEntityType.FindProperty("LastSeen");
-            var key = runtimeEntityType.FindKey(new[] { accountId, itemId });
-            key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateCompositeFactory(key));
-            key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<IReadOnlyList<object>>(key));
-            var account = runtimeEntityType.FindNavigation("Account");
-            runtimeEntityType.SetOriginalValuesFactory(
-                ISnapshot (IInternalEntry source) =>
-                {
-                    var structuralType = ((ItemJournalEntryEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, Guid, int, DateTimeOffset, DateTimeOffset>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<Guid>)(((IProperty)itemId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(itemId)), ((ValueComparer<int>)(((IProperty)amountCollected).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(amountCollected)), ((ValueComparer<DateTimeOffset>)(((IProperty)firstSeen).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(firstSeen)), ((ValueComparer<DateTimeOffset>)(((IProperty)lastSeen).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(lastSeen)))));
-                });
-            runtimeEntityType.SetStoreGeneratedValuesFactory(
-                ISnapshot () => ((ISnapshot)(new Snapshot<Guid>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid))))));
-            runtimeEntityType.SetTemporaryValuesFactory(
-                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid>(default(Guid)))));
-            runtimeEntityType.SetShadowValuesFactory(
-                ISnapshot (IDictionary<string, object> source) => Snapshot.Empty);
-            runtimeEntityType.SetEmptyShadowValuesFactory(
-                ISnapshot () => Snapshot.Empty);
-            runtimeEntityType.SetRelationshipSnapshotFactory(
-                ISnapshot (IInternalEntry source) =>
-                {
-                    var structuralType = ((ItemJournalEntryEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, Guid, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<Guid>)(((IProperty)itemId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(itemId)), source.GetCurrentValue<Account>(account))));
-                });
-            runtimeEntityType.SetCounts(new PropertyCounts(
-                propertyCount: 5,
-                navigationCount: 1,
-                complexPropertyCount: 0,
-                complexCollectionCount: 0,
-                originalValueCount: 5,
-                shadowCount: 0,
-                relationshipCount: 3,
-                storeGeneratedCount: 1));
             runtimeEntityType.AddAnnotation("Relational:FunctionName", null);
             runtimeEntityType.AddAnnotation("Relational:Schema", null);
             runtimeEntityType.AddAnnotation("Relational:SqlQuery", null);

@@ -3,15 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.ValueGeneration;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.Mapping;
 using Solace.DB.Models;
 using Solace.DB.Models.Player;
 
@@ -44,48 +39,6 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(TokenEF).GetField("<AccountId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            accountId.SetGetter(
-                Guid (TokenEF instance) => TokenEFUnsafeAccessors.AccountId(instance),
-                bool (TokenEF instance) => TokenEFUnsafeAccessors.AccountId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
-            accountId.SetSetter(
-                TokenEF (TokenEF instance, Guid value) =>
-                {
-                    TokenEFUnsafeAccessors.AccountId(instance) = value;
-                    return instance;
-                });
-            accountId.SetMaterializationSetter(
-                TokenEF (TokenEF instance, Guid value) =>
-                {
-                    TokenEFUnsafeAccessors.AccountId(instance) = value;
-                    return instance;
-                });
-            accountId.SetAccessors(
-                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(0) ? entry.ReadStoreGeneratedValue<Guid>(0) : (entry.FlaggedAsTemporary(0) && TokenEFUnsafeAccessors.AccountId(((TokenEF)(entry.Entity))) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(0) : TokenEFUnsafeAccessors.AccountId(((TokenEF)(entry.Entity))))),
-                Guid (IInternalEntry entry) => TokenEFUnsafeAccessors.AccountId(((TokenEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(accountId, 0),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(accountId, 0));
-            accountId.SetPropertyIndexes(
-                index: 0,
-                originalValueIndex: 0,
-                shadowIndex: -1,
-                relationshipIndex: 0,
-                storeGenerationIndex: 0);
-            accountId.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
-            accountId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(accountId));
             accountId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var tokenId = runtimeEntityType.AddProperty(
@@ -96,48 +49,6 @@ namespace Solace.DB.CompiledModels
                 valueGenerated: ValueGenerated.OnAdd,
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            tokenId.SetGetter(
-                Guid (TokenEF instance) => TokenEFUnsafeAccessors.TokenId(instance),
-                bool (TokenEF instance) => TokenEFUnsafeAccessors.TokenId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
-            tokenId.SetSetter(
-                TokenEF (TokenEF instance, Guid value) =>
-                {
-                    TokenEFUnsafeAccessors.TokenId(instance) = value;
-                    return instance;
-                });
-            tokenId.SetMaterializationSetter(
-                TokenEF (TokenEF instance, Guid value) =>
-                {
-                    TokenEFUnsafeAccessors.TokenId(instance) = value;
-                    return instance;
-                });
-            tokenId.SetAccessors(
-                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(1) ? entry.ReadStoreGeneratedValue<Guid>(1) : (entry.FlaggedAsTemporary(1) && TokenEFUnsafeAccessors.TokenId(((TokenEF)(entry.Entity))) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(1) : TokenEFUnsafeAccessors.TokenId(((TokenEF)(entry.Entity))))),
-                Guid (IInternalEntry entry) => TokenEFUnsafeAccessors.TokenId(((TokenEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(tokenId, 1),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(tokenId, 1));
-            tokenId.SetPropertyIndexes(
-                index: 1,
-                originalValueIndex: 1,
-                shadowIndex: -1,
-                relationshipIndex: 1,
-                storeGenerationIndex: 1);
-            tokenId.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
-            tokenId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(tokenId));
             tokenId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var token_type = runtimeEntityType.AddProperty(
@@ -146,175 +57,53 @@ namespace Solace.DB.CompiledModels
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 maxLength: 21,
                 valueGeneratorFactory: new DiscriminatorValueGeneratorFactory().Create);
-            token_type.SetAccessors(
-                string (IInternalEntry entry) => entry.ReadShadowValue<string>(0),
-                string (IInternalEntry entry) => entry.ReadShadowValue<string>(0),
-                string (IInternalEntry entry) => entry.ReadOriginalValue<string>(token_type, 2),
-                string (IInternalEntry entry) => entry.GetCurrentValue<string>(token_type));
-            token_type.SetPropertyIndexes(
-                index: 2,
-                originalValueIndex: 2,
-                shadowIndex: 0,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            token_type.TypeMapping = NpgsqlStringTypeMapping.Default.Clone(
-                comparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
-                keyComparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
-                providerValueComparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "character varying(21)",
-                    size: 21));
-            token_type.TypeMapping = ((NpgsqlStringTypeMapping)token_type.TypeMapping).Clone(npgsqlDbType: NpgsqlTypes.NpgsqlDbType.Varchar);
-        token_type.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
+            token_type.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
-        var key = runtimeEntityType.AddKey(
-            new[] { accountId, tokenId });
-        runtimeEntityType.SetPrimaryKey(key);
+            var key = runtimeEntityType.AddKey(
+                new[] { accountId, tokenId });
+            runtimeEntityType.SetPrimaryKey(key);
 
-        return runtimeEntityType;
+            return runtimeEntityType;
+        }
+
+        public static RuntimeForeignKey CreateForeignKey1(RuntimeEntityType declaringEntityType, RuntimeEntityType principalEntityType)
+        {
+            var runtimeForeignKey = declaringEntityType.AddForeignKey(new[] { declaringEntityType.FindProperty("AccountId") },
+                principalEntityType.FindKey(new[] { principalEntityType.FindProperty("Id") }),
+                principalEntityType,
+                deleteBehavior: DeleteBehavior.Cascade,
+                required: true);
+
+            var account = declaringEntityType.AddNavigation("Account",
+                runtimeForeignKey,
+                onDependent: true,
+                typeof(Account),
+                propertyInfo: typeof(TokenEF).GetProperty("Account", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                fieldInfo: typeof(TokenEF).GetField("<Account>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
+
+            var tokens = principalEntityType.AddNavigation("Tokens",
+                runtimeForeignKey,
+                onDependent: false,
+                typeof(ICollection<TokenEF>),
+                propertyInfo: typeof(Account).GetProperty("Tokens", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                fieldInfo: typeof(Account).GetField("<Tokens>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
+
+            return runtimeForeignKey;
+        }
+
+        public static void CreateAnnotations(RuntimeEntityType runtimeEntityType)
+        {
+            runtimeEntityType.AddAnnotation("Relational:FunctionName", null);
+            runtimeEntityType.AddAnnotation("Relational:MappingStrategy", "TPH");
+            runtimeEntityType.AddAnnotation("Relational:Schema", null);
+            runtimeEntityType.AddAnnotation("Relational:SqlQuery", null);
+            runtimeEntityType.AddAnnotation("Relational:TableName", "Tokens");
+            runtimeEntityType.AddAnnotation("Relational:ViewName", null);
+            runtimeEntityType.AddAnnotation("Relational:ViewSchema", null);
+
+            Customize(runtimeEntityType);
+        }
+
+        static partial void Customize(RuntimeEntityType runtimeEntityType);
     }
-
-    public static RuntimeForeignKey CreateForeignKey1(RuntimeEntityType declaringEntityType, RuntimeEntityType principalEntityType)
-    {
-        var runtimeForeignKey = declaringEntityType.AddForeignKey(new[] { declaringEntityType.FindProperty("AccountId") },
-            principalEntityType.FindKey(new[] { principalEntityType.FindProperty("Id") }),
-            principalEntityType,
-            deleteBehavior: DeleteBehavior.Cascade,
-            required: true);
-
-        var account = declaringEntityType.AddNavigation("Account",
-            runtimeForeignKey,
-            onDependent: true,
-            typeof(Account),
-            propertyInfo: typeof(TokenEF).GetProperty("Account", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-            fieldInfo: typeof(TokenEF).GetField("<Account>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
-
-        account.SetGetter(
-            Account (TokenEF instance) => TokenEFUnsafeAccessors.Account(instance),
-            bool (TokenEF instance) => TokenEFUnsafeAccessors.Account(instance) == null);
-        account.SetSetter(
-            TokenEF (TokenEF instance, Account value) =>
-            {
-                TokenEFUnsafeAccessors.Account(instance) = value;
-                return instance;
-            });
-        account.SetMaterializationSetter(
-            TokenEF (TokenEF instance, Account value) =>
-            {
-                TokenEFUnsafeAccessors.Account(instance) = value;
-                return instance;
-            });
-        account.SetAccessors(
-            Account (IInternalEntry entry) => TokenEFUnsafeAccessors.Account(((TokenEF)(entry.Entity))),
-            Account (IInternalEntry entry) => TokenEFUnsafeAccessors.Account(((TokenEF)(entry.Entity))),
-            null,
-            Account (IInternalEntry entry) => entry.GetCurrentValue<Account>(account));
-        account.SetPropertyIndexes(
-            index: 0,
-            originalValueIndex: -1,
-            shadowIndex: -1,
-            relationshipIndex: 2,
-            storeGenerationIndex: -1);
-        var tokens = principalEntityType.AddNavigation("Tokens",
-            runtimeForeignKey,
-            onDependent: false,
-            typeof(ICollection<TokenEF>),
-            propertyInfo: typeof(Account).GetProperty("Tokens", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-            fieldInfo: typeof(Account).GetField("<Tokens>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
-
-        tokens.SetGetter(
-            ICollection<TokenEF> (Account instance) => AccountUnsafeAccessors.Tokens(instance),
-            bool (Account instance) => AccountUnsafeAccessors.Tokens(instance) == null);
-        tokens.SetSetter(
-            Account (Account instance, ICollection<TokenEF> value) =>
-            {
-                AccountUnsafeAccessors.Tokens(instance) = value;
-                return instance;
-            });
-        tokens.SetMaterializationSetter(
-            Account (Account instance, ICollection<TokenEF> value) =>
-            {
-                AccountUnsafeAccessors.Tokens(instance) = value;
-                return instance;
-            });
-        tokens.SetAccessors(
-            ICollection<TokenEF> (IInternalEntry entry) => AccountUnsafeAccessors.Tokens(((Account)(entry.Entity))),
-            ICollection<TokenEF> (IInternalEntry entry) => AccountUnsafeAccessors.Tokens(((Account)(entry.Entity))),
-            null,
-            ICollection<TokenEF> (IInternalEntry entry) => entry.GetCurrentValue<ICollection<TokenEF>>(tokens));
-        tokens.SetPropertyIndexes(
-            index: 13,
-            originalValueIndex: -1,
-            shadowIndex: -1,
-            relationshipIndex: 14,
-            storeGenerationIndex: -1);
-        tokens.SetCollectionAccessor<Account, ICollection<TokenEF>, TokenEF>(
-            ICollection<TokenEF> (Account entity) => AccountUnsafeAccessors.Tokens(entity),
-            (Account entity, ICollection<TokenEF> collection) => AccountUnsafeAccessors.Tokens(entity) = ((ICollection<TokenEF>)collection),
-            (Account entity, ICollection<TokenEF> collection) => AccountUnsafeAccessors.Tokens(entity) = ((ICollection<TokenEF>)collection),
-            ICollection<TokenEF> (Account entity, Action<Account, ICollection<TokenEF>> setter) => ClrCollectionAccessorFactory.CreateAndSetHashSet<Account, ICollection<TokenEF>, TokenEF>(entity, setter),
-            ICollection<TokenEF> () => ((ICollection<TokenEF>)(((ICollection<TokenEF>)(new HashSet<TokenEF>(ReferenceEqualityComparer.Instance))))));
-        return runtimeForeignKey;
-    }
-
-    public static void CreateAnnotations(RuntimeEntityType runtimeEntityType)
-    {
-        var accountId = runtimeEntityType.FindProperty("AccountId");
-        var tokenId = runtimeEntityType.FindProperty("TokenId");
-        var token_type = runtimeEntityType.FindProperty("token_type");
-        var key = runtimeEntityType.FindKey(new[] { accountId, tokenId });
-        key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateCompositeFactory(key));
-        key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<IReadOnlyList<object>>(key));
-        var account = runtimeEntityType.FindNavigation("Account");
-        runtimeEntityType.SetOriginalValuesFactory(
-            ISnapshot (IInternalEntry source) =>
-            {
-                var structuralType = ((TokenEF)(source.Entity));
-                return ((ISnapshot)(new Snapshot<Guid, Guid, string>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<Guid>)(((IProperty)tokenId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(tokenId)), (source.GetCurrentValue<string>(token_type) == null ? null : ((ValueComparer<string>)(((IProperty)token_type).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(token_type))))));
-            });
-        runtimeEntityType.SetStoreGeneratedValuesFactory(
-            ISnapshot () => ((ISnapshot)(new Snapshot<Guid, Guid>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<Guid>)(((IProperty)tokenId).GetValueComparer())).Snapshot(default(Guid))))));
-        runtimeEntityType.SetTemporaryValuesFactory(
-            ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid, Guid>(default(Guid), default(Guid)))));
-        runtimeEntityType.SetShadowValuesFactory(
-            ISnapshot (IDictionary<string, object> source) => ((ISnapshot)(new Snapshot<string>((source.ContainsKey("token_type") ? ((string)(source["token_type"])) : null)))));
-        runtimeEntityType.SetEmptyShadowValuesFactory(
-            ISnapshot () => ((ISnapshot)(new Snapshot<string>(default(string)))));
-        runtimeEntityType.SetRelationshipSnapshotFactory(
-            ISnapshot (IInternalEntry source) =>
-            {
-                var structuralType = ((TokenEF)(source.Entity));
-                return ((ISnapshot)(new Snapshot<Guid, Guid, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<Guid>)(((IProperty)tokenId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(tokenId)), source.GetCurrentValue<Account>(account))));
-            });
-        runtimeEntityType.SetCounts(new PropertyCounts(
-            propertyCount: 3,
-            navigationCount: 1,
-            complexPropertyCount: 0,
-            complexCollectionCount: 0,
-            originalValueCount: 3,
-            shadowCount: 1,
-            relationshipCount: 3,
-            storeGeneratedCount: 2));
-        runtimeEntityType.AddAnnotation("Relational:FunctionName", null);
-        runtimeEntityType.AddAnnotation("Relational:MappingStrategy", "TPH");
-        runtimeEntityType.AddAnnotation("Relational:Schema", null);
-        runtimeEntityType.AddAnnotation("Relational:SqlQuery", null);
-        runtimeEntityType.AddAnnotation("Relational:TableName", "Tokens");
-        runtimeEntityType.AddAnnotation("Relational:ViewName", null);
-        runtimeEntityType.AddAnnotation("Relational:ViewSchema", null);
-
-        Customize(runtimeEntityType);
-    }
-
-    static partial void Customize(RuntimeEntityType runtimeEntityType);
-}
 }

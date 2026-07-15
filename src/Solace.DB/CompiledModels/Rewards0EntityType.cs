@@ -6,15 +6,10 @@ using System.Reflection;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.EntityFrameworkCore.Storage.Json;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.Mapping;
 using Solace.DB.Models.Common;
 using Solace.DB.Models.Player;
 
@@ -42,33 +37,6 @@ namespace Solace.DB.CompiledModels
                 typeof(Guid),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            rewardedTokenEFAccountId.SetAccessors(
-                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(0) ? entry.ReadStoreGeneratedValue<Guid>(0) : (entry.FlaggedAsTemporary(0) && entry.ReadShadowValue<Guid>(0) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(0) : entry.ReadShadowValue<Guid>(0))),
-                Guid (IInternalEntry entry) => entry.ReadShadowValue<Guid>(0),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(rewardedTokenEFAccountId, 0),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(rewardedTokenEFAccountId, 0));
-            rewardedTokenEFAccountId.SetPropertyIndexes(
-                index: 0,
-                originalValueIndex: 0,
-                shadowIndex: 0,
-                relationshipIndex: 0,
-                storeGenerationIndex: 0);
-            rewardedTokenEFAccountId.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
-            rewardedTokenEFAccountId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(rewardedTokenEFAccountId));
             rewardedTokenEFAccountId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var rewardedTokenEFTokenId = runtimeEntityType.AddProperty(
@@ -76,33 +44,6 @@ namespace Solace.DB.CompiledModels
                 typeof(Guid),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            rewardedTokenEFTokenId.SetAccessors(
-                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(1) ? entry.ReadStoreGeneratedValue<Guid>(1) : (entry.FlaggedAsTemporary(1) && entry.ReadShadowValue<Guid>(1) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(1) : entry.ReadShadowValue<Guid>(1))),
-                Guid (IInternalEntry entry) => entry.ReadShadowValue<Guid>(1),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(rewardedTokenEFTokenId, 1),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(rewardedTokenEFTokenId, 1));
-            rewardedTokenEFTokenId.SetPropertyIndexes(
-                index: 1,
-                originalValueIndex: 1,
-                shadowIndex: 1,
-                relationshipIndex: 1,
-                storeGenerationIndex: 1);
-            rewardedTokenEFTokenId.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
-            rewardedTokenEFTokenId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(rewardedTokenEFTokenId));
             rewardedTokenEFTokenId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var buildplates = runtimeEntityType.AddProperty(
@@ -110,66 +51,7 @@ namespace Solace.DB.CompiledModels
                 typeof(Guid[]),
                 propertyInfo: typeof(Rewards).GetProperty("Buildplates", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(Rewards).GetField("<Buildplates>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
-            buildplates.SetGetter(
-                Guid[] (Rewards instance) => RewardsUnsafeAccessors.Buildplates(instance),
-                bool (Rewards instance) => RewardsUnsafeAccessors.Buildplates(instance) == null);
-            buildplates.SetSetter(
-                Rewards (Rewards instance, Guid[] value) =>
-                {
-                    RewardsUnsafeAccessors.Buildplates(instance) = value;
-                    return instance;
-                });
-            buildplates.SetMaterializationSetter(
-                Rewards (Rewards instance, Guid[] value) =>
-                {
-                    RewardsUnsafeAccessors.Buildplates(instance) = value;
-                    return instance;
-                });
-            buildplates.SetAccessors(
-                Guid[] (IInternalEntry entry) => RewardsUnsafeAccessors.Buildplates(((Rewards)(entry.Entity))),
-                Guid[] (IInternalEntry entry) => RewardsUnsafeAccessors.Buildplates(((Rewards)(entry.Entity))),
-                Guid[] (IInternalEntry entry) => entry.ReadOriginalValue<Guid[]>(buildplates, 2),
-                Guid[] (IInternalEntry entry) => entry.GetCurrentValue<Guid[]>(buildplates));
-            buildplates.SetPropertyIndexes(
-                index: 2,
-                originalValueIndex: 2,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            buildplates.TypeMapping = NpgsqlJsonTypeMapping.Default.Clone(
-                comparer: new ListOfValueTypesComparer<Guid[], Guid>(new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v)),
-                keyComparer: new ListOfValueTypesComparer<Guid[], Guid>(new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v)),
-                providerValueComparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
-                converter: new CollectionToJsonStringConverter<Guid>(new JsonCollectionOfStructsReaderWriter<Guid[], Guid>(
-                    JsonGuidReaderWriter.Instance)),
-                jsonValueReaderWriter: new JsonCollectionOfStructsReaderWriter<Guid[], Guid>(
-                    JsonGuidReaderWriter.Instance),
-                elementMapping: GuidTypeMapping.Default.Clone(
-                    comparer: new ValueComparer<Guid>(
-                        bool (Guid v1, Guid v2) => v1 == v2,
-                        int (Guid v) => ((object)v).GetHashCode(),
-                        Guid (Guid v) => v),
-                    keyComparer: new ValueComparer<Guid>(
-                        bool (Guid v1, Guid v2) => v1 == v2,
-                        int (Guid v) => ((object)v).GetHashCode(),
-                        Guid (Guid v) => v),
-                    providerValueComparer: new ValueComparer<Guid>(
-                        bool (Guid v1, Guid v2) => v1 == v2,
-                        int (Guid v) => ((object)v).GetHashCode(),
-                        Guid (Guid v) => v),
-                    mappingInfo: new RelationalTypeMappingInfo(
-                        storeTypeName: "uuid")));
             var buildplatesElementType = buildplates.SetElementType(typeof(Guid));
-            buildplatesElementType.TypeMapping = buildplates.TypeMapping.ElementTypeMapping;
             buildplates.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var challenges = runtimeEntityType.AddProperty(
@@ -177,66 +59,7 @@ namespace Solace.DB.CompiledModels
                 typeof(string[]),
                 propertyInfo: typeof(Rewards).GetProperty("Challenges", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(Rewards).GetField("<Challenges>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
-            challenges.SetGetter(
-                string[] (Rewards instance) => RewardsUnsafeAccessors.Challenges(instance),
-                bool (Rewards instance) => RewardsUnsafeAccessors.Challenges(instance) == null);
-            challenges.SetSetter(
-                Rewards (Rewards instance, string[] value) =>
-                {
-                    RewardsUnsafeAccessors.Challenges(instance) = value;
-                    return instance;
-                });
-            challenges.SetMaterializationSetter(
-                Rewards (Rewards instance, string[] value) =>
-                {
-                    RewardsUnsafeAccessors.Challenges(instance) = value;
-                    return instance;
-                });
-            challenges.SetAccessors(
-                string[] (IInternalEntry entry) => RewardsUnsafeAccessors.Challenges(((Rewards)(entry.Entity))),
-                string[] (IInternalEntry entry) => RewardsUnsafeAccessors.Challenges(((Rewards)(entry.Entity))),
-                string[] (IInternalEntry entry) => entry.ReadOriginalValue<string[]>(challenges, 3),
-                string[] (IInternalEntry entry) => entry.GetCurrentValue<string[]>(challenges));
-            challenges.SetPropertyIndexes(
-                index: 3,
-                originalValueIndex: 3,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            challenges.TypeMapping = NpgsqlJsonTypeMapping.Default.Clone(
-                comparer: new ListOfReferenceTypesComparer<string[], string>(new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v)),
-                keyComparer: new ListOfReferenceTypesComparer<string[], string>(new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v)),
-                providerValueComparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
-                converter: new CollectionToJsonStringConverter<string>(new JsonCollectionOfReferencesReaderWriter<string[], string>(
-                    JsonStringReaderWriter.Instance)),
-                jsonValueReaderWriter: new JsonCollectionOfReferencesReaderWriter<string[], string>(
-                    JsonStringReaderWriter.Instance),
-                elementMapping: StringTypeMapping.Default.Clone(
-                    comparer: new ValueComparer<string>(
-                        bool (string v1, string v2) => v1 == v2,
-                        int (string v) => ((object)v).GetHashCode(),
-                        string (string v) => v),
-                    keyComparer: new ValueComparer<string>(
-                        bool (string v1, string v2) => v1 == v2,
-                        int (string v) => ((object)v).GetHashCode(),
-                        string (string v) => v),
-                    providerValueComparer: new ValueComparer<string>(
-                        bool (string v1, string v2) => v1 == v2,
-                        int (string v) => ((object)v).GetHashCode(),
-                        string (string v) => v),
-                    mappingInfo: new RelationalTypeMappingInfo(
-                        dbType: System.Data.DbType.String)));
             var challengesElementType = challenges.SetElementType(typeof(string));
-            challengesElementType.TypeMapping = challenges.TypeMapping.ElementTypeMapping;
             challenges.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var experiencePoints = runtimeEntityType.AddProperty(
@@ -245,47 +68,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(Rewards).GetProperty("ExperiencePoints", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(Rewards).GetField("<ExperiencePoints>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: 0);
-            experiencePoints.SetGetter(
-                int (Rewards instance) => RewardsUnsafeAccessors.ExperiencePoints(instance),
-                bool (Rewards instance) => RewardsUnsafeAccessors.ExperiencePoints(instance) == 0);
-            experiencePoints.SetSetter(
-                Rewards (Rewards instance, int value) =>
-                {
-                    RewardsUnsafeAccessors.ExperiencePoints(instance) = value;
-                    return instance;
-                });
-            experiencePoints.SetMaterializationSetter(
-                Rewards (Rewards instance, int value) =>
-                {
-                    RewardsUnsafeAccessors.ExperiencePoints(instance) = value;
-                    return instance;
-                });
-            experiencePoints.SetAccessors(
-                int (IInternalEntry entry) => RewardsUnsafeAccessors.ExperiencePoints(((Rewards)(entry.Entity))),
-                int (IInternalEntry entry) => RewardsUnsafeAccessors.ExperiencePoints(((Rewards)(entry.Entity))),
-                int (IInternalEntry entry) => entry.ReadOriginalValue<int>(experiencePoints, 4),
-                int (IInternalEntry entry) => entry.GetCurrentValue<int>(experiencePoints));
-            experiencePoints.SetPropertyIndexes(
-                index: 4,
-                originalValueIndex: 4,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            experiencePoints.TypeMapping = IntTypeMapping.Default.Clone(
-                comparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                keyComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                providerValueComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "integer"));
             experiencePoints.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var items = runtimeEntityType.AddProperty(
@@ -293,55 +75,9 @@ namespace Solace.DB.CompiledModels
                 typeof(Dictionary<Guid, int>),
                 propertyInfo: typeof(Rewards).GetProperty("Items", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(Rewards).GetField("<Items>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
-            items.SetGetter(
-                Dictionary<Guid, int> (Rewards instance) => RewardsUnsafeAccessors.Items(instance),
-                bool (Rewards instance) => RewardsUnsafeAccessors.Items(instance) == null);
-            items.SetSetter(
-                Rewards (Rewards instance, Dictionary<Guid, int> value) =>
-                {
-                    RewardsUnsafeAccessors.Items(instance) = value;
-                    return instance;
-                });
-            items.SetMaterializationSetter(
-                Rewards (Rewards instance, Dictionary<Guid, int> value) =>
-                {
-                    RewardsUnsafeAccessors.Items(instance) = value;
-                    return instance;
-                });
-            items.SetAccessors(
-                Dictionary<Guid, int> (IInternalEntry entry) => RewardsUnsafeAccessors.Items(((Rewards)(entry.Entity))),
-                Dictionary<Guid, int> (IInternalEntry entry) => RewardsUnsafeAccessors.Items(((Rewards)(entry.Entity))),
-                Dictionary<Guid, int> (IInternalEntry entry) => entry.ReadOriginalValue<Dictionary<Guid, int>>(items, 5),
-                Dictionary<Guid, int> (IInternalEntry entry) => entry.GetCurrentValue<Dictionary<Guid, int>>(items));
-            items.SetPropertyIndexes(
-                index: 5,
-                originalValueIndex: 5,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            items.TypeMapping = StringTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Dictionary<Guid, int>>(
-                    bool (Dictionary<Guid, int> v1, Dictionary<Guid, int> v2) => object.Equals(v1, v2),
-                    int (Dictionary<Guid, int> v) => ((object)v).GetHashCode(),
-                    Dictionary<Guid, int> (Dictionary<Guid, int> v) => v),
-                keyComparer: new ValueComparer<Dictionary<Guid, int>>(
-                    bool (Dictionary<Guid, int> v1, Dictionary<Guid, int> v2) => object.Equals(v1, v2),
-                    int (Dictionary<Guid, int> v) => ((object)v).GetHashCode(),
-                    Dictionary<Guid, int> (Dictionary<Guid, int> v) => v),
-                providerValueComparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    dbType: System.Data.DbType.String),
-                converter: new ValueConverter<Dictionary<Guid, int>, string>(
-                    string (Dictionary<Guid, int> v) => JsonSerializer.Serialize(v, DbJsonContext.Default.DictionaryGuidInt32),
-                    Dictionary<Guid, int> (string v) => JsonSerializer.Deserialize(v, DbJsonContext.Default.DictionaryGuidInt32) ?? new Dictionary<Guid, int>()),
-                jsonValueReaderWriter: new JsonConvertedValueReaderWriter<Dictionary<Guid, int>, string>(
-                    JsonStringReaderWriter.Instance,
-                    new ValueConverter<Dictionary<Guid, int>, string>(
-                        string (Dictionary<Guid, int> v) => JsonSerializer.Serialize(v, DbJsonContext.Default.DictionaryGuidInt32),
-                        Dictionary<Guid, int> (string v) => JsonSerializer.Deserialize(v, DbJsonContext.Default.DictionaryGuidInt32) ?? new Dictionary<Guid, int>())));
+            items.SetValueConverter(new ValueConverter<Dictionary<Guid, int>, string>(
+                string (Dictionary<Guid, int> v) => JsonSerializer.Serialize(v, DbJsonContext.Default.DictionaryGuidInt32),
+                Dictionary<Guid, int> (string v) => JsonSerializer.Deserialize(v, DbJsonContext.Default.DictionaryGuidInt32) ?? new Dictionary<Guid, int>()));
             items.SetComparer(new ValueComparer<Dictionary<Guid, int>>(
                 bool (Dictionary<Guid, int> d1, Dictionary<Guid, int> d2) => DictionaryGuidIntValueComparer.DictionariesEqual(d1, d2),
                 int (Dictionary<Guid, int> d) => DictionaryGuidIntValueComparer.ComputeHashCode(d),
@@ -354,49 +90,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(Rewards).GetProperty("Level", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(Rewards).GetField("<Level>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 nullable: true);
-            level.SetGetter(
-                int? (Rewards instance) => RewardsUnsafeAccessors.Level(instance),
-                bool (Rewards instance) => !(RewardsUnsafeAccessors.Level(instance).HasValue));
-            level.SetSetter(
-                Rewards (Rewards instance, int? value) =>
-                {
-                    RewardsUnsafeAccessors.Level(instance) = value;
-                    return instance;
-                });
-            level.SetMaterializationSetter(
-                Rewards (Rewards instance, int? value) =>
-                {
-                    RewardsUnsafeAccessors.Level(instance) = value;
-                    return instance;
-                });
-            level.SetAccessors(
-                int? (IInternalEntry entry) => RewardsUnsafeAccessors.Level(((Rewards)(entry.Entity))),
-                int? (IInternalEntry entry) => RewardsUnsafeAccessors.Level(((Rewards)(entry.Entity))),
-                int? (IInternalEntry entry) => entry.ReadOriginalValue<int?>(level, 6),
-                int? (IInternalEntry entry) => entry.GetCurrentValue<int?>(level));
-            level.SetPropertyIndexes(
-                index: 6,
-                originalValueIndex: 6,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            level.TypeMapping = IntTypeMapping.Default.Clone(
-                comparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                keyComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                providerValueComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "integer"));
-            level.SetComparer(new NullableValueComparer<int>(level.TypeMapping.Comparer));
-            level.SetKeyComparer(new NullableValueComparer<int>(level.TypeMapping.KeyComparer));
             level.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var rubies = runtimeEntityType.AddProperty(
@@ -405,47 +98,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(Rewards).GetProperty("Rubies", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(Rewards).GetField("<Rubies>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: 0);
-            rubies.SetGetter(
-                int (Rewards instance) => RewardsUnsafeAccessors.Rubies(instance),
-                bool (Rewards instance) => RewardsUnsafeAccessors.Rubies(instance) == 0);
-            rubies.SetSetter(
-                Rewards (Rewards instance, int value) =>
-                {
-                    RewardsUnsafeAccessors.Rubies(instance) = value;
-                    return instance;
-                });
-            rubies.SetMaterializationSetter(
-                Rewards (Rewards instance, int value) =>
-                {
-                    RewardsUnsafeAccessors.Rubies(instance) = value;
-                    return instance;
-                });
-            rubies.SetAccessors(
-                int (IInternalEntry entry) => RewardsUnsafeAccessors.Rubies(((Rewards)(entry.Entity))),
-                int (IInternalEntry entry) => RewardsUnsafeAccessors.Rubies(((Rewards)(entry.Entity))),
-                int (IInternalEntry entry) => entry.ReadOriginalValue<int>(rubies, 7),
-                int (IInternalEntry entry) => entry.GetCurrentValue<int>(rubies));
-            rubies.SetPropertyIndexes(
-                index: 7,
-                originalValueIndex: 7,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            rubies.TypeMapping = IntTypeMapping.Default.Clone(
-                comparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                keyComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                providerValueComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "integer"));
             rubies.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var key = runtimeEntityType.AddKey(
@@ -474,77 +126,11 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(RewardedTokenEF).GetField("<Rewards>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 eagerLoaded: true);
 
-            rewards.SetGetter(
-                Rewards (RewardedTokenEF instance) => RewardedTokenEFUnsafeAccessors.Rewards(instance),
-                bool (RewardedTokenEF instance) => RewardedTokenEFUnsafeAccessors.Rewards(instance) == null);
-            rewards.SetSetter(
-                RewardedTokenEF (RewardedTokenEF instance, Rewards value) =>
-                {
-                    RewardedTokenEFUnsafeAccessors.Rewards(instance) = value;
-                    return instance;
-                });
-            rewards.SetMaterializationSetter(
-                RewardedTokenEF (RewardedTokenEF instance, Rewards value) =>
-                {
-                    RewardedTokenEFUnsafeAccessors.Rewards(instance) = value;
-                    return instance;
-                });
-            rewards.SetAccessors(
-                Rewards (IInternalEntry entry) => RewardedTokenEFUnsafeAccessors.Rewards(((RewardedTokenEF)(entry.Entity))),
-                Rewards (IInternalEntry entry) => RewardedTokenEFUnsafeAccessors.Rewards(((RewardedTokenEF)(entry.Entity))),
-                null,
-                Rewards (IInternalEntry entry) => entry.GetCurrentValue<Rewards>(rewards));
-            rewards.SetPropertyIndexes(
-                index: 1,
-                originalValueIndex: -1,
-                shadowIndex: -1,
-                relationshipIndex: 3,
-                storeGenerationIndex: -1);
             return runtimeForeignKey;
         }
 
         public static void CreateAnnotations(RuntimeEntityType runtimeEntityType)
         {
-            var rewardedTokenEFAccountId = runtimeEntityType.FindProperty("RewardedTokenEFAccountId");
-            var rewardedTokenEFTokenId = runtimeEntityType.FindProperty("RewardedTokenEFTokenId");
-            var buildplates = runtimeEntityType.FindProperty("Buildplates");
-            var challenges = runtimeEntityType.FindProperty("Challenges");
-            var experiencePoints = runtimeEntityType.FindProperty("ExperiencePoints");
-            var items = runtimeEntityType.FindProperty("Items");
-            var level = runtimeEntityType.FindProperty("Level");
-            var rubies = runtimeEntityType.FindProperty("Rubies");
-            var key = runtimeEntityType.FindKey(new[] { rewardedTokenEFAccountId, rewardedTokenEFTokenId });
-            key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateCompositeFactory(key));
-            key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<IReadOnlyList<object>>(key));
-            runtimeEntityType.SetOriginalValuesFactory(
-                ISnapshot (IInternalEntry source) =>
-                {
-                    var structuralType = ((Rewards)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, Guid, Guid[], string[], int, Dictionary<Guid, int>, int?, int>(((ValueComparer<Guid>)(((IProperty)rewardedTokenEFAccountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(rewardedTokenEFAccountId)), ((ValueComparer<Guid>)(((IProperty)rewardedTokenEFTokenId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(rewardedTokenEFTokenId)), (((IEnumerable<Guid>)(source.GetCurrentValue<Guid[]>(buildplates))) == null ? null : ((Guid[])(((ValueComparer<IEnumerable<Guid>>)(((IProperty)buildplates).GetValueComparer())).Snapshot(((IEnumerable<Guid>)(source.GetCurrentValue<Guid[]>(buildplates))))))), (((object)(source.GetCurrentValue<string[]>(challenges))) == null ? null : ((string[])(((ValueComparer<object>)(((IProperty)challenges).GetValueComparer())).Snapshot(((object)(source.GetCurrentValue<string[]>(challenges))))))), ((ValueComparer<int>)(((IProperty)experiencePoints).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(experiencePoints)), (source.GetCurrentValue<Dictionary<Guid, int>>(items) == null ? null : ((ValueComparer<Dictionary<Guid, int>>)(((IProperty)items).GetValueComparer())).Snapshot(source.GetCurrentValue<Dictionary<Guid, int>>(items))), (source.GetCurrentValue<int?>(level) == null ? null : ((ValueComparer<int?>)(((IProperty)level).GetValueComparer())).Snapshot(source.GetCurrentValue<int?>(level))), ((ValueComparer<int>)(((IProperty)rubies).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(rubies)))));
-                });
-            runtimeEntityType.SetStoreGeneratedValuesFactory(
-                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, Guid>(((ValueComparer<Guid>)(((IProperty)rewardedTokenEFAccountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<Guid>)(((IProperty)rewardedTokenEFTokenId).GetValueComparer())).Snapshot(default(Guid))))));
-            runtimeEntityType.SetTemporaryValuesFactory(
-                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid, Guid>(default(Guid), default(Guid)))));
-            runtimeEntityType.SetShadowValuesFactory(
-                ISnapshot (IDictionary<string, object> source) => ((ISnapshot)(new Snapshot<Guid, Guid>((source.ContainsKey("RewardedTokenEFAccountId") ? ((Guid)(source["RewardedTokenEFAccountId"])) : new Guid("00000000-0000-0000-0000-000000000000")), (source.ContainsKey("RewardedTokenEFTokenId") ? ((Guid)(source["RewardedTokenEFTokenId"])) : new Guid("00000000-0000-0000-0000-000000000000"))))));
-            runtimeEntityType.SetEmptyShadowValuesFactory(
-                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, Guid>(default(Guid), default(Guid)))));
-            runtimeEntityType.SetRelationshipSnapshotFactory(
-                ISnapshot (IInternalEntry source) =>
-                {
-                    var structuralType = ((Rewards)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, Guid>(((ValueComparer<Guid>)(((IProperty)rewardedTokenEFAccountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(rewardedTokenEFAccountId)), ((ValueComparer<Guid>)(((IProperty)rewardedTokenEFTokenId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(rewardedTokenEFTokenId)))));
-                });
-            runtimeEntityType.SetCounts(new PropertyCounts(
-                propertyCount: 8,
-                navigationCount: 0,
-                complexPropertyCount: 0,
-                complexCollectionCount: 0,
-                originalValueCount: 8,
-                shadowCount: 2,
-                relationshipCount: 2,
-                storeGeneratedCount: 2));
             runtimeEntityType.AddAnnotation("Relational:ContainerColumnName", "Rewards");
             runtimeEntityType.AddAnnotation("Relational:FunctionName", null);
             runtimeEntityType.AddAnnotation("Relational:Schema", null);

@@ -3,15 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.ValueGeneration;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.Mapping;
 using Solace.DB.Models;
 using Solace.DB.Models.Player;
 
@@ -44,48 +39,6 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(ActivityLogEntryEF).GetField("<AccountId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            accountId.SetGetter(
-                Guid (ActivityLogEntryEF instance) => ActivityLogEntryEFUnsafeAccessors.AccountId(instance),
-                bool (ActivityLogEntryEF instance) => ActivityLogEntryEFUnsafeAccessors.AccountId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
-            accountId.SetSetter(
-                ActivityLogEntryEF (ActivityLogEntryEF instance, Guid value) =>
-                {
-                    ActivityLogEntryEFUnsafeAccessors.AccountId(instance) = value;
-                    return instance;
-                });
-            accountId.SetMaterializationSetter(
-                ActivityLogEntryEF (ActivityLogEntryEF instance, Guid value) =>
-                {
-                    ActivityLogEntryEFUnsafeAccessors.AccountId(instance) = value;
-                    return instance;
-                });
-            accountId.SetAccessors(
-                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(0) ? entry.ReadStoreGeneratedValue<Guid>(0) : (entry.FlaggedAsTemporary(0) && ActivityLogEntryEFUnsafeAccessors.AccountId(((ActivityLogEntryEF)(entry.Entity))) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(0) : ActivityLogEntryEFUnsafeAccessors.AccountId(((ActivityLogEntryEF)(entry.Entity))))),
-                Guid (IInternalEntry entry) => ActivityLogEntryEFUnsafeAccessors.AccountId(((ActivityLogEntryEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(accountId, 0),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(accountId, 0));
-            accountId.SetPropertyIndexes(
-                index: 0,
-                originalValueIndex: 0,
-                shadowIndex: -1,
-                relationshipIndex: 0,
-                storeGenerationIndex: 0);
-            accountId.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
-            accountId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(accountId));
             accountId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var entryId = runtimeEntityType.AddProperty(
@@ -96,46 +49,6 @@ namespace Solace.DB.CompiledModels
                 valueGenerated: ValueGenerated.OnAdd,
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: 0L);
-            entryId.SetGetter(
-                long (ActivityLogEntryEF instance) => ActivityLogEntryEFUnsafeAccessors.EntryId(instance),
-                bool (ActivityLogEntryEF instance) => ActivityLogEntryEFUnsafeAccessors.EntryId(instance) == 0L);
-            entryId.SetSetter(
-                ActivityLogEntryEF (ActivityLogEntryEF instance, long value) =>
-                {
-                    ActivityLogEntryEFUnsafeAccessors.EntryId(instance) = value;
-                    return instance;
-                });
-            entryId.SetMaterializationSetter(
-                ActivityLogEntryEF (ActivityLogEntryEF instance, long value) =>
-                {
-                    ActivityLogEntryEFUnsafeAccessors.EntryId(instance) = value;
-                    return instance;
-                });
-            entryId.SetAccessors(
-                long (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(1) ? entry.ReadStoreGeneratedValue<long>(1) : (entry.FlaggedAsTemporary(1) && ActivityLogEntryEFUnsafeAccessors.EntryId(((ActivityLogEntryEF)(entry.Entity))) == 0L ? entry.ReadTemporaryValue<long>(1) : ActivityLogEntryEFUnsafeAccessors.EntryId(((ActivityLogEntryEF)(entry.Entity))))),
-                long (IInternalEntry entry) => ActivityLogEntryEFUnsafeAccessors.EntryId(((ActivityLogEntryEF)(entry.Entity))),
-                long (IInternalEntry entry) => entry.ReadOriginalValue<long>(entryId, 1),
-                long (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<long>(entryId, 1));
-            entryId.SetPropertyIndexes(
-                index: 1,
-                originalValueIndex: 1,
-                shadowIndex: -1,
-                relationshipIndex: 1,
-                storeGenerationIndex: 1);
-            entryId.TypeMapping = LongTypeMapping.Default.Clone(
-                comparer: new ValueComparer<long>(
-                    bool (long v1, long v2) => v1 == v2,
-                    int (long v) => ((object)v).GetHashCode(),
-                    long (long v) => v),
-                keyComparer: new ValueComparer<long>(
-                    bool (long v1, long v2) => v1 == v2,
-                    int (long v) => ((object)v).GetHashCode(),
-                    long (long v) => v),
-                providerValueComparer: new ValueComparer<long>(
-                    bool (long v1, long v2) => v1 == v2,
-                    int (long v) => ((object)v).GetHashCode(),
-                    long (long v) => v));
-            entryId.SetCurrentValueComparer(new EntryCurrentValueComparer<long>(entryId));
             entryId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
 
             var timestamp = runtimeEntityType.AddProperty(
@@ -144,47 +57,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(ActivityLogEntryEF).GetProperty("Timestamp", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(ActivityLogEntryEF).GetField("<Timestamp>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)));
-            timestamp.SetGetter(
-                DateTimeOffset (ActivityLogEntryEF instance) => ActivityLogEntryEFUnsafeAccessors.Timestamp(instance),
-                bool (ActivityLogEntryEF instance) => ActivityLogEntryEFUnsafeAccessors.Timestamp(instance).EqualsExact(default(DateTimeOffset)));
-            timestamp.SetSetter(
-                ActivityLogEntryEF (ActivityLogEntryEF instance, DateTimeOffset value) =>
-                {
-                    ActivityLogEntryEFUnsafeAccessors.Timestamp(instance) = value;
-                    return instance;
-                });
-            timestamp.SetMaterializationSetter(
-                ActivityLogEntryEF (ActivityLogEntryEF instance, DateTimeOffset value) =>
-                {
-                    ActivityLogEntryEFUnsafeAccessors.Timestamp(instance) = value;
-                    return instance;
-                });
-            timestamp.SetAccessors(
-                DateTimeOffset (IInternalEntry entry) => ActivityLogEntryEFUnsafeAccessors.Timestamp(((ActivityLogEntryEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => ActivityLogEntryEFUnsafeAccessors.Timestamp(((ActivityLogEntryEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => entry.ReadOriginalValue<DateTimeOffset>(timestamp, 2),
-                DateTimeOffset (IInternalEntry entry) => entry.GetCurrentValue<DateTimeOffset>(timestamp));
-            timestamp.SetPropertyIndexes(
-                index: 2,
-                originalValueIndex: 2,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            timestamp.TypeMapping = NpgsqlTimestampTzTypeMapping.Default.Clone(
-                comparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                keyComparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                providerValueComparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                clrType: typeof(DateTimeOffset),
-                jsonValueReaderWriter: new NpgsqlTimestampTzTypeMapping.NpgsqlJsonTimestampTzDateTimeOffsetReaderWriter());
             timestamp.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var entity_type = runtimeEntityType.AddProperty(
@@ -193,176 +65,53 @@ namespace Solace.DB.CompiledModels
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 maxLength: 34,
                 valueGeneratorFactory: new DiscriminatorValueGeneratorFactory().Create);
-            entity_type.SetAccessors(
-                string (IInternalEntry entry) => entry.ReadShadowValue<string>(0),
-                string (IInternalEntry entry) => entry.ReadShadowValue<string>(0),
-                string (IInternalEntry entry) => entry.ReadOriginalValue<string>(entity_type, 3),
-                string (IInternalEntry entry) => entry.GetCurrentValue<string>(entity_type));
-            entity_type.SetPropertyIndexes(
-                index: 3,
-                originalValueIndex: 3,
-                shadowIndex: 0,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            entity_type.TypeMapping = NpgsqlStringTypeMapping.Default.Clone(
-                comparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
-                keyComparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
-                providerValueComparer: new ValueComparer<string>(
-                    bool (string v1, string v2) => v1 == v2,
-                    int (string v) => ((object)v).GetHashCode(),
-                    string (string v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "character varying(34)",
-                    size: 34));
-            entity_type.TypeMapping = ((NpgsqlStringTypeMapping)entity_type.TypeMapping).Clone(npgsqlDbType: NpgsqlTypes.NpgsqlDbType.Varchar);
-        entity_type.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
+            entity_type.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
-        var key = runtimeEntityType.AddKey(
-            new[] { accountId, entryId });
-        runtimeEntityType.SetPrimaryKey(key);
+            var key = runtimeEntityType.AddKey(
+                new[] { accountId, entryId });
+            runtimeEntityType.SetPrimaryKey(key);
 
-        return runtimeEntityType;
+            return runtimeEntityType;
+        }
+
+        public static RuntimeForeignKey CreateForeignKey1(RuntimeEntityType declaringEntityType, RuntimeEntityType principalEntityType)
+        {
+            var runtimeForeignKey = declaringEntityType.AddForeignKey(new[] { declaringEntityType.FindProperty("AccountId") },
+                principalEntityType.FindKey(new[] { principalEntityType.FindProperty("Id") }),
+                principalEntityType,
+                deleteBehavior: DeleteBehavior.Cascade,
+                required: true);
+
+            var account = declaringEntityType.AddNavigation("Account",
+                runtimeForeignKey,
+                onDependent: true,
+                typeof(Account),
+                propertyInfo: typeof(ActivityLogEntryEF).GetProperty("Account", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                fieldInfo: typeof(ActivityLogEntryEF).GetField("<Account>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
+
+            var activityLogs = principalEntityType.AddNavigation("ActivityLogs",
+                runtimeForeignKey,
+                onDependent: false,
+                typeof(ICollection<ActivityLogEntryEF>),
+                propertyInfo: typeof(Account).GetProperty("ActivityLogs", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
+                fieldInfo: typeof(Account).GetField("<ActivityLogs>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
+
+            return runtimeForeignKey;
+        }
+
+        public static void CreateAnnotations(RuntimeEntityType runtimeEntityType)
+        {
+            runtimeEntityType.AddAnnotation("Relational:FunctionName", null);
+            runtimeEntityType.AddAnnotation("Relational:MappingStrategy", "TPH");
+            runtimeEntityType.AddAnnotation("Relational:Schema", null);
+            runtimeEntityType.AddAnnotation("Relational:SqlQuery", null);
+            runtimeEntityType.AddAnnotation("Relational:TableName", "ActivityLogs");
+            runtimeEntityType.AddAnnotation("Relational:ViewName", null);
+            runtimeEntityType.AddAnnotation("Relational:ViewSchema", null);
+
+            Customize(runtimeEntityType);
+        }
+
+        static partial void Customize(RuntimeEntityType runtimeEntityType);
     }
-
-    public static RuntimeForeignKey CreateForeignKey1(RuntimeEntityType declaringEntityType, RuntimeEntityType principalEntityType)
-    {
-        var runtimeForeignKey = declaringEntityType.AddForeignKey(new[] { declaringEntityType.FindProperty("AccountId") },
-            principalEntityType.FindKey(new[] { principalEntityType.FindProperty("Id") }),
-            principalEntityType,
-            deleteBehavior: DeleteBehavior.Cascade,
-            required: true);
-
-        var account = declaringEntityType.AddNavigation("Account",
-            runtimeForeignKey,
-            onDependent: true,
-            typeof(Account),
-            propertyInfo: typeof(ActivityLogEntryEF).GetProperty("Account", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-            fieldInfo: typeof(ActivityLogEntryEF).GetField("<Account>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
-
-        account.SetGetter(
-            Account (ActivityLogEntryEF instance) => ActivityLogEntryEFUnsafeAccessors.Account(instance),
-            bool (ActivityLogEntryEF instance) => ActivityLogEntryEFUnsafeAccessors.Account(instance) == null);
-        account.SetSetter(
-            ActivityLogEntryEF (ActivityLogEntryEF instance, Account value) =>
-            {
-                ActivityLogEntryEFUnsafeAccessors.Account(instance) = value;
-                return instance;
-            });
-        account.SetMaterializationSetter(
-            ActivityLogEntryEF (ActivityLogEntryEF instance, Account value) =>
-            {
-                ActivityLogEntryEFUnsafeAccessors.Account(instance) = value;
-                return instance;
-            });
-        account.SetAccessors(
-            Account (IInternalEntry entry) => ActivityLogEntryEFUnsafeAccessors.Account(((ActivityLogEntryEF)(entry.Entity))),
-            Account (IInternalEntry entry) => ActivityLogEntryEFUnsafeAccessors.Account(((ActivityLogEntryEF)(entry.Entity))),
-            null,
-            Account (IInternalEntry entry) => entry.GetCurrentValue<Account>(account));
-        account.SetPropertyIndexes(
-            index: 0,
-            originalValueIndex: -1,
-            shadowIndex: -1,
-            relationshipIndex: 2,
-            storeGenerationIndex: -1);
-        var activityLogs = principalEntityType.AddNavigation("ActivityLogs",
-            runtimeForeignKey,
-            onDependent: false,
-            typeof(ICollection<ActivityLogEntryEF>),
-            propertyInfo: typeof(Account).GetProperty("ActivityLogs", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
-            fieldInfo: typeof(Account).GetField("<ActivityLogs>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
-
-        activityLogs.SetGetter(
-            ICollection<ActivityLogEntryEF> (Account instance) => AccountUnsafeAccessors.ActivityLogs(instance),
-            bool (Account instance) => AccountUnsafeAccessors.ActivityLogs(instance) == null);
-        activityLogs.SetSetter(
-            Account (Account instance, ICollection<ActivityLogEntryEF> value) =>
-            {
-                AccountUnsafeAccessors.ActivityLogs(instance) = value;
-                return instance;
-            });
-        activityLogs.SetMaterializationSetter(
-            Account (Account instance, ICollection<ActivityLogEntryEF> value) =>
-            {
-                AccountUnsafeAccessors.ActivityLogs(instance) = value;
-                return instance;
-            });
-        activityLogs.SetAccessors(
-            ICollection<ActivityLogEntryEF> (IInternalEntry entry) => AccountUnsafeAccessors.ActivityLogs(((Account)(entry.Entity))),
-            ICollection<ActivityLogEntryEF> (IInternalEntry entry) => AccountUnsafeAccessors.ActivityLogs(((Account)(entry.Entity))),
-            null,
-            ICollection<ActivityLogEntryEF> (IInternalEntry entry) => entry.GetCurrentValue<ICollection<ActivityLogEntryEF>>(activityLogs));
-        activityLogs.SetPropertyIndexes(
-            index: 1,
-            originalValueIndex: -1,
-            shadowIndex: -1,
-            relationshipIndex: 2,
-            storeGenerationIndex: -1);
-        activityLogs.SetCollectionAccessor<Account, ICollection<ActivityLogEntryEF>, ActivityLogEntryEF>(
-            ICollection<ActivityLogEntryEF> (Account entity) => AccountUnsafeAccessors.ActivityLogs(entity),
-            (Account entity, ICollection<ActivityLogEntryEF> collection) => AccountUnsafeAccessors.ActivityLogs(entity) = ((ICollection<ActivityLogEntryEF>)collection),
-            (Account entity, ICollection<ActivityLogEntryEF> collection) => AccountUnsafeAccessors.ActivityLogs(entity) = ((ICollection<ActivityLogEntryEF>)collection),
-            ICollection<ActivityLogEntryEF> (Account entity, Action<Account, ICollection<ActivityLogEntryEF>> setter) => ClrCollectionAccessorFactory.CreateAndSetHashSet<Account, ICollection<ActivityLogEntryEF>, ActivityLogEntryEF>(entity, setter),
-            ICollection<ActivityLogEntryEF> () => ((ICollection<ActivityLogEntryEF>)(((ICollection<ActivityLogEntryEF>)(new HashSet<ActivityLogEntryEF>(ReferenceEqualityComparer.Instance))))));
-        return runtimeForeignKey;
-    }
-
-    public static void CreateAnnotations(RuntimeEntityType runtimeEntityType)
-    {
-        var accountId = runtimeEntityType.FindProperty("AccountId");
-        var entryId = runtimeEntityType.FindProperty("EntryId");
-        var timestamp = runtimeEntityType.FindProperty("Timestamp");
-        var entity_type = runtimeEntityType.FindProperty("entity_type");
-        var key = runtimeEntityType.FindKey(new[] { accountId, entryId });
-        key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateCompositeFactory(key));
-        key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<IReadOnlyList<object>>(key));
-        var account = runtimeEntityType.FindNavigation("Account");
-        runtimeEntityType.SetOriginalValuesFactory(
-            ISnapshot (IInternalEntry source) =>
-            {
-                var structuralType = ((ActivityLogEntryEF)(source.Entity));
-                return ((ISnapshot)(new Snapshot<Guid, long, DateTimeOffset, string>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)entryId).GetValueComparer())).Snapshot(source.GetCurrentValue<long>(entryId)), ((ValueComparer<DateTimeOffset>)(((IProperty)timestamp).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(timestamp)), (source.GetCurrentValue<string>(entity_type) == null ? null : ((ValueComparer<string>)(((IProperty)entity_type).GetValueComparer())).Snapshot(source.GetCurrentValue<string>(entity_type))))));
-            });
-        runtimeEntityType.SetStoreGeneratedValuesFactory(
-            ISnapshot () => ((ISnapshot)(new Snapshot<Guid, long>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<long>)(((IProperty)entryId).GetValueComparer())).Snapshot(default(long))))));
-        runtimeEntityType.SetTemporaryValuesFactory(
-            ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid, long>(default(Guid), default(long)))));
-        runtimeEntityType.SetShadowValuesFactory(
-            ISnapshot (IDictionary<string, object> source) => ((ISnapshot)(new Snapshot<string>((source.ContainsKey("entity_type") ? ((string)(source["entity_type"])) : null)))));
-        runtimeEntityType.SetEmptyShadowValuesFactory(
-            ISnapshot () => ((ISnapshot)(new Snapshot<string>(default(string)))));
-        runtimeEntityType.SetRelationshipSnapshotFactory(
-            ISnapshot (IInternalEntry source) =>
-            {
-                var structuralType = ((ActivityLogEntryEF)(source.Entity));
-                return ((ISnapshot)(new Snapshot<Guid, long, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<long>)(((IProperty)entryId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<long>(entryId)), source.GetCurrentValue<Account>(account))));
-            });
-        runtimeEntityType.SetCounts(new PropertyCounts(
-            propertyCount: 4,
-            navigationCount: 1,
-            complexPropertyCount: 0,
-            complexCollectionCount: 0,
-            originalValueCount: 4,
-            shadowCount: 1,
-            relationshipCount: 3,
-            storeGeneratedCount: 2));
-        runtimeEntityType.AddAnnotation("Relational:FunctionName", null);
-        runtimeEntityType.AddAnnotation("Relational:MappingStrategy", "TPH");
-        runtimeEntityType.AddAnnotation("Relational:Schema", null);
-        runtimeEntityType.AddAnnotation("Relational:SqlQuery", null);
-        runtimeEntityType.AddAnnotation("Relational:TableName", "ActivityLogs");
-        runtimeEntityType.AddAnnotation("Relational:ViewName", null);
-        runtimeEntityType.AddAnnotation("Relational:ViewSchema", null);
-
-        Customize(runtimeEntityType);
-    }
-
-    static partial void Customize(RuntimeEntityType runtimeEntityType);
-}
 }

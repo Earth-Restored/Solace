@@ -3,14 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.Mapping;
 using Solace.DB.Models;
 using Solace.DB.Models.Global;
 
@@ -42,48 +37,6 @@ namespace Solace.DB.CompiledModels
                 valueGenerated: ValueGenerated.OnAdd,
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            id.SetGetter(
-                Guid (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.Id(instance),
-                bool (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.Id(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
-            id.SetSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, Guid value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.Id(instance) = value;
-                    return instance;
-                });
-            id.SetMaterializationSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, Guid value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.Id(instance) = value;
-                    return instance;
-                });
-            id.SetAccessors(
-                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(0) ? entry.ReadStoreGeneratedValue<Guid>(0) : (entry.FlaggedAsTemporary(0) && SharedBuildplateEFUnsafeAccessors.Id(((SharedBuildplateEF)(entry.Entity))) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(0) : SharedBuildplateEFUnsafeAccessors.Id(((SharedBuildplateEF)(entry.Entity))))),
-                Guid (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.Id(((SharedBuildplateEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(id, 0),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(id, 0));
-            id.SetPropertyIndexes(
-                index: 0,
-                originalValueIndex: 0,
-                shadowIndex: -1,
-                relationshipIndex: 0,
-                storeGenerationIndex: 0);
-            id.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
-            id.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(id));
             id.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var accountId = runtimeEntityType.AddProperty(
@@ -92,48 +45,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(SharedBuildplateEF).GetProperty("AccountId", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(SharedBuildplateEF).GetField("<AccountId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            accountId.SetGetter(
-                Guid (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.AccountId(instance),
-                bool (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.AccountId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
-            accountId.SetSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, Guid value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.AccountId(instance) = value;
-                    return instance;
-                });
-            accountId.SetMaterializationSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, Guid value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.AccountId(instance) = value;
-                    return instance;
-                });
-            accountId.SetAccessors(
-                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(1) ? entry.ReadStoreGeneratedValue<Guid>(1) : (entry.FlaggedAsTemporary(1) && SharedBuildplateEFUnsafeAccessors.AccountId(((SharedBuildplateEF)(entry.Entity))) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(1) : SharedBuildplateEFUnsafeAccessors.AccountId(((SharedBuildplateEF)(entry.Entity))))),
-                Guid (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.AccountId(((SharedBuildplateEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(accountId, 1),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(accountId, 1));
-            accountId.SetPropertyIndexes(
-                index: 1,
-                originalValueIndex: 1,
-                shadowIndex: -1,
-                relationshipIndex: 1,
-                storeGenerationIndex: 1);
-            accountId.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
-            accountId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(accountId));
             accountId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var buildplateLastModifed = runtimeEntityType.AddProperty(
@@ -142,47 +53,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(SharedBuildplateEF).GetProperty("BuildplateLastModifed", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(SharedBuildplateEF).GetField("<BuildplateLastModifed>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)));
-            buildplateLastModifed.SetGetter(
-                DateTimeOffset (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.BuildplateLastModifed(instance),
-                bool (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.BuildplateLastModifed(instance).EqualsExact(default(DateTimeOffset)));
-            buildplateLastModifed.SetSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, DateTimeOffset value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.BuildplateLastModifed(instance) = value;
-                    return instance;
-                });
-            buildplateLastModifed.SetMaterializationSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, DateTimeOffset value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.BuildplateLastModifed(instance) = value;
-                    return instance;
-                });
-            buildplateLastModifed.SetAccessors(
-                DateTimeOffset (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.BuildplateLastModifed(((SharedBuildplateEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.BuildplateLastModifed(((SharedBuildplateEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => entry.ReadOriginalValue<DateTimeOffset>(buildplateLastModifed, 2),
-                DateTimeOffset (IInternalEntry entry) => entry.GetCurrentValue<DateTimeOffset>(buildplateLastModifed));
-            buildplateLastModifed.SetPropertyIndexes(
-                index: 2,
-                originalValueIndex: 2,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            buildplateLastModifed.TypeMapping = NpgsqlTimestampTzTypeMapping.Default.Clone(
-                comparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                keyComparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                providerValueComparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                clrType: typeof(DateTimeOffset),
-                jsonValueReaderWriter: new NpgsqlTimestampTzTypeMapping.NpgsqlJsonTimestampTzDateTimeOffsetReaderWriter());
             buildplateLastModifed.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var created = runtimeEntityType.AddProperty(
@@ -191,47 +61,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(SharedBuildplateEF).GetProperty("Created", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(SharedBuildplateEF).GetField("<Created>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)));
-            created.SetGetter(
-                DateTimeOffset (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.Created(instance),
-                bool (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.Created(instance).EqualsExact(default(DateTimeOffset)));
-            created.SetSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, DateTimeOffset value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.Created(instance) = value;
-                    return instance;
-                });
-            created.SetMaterializationSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, DateTimeOffset value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.Created(instance) = value;
-                    return instance;
-                });
-            created.SetAccessors(
-                DateTimeOffset (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.Created(((SharedBuildplateEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.Created(((SharedBuildplateEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => entry.ReadOriginalValue<DateTimeOffset>(created, 3),
-                DateTimeOffset (IInternalEntry entry) => entry.GetCurrentValue<DateTimeOffset>(created));
-            created.SetPropertyIndexes(
-                index: 3,
-                originalValueIndex: 3,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            created.TypeMapping = NpgsqlTimestampTzTypeMapping.Default.Clone(
-                comparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                keyComparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                providerValueComparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                clrType: typeof(DateTimeOffset),
-                jsonValueReaderWriter: new NpgsqlTimestampTzTypeMapping.NpgsqlJsonTimestampTzDateTimeOffsetReaderWriter());
             created.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var lastViewed = runtimeEntityType.AddProperty(
@@ -240,47 +69,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(SharedBuildplateEF).GetProperty("LastViewed", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(SharedBuildplateEF).GetField("<LastViewed>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)));
-            lastViewed.SetGetter(
-                DateTimeOffset (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.LastViewed(instance),
-                bool (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.LastViewed(instance).EqualsExact(default(DateTimeOffset)));
-            lastViewed.SetSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, DateTimeOffset value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.LastViewed(instance) = value;
-                    return instance;
-                });
-            lastViewed.SetMaterializationSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, DateTimeOffset value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.LastViewed(instance) = value;
-                    return instance;
-                });
-            lastViewed.SetAccessors(
-                DateTimeOffset (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.LastViewed(((SharedBuildplateEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.LastViewed(((SharedBuildplateEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => entry.ReadOriginalValue<DateTimeOffset>(lastViewed, 4),
-                DateTimeOffset (IInternalEntry entry) => entry.GetCurrentValue<DateTimeOffset>(lastViewed));
-            lastViewed.SetPropertyIndexes(
-                index: 4,
-                originalValueIndex: 4,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            lastViewed.TypeMapping = NpgsqlTimestampTzTypeMapping.Default.Clone(
-                comparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                keyComparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                providerValueComparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                clrType: typeof(DateTimeOffset),
-                jsonValueReaderWriter: new NpgsqlTimestampTzTypeMapping.NpgsqlJsonTimestampTzDateTimeOffsetReaderWriter());
             lastViewed.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var night = runtimeEntityType.AddProperty(
@@ -289,45 +77,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(SharedBuildplateEF).GetProperty("Night", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(SharedBuildplateEF).GetField("<Night>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: false);
-            night.SetGetter(
-                bool (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.Night(instance),
-                bool (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.Night(instance) == false);
-            night.SetSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, bool value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.Night(instance) = value;
-                    return instance;
-                });
-            night.SetMaterializationSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, bool value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.Night(instance) = value;
-                    return instance;
-                });
-            night.SetAccessors(
-                bool (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.Night(((SharedBuildplateEF)(entry.Entity))),
-                bool (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.Night(((SharedBuildplateEF)(entry.Entity))),
-                bool (IInternalEntry entry) => entry.ReadOriginalValue<bool>(night, 5),
-                bool (IInternalEntry entry) => entry.GetCurrentValue<bool>(night));
-            night.SetPropertyIndexes(
-                index: 5,
-                originalValueIndex: 5,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            night.TypeMapping = NpgsqlBoolTypeMapping.Default.Clone(
-                comparer: new ValueComparer<bool>(
-                    bool (bool v1, bool v2) => v1 == v2,
-                    int (bool v) => ((object)v).GetHashCode(),
-                    bool (bool v) => v),
-                keyComparer: new ValueComparer<bool>(
-                    bool (bool v1, bool v2) => v1 == v2,
-                    int (bool v) => ((object)v).GetHashCode(),
-                    bool (bool v) => v),
-                providerValueComparer: new ValueComparer<bool>(
-                    bool (bool v1, bool v2) => v1 == v2,
-                    int (bool v) => ((object)v).GetHashCode(),
-                    bool (bool v) => v));
             night.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var numberOfTimesViewed = runtimeEntityType.AddProperty(
@@ -336,47 +85,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(SharedBuildplateEF).GetProperty("NumberOfTimesViewed", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(SharedBuildplateEF).GetField("<NumberOfTimesViewed>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: 0);
-            numberOfTimesViewed.SetGetter(
-                int (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.NumberOfTimesViewed(instance),
-                bool (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.NumberOfTimesViewed(instance) == 0);
-            numberOfTimesViewed.SetSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, int value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.NumberOfTimesViewed(instance) = value;
-                    return instance;
-                });
-            numberOfTimesViewed.SetMaterializationSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, int value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.NumberOfTimesViewed(instance) = value;
-                    return instance;
-                });
-            numberOfTimesViewed.SetAccessors(
-                int (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.NumberOfTimesViewed(((SharedBuildplateEF)(entry.Entity))),
-                int (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.NumberOfTimesViewed(((SharedBuildplateEF)(entry.Entity))),
-                int (IInternalEntry entry) => entry.ReadOriginalValue<int>(numberOfTimesViewed, 6),
-                int (IInternalEntry entry) => entry.GetCurrentValue<int>(numberOfTimesViewed));
-            numberOfTimesViewed.SetPropertyIndexes(
-                index: 6,
-                originalValueIndex: 6,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            numberOfTimesViewed.TypeMapping = IntTypeMapping.Default.Clone(
-                comparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                keyComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                providerValueComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "integer"));
             numberOfTimesViewed.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var offset = runtimeEntityType.AddProperty(
@@ -385,47 +93,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(SharedBuildplateEF).GetProperty("Offset", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(SharedBuildplateEF).GetField("<Offset>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: 0);
-            offset.SetGetter(
-                int (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.Offset(instance),
-                bool (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.Offset(instance) == 0);
-            offset.SetSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, int value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.Offset(instance) = value;
-                    return instance;
-                });
-            offset.SetMaterializationSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, int value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.Offset(instance) = value;
-                    return instance;
-                });
-            offset.SetAccessors(
-                int (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.Offset(((SharedBuildplateEF)(entry.Entity))),
-                int (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.Offset(((SharedBuildplateEF)(entry.Entity))),
-                int (IInternalEntry entry) => entry.ReadOriginalValue<int>(offset, 7),
-                int (IInternalEntry entry) => entry.GetCurrentValue<int>(offset));
-            offset.SetPropertyIndexes(
-                index: 7,
-                originalValueIndex: 7,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            offset.TypeMapping = IntTypeMapping.Default.Clone(
-                comparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                keyComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                providerValueComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "integer"));
             offset.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var scale = runtimeEntityType.AddProperty(
@@ -434,47 +101,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(SharedBuildplateEF).GetProperty("Scale", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(SharedBuildplateEF).GetField("<Scale>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: 0);
-            scale.SetGetter(
-                int (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.Scale(instance),
-                bool (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.Scale(instance) == 0);
-            scale.SetSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, int value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.Scale(instance) = value;
-                    return instance;
-                });
-            scale.SetMaterializationSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, int value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.Scale(instance) = value;
-                    return instance;
-                });
-            scale.SetAccessors(
-                int (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.Scale(((SharedBuildplateEF)(entry.Entity))),
-                int (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.Scale(((SharedBuildplateEF)(entry.Entity))),
-                int (IInternalEntry entry) => entry.ReadOriginalValue<int>(scale, 8),
-                int (IInternalEntry entry) => entry.GetCurrentValue<int>(scale));
-            scale.SetPropertyIndexes(
-                index: 8,
-                originalValueIndex: 8,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            scale.TypeMapping = IntTypeMapping.Default.Clone(
-                comparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                keyComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                providerValueComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "integer"));
             scale.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var serverDataObjectId = runtimeEntityType.AddProperty(
@@ -483,47 +109,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(SharedBuildplateEF).GetProperty("ServerDataObjectId", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(SharedBuildplateEF).GetField("<ServerDataObjectId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            serverDataObjectId.SetGetter(
-                Guid (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.ServerDataObjectId(instance),
-                bool (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.ServerDataObjectId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
-            serverDataObjectId.SetSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, Guid value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.ServerDataObjectId(instance) = value;
-                    return instance;
-                });
-            serverDataObjectId.SetMaterializationSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, Guid value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.ServerDataObjectId(instance) = value;
-                    return instance;
-                });
-            serverDataObjectId.SetAccessors(
-                Guid (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.ServerDataObjectId(((SharedBuildplateEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.ServerDataObjectId(((SharedBuildplateEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(serverDataObjectId, 9),
-                Guid (IInternalEntry entry) => entry.GetCurrentValue<Guid>(serverDataObjectId));
-            serverDataObjectId.SetPropertyIndexes(
-                index: 9,
-                originalValueIndex: 9,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            serverDataObjectId.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
             serverDataObjectId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var size = runtimeEntityType.AddProperty(
@@ -532,47 +117,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(SharedBuildplateEF).GetProperty("Size", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(SharedBuildplateEF).GetField("<Size>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: 0);
-            size.SetGetter(
-                int (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.Size(instance),
-                bool (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.Size(instance) == 0);
-            size.SetSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, int value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.Size(instance) = value;
-                    return instance;
-                });
-            size.SetMaterializationSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, int value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.Size(instance) = value;
-                    return instance;
-                });
-            size.SetAccessors(
-                int (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.Size(((SharedBuildplateEF)(entry.Entity))),
-                int (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.Size(((SharedBuildplateEF)(entry.Entity))),
-                int (IInternalEntry entry) => entry.ReadOriginalValue<int>(size, 10),
-                int (IInternalEntry entry) => entry.GetCurrentValue<int>(size));
-            size.SetPropertyIndexes(
-                index: 10,
-                originalValueIndex: 10,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            size.TypeMapping = IntTypeMapping.Default.Clone(
-                comparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                keyComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                providerValueComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "integer"));
             size.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var key = runtimeEntityType.AddKey(
@@ -600,32 +144,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(SharedBuildplateEF).GetProperty("Account", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(SharedBuildplateEF).GetField("<Account>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
 
-            account.SetGetter(
-                Account (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.Account(instance),
-                bool (SharedBuildplateEF instance) => SharedBuildplateEFUnsafeAccessors.Account(instance) == null);
-            account.SetSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, Account value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.Account(instance) = value;
-                    return instance;
-                });
-            account.SetMaterializationSetter(
-                SharedBuildplateEF (SharedBuildplateEF instance, Account value) =>
-                {
-                    SharedBuildplateEFUnsafeAccessors.Account(instance) = value;
-                    return instance;
-                });
-            account.SetAccessors(
-                Account (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.Account(((SharedBuildplateEF)(entry.Entity))),
-                Account (IInternalEntry entry) => SharedBuildplateEFUnsafeAccessors.Account(((SharedBuildplateEF)(entry.Entity))),
-                null,
-                Account (IInternalEntry entry) => entry.GetCurrentValue<Account>(account));
-            account.SetPropertyIndexes(
-                index: 0,
-                originalValueIndex: -1,
-                shadowIndex: -1,
-                relationshipIndex: 2,
-                storeGenerationIndex: -1);
             var sharedBuildplates = principalEntityType.AddNavigation("SharedBuildplates",
                 runtimeForeignKey,
                 onDependent: false,
@@ -633,88 +151,11 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(Account).GetProperty("SharedBuildplates", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(Account).GetField("<SharedBuildplates>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
 
-            sharedBuildplates.SetGetter(
-                ICollection<SharedBuildplateEF> (Account instance) => AccountUnsafeAccessors.SharedBuildplates(instance),
-                bool (Account instance) => AccountUnsafeAccessors.SharedBuildplates(instance) == null);
-            sharedBuildplates.SetSetter(
-                Account (Account instance, ICollection<SharedBuildplateEF> value) =>
-                {
-                    AccountUnsafeAccessors.SharedBuildplates(instance) = value;
-                    return instance;
-                });
-            sharedBuildplates.SetMaterializationSetter(
-                Account (Account instance, ICollection<SharedBuildplateEF> value) =>
-                {
-                    AccountUnsafeAccessors.SharedBuildplates(instance) = value;
-                    return instance;
-                });
-            sharedBuildplates.SetAccessors(
-                ICollection<SharedBuildplateEF> (IInternalEntry entry) => AccountUnsafeAccessors.SharedBuildplates(((Account)(entry.Entity))),
-                ICollection<SharedBuildplateEF> (IInternalEntry entry) => AccountUnsafeAccessors.SharedBuildplates(((Account)(entry.Entity))),
-                null,
-                ICollection<SharedBuildplateEF> (IInternalEntry entry) => entry.GetCurrentValue<ICollection<SharedBuildplateEF>>(sharedBuildplates));
-            sharedBuildplates.SetPropertyIndexes(
-                index: 10,
-                originalValueIndex: -1,
-                shadowIndex: -1,
-                relationshipIndex: 11,
-                storeGenerationIndex: -1);
-            sharedBuildplates.SetCollectionAccessor<Account, ICollection<SharedBuildplateEF>, SharedBuildplateEF>(
-                ICollection<SharedBuildplateEF> (Account entity) => AccountUnsafeAccessors.SharedBuildplates(entity),
-                (Account entity, ICollection<SharedBuildplateEF> collection) => AccountUnsafeAccessors.SharedBuildplates(entity) = ((ICollection<SharedBuildplateEF>)collection),
-                (Account entity, ICollection<SharedBuildplateEF> collection) => AccountUnsafeAccessors.SharedBuildplates(entity) = ((ICollection<SharedBuildplateEF>)collection),
-                ICollection<SharedBuildplateEF> (Account entity, Action<Account, ICollection<SharedBuildplateEF>> setter) => ClrCollectionAccessorFactory.CreateAndSetHashSet<Account, ICollection<SharedBuildplateEF>, SharedBuildplateEF>(entity, setter),
-                ICollection<SharedBuildplateEF> () => ((ICollection<SharedBuildplateEF>)(((ICollection<SharedBuildplateEF>)(new HashSet<SharedBuildplateEF>(ReferenceEqualityComparer.Instance))))));
             return runtimeForeignKey;
         }
 
         public static void CreateAnnotations(RuntimeEntityType runtimeEntityType)
         {
-            var id = runtimeEntityType.FindProperty("Id");
-            var accountId = runtimeEntityType.FindProperty("AccountId");
-            var buildplateLastModifed = runtimeEntityType.FindProperty("BuildplateLastModifed");
-            var created = runtimeEntityType.FindProperty("Created");
-            var lastViewed = runtimeEntityType.FindProperty("LastViewed");
-            var night = runtimeEntityType.FindProperty("Night");
-            var numberOfTimesViewed = runtimeEntityType.FindProperty("NumberOfTimesViewed");
-            var offset = runtimeEntityType.FindProperty("Offset");
-            var scale = runtimeEntityType.FindProperty("Scale");
-            var serverDataObjectId = runtimeEntityType.FindProperty("ServerDataObjectId");
-            var size = runtimeEntityType.FindProperty("Size");
-            var key = runtimeEntityType.FindKey(new[] { id });
-            key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateSimpleNonNullableFactory<Guid>(key));
-            key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<Guid>(key));
-            var account = runtimeEntityType.FindNavigation("Account");
-            var hotbar = runtimeEntityType.FindNavigation("Hotbar");
-            runtimeEntityType.SetOriginalValuesFactory(
-                ISnapshot (IInternalEntry source) =>
-                {
-                    var structuralType = ((SharedBuildplateEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, Guid, DateTimeOffset, DateTimeOffset, DateTimeOffset, bool, int, int, int, Guid, int>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), ((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<DateTimeOffset>)(((IProperty)buildplateLastModifed).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(buildplateLastModifed)), ((ValueComparer<DateTimeOffset>)(((IProperty)created).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(created)), ((ValueComparer<DateTimeOffset>)(((IProperty)lastViewed).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(lastViewed)), ((ValueComparer<bool>)(((IProperty)night).GetValueComparer())).Snapshot(source.GetCurrentValue<bool>(night)), ((ValueComparer<int>)(((IProperty)numberOfTimesViewed).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(numberOfTimesViewed)), ((ValueComparer<int>)(((IProperty)offset).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(offset)), ((ValueComparer<int>)(((IProperty)scale).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(scale)), ((ValueComparer<Guid>)(((IProperty)serverDataObjectId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(serverDataObjectId)), ((ValueComparer<int>)(((IProperty)size).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(size)))));
-                });
-            runtimeEntityType.SetStoreGeneratedValuesFactory(
-                ISnapshot () => ((ISnapshot)(new Snapshot<Guid, Guid>(((ValueComparer<Guid>)(((IProperty)id).GetValueComparer())).Snapshot(default(Guid)), ((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid))))));
-            runtimeEntityType.SetTemporaryValuesFactory(
-                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid, Guid>(default(Guid), default(Guid)))));
-            runtimeEntityType.SetShadowValuesFactory(
-                ISnapshot (IDictionary<string, object> source) => Snapshot.Empty);
-            runtimeEntityType.SetEmptyShadowValuesFactory(
-                ISnapshot () => Snapshot.Empty);
-            runtimeEntityType.SetRelationshipSnapshotFactory(
-                ISnapshot (IInternalEntry source) =>
-                {
-                    var structuralType = ((SharedBuildplateEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, Guid, object, object>(((ValueComparer<Guid>)(((IProperty)id).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(id)), ((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), source.GetCurrentValue<Account>(account), SnapshotFactoryFactory.SnapshotCollection(source.GetCurrentValue<SharedBuildplateEF.HotbarItem[]>(hotbar)))));
-                });
-            runtimeEntityType.SetCounts(new PropertyCounts(
-                propertyCount: 11,
-                navigationCount: 2,
-                complexPropertyCount: 0,
-                complexCollectionCount: 0,
-                originalValueCount: 11,
-                shadowCount: 0,
-                relationshipCount: 4,
-                storeGeneratedCount: 2));
             runtimeEntityType.AddAnnotation("Relational:FunctionName", null);
             runtimeEntityType.AddAnnotation("Relational:Schema", null);
             runtimeEntityType.AddAnnotation("Relational:SqlQuery", null);

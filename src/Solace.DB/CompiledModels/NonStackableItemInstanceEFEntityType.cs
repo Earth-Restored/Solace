@@ -3,12 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Solace.DB.Models;
 using Solace.DB.Models.Player;
@@ -39,48 +35,6 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(NonStackableItemInstanceEF).GetField("<AccountId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            accountId.SetGetter(
-                Guid (NonStackableItemInstanceEF instance) => NonStackableItemInstanceEFUnsafeAccessors.AccountId(instance),
-                bool (NonStackableItemInstanceEF instance) => NonStackableItemInstanceEFUnsafeAccessors.AccountId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
-            accountId.SetSetter(
-                NonStackableItemInstanceEF (NonStackableItemInstanceEF instance, Guid value) =>
-                {
-                    NonStackableItemInstanceEFUnsafeAccessors.AccountId(instance) = value;
-                    return instance;
-                });
-            accountId.SetMaterializationSetter(
-                NonStackableItemInstanceEF (NonStackableItemInstanceEF instance, Guid value) =>
-                {
-                    NonStackableItemInstanceEFUnsafeAccessors.AccountId(instance) = value;
-                    return instance;
-                });
-            accountId.SetAccessors(
-                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(0) ? entry.ReadStoreGeneratedValue<Guid>(0) : (entry.FlaggedAsTemporary(0) && NonStackableItemInstanceEFUnsafeAccessors.AccountId(((NonStackableItemInstanceEF)(entry.Entity))) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(0) : NonStackableItemInstanceEFUnsafeAccessors.AccountId(((NonStackableItemInstanceEF)(entry.Entity))))),
-                Guid (IInternalEntry entry) => NonStackableItemInstanceEFUnsafeAccessors.AccountId(((NonStackableItemInstanceEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(accountId, 0),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(accountId, 0));
-            accountId.SetPropertyIndexes(
-                index: 0,
-                originalValueIndex: 0,
-                shadowIndex: -1,
-                relationshipIndex: 0,
-                storeGenerationIndex: 0);
-            accountId.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
-            accountId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(accountId));
             accountId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var itemId = runtimeEntityType.AddProperty(
@@ -90,48 +44,6 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(NonStackableItemInstanceEF).GetField("<ItemId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            itemId.SetGetter(
-                Guid (NonStackableItemInstanceEF instance) => NonStackableItemInstanceEFUnsafeAccessors.ItemId(instance),
-                bool (NonStackableItemInstanceEF instance) => NonStackableItemInstanceEFUnsafeAccessors.ItemId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
-            itemId.SetSetter(
-                NonStackableItemInstanceEF (NonStackableItemInstanceEF instance, Guid value) =>
-                {
-                    NonStackableItemInstanceEFUnsafeAccessors.ItemId(instance) = value;
-                    return instance;
-                });
-            itemId.SetMaterializationSetter(
-                NonStackableItemInstanceEF (NonStackableItemInstanceEF instance, Guid value) =>
-                {
-                    NonStackableItemInstanceEFUnsafeAccessors.ItemId(instance) = value;
-                    return instance;
-                });
-            itemId.SetAccessors(
-                Guid (IInternalEntry entry) => NonStackableItemInstanceEFUnsafeAccessors.ItemId(((NonStackableItemInstanceEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => NonStackableItemInstanceEFUnsafeAccessors.ItemId(((NonStackableItemInstanceEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(itemId, 1),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(itemId, 1));
-            itemId.SetPropertyIndexes(
-                index: 1,
-                originalValueIndex: 1,
-                shadowIndex: -1,
-                relationshipIndex: 1,
-                storeGenerationIndex: -1);
-            itemId.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
-            itemId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(itemId));
             itemId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var instanceId = runtimeEntityType.AddProperty(
@@ -141,48 +53,6 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(NonStackableItemInstanceEF).GetField("<InstanceId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            instanceId.SetGetter(
-                Guid (NonStackableItemInstanceEF instance) => NonStackableItemInstanceEFUnsafeAccessors.InstanceId(instance),
-                bool (NonStackableItemInstanceEF instance) => NonStackableItemInstanceEFUnsafeAccessors.InstanceId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
-            instanceId.SetSetter(
-                NonStackableItemInstanceEF (NonStackableItemInstanceEF instance, Guid value) =>
-                {
-                    NonStackableItemInstanceEFUnsafeAccessors.InstanceId(instance) = value;
-                    return instance;
-                });
-            instanceId.SetMaterializationSetter(
-                NonStackableItemInstanceEF (NonStackableItemInstanceEF instance, Guid value) =>
-                {
-                    NonStackableItemInstanceEFUnsafeAccessors.InstanceId(instance) = value;
-                    return instance;
-                });
-            instanceId.SetAccessors(
-                Guid (IInternalEntry entry) => NonStackableItemInstanceEFUnsafeAccessors.InstanceId(((NonStackableItemInstanceEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => NonStackableItemInstanceEFUnsafeAccessors.InstanceId(((NonStackableItemInstanceEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(instanceId, 2),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(instanceId, 2));
-            instanceId.SetPropertyIndexes(
-                index: 2,
-                originalValueIndex: 2,
-                shadowIndex: -1,
-                relationshipIndex: 2,
-                storeGenerationIndex: -1);
-            instanceId.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
-            instanceId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(instanceId));
             instanceId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var wear = runtimeEntityType.AddProperty(
@@ -191,47 +61,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(NonStackableItemInstanceEF).GetProperty("Wear", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(NonStackableItemInstanceEF).GetField("<Wear>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: 0);
-            wear.SetGetter(
-                int (NonStackableItemInstanceEF instance) => NonStackableItemInstanceEFUnsafeAccessors.Wear(instance),
-                bool (NonStackableItemInstanceEF instance) => NonStackableItemInstanceEFUnsafeAccessors.Wear(instance) == 0);
-            wear.SetSetter(
-                NonStackableItemInstanceEF (NonStackableItemInstanceEF instance, int value) =>
-                {
-                    NonStackableItemInstanceEFUnsafeAccessors.Wear(instance) = value;
-                    return instance;
-                });
-            wear.SetMaterializationSetter(
-                NonStackableItemInstanceEF (NonStackableItemInstanceEF instance, int value) =>
-                {
-                    NonStackableItemInstanceEFUnsafeAccessors.Wear(instance) = value;
-                    return instance;
-                });
-            wear.SetAccessors(
-                int (IInternalEntry entry) => NonStackableItemInstanceEFUnsafeAccessors.Wear(((NonStackableItemInstanceEF)(entry.Entity))),
-                int (IInternalEntry entry) => NonStackableItemInstanceEFUnsafeAccessors.Wear(((NonStackableItemInstanceEF)(entry.Entity))),
-                int (IInternalEntry entry) => entry.ReadOriginalValue<int>(wear, 3),
-                int (IInternalEntry entry) => entry.GetCurrentValue<int>(wear));
-            wear.SetPropertyIndexes(
-                index: 3,
-                originalValueIndex: 3,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            wear.TypeMapping = IntTypeMapping.Default.Clone(
-                comparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                keyComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                providerValueComparer: new ValueComparer<int>(
-                    bool (int v1, int v2) => v1 == v2,
-                    int (int v) => v,
-                    int (int v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "integer"));
             wear.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var key = runtimeEntityType.AddKey(
@@ -256,32 +85,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(NonStackableItemInstanceEF).GetProperty("Account", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(NonStackableItemInstanceEF).GetField("<Account>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
 
-            account.SetGetter(
-                Account (NonStackableItemInstanceEF instance) => NonStackableItemInstanceEFUnsafeAccessors.Account(instance),
-                bool (NonStackableItemInstanceEF instance) => NonStackableItemInstanceEFUnsafeAccessors.Account(instance) == null);
-            account.SetSetter(
-                NonStackableItemInstanceEF (NonStackableItemInstanceEF instance, Account value) =>
-                {
-                    NonStackableItemInstanceEFUnsafeAccessors.Account(instance) = value;
-                    return instance;
-                });
-            account.SetMaterializationSetter(
-                NonStackableItemInstanceEF (NonStackableItemInstanceEF instance, Account value) =>
-                {
-                    NonStackableItemInstanceEFUnsafeAccessors.Account(instance) = value;
-                    return instance;
-                });
-            account.SetAccessors(
-                Account (IInternalEntry entry) => NonStackableItemInstanceEFUnsafeAccessors.Account(((NonStackableItemInstanceEF)(entry.Entity))),
-                Account (IInternalEntry entry) => NonStackableItemInstanceEFUnsafeAccessors.Account(((NonStackableItemInstanceEF)(entry.Entity))),
-                null,
-                Account (IInternalEntry entry) => entry.GetCurrentValue<Account>(account));
-            account.SetPropertyIndexes(
-                index: 0,
-                originalValueIndex: -1,
-                shadowIndex: -1,
-                relationshipIndex: 3,
-                storeGenerationIndex: -1);
             var nonStackableItems = principalEntityType.AddNavigation("NonStackableItems",
                 runtimeForeignKey,
                 onDependent: false,
@@ -289,80 +92,11 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(Account).GetProperty("NonStackableItems", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(Account).GetField("<NonStackableItems>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
 
-            nonStackableItems.SetGetter(
-                ICollection<NonStackableItemInstanceEF> (Account instance) => AccountUnsafeAccessors.NonStackableItems(instance),
-                bool (Account instance) => AccountUnsafeAccessors.NonStackableItems(instance) == null);
-            nonStackableItems.SetSetter(
-                Account (Account instance, ICollection<NonStackableItemInstanceEF> value) =>
-                {
-                    AccountUnsafeAccessors.NonStackableItems(instance) = value;
-                    return instance;
-                });
-            nonStackableItems.SetMaterializationSetter(
-                Account (Account instance, ICollection<NonStackableItemInstanceEF> value) =>
-                {
-                    AccountUnsafeAccessors.NonStackableItems(instance) = value;
-                    return instance;
-                });
-            nonStackableItems.SetAccessors(
-                ICollection<NonStackableItemInstanceEF> (IInternalEntry entry) => AccountUnsafeAccessors.NonStackableItems(((Account)(entry.Entity))),
-                ICollection<NonStackableItemInstanceEF> (IInternalEntry entry) => AccountUnsafeAccessors.NonStackableItems(((Account)(entry.Entity))),
-                null,
-                ICollection<NonStackableItemInstanceEF> (IInternalEntry entry) => entry.GetCurrentValue<ICollection<NonStackableItemInstanceEF>>(nonStackableItems));
-            nonStackableItems.SetPropertyIndexes(
-                index: 7,
-                originalValueIndex: -1,
-                shadowIndex: -1,
-                relationshipIndex: 8,
-                storeGenerationIndex: -1);
-            nonStackableItems.SetCollectionAccessor<Account, ICollection<NonStackableItemInstanceEF>, NonStackableItemInstanceEF>(
-                ICollection<NonStackableItemInstanceEF> (Account entity) => AccountUnsafeAccessors.NonStackableItems(entity),
-                (Account entity, ICollection<NonStackableItemInstanceEF> collection) => AccountUnsafeAccessors.NonStackableItems(entity) = ((ICollection<NonStackableItemInstanceEF>)collection),
-                (Account entity, ICollection<NonStackableItemInstanceEF> collection) => AccountUnsafeAccessors.NonStackableItems(entity) = ((ICollection<NonStackableItemInstanceEF>)collection),
-                ICollection<NonStackableItemInstanceEF> (Account entity, Action<Account, ICollection<NonStackableItemInstanceEF>> setter) => ClrCollectionAccessorFactory.CreateAndSetHashSet<Account, ICollection<NonStackableItemInstanceEF>, NonStackableItemInstanceEF>(entity, setter),
-                ICollection<NonStackableItemInstanceEF> () => ((ICollection<NonStackableItemInstanceEF>)(((ICollection<NonStackableItemInstanceEF>)(new HashSet<NonStackableItemInstanceEF>(ReferenceEqualityComparer.Instance))))));
             return runtimeForeignKey;
         }
 
         public static void CreateAnnotations(RuntimeEntityType runtimeEntityType)
         {
-            var accountId = runtimeEntityType.FindProperty("AccountId");
-            var itemId = runtimeEntityType.FindProperty("ItemId");
-            var instanceId = runtimeEntityType.FindProperty("InstanceId");
-            var wear = runtimeEntityType.FindProperty("Wear");
-            var key = runtimeEntityType.FindKey(new[] { accountId, itemId, instanceId });
-            key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateCompositeFactory(key));
-            key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<IReadOnlyList<object>>(key));
-            var account = runtimeEntityType.FindNavigation("Account");
-            runtimeEntityType.SetOriginalValuesFactory(
-                ISnapshot (IInternalEntry source) =>
-                {
-                    var structuralType = ((NonStackableItemInstanceEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, Guid, Guid, int>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<Guid>)(((IProperty)itemId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(itemId)), ((ValueComparer<Guid>)(((IProperty)instanceId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(instanceId)), ((ValueComparer<int>)(((IProperty)wear).GetValueComparer())).Snapshot(source.GetCurrentValue<int>(wear)))));
-                });
-            runtimeEntityType.SetStoreGeneratedValuesFactory(
-                ISnapshot () => ((ISnapshot)(new Snapshot<Guid>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid))))));
-            runtimeEntityType.SetTemporaryValuesFactory(
-                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid>(default(Guid)))));
-            runtimeEntityType.SetShadowValuesFactory(
-                ISnapshot (IDictionary<string, object> source) => Snapshot.Empty);
-            runtimeEntityType.SetEmptyShadowValuesFactory(
-                ISnapshot () => Snapshot.Empty);
-            runtimeEntityType.SetRelationshipSnapshotFactory(
-                ISnapshot (IInternalEntry source) =>
-                {
-                    var structuralType = ((NonStackableItemInstanceEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, Guid, Guid, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<Guid>)(((IProperty)itemId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(itemId)), ((ValueComparer<Guid>)(((IProperty)instanceId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(instanceId)), source.GetCurrentValue<Account>(account))));
-                });
-            runtimeEntityType.SetCounts(new PropertyCounts(
-                propertyCount: 4,
-                navigationCount: 1,
-                complexPropertyCount: 0,
-                complexCollectionCount: 0,
-                originalValueCount: 4,
-                shadowCount: 0,
-                relationshipCount: 4,
-                storeGeneratedCount: 1));
             runtimeEntityType.AddAnnotation("Relational:FunctionName", null);
             runtimeEntityType.AddAnnotation("Relational:Schema", null);
             runtimeEntityType.AddAnnotation("Relational:SqlQuery", null);

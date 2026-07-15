@@ -3,14 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.Mapping;
 using Solace.DB.Models;
 using Solace.DB.Models.Player;
 
@@ -40,48 +35,6 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(RedeemedTappableEF).GetField("<AccountId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            accountId.SetGetter(
-                Guid (RedeemedTappableEF instance) => RedeemedTappableEFUnsafeAccessors.AccountId(instance),
-                bool (RedeemedTappableEF instance) => RedeemedTappableEFUnsafeAccessors.AccountId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
-            accountId.SetSetter(
-                RedeemedTappableEF (RedeemedTappableEF instance, Guid value) =>
-                {
-                    RedeemedTappableEFUnsafeAccessors.AccountId(instance) = value;
-                    return instance;
-                });
-            accountId.SetMaterializationSetter(
-                RedeemedTappableEF (RedeemedTappableEF instance, Guid value) =>
-                {
-                    RedeemedTappableEFUnsafeAccessors.AccountId(instance) = value;
-                    return instance;
-                });
-            accountId.SetAccessors(
-                Guid (IInternalEntry entry) => (entry.FlaggedAsStoreGenerated(0) ? entry.ReadStoreGeneratedValue<Guid>(0) : (entry.FlaggedAsTemporary(0) && RedeemedTappableEFUnsafeAccessors.AccountId(((RedeemedTappableEF)(entry.Entity))) == new Guid("00000000-0000-0000-0000-000000000000") ? entry.ReadTemporaryValue<Guid>(0) : RedeemedTappableEFUnsafeAccessors.AccountId(((RedeemedTappableEF)(entry.Entity))))),
-                Guid (IInternalEntry entry) => RedeemedTappableEFUnsafeAccessors.AccountId(((RedeemedTappableEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(accountId, 0),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(accountId, 0));
-            accountId.SetPropertyIndexes(
-                index: 0,
-                originalValueIndex: 0,
-                shadowIndex: -1,
-                relationshipIndex: 0,
-                storeGenerationIndex: 0);
-            accountId.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
-            accountId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(accountId));
             accountId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var tappableId = runtimeEntityType.AddProperty(
@@ -91,48 +44,6 @@ namespace Solace.DB.CompiledModels
                 fieldInfo: typeof(RedeemedTappableEF).GetField("<TappableId>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 afterSaveBehavior: PropertySaveBehavior.Throw,
                 sentinel: new Guid("00000000-0000-0000-0000-000000000000"));
-            tappableId.SetGetter(
-                Guid (RedeemedTappableEF instance) => RedeemedTappableEFUnsafeAccessors.TappableId(instance),
-                bool (RedeemedTappableEF instance) => RedeemedTappableEFUnsafeAccessors.TappableId(instance) == new Guid("00000000-0000-0000-0000-000000000000"));
-            tappableId.SetSetter(
-                RedeemedTappableEF (RedeemedTappableEF instance, Guid value) =>
-                {
-                    RedeemedTappableEFUnsafeAccessors.TappableId(instance) = value;
-                    return instance;
-                });
-            tappableId.SetMaterializationSetter(
-                RedeemedTappableEF (RedeemedTappableEF instance, Guid value) =>
-                {
-                    RedeemedTappableEFUnsafeAccessors.TappableId(instance) = value;
-                    return instance;
-                });
-            tappableId.SetAccessors(
-                Guid (IInternalEntry entry) => RedeemedTappableEFUnsafeAccessors.TappableId(((RedeemedTappableEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => RedeemedTappableEFUnsafeAccessors.TappableId(((RedeemedTappableEF)(entry.Entity))),
-                Guid (IInternalEntry entry) => entry.ReadOriginalValue<Guid>(tappableId, 1),
-                Guid (IInternalEntry entry) => ((InternalEntityEntry)entry).ReadRelationshipSnapshotValue<Guid>(tappableId, 1));
-            tappableId.SetPropertyIndexes(
-                index: 1,
-                originalValueIndex: 1,
-                shadowIndex: -1,
-                relationshipIndex: 1,
-                storeGenerationIndex: -1);
-            tappableId.TypeMapping = GuidTypeMapping.Default.Clone(
-                comparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                keyComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                providerValueComparer: new ValueComparer<Guid>(
-                    bool (Guid v1, Guid v2) => v1 == v2,
-                    int (Guid v) => ((object)v).GetHashCode(),
-                    Guid (Guid v) => v),
-                mappingInfo: new RelationalTypeMappingInfo(
-                    storeTypeName: "uuid"));
-            tappableId.SetCurrentValueComparer(new EntryCurrentValueComparer<Guid>(tappableId));
             tappableId.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var expiresAt = runtimeEntityType.AddProperty(
@@ -141,47 +52,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(RedeemedTappableEF).GetProperty("ExpiresAt", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(RedeemedTappableEF).GetField("<ExpiresAt>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 sentinel: new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)));
-            expiresAt.SetGetter(
-                DateTimeOffset (RedeemedTappableEF instance) => RedeemedTappableEFUnsafeAccessors.ExpiresAt(instance),
-                bool (RedeemedTappableEF instance) => RedeemedTappableEFUnsafeAccessors.ExpiresAt(instance).EqualsExact(default(DateTimeOffset)));
-            expiresAt.SetSetter(
-                RedeemedTappableEF (RedeemedTappableEF instance, DateTimeOffset value) =>
-                {
-                    RedeemedTappableEFUnsafeAccessors.ExpiresAt(instance) = value;
-                    return instance;
-                });
-            expiresAt.SetMaterializationSetter(
-                RedeemedTappableEF (RedeemedTappableEF instance, DateTimeOffset value) =>
-                {
-                    RedeemedTappableEFUnsafeAccessors.ExpiresAt(instance) = value;
-                    return instance;
-                });
-            expiresAt.SetAccessors(
-                DateTimeOffset (IInternalEntry entry) => RedeemedTappableEFUnsafeAccessors.ExpiresAt(((RedeemedTappableEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => RedeemedTappableEFUnsafeAccessors.ExpiresAt(((RedeemedTappableEF)(entry.Entity))),
-                DateTimeOffset (IInternalEntry entry) => entry.ReadOriginalValue<DateTimeOffset>(expiresAt, 2),
-                DateTimeOffset (IInternalEntry entry) => entry.GetCurrentValue<DateTimeOffset>(expiresAt));
-            expiresAt.SetPropertyIndexes(
-                index: 2,
-                originalValueIndex: 2,
-                shadowIndex: -1,
-                relationshipIndex: -1,
-                storeGenerationIndex: -1);
-            expiresAt.TypeMapping = NpgsqlTimestampTzTypeMapping.Default.Clone(
-                comparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                keyComparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                providerValueComparer: new ValueComparer<DateTimeOffset>(
-                    bool (DateTimeOffset v1, DateTimeOffset v2) => v1.EqualsExact(v2),
-                    int (DateTimeOffset v) => ((object)v).GetHashCode(),
-                    DateTimeOffset (DateTimeOffset v) => v),
-                clrType: typeof(DateTimeOffset),
-                jsonValueReaderWriter: new NpgsqlTimestampTzTypeMapping.NpgsqlJsonTimestampTzDateTimeOffsetReaderWriter());
             expiresAt.AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.None);
 
             var key = runtimeEntityType.AddKey(
@@ -206,32 +76,6 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(RedeemedTappableEF).GetProperty("Account", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(RedeemedTappableEF).GetField("<Account>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
 
-            account.SetGetter(
-                Account (RedeemedTappableEF instance) => RedeemedTappableEFUnsafeAccessors.Account(instance),
-                bool (RedeemedTappableEF instance) => RedeemedTappableEFUnsafeAccessors.Account(instance) == null);
-            account.SetSetter(
-                RedeemedTappableEF (RedeemedTappableEF instance, Account value) =>
-                {
-                    RedeemedTappableEFUnsafeAccessors.Account(instance) = value;
-                    return instance;
-                });
-            account.SetMaterializationSetter(
-                RedeemedTappableEF (RedeemedTappableEF instance, Account value) =>
-                {
-                    RedeemedTappableEFUnsafeAccessors.Account(instance) = value;
-                    return instance;
-                });
-            account.SetAccessors(
-                Account (IInternalEntry entry) => RedeemedTappableEFUnsafeAccessors.Account(((RedeemedTappableEF)(entry.Entity))),
-                Account (IInternalEntry entry) => RedeemedTappableEFUnsafeAccessors.Account(((RedeemedTappableEF)(entry.Entity))),
-                null,
-                Account (IInternalEntry entry) => entry.GetCurrentValue<Account>(account));
-            account.SetPropertyIndexes(
-                index: 0,
-                originalValueIndex: -1,
-                shadowIndex: -1,
-                relationshipIndex: 2,
-                storeGenerationIndex: -1);
             var redeemedTappables = principalEntityType.AddNavigation("RedeemedTappables",
                 runtimeForeignKey,
                 onDependent: false,
@@ -239,79 +83,11 @@ namespace Solace.DB.CompiledModels
                 propertyInfo: typeof(Account).GetProperty("RedeemedTappables", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly),
                 fieldInfo: typeof(Account).GetField("<RedeemedTappables>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
 
-            redeemedTappables.SetGetter(
-                ICollection<RedeemedTappableEF> (Account instance) => AccountUnsafeAccessors.RedeemedTappables(instance),
-                bool (Account instance) => AccountUnsafeAccessors.RedeemedTappables(instance) == null);
-            redeemedTappables.SetSetter(
-                Account (Account instance, ICollection<RedeemedTappableEF> value) =>
-                {
-                    AccountUnsafeAccessors.RedeemedTappables(instance) = value;
-                    return instance;
-                });
-            redeemedTappables.SetMaterializationSetter(
-                Account (Account instance, ICollection<RedeemedTappableEF> value) =>
-                {
-                    AccountUnsafeAccessors.RedeemedTappables(instance) = value;
-                    return instance;
-                });
-            redeemedTappables.SetAccessors(
-                ICollection<RedeemedTappableEF> (IInternalEntry entry) => AccountUnsafeAccessors.RedeemedTappables(((Account)(entry.Entity))),
-                ICollection<RedeemedTappableEF> (IInternalEntry entry) => AccountUnsafeAccessors.RedeemedTappables(((Account)(entry.Entity))),
-                null,
-                ICollection<RedeemedTappableEF> (IInternalEntry entry) => entry.GetCurrentValue<ICollection<RedeemedTappableEF>>(redeemedTappables));
-            redeemedTappables.SetPropertyIndexes(
-                index: 9,
-                originalValueIndex: -1,
-                shadowIndex: -1,
-                relationshipIndex: 10,
-                storeGenerationIndex: -1);
-            redeemedTappables.SetCollectionAccessor<Account, ICollection<RedeemedTappableEF>, RedeemedTappableEF>(
-                ICollection<RedeemedTappableEF> (Account entity) => AccountUnsafeAccessors.RedeemedTappables(entity),
-                (Account entity, ICollection<RedeemedTappableEF> collection) => AccountUnsafeAccessors.RedeemedTappables(entity) = ((ICollection<RedeemedTappableEF>)collection),
-                (Account entity, ICollection<RedeemedTappableEF> collection) => AccountUnsafeAccessors.RedeemedTappables(entity) = ((ICollection<RedeemedTappableEF>)collection),
-                ICollection<RedeemedTappableEF> (Account entity, Action<Account, ICollection<RedeemedTappableEF>> setter) => ClrCollectionAccessorFactory.CreateAndSetHashSet<Account, ICollection<RedeemedTappableEF>, RedeemedTappableEF>(entity, setter),
-                ICollection<RedeemedTappableEF> () => ((ICollection<RedeemedTappableEF>)(((ICollection<RedeemedTappableEF>)(new HashSet<RedeemedTappableEF>(ReferenceEqualityComparer.Instance))))));
             return runtimeForeignKey;
         }
 
         public static void CreateAnnotations(RuntimeEntityType runtimeEntityType)
         {
-            var accountId = runtimeEntityType.FindProperty("AccountId");
-            var tappableId = runtimeEntityType.FindProperty("TappableId");
-            var expiresAt = runtimeEntityType.FindProperty("ExpiresAt");
-            var key = runtimeEntityType.FindKey(new[] { accountId, tappableId });
-            key.SetPrincipalKeyValueFactory(KeyValueFactoryFactory.CreateCompositeFactory(key));
-            key.SetIdentityMapFactory(IdentityMapFactoryFactory.CreateFactory<IReadOnlyList<object>>(key));
-            var account = runtimeEntityType.FindNavigation("Account");
-            runtimeEntityType.SetOriginalValuesFactory(
-                ISnapshot (IInternalEntry source) =>
-                {
-                    var structuralType = ((RedeemedTappableEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, Guid, DateTimeOffset>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<Guid>)(((IProperty)tappableId).GetValueComparer())).Snapshot(source.GetCurrentValue<Guid>(tappableId)), ((ValueComparer<DateTimeOffset>)(((IProperty)expiresAt).GetValueComparer())).Snapshot(source.GetCurrentValue<DateTimeOffset>(expiresAt)))));
-                });
-            runtimeEntityType.SetStoreGeneratedValuesFactory(
-                ISnapshot () => ((ISnapshot)(new Snapshot<Guid>(((ValueComparer<Guid>)(((IProperty)accountId).GetValueComparer())).Snapshot(default(Guid))))));
-            runtimeEntityType.SetTemporaryValuesFactory(
-                ISnapshot (IInternalEntry source) => ((ISnapshot)(new Snapshot<Guid>(default(Guid)))));
-            runtimeEntityType.SetShadowValuesFactory(
-                ISnapshot (IDictionary<string, object> source) => Snapshot.Empty);
-            runtimeEntityType.SetEmptyShadowValuesFactory(
-                ISnapshot () => Snapshot.Empty);
-            runtimeEntityType.SetRelationshipSnapshotFactory(
-                ISnapshot (IInternalEntry source) =>
-                {
-                    var structuralType = ((RedeemedTappableEF)(source.Entity));
-                    return ((ISnapshot)(new Snapshot<Guid, Guid, object>(((ValueComparer<Guid>)(((IProperty)accountId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(accountId)), ((ValueComparer<Guid>)(((IProperty)tappableId).GetKeyValueComparer())).Snapshot(source.GetCurrentValue<Guid>(tappableId)), source.GetCurrentValue<Account>(account))));
-                });
-            runtimeEntityType.SetCounts(new PropertyCounts(
-                propertyCount: 3,
-                navigationCount: 1,
-                complexPropertyCount: 0,
-                complexCollectionCount: 0,
-                originalValueCount: 3,
-                shadowCount: 0,
-                relationshipCount: 3,
-                storeGeneratedCount: 1));
             runtimeEntityType.AddAnnotation("Relational:FunctionName", null);
             runtimeEntityType.AddAnnotation("Relational:Schema", null);
             runtimeEntityType.AddAnnotation("Relational:SqlQuery", null);
