@@ -1,7 +1,8 @@
 #!/usr/bin/env pwsh
 param(
     [Parameter(Mandatory = $true)][string]$Username,
-    [string]$Registry = "ghcr.io"
+    [string]$Registry = "ghcr.io",
+    [string[]]$Projects = @("*")
 )
 
 $InformationPreference = 'Continue'
@@ -99,20 +100,38 @@ else {
 
 Push-Location ./../
 
-$projects = @(
-    # [pscustomobject]@{ProjectName = 'Solace.EventBus.Server'; PackageName = 'event-bus'; AOT = $true }
-    # [pscustomobject]@{ProjectName = 'Solace.ObjectStore.Server'; PackageName = 'object-store'; AOT = $true }
-    # [pscustomobject]@{ProjectName = 'Solace.Buildplate'; PackageName = 'buildplate-launcher'; AOT = $false }
-    # [pscustomobject]@{ProjectName = 'Solace.ApiServer'; PackageName = 'api-server'; AOT = $false }
-    [pscustomobject]@{ProjectName = 'Solace.Cdn'; PackageName = 'cdn'; AOT = $true }
-    # [pscustomobject]@{ProjectName = 'Solace.Locator'; PackageName = 'locator'; AOT = $true }
-    # [pscustomobject]@{ProjectName = 'Solace.TappablesGenerator'; PackageName = 'tappable-generator'; AOT = $true }
-    # [pscustomobject]@{ProjectName = 'Solace.TileRenderer'; PackageName = 'tile-renderer'; AOT = $true }
-    # [pscustomobject]@{ProjectName = 'Solace.AdminPanel'; PackageName = 'admin-panel'; AOT = $false }
+$projectList = @(
+    [pscustomobject]@{ProjectName = 'Solace.EventBus.Server'; PackageName = 'event-bus'; AOT = $true }
+    [pscustomobject]@{ProjectName = 'Solace.ObjectStore.Server'; PackageName = 'object-store'; AOT = $true }
+    [pscustomobject]@{ProjectName = 'Solace.Buildplate'; PackageName = 'buildplate-launcher'; AOT = $false }
+    [pscustomobject]@{ProjectName = 'Solace.ApiServer'; PackageName = 'api-server'; AOT = $false }
+    [pscustomobject]@{ProjectName = 'Solace.Cdn'; PackageName = 'cdn'; AOT = $false }
+    [pscustomobject]@{ProjectName = 'Solace.Locator'; PackageName = 'locator'; AOT = $true }
+    [pscustomobject]@{ProjectName = 'Solace.TappablesGenerator'; PackageName = 'tappable-generator'; AOT = $true }
+    [pscustomobject]@{ProjectName = 'Solace.TileRenderer'; PackageName = 'tile-renderer'; AOT = $true }
+    [pscustomobject]@{ProjectName = 'Solace.AdminPanel'; PackageName = 'admin-panel'; AOT = $false }
 )
 
+$selectedProjects = $projectList | Where-Object {
+    $item = $_
+    $matched = $false
+    foreach ($pattern in $Projects) {
+        if ($item.ProjectName -like $pattern -or $item.PackageName -like $pattern) {
+            $matched = $true
+            break
+        }
+    }
+    $matched
+}
+
+if ($selectedProjects.Count -eq 0) {
+    Write-Warning "No projects matched your filter: $Projects"
+    Pop-Location
+    exit 0
+}
+
 try {
-    foreach ($project in $projects) {
+    foreach ($project in $selectedProjects) {
         Push-Project -ProjectName $project.ProjectName -PackageName $project.PackageName -AOT $project.AOT
     }
 }

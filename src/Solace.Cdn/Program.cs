@@ -44,15 +44,22 @@ internal sealed partial class App
     {
         var builder = WebApplication.CreateSlimBuilder(args);
 
+        bool isEFDesignTime = EF.IsDesignTime;
+
         staticDataPath = builder.Configuration["StaticDataPath"]!;
 
-        if (!File.Exists(Path.Combine(staticDataPath, "resourcepacks", "vanilla.zip")))
+        if (!isEFDesignTime && !File.Exists(Path.Combine(staticDataPath, "resourcepacks", "vanilla.zip")))
         {
             Console.Error.WriteLine("Resource pack file does not exist");
             return 1;
         }
 
         var earthDbConnectionString = builder.Configuration.GetConnectionString("EarthDb");
+        if (isEFDesignTime)
+        {
+            earthDbConnectionString ??= "Host=localhost;Database=dummy;";
+        }
+
         Debug.Assert(earthDbConnectionString is not null);
 
         builder.Services.AddDbContextFactory<EarthDbContext>(options =>

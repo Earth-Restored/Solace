@@ -14,9 +14,11 @@ internal static partial class TileUtils
     {
         long dbPos = ToDbPos(tileX, tileY);
 
-        var tile = await earthDb.Tiles
+        var earthDbL = earthDb; // efcore compiled
+        var cancellationTokenL = cancellationToken;
+        var tile = await earthDbL.Tiles
                 .AsNoTracking()
-                .FirstOrDefaultAsync(tile => tile.Id == dbPos, cancellationToken);
+                .FirstOrDefaultAsync(tile => tile.Id == dbPos, cancellationTokenL);
 
         if (tile is not null)
         {

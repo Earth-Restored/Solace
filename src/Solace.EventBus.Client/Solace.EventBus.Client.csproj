@@ -17,7 +17,6 @@
 
   <ItemGroup>
     <PackageReference Include="Grpc.Net.Client" />
-    <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Tools">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>

@@ -82,7 +82,7 @@ internal static partial class App
 
         if (isEFTooling)
         {
-            earthDbConnectionString ??= "Data Source=dummy.db";
+            earthDbConnectionString ??= "Host=localhost;Database=dummy;";
         }
 
         Debug.Assert(earthDbConnectionString is not null);
