@@ -208,7 +208,7 @@ internal sealed partial class ShopController : SolaceControllerBase
                     {
                         var profile = await _earthDB.Profiles
                             .AsTracking()
-                            .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
+                            .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
                         if (profile.Rubies.Total < expectedPurchasePrice)
                         {
@@ -248,7 +248,7 @@ internal sealed partial class ShopController : SolaceControllerBase
                     {
                         var profile = await _earthDB.Profiles
                             .AsTracking()
-                            .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
+                            .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
                         if (profile.Rubies.Total < expectedPurchasePrice)
                         {

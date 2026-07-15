@@ -42,7 +42,7 @@ internal sealed class ProfileController : SolaceControllerBase
 
         var profile = await _earthDB.Profiles
             .AsNoTracking()
-            .FirstOrNewAsync(profile => profile.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
         var boosts = await _earthDB.Boosts
             .AsNoTracking()
@@ -85,7 +85,7 @@ internal sealed class ProfileController : SolaceControllerBase
 
         var profile = await _earthDB.Profiles
             .AsNoTracking()
-            .FirstOrNewAsync(profile => profile.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
         string resp = Json.Serialize(new EarthApiResponse(profile.Rubies.Purchased + profile.Rubies.Earned));
         return TypedResults.Content(resp, "application/json");
@@ -102,7 +102,7 @@ internal sealed class ProfileController : SolaceControllerBase
 
         var profile = await _earthDB.Profiles
             .AsNoTracking()
-            .FirstOrNewAsync(profile => profile.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
         string resp = Json.Serialize(new EarthApiResponse(new Types.Profile.SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned)));
         return TypedResults.Content(resp, "application/json");

@@ -62,11 +62,11 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         var craftingSlots = await _earthDb.CraftingSlots
             .AsNoTracking()
-            .FirstOrNewAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
 
         var smeltingSlots = await _earthDb.SmeltingSlots
             .AsNoTracking()
-            .FirstOrNewAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
 
         var versions = await _earthDb.AccountVersions
             .AsNoTracking()
@@ -105,7 +105,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         var craftingSlots = await _earthDb.CraftingSlots
             .AsNoTracking()
-            .FirstOrNewAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
 
         var versions = await _earthDb.AccountVersions
             .AsNoTracking()
@@ -128,7 +128,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         var smeltingSlots = await _earthDb.SmeltingSlots
             .AsNoTracking()
-            .FirstOrNewAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
 
         var versions = await _earthDb.AccountVersions
             .AsNoTracking()
@@ -174,7 +174,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         var craftingSlots = await _earthDb.CraftingSlots
             .AsTracking()
-            .FirstOrNewAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
 
         var hotbar = await _earthDb.Hotbars
             .AsTracking()
@@ -359,7 +359,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         var smeltingSlots = await _earthDb.SmeltingSlots
             .AsTracking()
-            .FirstOrNewAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
 
         var hotbar = await _earthDb.Hotbars
             .AsTracking()
@@ -477,7 +477,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         var craftingSlots = await _earthDb.CraftingSlots
             .AsTracking()
-            .FirstOrNewAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
 
         var craftingSlot = craftingSlots.Slots[slotIndex - 1];
 
@@ -530,7 +530,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         var smeltingSlots = await _earthDb.SmeltingSlots
             .AsTracking()
-            .FirstOrNewAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
 
         var smeltingSlot = smeltingSlots.Slots[slotIndex - 1];
 
@@ -594,7 +594,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         var craftingSlots = await _earthDb.CraftingSlots
             .AsTracking()
-            .FirstOrNewAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
 
         var craftingSlot = craftingSlots.Slots[slotIndex - 1];
 
@@ -661,7 +661,7 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         var smeltingSlots = await _earthDb.SmeltingSlots
             .AsTracking()
-            .FirstOrNewAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
 
         var smeltingSlot = smeltingSlots.Slots[slotIndex - 1];
 
@@ -753,11 +753,11 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         var craftingSlots = await _earthDb.CraftingSlots
             .AsTracking()
-            .FirstOrNewAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
 
         var profile = await _earthDb.Profiles
             .AsTracking()
-            .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
         var craftingSlot = craftingSlots.Slots[slotIndex - 1];
 
@@ -821,11 +821,11 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         var smeltingSlots = await _earthDb.SmeltingSlots
                 .AsTracking()
-                .FirstOrNewAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
+                .FirstAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
 
         var profile = await _earthDb.Profiles
             .AsTracking()
-            .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
         var smeltingSlot = smeltingSlots.Slots[slotIndex - 1];
 
@@ -940,11 +940,11 @@ internal sealed class WorkshopRouter : SolaceControllerBase
 
         var craftingSlots = await _earthDb.CraftingSlots
                   .AsTracking()
-                  .FirstOrNewAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
+                  .FirstAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
 
         var profile = await _earthDb.Profiles
             .AsTracking()
-            .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
         var craftingSlot = craftingSlots.Slots[slotIndex - 1];
 
@@ -991,12 +991,12 @@ internal sealed class WorkshopRouter : SolaceControllerBase
         }
 
         var smeltingSlots = await _earthDb.SmeltingSlots
-                     .AsTracking()
-                     .FirstOrNewAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
+            .AsTracking()
+            .FirstAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
 
         var profile = await _earthDb.Profiles
             .AsTracking()
-            .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
         var smeltingSlot = smeltingSlots.Slots[slotIndex - 1];
 

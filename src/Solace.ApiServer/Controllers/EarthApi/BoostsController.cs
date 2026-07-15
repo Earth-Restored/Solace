@@ -55,7 +55,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         var profile = await _earthDb.Profiles
             .AsTracking()
-            .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
         var results = new ResultsEF.Builder();
 
@@ -185,7 +185,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         var profile = await _earthDb.Profiles
             .AsTracking()
-            .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
         bool profileChanged = false;
 
@@ -276,7 +276,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         var profile = await _earthDb.Profiles
             .AsTracking()
-            .FirstOrNewAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
+            .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
         bool profileChanged = false;
 

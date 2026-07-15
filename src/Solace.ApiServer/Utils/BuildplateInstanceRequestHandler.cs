@@ -692,7 +692,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
 
             var profile = await earthDb.Profiles
                 .AsNoTracking()
-                .FirstOrNewAsync(profile => profile.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+                .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
             var boosts = await earthDb.Boosts
                 .AsNoTracking()

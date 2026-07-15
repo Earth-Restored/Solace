@@ -73,7 +73,7 @@ public sealed class EarthDbContext : DbContext
     {
         optionsBuilder.UseNpgsql(connectionString);
 
-        optionsBuilder.UseModel(CompiledModels.EarthDbContextModel.Instance);
+        // optionsBuilder.UseModel(CompiledModels.EarthDbContextModel.Instance);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -369,8 +369,9 @@ public sealed class EarthDbContext : DbContext
     public async Task EnsureAccountExists(Guid id)
     {
         var ctx = this;  // todo: bug - needed for compiled queries - https://github.com/dotnet/efcore/issues/35887
+        var idL = id;
 
-        if (await ctx.Accounts.AnyAsync(account => account.Id == id))
+        if (await ctx.Accounts.AnyAsync(account => account.Id == idL))
         {
             return;
         }
@@ -381,8 +382,9 @@ public sealed class EarthDbContext : DbContext
     public async Task<Account> GetOrCreateAccount(Guid id)
     {
         var ctx = this;  // todo: bug - needed for compiled queries - https://github.com/dotnet/efcore/issues/35887
+        var idL = id;
 
-        var account = await ctx.Accounts.FirstOrDefaultAsync(account => account.Id == id);
+        var account = await ctx.Accounts.FirstOrDefaultAsync(account => account.Id == idL);
 
         if (account is not null)
         {
@@ -524,10 +526,11 @@ public sealed class ResultsEF
             // todo: bug - needed for compiled queries - https://github.com/dotnet/efcore/issues/35887
             var earthDbL = earthDb;
             var accountIdL = accountId;
+            var cancellationTokenL = cancellationToken;
 
             var versions = await earthDbL.AccountVersions
                 .AsNoTracking()
-                .FirstAsync(versions => versions.Id == accountIdL, cancellationToken);
+                .FirstAsync(versions => versions.Id == accountIdL, cancellationTokenL);
 
             return Build(versions);
         }

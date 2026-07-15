@@ -15,7 +15,7 @@ internal sealed partial class LevelUtils
     {
         var profile = await earthDb.Profiles
             .AsTracking()
-            .FirstOrNewAsync(profile => profile.Id == accountId);
+            .FirstAsync(profile => profile.Id == accountId);
 
         bool changed = false;
         while (profile.Level - 1 < staticData.Levels.Levels.Length && profile.Experience >= staticData.Levels.Levels[profile.Level - 1].ExperienceRequired)

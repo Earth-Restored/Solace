@@ -18,7 +18,7 @@ namespace Solace.DB.CompiledModels
     public partial class EarthDbContextModel
     {
         private EarthDbContextModel()
-            : base(skipDetectChanges: false, modelId: new Guid("356e5103-57c1-4c5d-9ee8-c68ce760786d"), entityTypeCount: 38)
+            : base(skipDetectChanges: false, modelId: new Guid("f90ea3fb-aeb5-4c53-919f-f1cc7e6135b7"), entityTypeCount: 38)
         {
         }
 
@@ -126,7 +126,7 @@ namespace Solace.DB.CompiledModels
             LevelUpTokenEFEntityType.CreateAnnotations(levelUpTokenEF);
 
             AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
-            AddAnnotation("ProductVersion", "10.0.9");
+            AddAnnotation("ProductVersion", "10.0.10");
             AddAnnotation("Relational:MaxIdentifierLength", 63);
             AddRuntimeAnnotation("Relational:RelationalModelFactory", () => CreateRelationalModel());
         }
