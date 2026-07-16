@@ -132,7 +132,7 @@ internal sealed partial class App
         return 0;
     }
 
-    private static async Task<Results<EmptyHttpResult, NotFound, BadRequest>> HandleGetTile([FromRoute] int _0, [FromRoute] int _1, [FromRoute] int tilePos1, [FromRoute] int tilePos2, [FromRoute] int zoom, HttpContext context, [FromServices] EarthDbContext earthDb, [FromServices] EventBusClient eventBus, [FromServices] ObjectStoreClient objectStore, ILogger<App> logger, CancellationToken cancellationToken)
+    private static async Task<Results<EmptyHttpResult, NotFound, BadRequest>> HandleGetTile([FromRoute] int _0, [FromRoute] int _1, [FromRoute] int tilePos1, [FromRoute] int tilePos2, [FromRoute] int zoom, HttpContext context, [FromServices] IDbContextFactory<EarthDbContext> earthDbFactory, [FromServices] EventBusClient eventBus, [FromServices] ObjectStoreClient objectStore, ILogger<App> logger, CancellationToken cancellationToken)
     {
         context.Response.Headers.CacheControl = "public,max-age=11200";
         var cd = new System.Net.Mime.ContentDisposition { FileName = $"{tilePos1}_{tilePos2}_{zoom}.png", Inline = true };
@@ -144,7 +144,7 @@ internal sealed partial class App
             return TypedResults.BadRequest();
         }
 
-        if (!await TileUtils.TryWriteTile(tilePos1, tilePos2, zoom, context.Response.Body, earthDb, eventBus, objectStore, logger, cancellationToken))
+        if (!await TileUtils.TryWriteTile(tilePos1, tilePos2, zoom, context.Response.Body, earthDbFactory, eventBus, objectStore, logger, cancellationToken))
         {
             return TypedResults.NotFound();
         }

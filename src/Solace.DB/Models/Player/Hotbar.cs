@@ -18,5 +18,24 @@ public sealed class HotbarEF : IEntityWithId<Guid>
         Guid Uuid,
         int Count,
         Guid? InstanceId
-    );
+    ) : ICloneable<Item>
+    {
+        public Item DeepCopy()
+            => new Item(this);
+
+        public sealed class Comparer : IEqualityComparer<Item>
+        {
+            public static Comparer Instance { get; } = new Comparer();
+
+            private Comparer()
+            {
+            }
+
+            public bool Equals(Item? x, Item? y)
+                => x == y || (x?.Equals(y) ?? false);
+
+            public int GetHashCode([DisallowNull] Item obj)
+                => obj.GetHashCode();
+        }
+    }
 }

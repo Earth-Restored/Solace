@@ -6,14 +6,17 @@ namespace Solace.DB.Models.Player.Workshop;
 public sealed record InputItem(
      Guid Id,
      int Count,
-     NonStackableItemInstanceEF[] Instances
-)
+     NonStackableItemInstance[] Instances
+) : ICloneable<InputItem>
 {
      // efcore json needs this
      private InputItem()
           : this(default!, default!, default!)
      {
      }
+
+     public InputItem DeepCopy()
+          => new InputItem(Id, Count, [.. Instances.Select(item => item.DeepCopy())]);
 
      public bool Equals(InputItem? other)
           => other is not null && Id == other.Id && Count == other.Count && Instances.SequenceEqual(other.Instances);

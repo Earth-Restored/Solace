@@ -12,7 +12,7 @@ public sealed class Account : IEntityWithId<Guid>
 
     public required Guid Id { get; set; }
 
-    public required long CreatedDate { get; set; }
+    public required DateTimeOffset CreatedDate { get; set; }
 
     public required string? Username { get; set; }
 

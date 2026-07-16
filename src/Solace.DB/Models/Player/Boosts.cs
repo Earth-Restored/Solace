@@ -36,5 +36,24 @@ public sealed class BoostsEF : IEntityWithId<Guid>
         Guid ItemId,
         DateTimeOffset StartTime,
         TimeSpan Duration
-    );
+    ) : ICloneable<ActiveBoost>
+    {
+        public ActiveBoost DeepCopy()
+            => new ActiveBoost(this);
+
+        public sealed class Comparer : IEqualityComparer<ActiveBoost>
+        {
+            public static Comparer Instance { get; } = new Comparer();
+
+            private Comparer()
+            {
+            }
+
+            public bool Equals(ActiveBoost? x, ActiveBoost? y)
+                => x == y || (x?.Equals(y) ?? false);
+
+            public int GetHashCode([DisallowNull] ActiveBoost obj)
+                => obj.GetHashCode();
+        }
+    }
 }

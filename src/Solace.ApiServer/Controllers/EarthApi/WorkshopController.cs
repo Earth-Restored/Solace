@@ -17,12 +17,11 @@ using ExpectedPurchasePriceR = Solace.ApiServer.Types.Common.ExpectedPurchasePri
 using FinishPrice = Solace.ApiServer.Types.Workshop.FinishPrice;
 using Hotbar = Solace.DB.Models.Player.HotbarEF;
 using InputItem = Solace.DB.Models.Player.Workshop.InputItem;
-using NonStackableItemInstance = Solace.DB.Models.Player.NonStackableItemInstanceEF;
 using OutputItem = Solace.ApiServer.Types.Workshop.OutputItem;
 using Profile = Solace.DB.Models.Player.ProfileEF;
 using Rewards = Solace.ApiServer.Utils.Rewards;
 using SmeltingCalculator = Solace.ApiServer.Utils.SmeltingCalculator;
-using SmeltingSlot = Solace.DB.Models.Player.Workshop.SmeltingSlot;
+using SmeltingSlotEF = Solace.DB.Models.Player.Workshop.SmeltingSlotEF;
 using SmeltingSlots = Solace.DB.Models.Player.Workshop.SmeltingSlotsEF;
 using SplitRubies = Solace.ApiServer.Types.Profile.SplitRubies;
 using State = Solace.ApiServer.Types.Workshop.State;
@@ -32,6 +31,7 @@ using Solace.DB;
 using Microsoft.EntityFrameworkCore;
 using Solace.DB.Utils;
 using Solace.DB.Models.Player;
+using Solace.DB.Models.Common;
 
 namespace Solace.ApiServer.Controllers.EarthApi;
 
@@ -210,7 +210,7 @@ internal sealed class WorkshopController : SolaceControllerBase
                     return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
                 }
 
-                providedItems[index] = new InputItem(item.ItemId, item.Quantity, [.. instances]);
+                providedItems[index] = new InputItem(item.ItemId, item.Quantity, [.. instances.Select(instance => new NonStackableItemInstance(instance.InstanceId, instance.Wear))]);
             }
         }
 
@@ -392,10 +392,10 @@ internal sealed class WorkshopController : SolaceControllerBase
                 return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
             }
 
-            input = new InputItem(startRequest.Input.ItemId, startRequest.Input.Quantity, [.. instances]);
+            input = new InputItem(startRequest.Input.ItemId, startRequest.Input.Quantity, [.. instances.Select(instance => new NonStackableItemInstance(instance.InstanceId, instance.Wear))]);
         }
 
-        SmeltingSlot.Fuel? fuel;
+        SmeltingSlotEF.Fuel? fuel;
         int requiredFuelHeat = recipe.HeatRequired * startRequest.Multiplier - (smeltingSlot.Burning is not null ? smeltingSlot.Burning.RemainingHeat : 0);
         if (startRequest.Fuel is not null && startRequest.Fuel.Quantity > 0)
         {
@@ -431,10 +431,10 @@ internal sealed class WorkshopController : SolaceControllerBase
                         return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
                     }
 
-                    fuelItem = new InputItem(startRequest.Fuel.ItemId, requiredFuelCount, [.. instances]);
+                    fuelItem = new InputItem(startRequest.Fuel.ItemId, requiredFuelCount, [.. instances.Select(instance => new NonStackableItemInstance(instance.InstanceId, instance.Wear))]);
                 }
 
-                fuel = new SmeltingSlot.Fuel(fuelItem, TimeSpan.FromSeconds(fuelCatalogItem.FuelInfo.BurnTime), fuelCatalogItem.FuelInfo.HeatPerSecond);
+                fuel = new SmeltingSlotEF.Fuel(fuelItem, TimeSpan.FromSeconds(fuelCatalogItem.FuelInfo.BurnTime), fuelCatalogItem.FuelInfo.HeatPerSecond);
             }
             else
             {
@@ -453,7 +453,7 @@ internal sealed class WorkshopController : SolaceControllerBase
 
         await HotbarUtils.LimitToInventoryAsync(_earthDb, accountId, hotbar, cancellationToken);
 
-        smeltingSlot.ActiveJob = new SmeltingSlot.ActiveSmeltingJob(startRequest.SessionId, recipe.Id, requestStartedOn, input, fuel, startRequest.Multiplier, 0, false);
+        smeltingSlot.ActiveJob = new SmeltingSlotEF.ActiveSmeltingJob(startRequest.SessionId, recipe.Id, requestStartedOn, input, fuel, startRequest.Multiplier, 0, false);
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
@@ -550,7 +550,7 @@ internal sealed class WorkshopController : SolaceControllerBase
                 smeltingSlot.ActiveJob = null;
                 if (state.RemainingHeat > 0)
                 {
-                    smeltingSlot.Burning = new SmeltingSlot.BurningR(
+                    smeltingSlot.Burning = new SmeltingSlotEF.BurningR(
                         state.CurrentBurningFuel,
                         state.RemainingHeat
                     );
@@ -562,8 +562,8 @@ internal sealed class WorkshopController : SolaceControllerBase
             }
             else
             {
-                SmeltingSlot.ActiveSmeltingJob activeJob = smeltingSlot.ActiveJob;
-                smeltingSlot.ActiveJob = new SmeltingSlot.ActiveSmeltingJob(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.AddedFuel, activeJob.TotalRounds, activeJob.CollectedRounds + state.AvailableRounds, activeJob.FinishedEarly);
+                SmeltingSlotEF.ActiveSmeltingJob activeJob = smeltingSlot.ActiveJob;
+                smeltingSlot.ActiveJob = new SmeltingSlotEF.ActiveSmeltingJob(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.AddedFuel, activeJob.TotalRounds, activeJob.CollectedRounds + state.AvailableRounds, activeJob.FinishedEarly);
             }
         }
 
@@ -616,7 +616,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         {
             if (inputItem.Instances.Length > 0)
             {
-                await InventoryUtils.AddInstanceItemsAsync(_earthDb, results, inputItem.Instances.Select(instance => new NonStackableItemInstance(accountId, inputItem.Id, instance.InstanceId, instance.Wear)), cancellationToken);
+                await InventoryUtils.AddInstanceItemsAsync(_earthDb, results, inputItem.Instances.Select(instance => new NonStackableItemInstanceEF(accountId, inputItem.Id, instance.InstanceId, instance.Wear)), cancellationToken);
             }
             else if (inputItem.Count > 0)
             {
@@ -681,7 +681,7 @@ internal sealed class WorkshopController : SolaceControllerBase
 
         if (state.Input.Instances.Length > 0)
         {
-            await InventoryUtils.AddInstanceItemsAsync(_earthDb, results, state.Input.Instances.Select(instance => new NonStackableItemInstance(accountId, state.Input.Id, instance.InstanceId, instance.Wear)), cancellationToken);
+            await InventoryUtils.AddInstanceItemsAsync(_earthDb, results, state.Input.Instances.Select(instance => new NonStackableItemInstanceEF(accountId, state.Input.Id, instance.InstanceId, instance.Wear)), cancellationToken);
         }
         else if (state.Input.Count > 0)
         {
@@ -694,7 +694,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         {
             if (state.RemainingAddedFuel.Item.Instances.Length > 0)
             {
-                await InventoryUtils.AddInstanceItemsAsync(_earthDb, results, state.RemainingAddedFuel.Item.Instances.Select(instance => new NonStackableItemInstance(accountId, state.RemainingAddedFuel.Item.Id, instance.InstanceId, instance.Wear)), cancellationToken);
+                await InventoryUtils.AddInstanceItemsAsync(_earthDb, results, state.RemainingAddedFuel.Item.Instances.Select(instance => new NonStackableItemInstanceEF(accountId, state.RemainingAddedFuel.Item.Id, instance.InstanceId, instance.Wear)), cancellationToken);
             }
             else if (state.RemainingAddedFuel.Item.Count > 0)
             {
@@ -714,7 +714,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         smeltingSlot.ActiveJob = null;
         if (state.RemainingHeat > 0)
         {
-            smeltingSlot.Burning = new SmeltingSlot.BurningR(state.CurrentBurningFuel, state.RemainingHeat);
+            smeltingSlot.Burning = new SmeltingSlotEF.BurningR(state.CurrentBurningFuel, state.RemainingHeat);
         }
         else
         {
@@ -858,8 +858,8 @@ internal sealed class WorkshopController : SolaceControllerBase
             return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse());
         }
 
-        SmeltingSlot.ActiveSmeltingJob activeJob = smeltingSlot.ActiveJob;
-        smeltingSlot.ActiveJob = new SmeltingSlot.ActiveSmeltingJob(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.AddedFuel, activeJob.TotalRounds, activeJob.CollectedRounds, true);
+        SmeltingSlotEF.ActiveSmeltingJob activeJob = smeltingSlot.ActiveJob;
+        smeltingSlot.ActiveJob = new SmeltingSlotEF.ActiveSmeltingJob(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.AddedFuel, activeJob.TotalRounds, activeJob.CollectedRounds, true);
 
         await _earthDb.SaveChangesAsync(cancellationToken);
 
@@ -1077,7 +1077,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         }
     }
 
-    private Types.Workshop.SmeltingSlot SmeltingSlotModelToResponseIncludingLocked(SmeltingSlot smeltingSlotModel, DateTimeOffset currentTime, int streamVersion, int slotIndex)
+    private Types.Workshop.SmeltingSlot SmeltingSlotModelToResponseIncludingLocked(SmeltingSlotEF smeltingSlotModel, DateTimeOffset currentTime, int streamVersion, int slotIndex)
     {
         if (smeltingSlotModel.Locked)
         {
@@ -1089,14 +1089,14 @@ internal sealed class WorkshopController : SolaceControllerBase
         }
     }
 
-    private Types.Workshop.SmeltingSlot SmeltingSlotModelToResponse(SmeltingSlot smeltingSlotModel, DateTimeOffset currentTime, int streamVersion)
+    private Types.Workshop.SmeltingSlot SmeltingSlotModelToResponse(SmeltingSlotEF smeltingSlotModel, DateTimeOffset currentTime, int streamVersion)
     {
         if (smeltingSlotModel.Locked)
         {
             throw new ArgumentException($"{nameof(smeltingSlotModel)} is locked.", nameof(smeltingSlotModel));
         }
 
-        SmeltingSlot.ActiveSmeltingJob? activeJob = smeltingSlotModel.ActiveJob;
+        SmeltingSlotEF.ActiveSmeltingJob? activeJob = smeltingSlotModel.ActiveJob;
         if (activeJob is not null)
         {
             SmeltingCalculator.State state = SmeltingCalculator.CalculateState(currentTime, activeJob, smeltingSlotModel.Burning, _staticData.Catalog);
@@ -1149,7 +1149,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         }
         else
         {
-            SmeltingSlot.BurningR? burningModel = smeltingSlotModel.Burning;
+            SmeltingSlotEF.BurningR? burningModel = smeltingSlotModel.Burning;
             Types.Workshop.SmeltingSlot.BurningR? burning = burningModel is not null ? new Types.Workshop.SmeltingSlot.BurningR(
                 null,
                 null,

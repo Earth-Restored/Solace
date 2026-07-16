@@ -9,5 +9,5 @@ public sealed class SmeltingSlotsEF : IEntityWithId<Guid>
 
     public Account Account { get; set; } = null!;
 
-    public SmeltingSlot[] Slots { get; set; } = [new SmeltingSlot(), new SmeltingSlot(), new SmeltingSlot()];
+    public SmeltingSlotEF[] Slots { get; set; } = [new SmeltingSlotEF(), new SmeltingSlotEF(), new SmeltingSlotEF()];
 }

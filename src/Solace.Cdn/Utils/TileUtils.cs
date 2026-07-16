@@ -10,24 +10,29 @@ namespace Solace.Cdn.Utils;
 
 internal static partial class TileUtils
 {
-    public static async Task<bool> TryWriteTile(int tileX, int tileY, int zoom, Stream dest, EarthDbContext earthDb, EventBusClient eventBus, ObjectStoreClient objectStore, ILogger logger, CancellationToken cancellationToken)
+    public static async Task<bool> TryWriteTile(int tileX, int tileY, int zoom, Stream dest, IDbContextFactory<EarthDbContext> earthDbFactory, EventBusClient eventBus, ObjectStoreClient objectStore, ILogger logger, CancellationToken cancellationToken)
     {
         long dbPos = ToDbPos(tileX, tileY);
 
-        var earthDbL = earthDb; // efcore compiled
-        var cancellationTokenL = cancellationToken;
-        var tile = await earthDbL.Tiles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(tile => tile.Id == dbPos, cancellationTokenL);
+        Guid? objectStoreId = null;
 
-        if (tile is not null)
+        await using (var earthDb = await earthDbFactory.CreateDbContextAsync(cancellationToken))
         {
-            return await TryWriteTileFromObject(tile.ObjectStoreId, dest, objectStore, cancellationToken);
+            var tile = await earthDb.Tiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Id == dbPos, cancellationToken);
+
+            objectStoreId = tile?.ObjectStoreId;
+        }
+
+        if (objectStoreId is not null)
+        {
+            return await TryWriteTileFromObject(objectStoreId.Value, dest, objectStore, cancellationToken);
         }
 
         LogRenderingTile(logger);
         await using var requestSender = await eventBus.AddRequestSenderAsync();
-        string? tilePng64 = await requestSender.RequestAsync("tile", "renderTile", JsonSerializer.Serialize(new RenderTileRequest(tileX, tileY, zoom),AppJsonContext.Default.RenderTileRequest));
+        string? tilePng64 = await requestSender.RequestAsync("tile", "renderTile", JsonSerializer.Serialize(new RenderTileRequest(tileX, tileY, zoom), AppJsonContext.Default.RenderTileRequest));
 
         if (string.IsNullOrEmpty(tilePng64))
         {
@@ -45,14 +50,17 @@ internal static partial class TileUtils
             return false;
         }
 
-        tile = new DB.Models.Global.Tile()
+        await using (var earthDb = await earthDbFactory.CreateDbContextAsync(cancellationToken))
         {
-            Id = dbPos,
-            ObjectStoreId = tileObjectId.Value,
-        };
+            var newTile = new DB.Models.Global.Tile()
+            {
+                Id = dbPos,
+                ObjectStoreId = tileObjectId.Value,
+            };
 
-        earthDb.Tiles.Add(tile);
-        await earthDb.SaveChangesAsync(cancellationToken);
+            earthDb.Tiles.Add(newTile);
+            await earthDb.SaveChangesAsync(cancellationToken);
+        }
 
         LogTileStored(logger, tileX, tileY, tileObjectId.Value);
 

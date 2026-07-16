@@ -131,19 +131,19 @@ internal sealed partial class LoginController : SolaceControllerBase
                     ["GatherDeviceInfo"] = true,
                     ["GatherFocusInfo"] = true,
                 },
-                ["LastLoginTime"] = DateTimeOffset.FromUnixTimeSeconds(account.CreatedDate).UtcDateTime,
+                ["LastLoginTime"] = account.CreatedDate.UtcDateTime,
                 ["InfoResultPayload"] = new Dictionary<string, object>()
                 {
                     ["AccountInfo"] = new Dictionary<string, object>()
                     {
                         ["PlayFabId"] = userId.ToString(),
-                        ["Created"] = DateTimeOffset.FromUnixTimeSeconds(account.CreatedDate).UtcDateTime,
+                        ["Created"] = account.CreatedDate.UtcDateTime,
                         ["TitleInfo"] = new Dictionary<string, object>()
                         {
                             ["Origination"] = "XboxLive",
-                            ["Created"] = DateTimeOffset.FromUnixTimeSeconds(account.CreatedDate).UtcDateTime,
-                            ["LastLogin"] = DateTimeOffset.FromUnixTimeSeconds(account.CreatedDate).UtcDateTime,
-                            ["FirstLogin"] = DateTimeOffset.FromUnixTimeSeconds(account.CreatedDate).UtcDateTime,
+                            ["Created"] = account.CreatedDate.UtcDateTime,
+                            ["LastLogin"] = account.CreatedDate.UtcDateTime,
+                            ["FirstLogin"] = account.CreatedDate.UtcDateTime,
                             ["isBanned"] = false,
                             ["TitlePlayerAccount"] = new Dictionary<string, string>()
                             {

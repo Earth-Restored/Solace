@@ -12,7 +12,7 @@ using Solace.DB;
 namespace Solace.DB.Migrations
 {
     [DbContext(typeof(EarthDbContext))]
-    [Migration("20260715130035_InitialMigration")]
+    [Migration("20260716140051_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -31,8 +31,8 @@ namespace Solace.DB.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<long>("CreatedDate")
-                        .HasColumnType("bigint");
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FirstName")
                         .HasColumnType("text");
@@ -270,6 +270,10 @@ namespace Solace.DB.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ActiveBoosts")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.ToTable("Boosts");
@@ -323,6 +327,10 @@ namespace Solace.DB.Migrations
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Items")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -449,6 +457,10 @@ namespace Solace.DB.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Slots")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.ToTable("CraftingSlots");
@@ -458,6 +470,10 @@ namespace Solace.DB.Migrations
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Slots")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -638,36 +654,7 @@ namespace Solace.DB.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsMany("Solace.DB.Models.Player.BoostsEF+ActiveBoost", "ActiveBoosts", b1 =>
-                        {
-                            b1.Property<Guid>("BoostsEFId");
-
-                            b1.Property<int>("__synthesizedOrdinal")
-                                .ValueGeneratedOnAdd();
-
-                            b1.Property<TimeSpan>("Duration");
-
-                            b1.Property<Guid>("InstanceId");
-
-                            b1.Property<Guid>("ItemId");
-
-                            b1.Property<DateTimeOffset>("StartTime");
-
-                            b1.HasKey("BoostsEFId", "__synthesizedOrdinal");
-
-                            b1.ToTable("Boosts");
-
-                            b1
-                                .ToJson("ActiveBoosts")
-                                .HasColumnType("jsonb");
-
-                            b1.WithOwner()
-                                .HasForeignKey("BoostsEFId");
-                        });
-
                     b.Navigation("Account");
-
-                    b.Navigation("ActiveBoosts");
                 });
 
             modelBuilder.Entity("Solace.DB.Models.Player.BuildplateEF", b =>
@@ -689,34 +676,7 @@ namespace Solace.DB.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsMany("Solace.DB.Models.Player.HotbarEF+Item", "Items", b1 =>
-                        {
-                            b1.Property<Guid>("HotbarEFId");
-
-                            b1.Property<int>("__synthesizedOrdinal")
-                                .ValueGeneratedOnAdd();
-
-                            b1.Property<int>("Count");
-
-                            b1.Property<Guid?>("InstanceId");
-
-                            b1.Property<Guid>("Uuid");
-
-                            b1.HasKey("HotbarEFId", "__synthesizedOrdinal");
-
-                            b1.ToTable("Hotbars");
-
-                            b1
-                                .ToJson("Items")
-                                .HasColumnType("jsonb");
-
-                            b1.WithOwner()
-                                .HasForeignKey("HotbarEFId");
-                        });
-
                     b.Navigation("Account");
-
-                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Solace.DB.Models.Player.ItemJournalEntryEF", b =>
@@ -816,30 +776,7 @@ namespace Solace.DB.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsMany("Solace.DB.Models.Player.Workshop.CraftingSlotEF", "Slots", b1 =>
-                        {
-                            b1.Property<Guid>("CraftingSlotsEFId");
-
-                            b1.Property<int>("__synthesizedOrdinal")
-                                .ValueGeneratedOnAdd();
-
-                            b1.Property<bool>("Locked");
-
-                            b1.HasKey("CraftingSlotsEFId", "__synthesizedOrdinal");
-
-                            b1.ToTable("CraftingSlots");
-
-                            b1
-                                .ToJson("Slots")
-                                .HasColumnType("jsonb");
-
-                            b1.WithOwner()
-                                .HasForeignKey("CraftingSlotsEFId");
-                        });
-
                     b.Navigation("Account");
-
-                    b.Navigation("Slots");
                 });
 
             modelBuilder.Entity("Solace.DB.Models.Player.Workshop.SmeltingSlotsEF", b =>
@@ -850,30 +787,7 @@ namespace Solace.DB.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsMany("Solace.DB.Models.Player.Workshop.SmeltingSlot", "Slots", b1 =>
-                        {
-                            b1.Property<Guid>("SmeltingSlotsEFId");
-
-                            b1.Property<int>("__synthesizedOrdinal")
-                                .ValueGeneratedOnAdd();
-
-                            b1.Property<bool>("Locked");
-
-                            b1.HasKey("SmeltingSlotsEFId", "__synthesizedOrdinal");
-
-                            b1.ToTable("SmeltingSlots");
-
-                            b1
-                                .ToJson("Slots")
-                                .HasColumnType("jsonb");
-
-                            b1.WithOwner()
-                                .HasForeignKey("SmeltingSlotsEFId");
-                        });
-
                     b.Navigation("Account");
-
-                    b.Navigation("Slots");
                 });
 
             modelBuilder.Entity("Solace.DB.Models.Player.RewardedActivityLogEntryEF", b =>

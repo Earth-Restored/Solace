@@ -280,11 +280,22 @@ public sealed class EarthDbContext : DbContext
 
         // boosts
         modelBuilder.Entity<BoostsEF>()
-            .OwnsMany(x => x.ActiveBoosts, config => config.ToJson());
+            .Property(x => x.ActiveBoosts)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, DbJsonContext.Default.ActiveBoostArray),
+                v => JsonSerializer.Deserialize(v, DbJsonContext.Default.ActiveBoostArray)
+                    ?? new BoostsEF.ActiveBoost?[5]
+            )
+            .Metadata.SetValueComparer(new ArrayValueComparer<BoostsEF.ActiveBoost>(BoostsEF.ActiveBoost.Comparer.Instance));
 
         // hotbar
         modelBuilder.Entity<HotbarEF>()
-            .OwnsMany(x => x.Items, config => config.ToJson());
+            .Property(x => x.Items)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, DbJsonContext.Default.ItemArray),
+                v => JsonSerializer.Deserialize<HotbarEF.Item?[]>(v, DbJsonContext.Default.ItemArray) ?? new HotbarEF.Item?[7]
+            )
+            .Metadata.SetValueComparer(new ArrayValueComparer<HotbarEF.Item>(HotbarEF.Item.Comparer.Instance));
 
         // inventory
         modelBuilder.Entity<StackableItemEF>()
@@ -335,15 +346,25 @@ public sealed class EarthDbContext : DbContext
         modelBuilder.Ignore<CraftingSlotEF.ActiveCraftingJob>();
 
         modelBuilder.Entity<CraftingSlotsEF>()
-            .OwnsMany(x => x.Slots, config => config.ToJson());
+            .Property(x => x.Slots)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, DbJsonContext.Default.CraftingSlotEFArray),
+                v => JsonSerializer.Deserialize(v, DbJsonContext.Default.CraftingSlotEFArray) ?? new CraftingSlotEF[] { new CraftingSlotEF(), new CraftingSlotEF(), new CraftingSlotEF(), }
+            )
+            .Metadata.SetValueComparer(new ArrayValueComparer<CraftingSlotEF>(CraftingSlotEF.Comparer.Instance));
 
         // smelting slots
-        modelBuilder.Ignore<SmeltingSlot.ActiveSmeltingJob>();
-        modelBuilder.Ignore<SmeltingSlot.BurningR>();
-        modelBuilder.Ignore<SmeltingSlot.Fuel>();
+        modelBuilder.Ignore<SmeltingSlotEF.ActiveSmeltingJob>();
+        modelBuilder.Ignore<SmeltingSlotEF.BurningR>();
+        modelBuilder.Ignore<SmeltingSlotEF.Fuel>();
 
         modelBuilder.Entity<SmeltingSlotsEF>()
-            .OwnsMany(x => x.Slots, config => config.ToJson());
+            .Property(x => x.Slots)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, DbJsonContext.Default.SmeltingSlotEFArray),
+                v => JsonSerializer.Deserialize(v, DbJsonContext.Default.SmeltingSlotEFArray) ?? new SmeltingSlotEF[] { new SmeltingSlotEF(), new SmeltingSlotEF(), new SmeltingSlotEF(), }
+            )
+            .Metadata.SetValueComparer(new ArrayValueComparer<SmeltingSlotEF>(SmeltingSlotEF.Comparer.Instance));
 
         // shared buildplates
         modelBuilder.Entity<SharedBuildplateEF>()
@@ -399,7 +420,7 @@ public sealed class EarthDbContext : DbContext
         var account = new Account()
         {
             Id = id,
-            CreatedDate = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+            CreatedDate = DateTimeOffset.UtcNow,
             Username = null,
             ProfilePictureUrl = null,
             FirstName = null,
@@ -408,6 +429,7 @@ public sealed class EarthDbContext : DbContext
             PasswordHash = new byte[64],
         };
 
+        account.AccountVersions = new AccountVersions() { Id = id, Account = account, };
         account.Profile = new ProfileEF() { Id = id, Account = account, };
         account.Boosts = new BoostsEF() { Id = id, Account = account, };
         account.Hotbar = new HotbarEF() { Id = id, Account = account, };

@@ -7,7 +7,7 @@ namespace Solace.ApiServer.Utils;
 
 internal static class SmeltingCalculator
 {
-    public static State CalculateState(DateTimeOffset currentTime, SmeltingSlot.ActiveSmeltingJob activeJob, SmeltingSlot.BurningR? burning, Catalog catalog)
+    public static State CalculateState(DateTimeOffset currentTime, SmeltingSlotEF.ActiveSmeltingJob activeJob, SmeltingSlotEF.BurningR? burning, Catalog catalog)
     {
         Catalog.RecipesCatalogR.SmeltingRecipe? recipe = catalog.RecipesCatalog.GetSmeltingRecipe(activeJob.RecipeId);
         Debug.Assert(recipe is not null);
@@ -62,7 +62,7 @@ internal static class SmeltingCalculator
 
         int consumedAddedFuelCount = 0;
         var fuelEndTime = completed ? totalCompletionTime : currentTime;
-        SmeltingSlot.Fuel currentFuel;
+        SmeltingSlotEF.Fuel currentFuel;
         int currentFuelTotalHeat;
         DateTimeOffset burnStartTime;
         DateTimeOffset burnEndTime;
@@ -123,7 +123,7 @@ internal static class SmeltingCalculator
             remainingHeat = currentFuelTotalHeat - totalHeatRequired;
         }
 
-        SmeltingSlot.Fuel? remainingAddedFuel;
+        SmeltingSlotEF.Fuel? remainingAddedFuel;
         if (activeJob.AddedFuel is null)
         {
             if (consumedAddedFuelCount > 0)
@@ -147,24 +147,24 @@ internal static class SmeltingCalculator
                     throw new InvalidOperationException();
                 }
 
-                remainingAddedFuel = new SmeltingSlot.Fuel(new InputItem(activeJob.AddedFuel.Item.Id, activeJob.AddedFuel.Item.Count - consumedAddedFuelCount, activeJob.AddedFuel.Item.Instances[consumedAddedFuelCount..]), activeJob.AddedFuel.BurnDuration, activeJob.AddedFuel.HeatPerSecond);
+                remainingAddedFuel = new SmeltingSlotEF.Fuel(new InputItem(activeJob.AddedFuel.Item.Id, activeJob.AddedFuel.Item.Count - consumedAddedFuelCount, activeJob.AddedFuel.Item.Instances[consumedAddedFuelCount..]), activeJob.AddedFuel.BurnDuration, activeJob.AddedFuel.HeatPerSecond);
             }
             else
             {
-                remainingAddedFuel = new SmeltingSlot.Fuel(new InputItem(activeJob.AddedFuel.Item.Id, activeJob.AddedFuel.Item.Count - consumedAddedFuelCount, []), activeJob.AddedFuel.BurnDuration, activeJob.AddedFuel.HeatPerSecond);
+                remainingAddedFuel = new SmeltingSlotEF.Fuel(new InputItem(activeJob.AddedFuel.Item.Id, activeJob.AddedFuel.Item.Count - consumedAddedFuelCount, []), activeJob.AddedFuel.BurnDuration, activeJob.AddedFuel.HeatPerSecond);
             }
         }
 
-        SmeltingSlot.Fuel currentBurningFuel;
+        SmeltingSlotEF.Fuel currentBurningFuel;
         if (consumedAddedFuelCount > 0)
         {
             if (activeJob.AddedFuel!.Item.Instances.Length > 0)
             {
-                currentBurningFuel = new SmeltingSlot.Fuel(new InputItem(activeJob.AddedFuel.Item.Id, 1, [activeJob.AddedFuel.Item.Instances[consumedAddedFuelCount - 1]]), activeJob.AddedFuel.BurnDuration, activeJob.AddedFuel.HeatPerSecond);
+                currentBurningFuel = new SmeltingSlotEF.Fuel(new InputItem(activeJob.AddedFuel.Item.Id, 1, [activeJob.AddedFuel.Item.Instances[consumedAddedFuelCount - 1]]), activeJob.AddedFuel.BurnDuration, activeJob.AddedFuel.HeatPerSecond);
             }
             else
             {
-                currentBurningFuel = new SmeltingSlot.Fuel(new InputItem(activeJob.AddedFuel.Item.Id, 1, []), activeJob.AddedFuel.BurnDuration, activeJob.AddedFuel.HeatPerSecond);
+                currentBurningFuel = new SmeltingSlotEF.Fuel(new InputItem(activeJob.AddedFuel.Item.Id, 1, []), activeJob.AddedFuel.BurnDuration, activeJob.AddedFuel.HeatPerSecond);
             }
         }
         else
@@ -189,7 +189,7 @@ internal static class SmeltingCalculator
         );
     }
 
-    private static TimeSpan CalculateDurationForHeat(int requiredHeat, SmeltingSlot.BurningR? burning, SmeltingSlot.Fuel? addedFuel)
+    private static TimeSpan CalculateDurationForHeat(int requiredHeat, SmeltingSlotEF.BurningR? burning, SmeltingSlotEF.Fuel? addedFuel)
     {
         var duration = TimeSpan.Zero;
         if (burning is not null)
@@ -240,8 +240,8 @@ internal static class SmeltingCalculator
         State.OutputItem Output,
         DateTimeOffset NextCompletionTime,
         DateTimeOffset TotalCompletionTime,
-        SmeltingSlot.Fuel? RemainingAddedFuel,
-        SmeltingSlot.Fuel CurrentBurningFuel,
+        SmeltingSlotEF.Fuel? RemainingAddedFuel,
+        SmeltingSlotEF.Fuel CurrentBurningFuel,
         int RemainingHeat,
         DateTimeOffset BurnStartTime,
         DateTimeOffset BurnEndTime,

@@ -173,7 +173,7 @@ internal sealed partial class LoginController : SolaceControllerBase
         var account = await _earthDb.GetOrCreateAccount(accountId);
 
         account.Id = accountId;
-        account.CreatedDate = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        account.CreatedDate = DateTimeOffset.UtcNow;
         account.Username = username;
         account.ProfilePictureUrl = Account.DefaultPictureUrl; // TODO
         account.FirstName = firstName;

@@ -73,7 +73,7 @@ internal sealed class AccountsController : LoginServerControllerBase
             TouAcceptanceDate: new DateTime(1, 1, 1),
             GamerTagChangeReason: null,
             DateOfBirth: new DateTime(1, 1, 1),
-            DateCreated: DateTimeOffset.FromUnixTimeSeconds(account.CreatedDate).UtcDateTime,
+            DateCreated: account.CreatedDate.UtcDateTime,
             Email: null,
             FirstName: account.FirstName,
             HomeAddressInfo: null,
