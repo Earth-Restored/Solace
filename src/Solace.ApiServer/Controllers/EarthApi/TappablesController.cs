@@ -57,7 +57,7 @@ internal sealed class TappablesController : SolaceControllerBase
             .Where(tappable => tappable.SpawnTime + tappable.ValidFor > requestStartedOn && !redeemedTappables.Contains(tappable.Id))
             .Select(tappable => new ActiveLocation(
                 tappable.Id,
-                TappablesManager.LocationToTileId(tappable.Lat, tappable.Lon),
+                TappablesManager.LocationToTileIdString(tappable.Lat, tappable.Lon),
                 new Coordinate(tappable.Lat, tappable.Lon),
                 TimeFormatter.FormatTime(tappable.SpawnTime),
                 TimeFormatter.FormatTime(tappable.SpawnTime + tappable.ValidFor),
@@ -72,7 +72,7 @@ internal sealed class TappablesController : SolaceControllerBase
             .Where(encounter => encounter.SpawnTime + encounter.ValidFor > requestStartedOn)
             .Select(encounter => new ActiveLocation(
                 encounter.Id,
-                TappablesManager.LocationToTileId(encounter.Lat, encounter.Lon),
+                TappablesManager.LocationToTileIdString(encounter.Lat, encounter.Lon),
                 new Coordinate(encounter.Lat, encounter.Lon),
                 TimeFormatter.FormatTime(encounter.SpawnTime),
                 TimeFormatter.FormatTime(encounter.SpawnTime + encounter.ValidFor),
@@ -101,14 +101,14 @@ internal sealed class TappablesController : SolaceControllerBase
     }
 
     [HttpPost("tappables/{tileId}")]
-    public async Task<Results<ContentHttpResult, BadRequest>> RedeemTappable(string tileId, CancellationToken cancellationToken)
+    public async Task<Results<ContentHttpResult, BadRequest>> RedeemTappable(string tileIdStr, CancellationToken cancellationToken)
     {
         if (!TryGetAccountId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
 
-        TappableRequest? tappableRequest = await Request.Body.AsJsonAsync(AppJsonContext.Default.TappableRequest, cancellationToken);
+        var tappableRequest = await Request.Body.AsJsonAsync(AppJsonContext.Default.TappableRequest, cancellationToken);
         if (tappableRequest is null)
         {
             return TypedResults.BadRequest();
@@ -116,6 +116,11 @@ internal sealed class TappablesController : SolaceControllerBase
 
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
+
+        if (!TappablesManager.TryParseTileId(tileIdStr, out var tileId))
+        {
+            return TypedResults.BadRequest();
+        }
 
         TappablesManager.Tappable? tappable = _tappablesManager.GetTappableWithId(tappableRequest.Id, tileId);
         if (tappable is null || !TappablesManager.IsTappableValidFor(tappable, requestStartedOn, tappableRequest.PlayerCoordinate.Latitude, tappableRequest.PlayerCoordinate.Longitude))

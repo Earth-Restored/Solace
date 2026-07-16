@@ -1,5 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using Solace.Common;
 using Solace.Common.Utils;
@@ -16,8 +18,8 @@ internal sealed partial class TappablesManager : IAsyncDisposable
 
     private readonly ILogger _logger;
 
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<Guid, Tappable>> _tappables = [];
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<Guid, Encounter>> _encounters = [];
+    private readonly ConcurrentDictionary<(int X, int Y), ConcurrentDictionary<Guid, Tappable>> _tappables = [];
+    private readonly ConcurrentDictionary<(int X, int Y), ConcurrentDictionary<Guid, Encounter>> _encounters = [];
     private int _pruneCounter;
 
     public TappablesManager(ILogger<TappablesManager> logger)
@@ -80,17 +82,17 @@ internal sealed partial class TappablesManager : IAsyncDisposable
                 return distanceSquared <= radius * radius;
             })];
 
-    private static string[] GetTileIdsAround(double lat, double lon, double radius)
+    private static IEnumerable<(int X, int Y)> GetTileIdsAround(double lat, double lon, double radius)
     {
         int tileX = XToTile(LonToX(lon));
         int tileY = YToTile(LatToY(lat));
         int tileRadius = (int)Math.Ceiling(radius);
         int sideLength = (tileRadius * 2) + 1;
 
-        return [.. Enumerable.Range(tileX - tileRadius, sideLength).Select(x => Enumerable.Range(tileY - tileRadius, sideLength).Select(y => $"{x}_{y}")).SelectMany(stream => stream)];
+        return Enumerable.Range(tileX - tileRadius, sideLength).Select(x => Enumerable.Range(tileY - tileRadius, sideLength).Select(y => (x, y))).SelectMany(stream => stream);
     }
 
-    public Tappable? GetTappableWithId(Guid id, string tileId)
+    public Tappable? GetTappableWithId(Guid id, (int X, int Y) tileId)
     {
         var tappablesInTile = _tappables.GetValueOrDefault(tileId);
         if (tappablesInTile is not null)
@@ -105,7 +107,7 @@ internal sealed partial class TappablesManager : IAsyncDisposable
         return null;
     }
 
-    public Encounter? GetEncounterWithId(Guid id, string tileId)
+    public Encounter? GetEncounterWithId(Guid id, (int X, int Y) tileId)
     {
         var encountersInTile = _encounters.GetValueOrDefault(tileId);
         if (encountersInTile is not null)
@@ -288,8 +290,40 @@ internal sealed partial class TappablesManager : IAsyncDisposable
         _encounters.RemoveAll(entry => entry.Value.IsEmpty);
     }
 
-    public static string LocationToTileId(float lat, float lon)
-        => $"{XToTile(LonToX(lon))}_{YToTile(LatToY(lat))}";
+    public static (int X, int Y) LocationToTileId(float lat, float lon)
+        => (XToTile(LonToX(lon)), YToTile(LatToY(lat)));
+
+    public static string LocationToTileIdString(float lat, float lon)
+    {
+        var (x, y) = LocationToTileId(lat, lon);
+        return $"{x}_{y}";
+    }
+
+    public static bool TryParseTileId(ReadOnlySpan<char> tileIdStr, out (int X, int Y) tileId)
+    {
+        int underscoreIndex = tileIdStr.IndexOf('_');
+
+        if (underscoreIndex is -1)
+        {
+            Unsafe.SkipInit(out tileId);
+            return false;
+        }
+
+        if (!int.TryParse(tileIdStr[..underscoreIndex], CultureInfo.InvariantCulture, out var x))
+        {
+            Unsafe.SkipInit(out tileId);
+            return false;
+        }
+
+        if (!int.TryParse(tileIdStr[(underscoreIndex+1)..], CultureInfo.InvariantCulture, out var y))
+        {
+            Unsafe.SkipInit(out tileId);
+            return false;
+        }
+
+        tileId = (x, y);
+        return true;
+    }
 
     private static double LonToX(double lon)
         => (1.0 + double.DegreesToRadians(lon) / double.Pi) / 2.0;

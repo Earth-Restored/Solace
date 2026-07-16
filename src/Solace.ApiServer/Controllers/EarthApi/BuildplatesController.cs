@@ -440,8 +440,13 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
         return EarthJson(buildplateInstance);
     }
 
-    private async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> GetNewEncounterBuildplateInstanceResponse(Guid encounterId, string tileId, TappablesManager tappablesManager, CancellationToken cancellationToken)
+    private async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> GetNewEncounterBuildplateInstanceResponse(Guid encounterId, string tileIdStr, TappablesManager tappablesManager, CancellationToken cancellationToken)
     {
+        if (!TappablesManager.TryParseTileId(tileIdStr, out var tileId))
+        {
+            return TypedResults.BadRequest();
+        }
+
         var encounter = tappablesManager.GetEncounterWithId(encounterId, tileId);
         if (encounter is null)
         {
