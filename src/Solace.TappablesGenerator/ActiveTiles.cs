@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Solace.Common;
@@ -12,7 +13,7 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
     private const int ACTIVE_TILE_RADIUS = 3;
     private static readonly TimeSpan ACTIVE_TILE_EXPIRY_TIME = TimeSpan.FromMinutes(2);
 
-    private readonly Dictionary<int, ActiveTile> _activeTiles = [];
+    private readonly ConcurrentDictionary<int, ActiveTile> _activeTiles = [];
     private IActiveTileListener? _activeTileListener;
     private RequestHandler? _requestHandler;
 
@@ -127,7 +128,7 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
 
         foreach (var item in entriesToRemove)
         {
-            _activeTiles.Remove(item.Key);
+            _activeTiles.TryRemove(item.Key, out _);
         }
 
         Debug.Assert(_activeTileListener is not null);

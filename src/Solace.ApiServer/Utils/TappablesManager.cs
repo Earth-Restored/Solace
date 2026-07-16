@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using Solace.Common;
 using Solace.Common.Utils;
@@ -15,8 +16,8 @@ internal sealed partial class TappablesManager : IAsyncDisposable
 
     private readonly ILogger _logger;
 
-    private readonly Dictionary<string, Dictionary<Guid, Tappable>> _tappables = [];
-    private readonly Dictionary<string, Dictionary<Guid, Encounter>> _encounters = [];
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<Guid, Tappable>> _tappables = [];
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<Guid, Encounter>> _encounters = [];
     private int _pruneCounter;
 
     public TappablesManager(ILogger<TappablesManager> logger)
@@ -251,13 +252,13 @@ internal sealed partial class TappablesManager : IAsyncDisposable
     private void AddTappable(Tappable tappable)
     {
         var tileId = LocationToTileId(tappable.Lat, tappable.Lon);
-        _tappables.ComputeIfAbsent(tileId, tileId1 => [])![tappable.Id] = tappable;
+        _tappables.GetOrAdd(tileId, static _ => [])[tappable.Id] = tappable;
     }
 
     private void AddEncounter(Encounter encounter)
     {
         var tileId = LocationToTileId(encounter.Lat, encounter.Lon);
-        _encounters.ComputeIfAbsent(tileId, tileId1 => [])![encounter.Id] = encounter;
+        _encounters.GetOrAdd(tileId, static _ => [])[encounter.Id] = encounter;
     }
 
     private void Prune(DateTimeOffset currentTime)
@@ -272,7 +273,7 @@ internal sealed partial class TappablesManager : IAsyncDisposable
             });
         }
 
-        _tappables.RemoveAll(entry => entry.Value.Count is 0);
+        _tappables.RemoveAll(entry => entry.Value.IsEmpty);
 
         foreach (var tileEncounters in _encounters.Values)
         {
@@ -284,7 +285,7 @@ internal sealed partial class TappablesManager : IAsyncDisposable
             });
         }
 
-        _encounters.RemoveAll(entry => entry.Value.Count is 0);
+        _encounters.RemoveAll(entry => entry.Value.IsEmpty);
     }
 
     public static string LocationToTileId(float lat, float lon)

@@ -34,9 +34,9 @@ internal sealed partial class EncounterGenerator
     public TimeSpan GetMaxEncounterLifetime()
         => MAX_DELAY + _maxDuration + TimeSpan.FromSeconds(30 * 1000);
 
-    public Encounter[] GenerateEncounters(int tileX, int tileY, DateTimeOffset currentTime)
+    public IEnumerable<Encounter> GenerateEncounters(int tileX, int tileY, DateTimeOffset currentTime)
     {
-        if (_staticData.EncountersConfig.Encounters.Length == 0)
+        if (_staticData.EncountersConfig.Encounters is [])
         {
             return [];
         }
@@ -69,7 +69,7 @@ internal sealed partial class EncounterGenerator
             encounters.Add(encounter);
         }
 
-        return [.. encounters];
+        return encounters;
     }
 
     private static void GetTileBounds(int tileX, int tileY, Span<float> dest)

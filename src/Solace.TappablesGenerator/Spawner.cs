@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Solace.Common;
@@ -22,7 +23,7 @@ internal sealed partial class Spawner : IAsyncDisposable
 
     private DateTimeOffset _spawnCycleTime;
     private int _spawnCycleIndex;
-    private readonly Dictionary<int, int> _lastSpawnCycleForTile = [];
+    private readonly ConcurrentDictionary<int, int> _lastSpawnCycleForTile = [];
 
     public Spawner(ActiveTiles activeTiles, TappableGenerator tappableGenerator, EncounterGenerator encounterGenerator, ILogger<Spawner> logger)
     {
