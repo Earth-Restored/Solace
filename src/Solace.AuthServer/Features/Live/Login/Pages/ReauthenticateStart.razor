@@ -1,0 +1,144 @@
+@page "/login.live.com/ppsecure/reauthenticateStart"
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+
+@{
+    var httpContext = HttpContextAccessor.HttpContext!;
+    var afToken = Antiforgery.GetAndStoreTokens(httpContext).RequestToken;
+    var currentContextPath = string.Join("/", httpContext.Request.Path.Value!.Split('/').SkipLast(1));
+}
+
+<HeadContent>
+    <meta charset="UTF-8">
+    <title>Reauthenticate</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="css/form.css" />
+    <style>
+            input[readonly] {
+                background-color: #d4c5a0 !important;
+                color: #7a6548 !important;
+                border-color: #a89375 !important;
+                cursor: not-allowed;
+                box-shadow: none !important;
+            }
+    </style>
+</HeadContent>
+
+<div class="minecraft-bg">
+    <div class="sky-sun"></div>
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+    <div class="cloud cloud-4"></div>
+    <div class="cloud cloud-5"></div>
+    <div class="cloud cloud-6"></div>
+
+    <div class="hill hill-back"></div>
+    <div class="hill hill-front"></div>
+</div>
+<div class="container">
+    <h1>Login</h1>
+
+    <form id="loginForm">
+        <div class="bp-form-row">
+            <label for="username">Username</label>
+            <input id="username" type="text" readonly title="Username cannot be changed here." />
+        </div>
+
+        <div class="bp-form-row">
+            <label for="password">Password <span class="required">*</span></label>
+            <div class="password-wrapper">
+                <input id="password" type="password" placeholder="Password" required />
+                <button type="button" id="togglePassword" class="password-toggle" aria-label="Show password">Show</button>
+            </div>
+        </div>
+
+        <input type="hidden" id="afToken" value="@afToken" />
+
+        <button type="submit" class="bp-submit-btn">Submit</button>
+
+        <div id="errorMsg" class="bp-status error" role="alert" aria-live="assertive" style="display:none;"></div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const usernameParam = urlParams.get('username') || '';
+        const userToken = urlParams.get('userToken') || '';
+
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginForm = document.getElementById('loginForm');
+        const errorMsg = document.getElementById('errorMsg');
+
+        const togglePasswordBtn = document.getElementById('togglePassword');
+
+        usernameInput.value = usernameParam;
+
+        togglePasswordBtn.addEventListener('click', () => {
+            const isPassword = passwordInput.getAttribute('type') === 'password';
+            passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+
+            togglePasswordBtn.textContent = isPassword ? 'Hide' : 'Show';
+            togglePasswordBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const antiForgeryToken = document.getElementById('afToken')?.value;
+
+            if (!antiForgeryToken) {
+                errorMsg.textContent = "Security token missing. Please refresh the page.";
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            errorMsg.style.display = 'none';
+            errorMsg.textContent = '';
+
+            try {
+                const formBody = new URLSearchParams({
+                    userToken: userToken,
+                    password: passwordInput.value,
+                    __RequestVerificationToken: antiForgeryToken
+                });
+
+                const basePath = '@currentContextPath';
+                const response = await fetch(`${basePath}/reauthenticate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    credentials: 'same-origin',
+                    body: formBody
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || "Authentication failed.");
+                }
+
+                const data = await response.json();
+
+                external.Property('DAToken', `<EncryptedData xmlns="http://www.w3.org/2001/04/xmlenc#" Id="BinaryDAToken0"><CipherData><CipherValue>${data.token}</CipherValue></CipherData></EncryptedData>`);
+                external.Property('DAStartTime', data.tokenIssuedAt);
+                external.Property('DAExpires', data.tokenExpires);
+                external.Property('DASessionKey', data.sessionKey);
+                external.Property('FirstName', data.firstName);
+                external.Property('LastName', data.lastName);
+                external.Property('SigninName', data.username);
+                external.Property('Username', data.username);
+                external.Property('CID', data.userId);
+                external.Property('PUID', data.userId);
+
+                external.FinalNext();
+
+            } catch (error) {
+                errorMsg.textContent = error.message;
+                errorMsg.style.display = 'block';
+            }
+        });
+    });
+</script>

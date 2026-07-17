@@ -5,6 +5,7 @@
   <Project Path="src/Solace.AdminPanel/Solace.AdminPanel.csproj" />
   <Project Path="src/Solace.ApiServer/Solace.ApiServer.csproj" />
   <Project Path="src/Solace.AppHost/Solace.AppHost.csproj" />
+  <Project Path="src/Solace.AuthServer/Solace.AuthServer.csproj" />
   <Project Path="src/Solace.BuildplateRenderer/Solace.BuildplateRenderer.csproj" />
   <Project Path="src/Solace.Buildplate/Solace.Buildplate.csproj" />
   <Project Path="src/Solace.BuildplateImporter/Solace.BuildplateImporter.csproj" />

@@ -1,0 +1,204 @@
+@page "/login.live.com/ppsecure/InlineConnect.srf"
+@inject Solace.AuthServer.Features.Live.Login.Infrastructure.ICaptchaValidator CaptchaValidator
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+
+@{
+    var httpContext = HttpContextAccessor.HttpContext!;
+    var afToken = Antiforgery.GetAndStoreTokens(httpContext).RequestToken;
+    var currentContextPath = string.Join("/", httpContext.Request.Path.Value!.Split('/').SkipLast(1));
+}
+
+<HeadContent>
+    <meta charset="UTF-8">
+    <title>Login/Register</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="css/form.css" />
+    @((MarkupString)CaptchaValidator.Script)
+</HeadContent>
+
+<div class="minecraft-bg">
+    <div class="sky-sun"></div>
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+    <div class="cloud cloud-4"></div>
+    <div class="cloud cloud-5"></div>
+    <div class="cloud cloud-6"></div>
+
+    <div class="hill hill-back"></div>
+    <div class="hill hill-front"></div>
+</div>
+<div class="container">
+    <h1 id="formTitle">Login</h1>
+    <p class="subtitle">Please enter your credentials.</p>
+
+    <div class="nav-tabs">
+        <button id="loginBtn" class="nav-tab active">Login</button>
+        <button id="registerBtn" class="nav-tab">Register</button>
+    </div>
+
+    <form id="loginForm">
+        <div class="bp-form-row">
+            <label for="username">Username <span class="required">*</span></label>
+            <input id="username" type="text" placeholder="Username" required minlength="3" maxlength="16" pattern="[a-z0-9_:]+" title="Lowercase letters, numbers, underscore, and colon only" />
+        </div>
+
+        <div class="bp-form-row">
+            <label for="password">Password <span class="required">*</span></label>
+            <div class="password-wrapper">
+                <input id="password" type="password" placeholder="Password" required minlength="4" maxlength="128" />
+                <button type="button" id="togglePassword" class="password-toggle" aria-label="Show password">Show</button>
+            </div>
+        </div>
+
+        <div class="extra-fields" id="registerFields">
+            <div class="bp-form-row">
+                <label for="firstName">First Name</label>
+                <input id="firstName" type="text" placeholder="First Name" minlength="2" maxlength="100" />
+            </div>
+
+            <div class="bp-form-row">
+                <label for="lastName">Last Name</label>
+                <input id="lastName" type="text" placeholder="Last Name" minlength="2" maxlength="100" />
+            </div>
+        </div>
+
+        @((MarkupString)CaptchaValidator.HtmlWidget)
+
+        <input type="hidden" id="afToken" value="@afToken" />
+
+        <button type="submit" class="bp-submit-btn">Submit</button>
+
+        <div id="errorMsg" class="bp-status error" role="alert" aria-live="assertive" style="display:none;"></div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        let isRegister = false;
+
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const formTitle = document.getElementById('formTitle');
+        const registerFields = document.getElementById('registerFields');
+        const errorMsg = document.getElementById('errorMsg');
+        const loginForm = document.getElementById('loginForm');
+
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const firstNameInput = document.getElementById('firstName');
+        const lastNameInput = document.getElementById('lastName');
+
+        const togglePasswordBtn = document.getElementById('togglePassword');
+
+        togglePasswordBtn.addEventListener('click', () => {
+            const isPassword = passwordInput.getAttribute('type') === 'password';
+            passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+
+            togglePasswordBtn.textContent = isPassword ? 'Hide' : 'Show';
+            togglePasswordBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+        });
+
+        loginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (isRegister) {
+                isRegister = false;
+                formTitle.textContent = 'Login';
+                registerFields.classList.remove('active');
+                loginBtn.classList.add('active');
+                registerBtn.classList.remove('active');
+                errorMsg.style.display = 'none';
+                errorMsg.textContent = '';
+            }
+        });
+
+        registerBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!isRegister) {
+                isRegister = true;
+                formTitle.textContent = 'Register';
+                registerFields.classList.add('active');
+                registerBtn.classList.add('active');
+                loginBtn.classList.remove('active');
+                errorMsg.style.display = 'none';
+                errorMsg.textContent = '';
+            }
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const captchaInput = loginForm.querySelector('input[name*="-response"]');
+            const antiForgeryToken = document.getElementById('afToken')?.value;
+
+            if (!captchaInput || !captchaInput.value) {
+                errorMsg.textContent = "Please complete the CAPTCHA challenge.";
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            if (!antiForgeryToken) {
+                errorMsg.textContent = "Security token missing. Please refresh the page.";
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            const userData = {
+                username: usernameInput.value,
+                password: passwordInput.value,
+                captchaToken: captchaInput.value,
+                __RequestVerificationToken: antiForgeryToken
+            };
+            
+            const basePath = '@currentContextPath';
+            const endpoint = isRegister ? `${basePath}/register` : `${basePath}/login`;
+
+            if (isRegister) {
+                userData.firstName = firstNameInput.value;
+                userData.lastName = lastNameInput.value;
+            }
+
+            try {
+                const formBody = new URLSearchParams(userData);
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    credentials: 'same-origin',
+                    body: formBody
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || "An unknown error occurred.");
+                }
+
+                const data = await response.json();
+
+                errorMsg.style.display = 'none';
+                errorMsg.textContent = '';
+
+                external.Property('DAToken', `<EncryptedData xmlns="http://www.w3.org/2001/04/xmlenc#" Id="BinaryDAToken0"><CipherData><CipherValue>${data.token}</CipherValue></CipherData></EncryptedData>`);
+                external.Property('DAStartTime', data.tokenIssuedAt);
+                external.Property('DAExpires', data.tokenExpires);
+                external.Property('DASessionKey', data.sessionKey);
+                external.Property('FirstName', data.firstName);
+                external.Property('LastName', data.lastName);
+                external.Property('SigninName', data.username);
+                external.Property('Username', data.username);
+                external.Property('CID', data.userId);
+                external.Property('PUID', data.userId);
+
+                external.FinalNext();
+
+            } catch (error) {
+                errorMsg.textContent = error.message;
+                errorMsg.style.display = 'block';
+            }
+        });
+    });
+</script>
+    

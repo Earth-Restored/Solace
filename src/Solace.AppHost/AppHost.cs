@@ -30,6 +30,14 @@ builder.AddDockerComposeEnvironment("solace-prod")
         }
     });
 
+builder.AddContainer("nginx", "nginx", "alpine")
+    .WithHttpEndpoint(port: 80, targetPort: 80, name: "http")
+    .WithHttpsEndpoint(port: 443, targetPort: 443, name: "https")
+    .WithExternalHttpEndpoints()
+    .WithBindMount("./nginx.conf", "/etc/nginx/nginx.conf", isReadOnly: true)
+    .WithBindMount("./certs", "/etc/nginx/certs", isReadOnly: true)
+    .WithLifetime(ContainerLifetime.Persistent);
+
 var postgres = builder.AddPostgres("postgres")
     .WithDataVolume()
     .WithPgAdmin();
@@ -86,7 +94,7 @@ var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate>("buildpl
         service.Environment["StaticDataPath"] = "/app/static-data";
     });
 
-var apiPort = builder.Configuration.GetValue<int>("ApiServer:Port", 8088);
+var apiPort = builder.Configuration.GetValue<int>("ApiServer:Port", 8089);
 
 var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
     .WithHttpEndpoint(port: apiPort, name: "http")
@@ -100,12 +108,10 @@ var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
     .WaitFor(eventBus)
     .WithReference(objectStore)
     .WaitFor(objectStore)
-    .WithEnvironmentFromSection(builder.Configuration, "ApiServer:Authentication", "ApiServer:")
+    .WithEnvironmentFromSection(builder.Configuration, "AuthServer:Authentication", "AuthServer:")
     .WithEnvironment("StaticDataPath", staticDataPath)
     .PublishAsDockerComposeService((resource, service) =>
     {
-        service.Ports = [$"{apiPort}:{apiPort}"];
-
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
         {
             Name = "static-data-volume",
@@ -127,7 +133,7 @@ var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
         });
     });
 
-var cdnPort = builder.Configuration.GetValue<int>("Cdn:Port", 8089);
+var cdnPort = builder.Configuration.GetValue<int>("Cdn:Port", 8090);
 
 var cdn = builder.AddProject<Projects.Solace_Cdn>("cdn")
     .WithHttpEndpoint(port: cdnPort, name: "http")
@@ -144,8 +150,6 @@ var cdn = builder.AddProject<Projects.Solace_Cdn>("cdn")
     .WithEnvironment("StaticDataPath", staticDataPath)
     .PublishAsDockerComposeService((resource, service) =>
     {
-        service.Ports = [$"{cdnPort}:{cdnPort}"];
-
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
         {
             Name = "static-data-volume",
@@ -158,7 +162,33 @@ var cdn = builder.AddProject<Projects.Solace_Cdn>("cdn")
         service.Environment["StaticDataPath"] = "/app/static-data";
     });
 
-var locatorPort = builder.Configuration.GetValue<int>("Locator:Port", 8088);
+var authServerPort = builder.Configuration.GetValue<int>("AuthServer:Port", 8088);
+
+var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
+    .WithHttpEndpoint(port: authServerPort, name: "http")
+    .WithEndpoint("http", endpoint =>
+    {
+        endpoint.TargetHost = "*";
+    })
+    .WithReference(earthDb)
+    .WaitFor(earthDb)
+    .WithEnvironmentFromSection(builder.Configuration, "AuthServer:Authentication", "AuthServer:")
+    .WithEnvironment("Captcha__Provider", builder.AddParameter("AuthServer-Captcha-Provider", () => builder.Configuration["AuthServer:Captcha:Provider"] ?? "NoOp"))
+    .WithEnvironment("Captcha__CloudflareTurnstileSiteKey", builder.AddParameter("AuthServer-Captcha-TurnstileSiteKey", () => builder.Configuration["AuthServer:Captcha:CloudflareTurnstileSiteKey"] ?? ""))
+    .WithEnvironment("Captcha__CloudflareTurnstileSecretKey", builder.AddParameter("AuthServer-Captcha-TurnstileSecretKey", () => builder.Configuration["AuthServer:Captcha:CloudflareTurnstileSecretKey"] ?? "", secret: true))
+    .PublishAsDockerComposeService((resource, service) =>
+    {
+        service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
+        {
+            Name = "dataprotection-keys-volume",
+            Type = "bind",
+            Source = "dataprotection-keys",
+            Target = "/home/app/.aspnet/DataProtection-Keys",
+            ReadOnly = false,
+        });
+    });
+
+var locatorPort = builder.Configuration.GetValue<int>("Locator:Port", 8080);
 
 var locator = builder.AddProject<Projects.Solace_Locator>("locator")
     .WithHttpEndpoint(port: locatorPort, name: "http")
@@ -172,7 +202,6 @@ var locator = builder.AddProject<Projects.Solace_Locator>("locator")
     .WaitFor(cdn)
     .PublishAsDockerComposeService((resource, service) =>
     {
-        service.Ports = [$"{locatorPort}:{locatorPort}"];
     });
 
 var tappableGenerator = builder.AddProject<Projects.Solace_TappablesGenerator>("tappable-generator")
@@ -193,15 +222,12 @@ var tappableGenerator = builder.AddProject<Projects.Solace_TappablesGenerator>("
         service.Environment["StaticDataPath"] = "/app/static-data";
     });
 
-// var anyTileDataSources = builder.Configuration.GetSection("TileRenderer:TileSource").AsEnumerable().Any(item => !string.IsNullOrWhiteSpace(item.Value));
-
-// if (anyTileDataSources)
-// {
 var tileRenderer = builder.AddProject<Projects.Solace_TileRenderer>("tile-renderer")
     .WithReference(eventBus)
     .WaitFor(eventBus)
     .WithEnvironment("StaticDataPath", staticDataPath)
-    .WithEnvironmentFromSection(builder.Configuration, "TileRenderer:TileSource", "TileRenderer:")
+    .WithEnvironment("TileSource__TileJsonUrl", builder.AddParameter("TileRenderer-TileSource-TileJsonUrl", () => builder.Configuration["TileRenderer:TileSource:TileJsonUrl"] ?? ""))
+    .WithEnvironment("TileSource__TileDatabaseConnectionString", builder.AddParameter("TileRenderer-TileSource-TileDatabaseConnectionString", () => builder.Configuration["TileRenderer:TileSource:TileDatabaseConnectionString"] ?? ""))
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
@@ -215,7 +241,6 @@ var tileRenderer = builder.AddProject<Projects.Solace_TileRenderer>("tile-render
 
         service.Environment["StaticDataPath"] = "/app/static-data";
     });
-// }
 
 var adminPanelPort = builder.Configuration.GetValue<int>("AdminPanel:Port", 5000);
 
@@ -235,8 +260,6 @@ var adminPanel = builder.AddProject<Projects.Solace_AdminPanel>("admin-panel")
     .WithEnvironment("EnableAdminPanelBuildplatePreview", builder.Configuration["AdminPanel:EnableAdminPanelBuildplatePreview"])
     .PublishAsDockerComposeService((resource, service) =>
     {
-        service.Ports = [$"{adminPanelPort}:{adminPanelPort}"];
-
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
         {
             Name = "static-data-volume",

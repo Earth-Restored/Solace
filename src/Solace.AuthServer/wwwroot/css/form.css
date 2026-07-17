@@ -1,0 +1,444 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Press Start 2P", system-ui;
+    overflow-y: scroll !important;
+    overflow-x: hidden;
+    min-height: 100.1vh;
+    display: block;
+    padding: 20px 10px;
+    background: linear-gradient(180deg, #3ca0f0 0%, #a4daf8 100%);
+    position: relative;
+    image-rendering: pixelated;
+    -webkit-font-smoothing: none;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.minecraft-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.sky-sun {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background: #ffe57f;
+    border: 6px solid #ffd740;
+    top: 10%;
+    right: 15%;
+    box-shadow: 0 0 0 12px rgba(255, 215, 64, 0.2), 0 0 0 24px rgba(255, 215, 64, 0.1);
+}
+
+.cloud {
+    position: absolute;
+    background: #ffffff;
+    border-bottom: 8px solid #cfd8dc;
+    animation: scroll-cloud linear infinite;
+}
+
+.cloud::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 20px;
+    width: 60%;
+    height: 16px;
+    background: #ffffff;
+}
+
+@keyframes scroll-cloud {
+    0% {
+        transform: translateX(-300px);
+    }
+
+    100% {
+        transform: translateX(100vw);
+    }
+}
+
+.cloud-1 {
+    top: 5%;
+    width: 160px;
+    height: 32px;
+    animation-duration: 60s;
+}
+
+.cloud-2 {
+    top: 15%;
+    width: 220px;
+    height: 40px;
+    animation-duration: 80s;
+    animation-delay: -20s;
+    opacity: 0.8;
+}
+
+.cloud-3 {
+    top: 25%;
+    width: 120px;
+    height: 24px;
+    animation-duration: 55s;
+    animation-delay: -10s;
+    opacity: 0.6;
+}
+
+.cloud-4 {
+    top: 8%;
+    width: 180px;
+    height: 35px;
+    animation-duration: 90s;
+    animation-delay: -50s;
+    opacity: 0.9;
+}
+
+.cloud-5 {
+    top: 30%;
+    width: 140px;
+    height: 28px;
+    animation-duration: 70s;
+    animation-delay: -30s;
+    opacity: 0.7;
+}
+
+.cloud-6 {
+    top: 12%;
+    width: 200px;
+    height: 38px;
+    animation-duration: 100s;
+    animation-delay: -70s;
+    opacity: 0.85;
+}
+
+.hill {
+    position: absolute;
+    bottom: 0px;
+}
+
+.hill-back {
+    left: -5vw;
+    width: 110vw;
+    height: 180px;
+    background: #365322;
+    border-top: 8px solid #43662b;
+}
+
+.hill-back::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 25%;
+    width: 55%;
+    height: 50px;
+    background: #365322;
+    border-top: 8px solid #43662b;
+}
+
+.hill-back::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    right: 0%;
+    width: 20%;
+    height: 90px;
+    background: #365322;
+    border-top: 8px solid #43662b;
+}
+
+.hill-front {
+    left: -5vw;
+    width: 110vw;
+    height: 80px;
+    background: #5c8e32;
+    border-top: 8px solid #7cb342;
+}
+
+.hill-front::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 20%;
+    width: 30%;
+    height: 50px;
+    background: #5c8e32;
+    border-top: 8px solid #7cb342;
+}
+
+.hill-front::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    right: 25%;
+    width: 25%;
+    height: 30px;
+    background: #5c8e32;
+    border-top: 8px solid #7cb342;
+}
+
+.container {
+    background: #f5eed9;
+    border-radius: 0;
+    border: 4px solid #5a4a3a;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 0 0 4px #8b7355;
+    max-width: 420px;
+    width: 100%;
+    padding: 24px 30px 30px;
+    position: relative;
+    z-index: 1;
+    margin: 20px auto;
+    display: block;
+}
+
+h1 {
+    text-align: center;
+    color: #6b8e23;
+    margin-bottom: 8px;
+    font-size: 1.4rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
+    filter: drop-shadow(0 6px 12px rgba(107, 142, 35, 0.4));
+}
+
+.subtitle {
+    text-align: center;
+    color: #5a4a3a;
+    margin-bottom: 24px;
+    font-size: 0.65rem;
+    line-height: 1.4;
+}
+
+.nav-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 24px;
+    border: 4px solid #8b7355;
+    background: #d4c5a0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.nav-tab {
+    flex: 1;
+    padding: 12px 4px 16px;
+    border: none;
+    background: #d4c5a0;
+    color: #3e2723;
+    cursor: pointer;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    font-family: "Press Start 2P", system-ui;
+    text-align: center;
+    outline: none;
+    box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.2), inset 0 4px 0 rgba(255, 255, 255, 0.25);
+    transition: background 0.1s;
+}
+
+.nav-tab:first-child {
+    border-right: 4px solid #8b7355;
+}
+
+.nav-tab:hover:not(.active) {
+    background: #e0d5b0;
+}
+
+.nav-tab:active {
+    padding: 16px 4px 12px;
+    box-shadow: inset 0 4px 0 rgba(0, 0, 0, 0.35);
+    background: #c5b58e;
+}
+
+.nav-tab.active {
+    background: linear-gradient(180deg, #556b2f 0%, #6b8e23 100%);
+    color: white;
+    box-shadow: inset 0 4px 0 rgba(0, 0, 0, 0.4);
+    padding: 16px 4px 12px;
+}
+
+.bp-form-row {
+    margin-bottom: 16px;
+    width: 100%;
+}
+
+.bp-form-row label {
+    display: block;
+    font-weight: 400;
+    color: #3e2723;
+    margin-bottom: 8px;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+}
+
+.bp-form-row input[type="text"],
+.bp-form-row input[type="password"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 3px solid #8b7355;
+    border-radius: 0;
+    background: #f5eed9;
+    color: #3e2723;
+    font-family: "Press Start 2P", system-ui;
+    font-size: 0.75rem;
+    outline: none;
+    transition: border-color 0.15s;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+}
+
+.bp-form-row input:focus {
+    border-color: #6b8e23;
+}
+
+.extra-fields {
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.4s ease;
+    width: 100%;
+}
+
+#registerFields {
+    display: none;
+    /* Default hidden */
+    width: 100%;
+}
+
+#registerFields.active {
+    display: block;
+    /* Hard switch instead of max-height animation */
+}
+
+.required {
+    color: red;
+}
+
+.bp-submit-btn {
+    width: 100%;
+    padding: 14px 8px;
+    background: linear-gradient(180deg, #6b8e23 0%, #556b2f 100%);
+    color: white;
+    border: 2px solid #4a5d23;
+    border-radius: 0;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.15s;
+    box-shadow: 0 4px 0 #3d4f1c;
+    text-transform: uppercase;
+    font-family: "Press Start 2P", system-ui;
+    margin-top: 10px;
+    box-sizing: border-box;
+}
+
+.bp-submit-btn:hover {
+    background: linear-gradient(180deg, #7cb342 0%, #689f38 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #3d4f1c;
+}
+
+.bp-submit-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #3d4f1c;
+}
+
+.bp-status {
+    margin-top: 14px;
+    padding: 12px 16px;
+    border-radius: 0;
+    font-weight: 400;
+    text-align: center;
+    display: none;
+    font-family: "Press Start 2P", system-ui;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.65rem;
+}
+
+.bp-status.error {
+    background: rgba(244, 67, 54, 0.15);
+    border: 2px solid #f44336;
+    color: #c62828;
+    display: block;
+}
+
+.password-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-wrapper input[type="password"],
+.password-wrapper input[type="text"] {
+    padding-right: 80px !important;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    bottom: 4px;
+    width: 70px;
+    background: #8b7355;
+    border: 2px solid #5a4a3a;
+    color: #f5eed9;
+    font-family: "Press Start 2P", system-ui;
+    font-size: 0.5rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s;
+    box-shadow: inset -2px -2px 0px rgba(0, 0, 0, 0.2);
+}
+
+.password-toggle:hover {
+    background: #a89375;
+}
+
+.password-toggle:active {
+    box-shadow: inset 2px 2px 0px rgba(0, 0, 0, 0.3);
+    transform: translateY(1px);
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 1.1rem;
+    }
+
+    .nav-tab {
+        font-size: 0.55rem;
+        padding: 10px 2px;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .cloud-5,
+    .cloud-6 {
+        display: none;
+    }
+}
