@@ -11,6 +11,7 @@
   <Project Path="src/Solace.BuildplateImporter/Solace.BuildplateImporter.csproj" />
   <Project Path="src/Solace.Cdn/Solace.Cdn.csproj" />
   <Project Path="src/Solace.Common/Solace.Common.csproj" />
+  <Project Path="src/Solace.Common.Asp/Solace.Common.Asp.csproj" />
   <Project Path="src/Solace.DB/Solace.DB.csproj" />
   <Project Path="src/Solace.EventBus/Solace.EventBus.csproj" />
   <Project Path="src/Solace.EventBus.Client/Solace.EventBus.Client.csproj" />

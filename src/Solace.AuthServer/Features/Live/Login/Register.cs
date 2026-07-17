@@ -2,12 +2,11 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
-using Immediate.Validations.Shared;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Solace.AuthServer.Features.Live.Login.Infrastructure;
+using Solace.Common.Asp.Captcha;
 using Solace.DB;
 using Solace.DB.Models;
 using Solace.DB.Utils;
@@ -55,8 +54,7 @@ public sealed partial class Register(
             httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ??
             httpContext.Connection.RemoteIpAddress?.ToString();
 
-        if (string.IsNullOrWhiteSpace(command.CaptchaToken) ||
-            !await captchaValidator.ValidateAsync(command.CaptchaToken, remoteip, cancellationToken))
+        if (!await captchaValidator.ValidateAsync(command.CaptchaToken, remoteip, cancellationToken))
         {
             return TypedResults.BadRequest("Security check failed. Please try again.");
         }

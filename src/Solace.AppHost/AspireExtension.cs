@@ -1,35 +1,101 @@
+using System.Reflection.Emit;
 using Microsoft.Extensions.Configuration;
 
 namespace Solace.AppHost;
 
 internal static class AspireExtension
 {
-    public static IResourceBuilder<T> WithEnvironmentFromSection<T>(
-        this IResourceBuilder<T> builder,
-        IConfiguration config,
-        string sectionPath,
-        string prefixToRemove = "")
-            where T : IResourceWithEnvironment
+    extension<T>(IResourceBuilder<T> builder)
+        where T : IResourceWithEnvironment
     {
-        var section = config.GetSection(sectionPath);
-
-        foreach (var kvp in section.AsEnumerable())
+        public IResourceBuilder<T> WithEnvironmentFromSection(
+            IConfiguration config,
+            string sectionPath,
+            string? prefixToRemove = null)
         {
-            if (kvp.Value is null)
+            var section = config.GetSection(sectionPath);
+
+            foreach (var kvp in section.AsEnumerable())
             {
-                continue;
+                if (kvp.Value is null)
+                {
+                    continue;
+                }
+
+                var envName = kvp.Key;
+                if (!string.IsNullOrEmpty(prefixToRemove) && envName.StartsWith(prefixToRemove, StringComparison.Ordinal))
+                {
+                    envName = envName[prefixToRemove.Length..];
+                }
+
+                envName = envName.TrimStart(':');
+
+                envName = envName.Replace(":", "__", StringComparison.Ordinal);
+                builder.WithEnvironment(envName, kvp.Value);
             }
 
-            var envName = kvp.Key;
+            return builder;
+        }
+
+        public IResourceBuilder<T> WithEnvironmentFromConfig(
+            string configPath,
+            string defaultValue = "",
+            string? prefixToRemove = null,
+            bool isSecret = false)
+        {
+            string parameterName = configPath.Replace(':', '-');
+
+            var envName = configPath;
             if (!string.IsNullOrEmpty(prefixToRemove) && envName.StartsWith(prefixToRemove, StringComparison.Ordinal))
             {
                 envName = envName[prefixToRemove.Length..];
             }
 
+            envName = envName.TrimStart(':');
+
             envName = envName.Replace(":", "__", StringComparison.Ordinal);
-            builder.WithEnvironment(envName, kvp.Value);
+
+            var parameter = builder.ApplicationBuilder.AddParameter(
+                parameterName,
+                () => builder.ApplicationBuilder.Configuration[configPath] ?? defaultValue,
+                secret: isSecret
+            );
+
+            return builder.WithEnvironment(envName, parameter);
         }
 
-        return builder;
+        public IResourceBuilder<T> WithEnvironmentFromConfig(ParamterForEnvironment paramter)
+            => builder.WithEnvironment(paramter.EnvironmentName, paramter.Parameter);
     }
+
+    extension(IDistributedApplicationBuilder builder)
+    {
+        public ParamterForEnvironment AddParameterForEnvironment(string configPath,
+            string defaultValue = "",
+            string? prefixToRemove = null,
+            bool isSecret = false)
+        {
+            var envName = configPath;
+            if (!string.IsNullOrEmpty(prefixToRemove) && envName.StartsWith(prefixToRemove, StringComparison.Ordinal))
+            {
+                envName = envName[prefixToRemove.Length..];
+            }
+
+            envName = envName.TrimStart(':');
+
+            envName = envName.Replace(":", "__", StringComparison.Ordinal);
+
+            string parameterName = configPath.Replace(':', '-');
+
+            var parameter = builder.AddParameter(
+                parameterName,
+                () => builder.Configuration[configPath] ?? defaultValue,
+                secret: isSecret
+            );
+
+            return new ParamterForEnvironment(envName, parameter);
+        }
+    }
+
+    public readonly record struct ParamterForEnvironment(string EnvironmentName, IResourceBuilder<ParameterResource> Parameter);
 }

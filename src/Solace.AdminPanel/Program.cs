@@ -201,12 +201,31 @@ internal static partial class App
                 manager.FeatureProviders.Add(new InternalControllerFeatureProvider());
             });
 
+        builder.Services.Configure<Common.Asp.Captcha.CaptchaOptions>(builder.Configuration.GetSection("Captcha"));
+
+        var captchaProvider = builder.Configuration.GetValue("Captcha:Provider", Common.Asp.Captcha.CaptchaProvider.NoOp);
+
+        switch (captchaProvider)
+        {
+            case Common.Asp.Captcha.CaptchaProvider.CloudflareTurnstile:
+                builder.Services.AddHttpClient<Common.Asp.Captcha.ICaptchaValidator, Common.Asp.Captcha.CloudflareTurnstileValidator>();
+                break;
+            default:
+                builder.Services.AddSingleton<Common.Asp.Captcha.ICaptchaValidator, Common.Asp.Captcha.NoOpCaptchaValidator>();
+                break;
+        }
+
         await using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
         GlobalLoggerFactory.Initialize(loggerFactory);
 
         var programLogger = loggerFactory.CreateLogger(nameof(App));
+
+        if (captchaProvider is Common.Asp.Captcha.CaptchaProvider.NoOp)
+        {
+            LogUsingNoOpCaptchaProvider(programLogger);
+        }
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
@@ -499,6 +518,9 @@ internal static partial class App
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "Unhandled exception")]
     private static partial void LogUnhandledException(ILogger logger, Exception? exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Using NoOp captcha provider")]
+    private static partial void LogUsingNoOpCaptchaProvider(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Connecting to event bus")]
     private static partial void LogConnectingToEventBus(ILogger logger);

@@ -164,6 +164,10 @@ var cdn = builder.AddProject<Projects.Solace_Cdn>("cdn")
 
 var authServerPort = builder.Configuration.GetValue<int>("AuthServer:Port", 8088);
 
+var captchaProvider = builder.AddParameterForEnvironment("Shared:Captcha:Provider", defaultValue: "NoOp", prefixToRemove: "Shared:");
+var captchaCloudflareTurnstileSiteKey = builder.AddParameterForEnvironment("Shared:Captcha:CloudflareTurnstileSiteKey", prefixToRemove: "Shared:");
+var captchaCloudflareTurnstileSecretKey = builder.AddParameterForEnvironment("Shared:Captcha:CloudflareTurnstileSecretKey", prefixToRemove: "Shared:", isSecret: true);
+
 var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
     .WithHttpEndpoint(port: authServerPort, name: "http")
     .WithEndpoint("http", endpoint =>
@@ -173,9 +177,9 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
     .WithReference(earthDb)
     .WaitFor(earthDb)
     .WithEnvironmentFromSection(builder.Configuration, "AuthServer:Authentication", "AuthServer:")
-    .WithEnvironment("Captcha__Provider", builder.AddParameter("AuthServer-Captcha-Provider", () => builder.Configuration["AuthServer:Captcha:Provider"] ?? "NoOp"))
-    .WithEnvironment("Captcha__CloudflareTurnstileSiteKey", builder.AddParameter("AuthServer-Captcha-TurnstileSiteKey", () => builder.Configuration["AuthServer:Captcha:CloudflareTurnstileSiteKey"] ?? ""))
-    .WithEnvironment("Captcha__CloudflareTurnstileSecretKey", builder.AddParameter("AuthServer-Captcha-TurnstileSecretKey", () => builder.Configuration["AuthServer:Captcha:CloudflareTurnstileSecretKey"] ?? "", secret: true))
+    .WithEnvironmentFromConfig(captchaProvider)
+    .WithEnvironmentFromConfig(captchaCloudflareTurnstileSiteKey)
+    .WithEnvironmentFromConfig(captchaCloudflareTurnstileSecretKey)
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
@@ -258,6 +262,9 @@ var adminPanel = builder.AddProject<Projects.Solace_AdminPanel>("admin-panel")
     .WaitFor(objectStore)
     .WithEnvironment("StaticDataPath", staticDataPath)
     .WithEnvironment("EnableAdminPanelBuildplatePreview", builder.Configuration["AdminPanel:EnableAdminPanelBuildplatePreview"])
+    .WithEnvironmentFromConfig(captchaProvider)
+    .WithEnvironmentFromConfig(captchaCloudflareTurnstileSiteKey)
+    .WithEnvironmentFromConfig(captchaCloudflareTurnstileSecretKey)
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume

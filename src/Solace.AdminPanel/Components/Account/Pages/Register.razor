@@ -16,8 +16,13 @@
 @inject ILogger<Register> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject Common.Asp.Captcha.ICaptchaValidator CaptchaValidator
 
 <PageTitle>Register</PageTitle>
+
+<HeadContent>
+    @((MarkupString)CaptchaValidator.Script)
+</HeadContent>
 
 <h1>Register</h1>
 
@@ -30,23 +35,25 @@
             <hr />
             <ValidationSummary class="text-danger" role="alert" />
             <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username"
-                           aria-required="true" placeholder="name@example.com" />
+                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
                 <label for="Input.Email">Email</label>
                 <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control"
-                           autocomplete="new-password" aria-required="true" placeholder="password" />
+                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
                 <label for="Input.Password">Password</label>
                 <ValidationMessage For="() => Input.Password" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword"
-                           class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
                 <label for="Input.ConfirmPassword">Confirm Password</label>
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
             </div>
+
+            <div class="mb-3">
+                @((MarkupString)CaptchaValidator.GetHtmlWidget())
+            </div>
+
             <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
         </EditForm>
     </div>
@@ -65,6 +72,9 @@
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = default!;
 
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
@@ -78,6 +88,15 @@ error.Description))}";
 
     public async Task RegisterUser(EditContext editContext)
     {
+        var captchaToken = HttpContext.Request.Form[CaptchaValidator.FormFieldName].ToString();
+
+        if (!await CaptchaValidator.ValidateAsync(captchaToken))
+        {
+            identityErrors = [new IdentityError { Description = "Security check failed. Please try again." }];
+            return;
+        }
+
+        // todo: remove this
         var firstUser = !await UserManager.Users.AnyAsync();
 
         var user = CreateUser();

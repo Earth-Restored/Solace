@@ -10,8 +10,13 @@
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject Common.Asp.Captcha.ICaptchaValidator CaptchaValidator
 
 <PageTitle>Log in</PageTitle>
+
+<HeadContent>
+    @((MarkupString)CaptchaValidator.Script)
+</HeadContent>
 
 <h1>Log in</h1>
 <div class="row">
@@ -38,6 +43,9 @@
                         <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
                         Remember me
                     </label>
+                </div>
+                <div class="mb-3">
+                    @((MarkupString)CaptchaValidator.GetHtmlWidget())
                 </div>
                 <div>
                     <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
@@ -102,6 +110,14 @@
         if (!string.IsNullOrEmpty(Input.Passkey?.Error))
         {
             errorMessage = $"Error: {Input.Passkey.Error}";
+            return;
+        }
+
+        var captchaToken = HttpContext.Request.Form[CaptchaValidator.FormFieldName].ToString();
+
+        if (!await CaptchaValidator.ValidateAsync(captchaToken))
+        {
+            errorMessage = "Error: Security check failed. Please try again.";
             return;
         }
 

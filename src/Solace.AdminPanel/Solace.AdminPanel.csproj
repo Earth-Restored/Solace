@@ -33,7 +33,7 @@
     <PackageReference Include="Blazor3D" />
     <PackageReference Include="MCeToJava" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
-    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore"/>
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -50,6 +50,7 @@
   <ItemGroup>
     <ProjectReference Include="../Solace.BuildplateImporter/Solace.BuildplateImporter.csproj" />
     <ProjectReference Include="../Solace.BuildplateRenderer/Solace.BuildplateRenderer.csproj" />
+    <ProjectReference Include="../Solace.Common.Asp/Solace.Common.Asp.csproj" />
     <ProjectReference Include="../Solace.Common/Solace.Common.csproj" />
     <ProjectReference Include="../Solace.DB/Solace.DB.csproj" />
     <ProjectReference Include="../Solace.ObjectStore.Client/Solace.ObjectStore.Client.csproj" />

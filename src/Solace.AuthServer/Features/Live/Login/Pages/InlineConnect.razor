@@ -1,5 +1,5 @@
 @page "/login.live.com/ppsecure/InlineConnect.srf"
-@inject Solace.AuthServer.Features.Live.Login.Infrastructure.ICaptchaValidator CaptchaValidator
+@inject Solace.Common.Asp.Captcha.ICaptchaValidator CaptchaValidator
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
 
@@ -64,7 +64,7 @@
             </div>
         </div>
 
-        @((MarkupString)CaptchaValidator.HtmlWidget)
+        @((MarkupString)CaptchaValidator.GetHtmlWidget(size: "compact"))
 
         <input type="hidden" id="afToken" value="@afToken" />
 

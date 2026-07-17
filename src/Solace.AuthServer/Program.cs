@@ -74,17 +74,17 @@ internal sealed partial class Program2
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().Secrets);
 
         builder.Services.Configure<Features.Live.Login.AuthSettings>(builder.Configuration.GetSection("Authentication:Login"));
-        builder.Services.Configure<Features.Live.Login.CaptchaOptions>(builder.Configuration.GetSection("Captcha"));
+        builder.Services.Configure<Common.Asp.Captcha.CaptchaOptions>(builder.Configuration.GetSection("Captcha"));
 
-        var capchaProvider = builder.Configuration.GetValue("Captcha:Provider", Features.Live.Login.CaptchaProvider.NoOp);
+        var captchaProvider = builder.Configuration.GetValue("Captcha:Provider", Common.Asp.Captcha.CaptchaProvider.NoOp);
 
-        switch (capchaProvider)
+        switch (captchaProvider)
         {
-            case Features.Live.Login.CaptchaProvider.CloudflareTurnstile:
-                builder.Services.AddHttpClient<Features.Live.Login.Infrastructure.ICaptchaValidator, Features.Live.Login.Infrastructure.CloudflareTurnstileValidator>();
+            case Common.Asp.Captcha.CaptchaProvider.CloudflareTurnstile:
+                builder.Services.AddHttpClient<Common.Asp.Captcha.ICaptchaValidator, Common.Asp.Captcha.CloudflareTurnstileValidator>();
                 break;
             default:
-                builder.Services.AddSingleton<Features.Live.Login.Infrastructure.ICaptchaValidator, Features.Live.Login.Infrastructure.NoOpCaptchaValidator>();
+                builder.Services.AddSingleton<Common.Asp.Captcha.ICaptchaValidator, Common.Asp.Captcha.NoOpCaptchaValidator>();
                 break;
         }
 
@@ -95,9 +95,9 @@ internal sealed partial class Program2
 
         var programLogger = loggerFactory.CreateLogger(nameof(Program));
 
-        if (capchaProvider is Features.Live.Login.CaptchaProvider.NoOp)
+        if (captchaProvider is Common.Asp.Captcha.CaptchaProvider.NoOp)
         {
-            LogUsingNoOpCapchaProvider(programLogger);
+            LogUsingNoOpCaptchaProvider(programLogger);
         }
 
         var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
@@ -129,6 +129,6 @@ internal sealed partial class Program2
         public CryptoSecrets Secrets { get; set; } = null!;
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Using NoOp capcha provider")]
-    private static partial void LogUsingNoOpCapchaProvider(ILogger logger);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Using NoOp captcha provider")]
+    private static partial void LogUsingNoOpCaptchaProvider(ILogger logger);
 }

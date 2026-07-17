@@ -1,8 +1,10 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Solace.AuthServer.Features.Live.Login.Infrastructure;
+namespace Solace.Common.Asp.Captcha;
 
 public sealed partial class CloudflareTurnstileValidator(
     HttpClient httpClient,
@@ -16,12 +18,20 @@ public sealed partial class CloudflareTurnstileValidator(
         <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
         """;
 
-    public string HtmlWidget { get; } = $"""
-        <div class="cf-turnstile" data-sitekey="{captchaOptions.Value.CloudflareTurnstileSiteKey}" data-size="compact"></div>
+    public string FormFieldName => "cf-turnstile-response";
+
+    public string GetHtmlWidget(string size = "normal")
+        => $"""
+        <div class="cf-turnstile" data-sitekey="{captchaOptions.Value.CloudflareTurnstileSiteKey}" data-size="{size}"></div>
         """;
 
-    public async Task<bool> ValidateAsync(string token, string? remoteip = null, CancellationToken cancellationToken = default)
+    public async Task<bool> ValidateAsync(string? token, string? remoteip = null, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return false;
+        }
+
         var secretKey = captchaOptions.Value.CloudflareTurnstileSecretKey;
 
         if (string.IsNullOrWhiteSpace(secretKey))

@@ -1,4 +1,4 @@
-namespace Solace.AuthServer.Features.Live.Login;
+namespace Solace.Common.Asp.Captcha;
 
 public sealed class CaptchaOptions
 {

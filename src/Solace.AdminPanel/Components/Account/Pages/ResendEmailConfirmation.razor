@@ -11,8 +11,13 @@
 @inject IEmailSender<ApplicationUser> EmailSender
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject Common.Asp.Captcha.ICaptchaValidator CaptchaValidator
 
 <PageTitle>Resend email confirmation</PageTitle>
+
+<HeadContent>
+    @((MarkupString)CaptchaValidator.Script)
+</HeadContent>
 
 <h1>Resend email confirmation</h1>
 <h2>Enter your email.</h2>
@@ -28,6 +33,9 @@
                 <label for="Input.Email" class="form-label">Email</label>
                 <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
+            <div class="mb-3">
+                @((MarkupString)CaptchaValidator.GetHtmlWidget())
+            </div>
             <button type="submit" class="w-100 btn btn-lg btn-primary">Resend</button>
         </EditForm>
     </div>
@@ -39,6 +47,9 @@
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = default!;
 
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
     protected override void OnInitialized()
     {
         Input ??= new();
@@ -46,6 +57,14 @@
 
     private async Task OnValidSubmitAsync()
     {
+        var captchaToken = HttpContext.Request.Form[CaptchaValidator.FormFieldName].ToString();
+
+        if (!await CaptchaValidator.ValidateAsync(captchaToken))
+        {
+            message = "Error: Security check failed. Please try again.";
+            return;
+        }
+
         var user = await UserManager.FindByEmailAsync(Input.Email!);
         if (user is null)
         {
