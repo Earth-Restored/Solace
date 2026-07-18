@@ -1,7 +1,9 @@
 ﻿@page "/"
 @using System.Security.Claims
 @using Solace.AdminPanel.Utils
+@inject Microsoft.Extensions.Options.IOptions<PublicEndpointInfo> PublicEndpointInfo
 @inject AuthenticationStateProvider AuthStateProvider
+@inject Microsoft.JSInterop.IJSRuntime JSRuntime
 
 <PageTitle>Home - Solace</PageTitle>
 
@@ -12,6 +14,60 @@
             <p class="col-md-12 fs-5 text-muted">Server environment management</p>
         </div>
     </div>
+
+    @{
+        var locatorInfo = ParseEndpoint(PublicEndpointInfo.Value.Locator);
+        var authServerInfo = ParseEndpoint(PublicEndpointInfo.Value.AuthServer);
+    }
+
+    @if (locatorInfo is not null && authServerInfo is not null)
+    {
+        <div class="row mb-5 justify-content-center">
+            <div class="col-12 col-md-10 col-lg-8">
+                <div class="card shadow-sm border bg-white">
+                    <div class="card-body p-4 text-center">
+                        <h5 class="fw-bold text-secondary mb-4">Patcher options</h5>
+                        
+                        <div class="d-flex flex-column align-items-center gap-3">
+                            <div class="d-flex flex-column flex-sm-row align-items-center gap-2 w-100 justify-content-center">
+                                <span class="fw-bold text-muted text-sm-end" style="width: 180px;">Locator Protocol:</span>
+                                <div class="form-control bg-light text-start d-flex align-items-center" style="max-width: 280px;">
+                                    <span>Http</span>@{if (locatorInfo.Value.Protocol.Equals("https", StringComparison.OrdinalIgnoreCase)) {<strong class="text-primary fs-5" style="line-height: 0.5;">s</strong>}}
+                                </div>
+                            </div>
+                            <div class="d-flex flex-column flex-sm-row align-items-center gap-2 w-100 justify-content-center">
+                                <span class="fw-bold text-muted text-sm-end" style="width: 180px;">Locator Address:</span>
+                                <div class="input-group" style="max-width: 280px;">
+                                    <input type="text" class="form-control bg-light text-start" value="@locatorInfo.Value.Address" readonly />
+                                    <button class="btn btn-outline-secondary" type="button" title="Copy to clipboard" onclick="copyTextDirect('@locatorInfo.Value.Address')">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <hr class="w-75 text-muted my-2" />
+
+                            <div class="d-flex flex-column flex-sm-row align-items-center gap-2 w-100 justify-content-center">
+                                <span class="fw-bold text-muted text-sm-end" style="width: 180px;">Auth Server Protocol:</span>
+                                <div class="form-control bg-light text-start d-flex align-items-center" style="max-width: 280px;">
+                                    <span>Http</span>@{if (authServerInfo.Value.Protocol.Equals("https", StringComparison.OrdinalIgnoreCase)) {<strong class="text-primary fs-5" style="line-height: 0.5;">s</strong>}}
+                                </div>
+                            </div>
+                            <div class="d-flex flex-column flex-sm-row align-items-center gap-2 w-100 justify-content-center">
+                                <span class="fw-bold text-muted text-sm-end" style="width: 180px;">Auth Server Address:</span>
+                                <div class="input-group" style="max-width: 280px;">
+                                    <input type="text" class="form-control bg-light text-start" value="@authServerInfo.Value.Address" readonly />
+                                    <button class="btn btn-outline-secondary" type="button" title="Copy to clipboard" onclick="copyTextDirect('@authServerInfo.Value.Address')">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 
     <div class="row g-4 justify-content-center">
         <AuthorizeView>
@@ -159,5 +215,23 @@
     private bool HasPermission(ClaimsPrincipal user, string permission)
     {
         return user.HasPermission(permission);
+    }
+
+    private (string Protocol, string Address)? ParseEndpoint(string? endpointUrl)
+    {
+        if (string.IsNullOrWhiteSpace(endpointUrl))
+        {
+            return null;
+        }
+
+        if (Uri.TryCreate(endpointUrl, UriKind.Absolute, out var uri))
+        {
+            var protocol = uri.Scheme;
+            var address = endpointUrl.Substring(protocol.Length + 3).TrimEnd('/');
+            
+            return (protocol, address);
+        }
+
+        return null;
     }
 }

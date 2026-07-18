@@ -334,6 +334,10 @@ h1:focus {
     mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0iY3VycmVudENvbG9yIiBjbGFzcz0iYmkgYmktYmFnLWZpbGwiIHZpZXdCb3g9IjAgMCAxNiAxNiI+CiAgPHBhdGggZD0iTTggMWEyLjUgMi41IDAgMCAxIDIuNSAyLjVWNGgtNXYtLjVBMi41IDIuNSAwIDAgMSA4IDFtMy41IDN2LS41YTMuNSAzLjUgMCAxIDAtNyAwVjRIMXYxMGEyIDIgMCAwIDAgMiAyaDEwYTIgMiAwIDAgMCAyLTJWNHoiLz4KPC9zdmc+");
 }
 
+.bi-clipboard {
+    mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0iY3VycmVudENvbG9yIiBjbGFzcz0iYmkgYmktY2xpcGJvYXJkIiB2aWV3Qm94PSIwIDAgMTYgMTYiPgogIDxwYXRoIGQ9Ik00IDEuNUgzYTIgMiAwIDAgMC0yIDJWMTRhMiAyIDAgMCAwIDIgMmgxMGEyIDIgMCAwIDAgMi0yVjMuNWEyIDIgMCAwIDAtMi0yaC0xdjFoMWExIDEgMCAwIDEgMSAxVjE0YTEgMSAwIDAgMS0xIDFIM2ExIDEgMCAwIDEtMS0xVjMuNWExIDEgMCAwIDEgMS0xaDF6Ii8+CiAgPHBhdGggZD0iTTkuNSAxYS41LjUgMCAwIDEgLjUuNXYxYS41LjUgMCAwIDEtLjUuNWgtM2EuNS41IDAgMCAxLS41LS41di0xYS41LjUgMCAwIDEgLjUtLjV6bS0zLTFBMS41IDEuNSAwIDAgMCA1IDEuNXYxQTEuNSAxLjUgMCAwIDAgNi41IDRoM0ExLjUgMS41IDAgMCAwIDExIDIuNXYtMUExLjUgMS41IDAgMCAwIDkuNSAweiIvPgo8L3N2Zz4=");
+}
+
 .dark-mode-btn {
     background: none;
     border: none;
@@ -342,9 +346,18 @@ h1:focus {
     padding: 0 0.5rem;
     line-height: 1;
 }
-.dmb-sun { display: none; }
-html.dark .dmb-moon { display: none; }
-html.dark .dmb-sun { display: inline; }
+
+.dmb-sun {
+    display: none;
+}
+
+html.dark .dmb-moon {
+    display: none;
+}
+
+html.dark .dmb-sun {
+    display: inline;
+}
 
 html.dark {
     color-scheme: dark;
@@ -356,7 +369,7 @@ html.dark {
     --bs-secondary-bg: #1e1e42;
     --bs-tertiary-bg: #16163a;
     --bs-border-color: #3a3a6a;
-    --bs-border-color-translucent: rgba(255,255,255,0.1);
+    --bs-border-color-translucent: rgba(255, 255, 255, 0.1);
 
     --bs-card-bg: #1e1e42;
     --bs-card-color: #d0d0e0;
@@ -366,8 +379,8 @@ html.dark {
     --bs-table-bg: #1e1e42;
     --bs-table-color: #d0d0e0;
     --bs-table-border-color: #3a3a6a;
-    --bs-table-striped-bg: rgba(255,255,255,0.03);
-    --bs-table-hover-bg: rgba(255,255,255,0.06);
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.03);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.06);
 
     --bs-dropdown-bg: #1e1e42;
     --bs-dropdown-color: #d0d0e0;
@@ -482,12 +495,12 @@ html.dark .nav-item ::deep .nav-link {
 }
 
 html.dark .nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.15) !important;
+    background-color: rgba(255, 255, 255, 0.15) !important;
     color: white !important;
 }
 
 html.dark .navbar-toggler {
-    background-color: rgba(255,255,255,0.15) !important;
+    background-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 html.dark .card {
@@ -548,18 +561,18 @@ html.dark .table {
     color: #d0d0e0;
 }
 
-html.dark .table > :not(caption) > * > * {
+html.dark .table> :not(caption)>*>* {
     background-color: #1e1e42;
     color: #d0d0e0;
     border-color: #3a3a6a;
 }
 
-html.dark .table-striped > tbody > tr:nth-of-type(odd) > * {
-    background-color: rgba(255,255,255,0.03);
+html.dark .table-striped>tbody>tr:nth-of-type(odd)>* {
+    background-color: rgba(255, 255, 255, 0.03);
 }
 
-html.dark .table-hover > tbody > tr:hover > * {
-    background-color: rgba(255,255,255,0.06);
+html.dark .table-hover>tbody>tr:hover>* {
+    background-color: rgba(255, 255, 255, 0.06);
 }
 
 html.dark .form-control,
@@ -579,12 +592,12 @@ html.dark .form-select:focus {
     box-shadow: 0 0 0 0.25rem rgba(58, 58, 106, 0.5);
 }
 
-html.dark .form-floating > label {
+html.dark .form-floating>label {
     color: #7a7a9a;
 }
 
-html.dark .form-floating > .form-control:focus ~ label,
-html.dark .form-floating > .form-control:not(:placeholder-shown) ~ label {
+html.dark .form-floating>.form-control:focus~label,
+html.dark .form-floating>.form-control:not(:placeholder-shown)~label {
     color: #9a9ab0;
 }
 
@@ -680,9 +693,20 @@ html.dark .text-dark {
     color: #d0d0e0 !important;
 }
 
-html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6,
-html.dark label, html.dark th, html.dark .h1, html.dark .h2, html.dark .h3,
-html.dark .h4, html.dark .h5, html.dark .h6 {
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6,
+html.dark label,
+html.dark th,
+html.dark .h1,
+html.dark .h2,
+html.dark .h3,
+html.dark .h4,
+html.dark .h5,
+html.dark .h6 {
     color: #e0e0f0;
 }
 
@@ -909,7 +933,7 @@ html.dark .btn-close {
 }
 
 html.dark .form-check-input:disabled {
-    opacity: 0.55; 
+    opacity: 0.55;
 }
 
 html.dark .form-switch .form-check-input {

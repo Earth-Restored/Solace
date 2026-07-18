@@ -253,6 +253,9 @@ var tileRenderer = builder.AddProject<Projects.Solace_TileRenderer>("tile-render
 
 var adminPanelPort = builder.Configuration.GetValue<int>("AdminPanel:Port", 5000);
 
+var locatorPublicEndPoint = builder.AddParameterForEnvironment("Shared:PublicEndpoints:Locator", prefixToRemove: "Shared:");
+var authServerPublicEndPoint = builder.AddParameterForEnvironment("Shared:PublicEndpoints:AuthServer", prefixToRemove: "Shared:");
+
 var adminPanel = builder.AddProject<Projects.Solace_AdminPanel>("admin-panel")
     .WithHttpEndpoint(port: adminPanelPort, name: "http")
     .WithEndpoint("http", endpoint =>
@@ -270,6 +273,8 @@ var adminPanel = builder.AddProject<Projects.Solace_AdminPanel>("admin-panel")
     .WithEnvironmentFromConfig(captchaProvider)
     .WithEnvironmentFromConfig(captchaCloudflareTurnstileSiteKey)
     .WithEnvironmentFromConfig(captchaCloudflareTurnstileSecretKey)
+    .WithEnvironmentFromConfig(locatorPublicEndPoint)
+    .WithEnvironmentFromConfig(authServerPublicEndPoint)
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
