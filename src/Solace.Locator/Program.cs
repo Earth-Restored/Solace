@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Runtime.CompilerServices;
 #if USE_SHARED_LIBS
@@ -32,6 +33,20 @@ internal static class Program
 
 internal sealed partial class App
 {
+    [MemberNotNullWhen(false, nameof(ApiServerEndPoint))]
+    private static bool ApiServerAuto { get; set; }
+
+    private static int ApiServerPort { get; set; }
+
+    private static string? ApiServerEndPoint { get; set; }
+
+    [MemberNotNullWhen(false, nameof(CdnEndPoint))]
+    private static bool CdnAuto { get; set; }
+
+    private static int CdnPort { get; set; }
+
+    private static string? CdnEndPoint { get; set; }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void Run(string[] args)
     {
@@ -46,6 +61,10 @@ internal sealed partial class App
         });
 
         using var app = builder.Build();
+
+        using var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
+
+        var programLogger = loggerFactory.CreateLogger(nameof(Program));
 
         var forwardedHeadersOptions = new ForwardedHeadersOptions
         {
@@ -63,25 +82,65 @@ internal sealed partial class App
         Debug.Assert(apiServerConnectionString is not null);
         var apiServerUri = new Uri(apiServerConnectionString);
 
-        var apiServerPort = apiServerUri.Port;
+        ApiServerPort = apiServerUri.Port;
 
         var cdnConnectionString = builder.Configuration["services:cdn:http:0"];
         Debug.Assert(cdnConnectionString is not null);
         var cdnUri = new Uri(cdnConnectionString);
 
-        var cdnPort = cdnUri.Port;
+        CdnPort = cdnUri.Port;
 
-        EarthApiResponse LocatorHandler(HttpContext context, ILogger<App> logger)
+        var apiServerEndPoint = builder.Configuration["PublicEndpoints:ApiServer"];
+        if (!string.IsNullOrWhiteSpace(apiServerEndPoint))
+        {
+            apiServerEndPoint = apiServerEndPoint.TrimEnd('/');
+            if (!apiServerEndPoint.StartsWith("http://", StringComparison.Ordinal) && !apiServerEndPoint.StartsWith("https://", StringComparison.Ordinal))
+            {
+                Logs.LogUriMissingProtocol(programLogger, "api-server", apiServerEndPoint);
+                return;
+            }
+
+            ApiServerEndPoint = apiServerEndPoint;
+            ApiServerAuto = false;
+            Logs.LogLocatorManualMode(programLogger, "api-server", ApiServerEndPoint);
+        }
+        else
+        {
+            ApiServerAuto = true;
+            Logs.LogLocatorAutoMode(programLogger, "api-server", ApiServerPort);
+        }
+
+        var cdnEndPoint = builder.Configuration["PublicEndpoints:Cdn"];
+        if (!string.IsNullOrWhiteSpace(cdnEndPoint))
+        {
+            cdnEndPoint = cdnEndPoint.TrimEnd('/');
+            if (!cdnEndPoint.StartsWith("http://", StringComparison.Ordinal) && !cdnEndPoint.StartsWith("https://", StringComparison.Ordinal))
+            {
+                Logs.LogUriMissingProtocol(programLogger, "cdn", cdnEndPoint);
+                return;
+            }
+
+            CdnEndPoint = cdnEndPoint;
+            CdnAuto = false;
+            Logs.LogLocatorManualMode(programLogger, "cdn", CdnEndPoint);
+        }
+        else
+        {
+            CdnAuto = true;
+            Logs.LogLocatorAutoMode(programLogger, "cdn", CdnPort);
+        }
+
+        static EarthApiResponse LocatorHandler(HttpContext context, ILogger<App> logger)
         {
             var protocol = context.Request.IsHttps ? "https://" : "http://";
-            var apiServerIP = $"{protocol}{context.Request.Host.Host}:{apiServerPort}";
-            var cdnIP = $"{protocol}{context.Request.Host.Host}:{cdnPort}";
+            var apiServerUri = ApiServerAuto ? $"{protocol}{context.Request.Host.Host}:{ApiServerPort}" : ApiServerEndPoint;
+            var cdnUri = CdnAuto ? $"{protocol}{context.Request.Host.Host}:{CdnPort}" : CdnEndPoint;
 
-            Logs.LogLocatorIssued(logger, context.Connection.RemoteIpAddress, apiServerIP);
+            Logs.LogLocatorIssued(logger, context.Connection.RemoteIpAddress, apiServerUri, cdnUri);
 
             return new EarthApiResponse(new LocatorResponse(new()
             {
-                ["production"] = new LocatorResponse.Environment(apiServerIP, cdnIP, "20CA2"),
+                ["production"] = new LocatorResponse.Environment(apiServerUri, cdnUri, "20CA2"),
             },
             new()
             {
@@ -101,8 +160,17 @@ internal sealed partial class App
 
 internal static partial class Logs
 {
-    [LoggerMessage(Level = LogLevel.Information, Message = "{RemoteIp} has issued locator, replying with {ServerIp}")]
-    public static partial void LogLocatorIssued(ILogger logger, IPAddress? RemoteIp, string ServerIp);
+    [LoggerMessage(Level = LogLevel.Critical, Message = "{Component} public endpoint ({Uri}) is missing protocol, must start with http:// or https://")]
+    public static partial void LogUriMissingProtocol(ILogger logger, string Component, string Uri);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Component} using mode manual with uri: {Uri}")]
+    public static partial void LogLocatorManualMode(ILogger logger, string Component, string Uri);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Component} using mode auto with port: {Port}")]
+    public static partial void LogLocatorAutoMode(ILogger logger, string Component, int Port);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{RemoteIp} has issued locator, replying with api: {ApiServerUri}, cdn: {CdnUri}")]
+    public static partial void LogLocatorIssued(ILogger logger, IPAddress? RemoteIp, string ApiServerUri, string CdnUri);
 }
 
 internal sealed record LocatorResponse(

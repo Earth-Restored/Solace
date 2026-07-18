@@ -194,6 +194,9 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
 
 var locatorPort = builder.Configuration.GetValue<int>("Locator:Port", 8080);
 
+var apiServerPublicEndPoint = builder.AddParameterForEnvironment("Shared:PublicEndpoints:ApiServer", prefixToRemove: "Shared:");
+var cdnPublicEndPoint = builder.AddParameterForEnvironment("Shared:PublicEndpoints:Cdn", prefixToRemove: "Shared:");
+
 var locator = builder.AddProject<Projects.Solace_Locator>("locator")
     .WithHttpEndpoint(port: locatorPort, name: "http")
     .WithEndpoint("http", endpoint =>
@@ -204,6 +207,8 @@ var locator = builder.AddProject<Projects.Solace_Locator>("locator")
     .WaitFor(apiServer)
     .WithReference(cdn)
     .WaitFor(cdn)
+    .WithEnvironmentFromConfig(apiServerPublicEndPoint)
+    .WithEnvironmentFromConfig(cdnPublicEndPoint)
     .PublishAsDockerComposeService((resource, service) =>
     {
     });

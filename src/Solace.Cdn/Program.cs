@@ -83,7 +83,7 @@ internal sealed partial class App
 
         app.MapMethods("/availableresourcepack/resourcepacks/dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35", ["GET", "HEAD"], GetResourcePackHandler);
 
-        app.MapGet("tile/{_0}/{_1}/{tilePos1}_{tilePos2}_{zoom}.png", HandleGetTile)
+        app.MapGet("/tile/{_0}/{_1}/{tilePos1}_{tilePos2}_{zoom}.png", HandleGetTile)
         .CacheOutput(policy => policy.Expire(TimeSpan.FromHours(1)));
 
         var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
