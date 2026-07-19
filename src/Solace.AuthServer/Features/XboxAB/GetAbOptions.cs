@@ -14,11 +14,11 @@ public static partial class GetAbOptions
     public sealed record Result(
         [property: JsonPropertyName("Features")] string[] Features,
         [property: JsonPropertyName("Flights")] Dictionary<string, string> Flights,
-        [property: JsonPropertyName("Flights")] Config[] Configs,
+        [property: JsonPropertyName("Configs")] Config[] Configs,
         [property: JsonPropertyName("ParameterGroups")] object[]? ParameterGroups,
         [property: JsonPropertyName("FlightingVersion")] int FlightingVersion,
         [property: JsonPropertyName("ImpressionId")] string ImpressionId,
-        [property: JsonPropertyName("ImpressionId")] string AssignmentContext
+        [property: JsonPropertyName("AssignmentContext")] string AssignmentContext
     );
 
     public sealed record Config(

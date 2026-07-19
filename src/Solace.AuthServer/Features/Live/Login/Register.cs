@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Solace.Common.Asp.Captcha;
 using Solace.DB;
-using Solace.DB.Models;
 using Solace.DB.Utils;
 using static Solace.Common.Constants.AccountConstants;
 
@@ -109,17 +108,17 @@ public sealed partial class Register(
 
         var accountId = Guid.CreateVersion7();
 
-        byte[] passwordSalt = new byte[16];
+        var passwordSalt = new byte[16];
         RandomNumberGenerator.Fill(passwordSalt);
 
-        byte[] paswordHash = HashPassword(password, passwordSalt);
+        var paswordHash = HashPassword(password, passwordSalt);
 
         var account = await earthDb.GetOrCreateAccount(accountId);
 
         account.Id = accountId;
         account.CreatedDate = DateTimeOffset.UtcNow;
         account.Username = username;
-        account.ProfilePictureUrl = Account.DefaultPictureUrl; // TODO
+        account.ProfilePictureUrl = null; // TODO
         account.FirstName = firstName;
         account.LastName = lastName;
         account.PasswordSalt = passwordSalt;

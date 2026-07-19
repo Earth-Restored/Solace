@@ -132,12 +132,6 @@
             const captchaInput = loginForm.querySelector('input[name*="-response"]');
             const antiForgeryToken = document.getElementById('afToken')?.value;
 
-            if (!captchaInput || !captchaInput.value) {
-                errorMsg.textContent = "Please complete the CAPTCHA challenge.";
-                errorMsg.style.display = 'block';
-                return;
-            }
-
             if (!antiForgeryToken) {
                 errorMsg.textContent = "Security token missing. Please refresh the page.";
                 errorMsg.style.display = 'block';
@@ -147,7 +141,7 @@
             const userData = {
                 username: usernameInput.value,
                 password: passwordInput.value,
-                captchaToken: captchaInput.value,
+                captchaToken: captchaInput?.value ?? '',
                 __RequestVerificationToken: antiForgeryToken
             };
             

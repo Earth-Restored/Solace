@@ -1,303 +1,122 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Buffers;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Xml;
-using Solace.ApiServer.Models;
+using System.Xml.Serialization;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Solace.ApiServer.Utils;
-using Solace.Common.Utils;
-using Solace.DB.Models;
-using Solace.DB;
-using System.Runtime.InteropServices;
-using static Solace.Common.Constants.AccountConstants;
-using Solace.DB.Utils;
+using Solace.AuthServer.Utils;
 
-namespace Solace.ApiServer.Controllers.Live;
+namespace Solace.AuthServer.Features.Live.Login;
 
-[Route("")]
-[Route("login.live.com")]
-internal sealed partial class LoginController : SolaceControllerBase
+public sealed partial class RST2
 {
-    private static readonly RandomNumberGenerator _rng = RandomNumberGenerator.Create();
-
-    private readonly EarthDbContext _earthDb;
-    private readonly CryptoSecrets _cryptoSecrets;
-
-    private readonly int _loginSoapHeaderValidityMinutes;
-    private readonly int _loginDeviceTokenValidityMinutes;
-    private readonly int _loginUserTokenValidityMinutes;
-    private readonly int _loginXboxTokenValidityMinutes;
-
-    private readonly ILogger<LoginController> _logger;
-
-    private static readonly (string, string)[] namespaces =
-    [
-        ("S", "http://www.w3.org/2003/05/soap-envelope"),
-        ("wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"),
-        ("wsu", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"),
-        ("wsp", "http://schemas.xmlsoap.org/ws/2004/09/policy"),
-        ("wst", "http://schemas.xmlsoap.org/ws/2005/02/trust"),
-        ("wssc", "http://schemas.xmlsoap.org/ws/2005/02/sc"),
-        ("wsa", "http://www.w3.org/2005/08/addressing"),
-        ("ps", "http://schemas.microsoft.com/Passport/SoapServices/PPCRL"),
-        ("psf", "http://schemas.microsoft.com/Passport/SoapServices/SOAPFault"),
-        ("e", "http://www.w3.org/2001/04/xmlenc#"),
-        ("ds", "http://www.w3.org/2000/09/xmldsig#"),
-        ("ns1", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"),
-    ];
-
-    public LoginController(EarthDbContext earthDb, CryptoSecrets cryptoSecrets, IConfiguration configuration, ILogger<LoginController> logger)
+    private static readonly XmlReaderSettings xmlReaderSettings = new XmlReaderSettings
     {
-        _earthDb = earthDb;
-        _cryptoSecrets = cryptoSecrets;
+        DtdProcessing = DtdProcessing.Prohibit,
+        XmlResolver = null,
+    };
 
-        _loginSoapHeaderValidityMinutes = configuration.GetValue<int>("Authentication:Login:SoapHeaderValidityMinutes");
-        _loginDeviceTokenValidityMinutes = configuration.GetValue<int>("Authentication:Login:DeviceTokenValidityMinutes");
-        _loginUserTokenValidityMinutes = configuration.GetValue<int>("Authentication:Login:UserTokenValidityMinutes");
-        _loginXboxTokenValidityMinutes = configuration.GetValue<int>("Authentication:Login:XboxTokenValidityMinutes");
+    private static readonly XmlSerializer xmlSerializer = new XmlSerializer(typeof(SoapEnvelope));
 
-        _logger = logger;
-    }
-
-    [HttpGet("ppsecure/InlineConnect.srf")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Endpoints cannot be static")]
-    public VirtualFileHttpResult GetLoginPage()
-        => TypedResults.VirtualFile("/login.html", "text/html");
-
-    [HttpGet("ppsecure/reauthenticateStart")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Endpoints cannot be static")]
-    public VirtualFileHttpResult GetReauthenticatePage()
-        => TypedResults.VirtualFile("/reauthenticate.html", "text/html");
-
-    private sealed record LoginResponse(
-        Guid UserId,
-        string Username,
-        string FirstName,
-        string LastName,
-        string Token,
-        string TokenIssuedAt,
-        string TokenExpires,
-        string SessionKey
-    );
-
-    [HttpPost("ppsecure/login")]
-    public async Task<Results<ContentHttpResult, BadRequest<string>>> Login([FromForm] string username, [FromForm] string password, CancellationToken cancellationToken)
+    private static readonly Dictionary<string, string> namespaces = new Dictionary<string, string>
     {
-        username = username.Trim();
-        password = password.Trim();
+        { "S", "http://www.w3.org/2003/05/soap-envelope"},
+        { "wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"},
+        { "wsu", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"},
+        { "wsp", "http://schemas.xmlsoap.org/ws/2004/09/policy"},
+        { "wst", "http://schemas.xmlsoap.org/ws/2005/02/trust"},
+        { "wssc", "http://schemas.xmlsoap.org/ws/2005/02/sc"},
+        { "wsa", "http://www.w3.org/2005/08/addressing"},
+        { "ps", "http://schemas.microsoft.com/Passport/SoapServices/PPCRL"},
+        { "psf", "http://schemas.microsoft.com/Passport/SoapServices/SOAPFault"},
+        { "e", "http://www.w3.org/2001/04/xmlenc#"},
+        { "ds", "http://www.w3.org/2000/09/xmldsig#"},
+        { "ns1", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"},
+    };
 
-        LogLoginAttempt(username);
+    // get 415 with Immediate.Apis, can't customize enough when using it
+    public static void MapEndpoint(IEndpointRouteBuilder app)
+        => app.MapPost("login.live.com/RST2.srf", HandleAsync)
+        .DisableAntiforgery()
+        .Accepts<string>("application/x-www-form-urlencoded");
 
-        var account = await _earthDb.Accounts
-            .AsNoTracking()
-            .FirstOrDefaultAsync(account => account.Username == username, cancellationToken);
-
-        if (account is null)
-        {
-            return TypedResults.BadRequest("Username or password is incorrect");
-        }
-
-        byte[] passwordHash = HashPassword(password, account.PasswordSalt);
-
-        if (!passwordHash.AsSpan().SequenceEqual(account.PasswordHash))
-        {
-            return TypedResults.BadRequest("Username or password is incorrect");
-        }
-
-        return JsonCamelCase(CreateLoginResponse(account));
-    }
-
-    [HttpPost("ppsecure/register")]
-    public async Task<Results<ContentHttpResult, BadRequest<string>>> Register([FromForm] string username, [FromForm] string password, [FromForm] string? firstName, [FromForm] string? lastName, CancellationToken cancellationToken)
+    // todo: implement
+    private static async Task<Results<ContentHttpResult, BadRequest>> HandleAsync(
+        HttpContext httpContext,
+        [FromServices] IOptions<AuthSettings> authSettingsOption,
+        [FromServices] CryptoSecrets cryptoSecrets,
+        ILogger<RST2> logger,
+        CancellationToken cancellationToken)
     {
-        username = username.Trim();
-        password = password.Trim();
-        firstName = firstName?.Trim();
-        lastName = lastName?.Trim();
+        var authSettings = authSettingsOption.Value;
 
-        if (firstName is { Length: 0 })
+        SoapEnvelope? request;
+
+        string requestBody;
+        using (var reader = new StreamReader(httpContext.Request.Body))
         {
-            firstName = null;
+            requestBody = await reader.ReadToEndAsync(cancellationToken);
         }
-
-        if (lastName is { Length: 0 })
-        {
-            lastName = null;
-        }
-
-        LogRegisterAttempt(username, firstName, lastName);
-
-        if (string.IsNullOrWhiteSpace(username) || username.Length < UsernameLengthMin || username.Length > UsernameLengthMax)
-        {
-            return TypedResults.BadRequest($"Username must be {UsernameLengthMin}-{UsernameLengthMax} characters long");
-        }
-
-        if (string.IsNullOrWhiteSpace(password) || password.Length < PasswordLengthMin || password.Length > PasswordLengthMax)
-        {
-            return TypedResults.BadRequest($"Password must be {PasswordLengthMin}-{PasswordLengthMax} characters long");
-        }
-
-        if (!string.IsNullOrWhiteSpace(firstName) && (firstName.Length < NameLengthMin || firstName.Length > NameLengthMax))
-        {
-            return TypedResults.BadRequest($"First name must be {NameLengthMin}-{NameLengthMax} characters long");
-        }
-
-        if (!string.IsNullOrWhiteSpace(lastName) && (lastName.Length < NameLengthMin || lastName.Length > NameLengthMax))
-        {
-            return TypedResults.BadRequest($"Last name must be {NameLengthMin}-{NameLengthMax} characters long");
-        }
-
-        if (!GetUsernameRegex().IsMatch(username))
-        {
-            return TypedResults.BadRequest($"Username must contain only: {UsernameAllowedCharacters}"); // keep in sync with GetUsernameRegex
-        }
-
-        if (await _earthDb.Accounts
-            .AnyAsync(account => account.Username == username, cancellationToken))
-        {
-            return TypedResults.BadRequest("Account with the specified username already exists");
-        }
-
-        var accountId = GenerateAccountId(username); // todo: could we use Guid.CreateVersion7 instead?
-
-        byte[] passwordSalt = new byte[16];
-        _rng.GetBytes(passwordSalt);
-
-        byte[] paswordHash = HashPassword(password, passwordSalt);
-
-        var account = await _earthDb.GetOrCreateAccount(accountId);
-
-        account.Id = accountId;
-        account.CreatedDate = DateTimeOffset.UtcNow;
-        account.Username = username;
-        account.ProfilePictureUrl = Account.DefaultPictureUrl; // TODO
-        account.FirstName = firstName;
-        account.LastName = lastName;
-        account.PasswordSalt = passwordSalt;
-        account.PasswordHash = paswordHash;
 
         try
         {
-            await _earthDb.SaveChangesAsync(cancellationToken);
+            // can't use StreamReader because XmlSerializer is fucking old and does not support async
+            using (var stringReader = new StringReader(requestBody))
+            {
+                using (var xmlReader = XmlReader.Create(stringReader, xmlReaderSettings))
+                {
+                    request = (SoapEnvelope?)xmlSerializer.Deserialize(xmlReader);
+                }
+            }
         }
-        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation)
-        {
-            LogConcurrencyConflictHitForUsername(username);
-            return TypedResults.BadRequest("Account with the specified username already exists");
-        }
-
-        LogAccountCreated(accountId, username);
-
-        return JsonCamelCase(CreateLoginResponse(account));
-    }
-
-    [HttpPost("ppsecure/reauthenticate")]
-    public async Task<Results<ContentHttpResult, NotFound<string>, BadRequest<string>, ForbidHttpResult>> Reauthenticate([FromForm] string userToken, [FromForm] string password, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrEmpty(userToken) || string.IsNullOrEmpty(password))
-        {
-            return TypedResults.BadRequest("Invalid user or password");
-        }
-
-        var existingToken = JwtUtils.Verify<Tokens.Live.UserToken>(userToken, _cryptoSecrets.LoginUserTokenSecret, _logger, allowExpired: true);
-        if (existingToken is null)
-        {
-            return TypedResults.Forbid();
-        }
-
-        byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
-        byte[] saltBytes = Convert.FromBase64String(existingToken.Data.PasswordSalt);
-
-        byte[] passwordCheckHash = Org.BouncyCastle.Crypto.Generators.SCrypt.Generate(passwordBytes, saltBytes, 16384, 8, 1, 64);
-
-        string passwordCheckHashBase64 = Convert.ToBase64String(passwordCheckHash);
-        if (passwordCheckHashBase64 != existingToken.Data.PasswordHash)
-        {
-            return TypedResults.Forbid();
-        }
-
-        var account = await _earthDb.Accounts
-            .AsNoTracking()
-            .FirstOrDefaultAsync(account => account.Id == existingToken.Data.UserId, cancellationToken);
-
-        if (account is null)
-        {
-            return TypedResults.NotFound("Account not found");
-        }
-
-        return JsonCamelCase(CreateLoginResponse(account));
-    }
-
-    [HttpPost("ppsecure/deviceaddcredential.srf")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Endpoints cannot be static")]
-    public ContentHttpResult DeviceAddCredential()
-        => TypedResults.Content("""
-            <DeviceAddResponse Success="true"><success>true</success><puid>0</puid></DeviceAddResponse>
-            """);
-
-    [HttpPost("RST2.srf")]
-    public async Task<Results<ContentHttpResult, BadRequest>> RST2()
-    {
-        var cancellationToken = Request.HttpContext.RequestAborted;
-
-        var request = new XmlDocument();
-        string rq;
-        try
-        {
-            rq = await Request.Body.ReadAsString(cancellationToken);
-            request.LoadXml(rq);
-        }
-        catch
+        catch (InvalidOperationException)
         {
             return TypedResults.BadRequest();
         }
 
-        var nsmgr = new XmlNamespaceManager(request.NameTable);
-        foreach (var (prefix, uri) in namespaces)
+        if (request is null or { Header: null } or { Body: null })
         {
-            nsmgr.AddNamespace(prefix, uri);
+            return TypedResults.BadRequest();
         }
 
-        if (request.SelectSingleNode("/S:Envelope/S:Body/wst:RequestSecurityToken", nsmgr) is not null)
+        if (request.Body?.RequestSecurityToken is { } requestSecurityToken)
         {
             // device token request
-#pragma warning disable IDE0059 // Unnecessary assignment of a value
-            string? username = request.SelectSingleNode("/S:Envelope/S:Header/wsse:Security/wsse:UsernameToken/wsse:Username/text()", nsmgr)?.Value;
-            string? password = request.SelectSingleNode("/S:Envelope/S:Header/wsse:Security/wsse:UsernameToken/wsse:Password/text()", nsmgr)?.Value;
-#pragma warning restore IDE0059 // Unnecessary assignment of a value
 
-            string? requestType = request.SelectSingleNode("/S:Envelope/S:Body/wst:RequestSecurityToken/wst:RequestType/text()", nsmgr)?.Value;
-            string? requestAppliesTo = request.SelectSingleNode("/S:Envelope/S:Body/wst:RequestSecurityToken/wsp:AppliesTo/wsa:EndpointReference/wsa:Address/text()", nsmgr)?.Value;
+            // todo: use UsernameToken
 
-            if (requestType is not "http://schemas.xmlsoap.org/ws/2005/02/trust/Issue" || requestAppliesTo is not "http://Passport.NET/tb")
+            if (requestSecurityToken.RequestType is not "http://schemas.xmlsoap.org/ws/2005/02/trust/Issue" ||
+                requestSecurityToken.AppliesTo is not { EndpointReference: { Address: "http://Passport.NET/tb" } })
             {
                 return TypedResults.BadRequest();
             }
 
-            var headerValidity = ValidityDatePair.Create(_loginSoapHeaderValidityMinutes);
+            var headerValidity = ValidityDatePair.Create(authSettings.SoapHeaderValidityMinutes);
 
-            var deviceTokenValidity = ValidityDatePair.Create(_loginDeviceTokenValidityMinutes);
-            var deviceToken = new Tokens.Live.DeviceToken();
-            string deviceTokenString = JwtUtils.Sign(deviceToken, _cryptoSecrets.LoginDeviceTokenSecret, deviceTokenValidity);
+            var deviceTokenValidity = ValidityDatePair.Create(authSettings.DeviceTokenValidityMinutes);
+            var deviceToken = new DeviceToken();
+            var deviceTokenString = JwtUtils.Sign(deviceToken, cryptoSecrets.LoginDeviceTokenSecret, deviceTokenValidity);
 
             var response = new XmlDocument();
 
             var envelope = CreateElement(response, "S", "Envelope");
-            envelope.SetAttribute("xmlns:wsse", nsmgr.LookupNamespace("wsse"));
-            envelope.SetAttribute("xmlns:wsu", nsmgr.LookupNamespace("wsu"));
-            envelope.SetAttribute("xmlns:wsp", nsmgr.LookupNamespace("wsp"));
-            envelope.SetAttribute("xmlns:wst", nsmgr.LookupNamespace("wst"));
-            envelope.SetAttribute("xmlns:wssc", nsmgr.LookupNamespace("wssc"));
-            envelope.SetAttribute("xmlns:wsa", nsmgr.LookupNamespace("wsa"));
-            envelope.SetAttribute("xmlns:ps", nsmgr.LookupNamespace("ps"));
-            envelope.SetAttribute("xmlns:psf", nsmgr.LookupNamespace("psf"));
-            envelope.SetAttribute("xmlns:e", nsmgr.LookupNamespace("e"));
-            envelope.SetAttribute("xmlns:ds", nsmgr.LookupNamespace("ds"));
+            envelope.SetAttribute("xmlns:wsse", LookupNamespace("wsse"));
+            envelope.SetAttribute("xmlns:wsu", LookupNamespace("wsu"));
+            envelope.SetAttribute("xmlns:wsp", LookupNamespace("wsp"));
+            envelope.SetAttribute("xmlns:wst", LookupNamespace("wst"));
+            envelope.SetAttribute("xmlns:wssc", LookupNamespace("wssc"));
+            envelope.SetAttribute("xmlns:wsa", LookupNamespace("wsa"));
+            envelope.SetAttribute("xmlns:ps", LookupNamespace("ps"));
+            envelope.SetAttribute("xmlns:psf", LookupNamespace("psf"));
+            envelope.SetAttribute("xmlns:e", LookupNamespace("e"));
+            envelope.SetAttribute("xmlns:ds", LookupNamespace("ds"));
 
             var header = CreateElement(response, "S", "Header");
             {
@@ -397,14 +216,16 @@ internal sealed partial class LoginController : SolaceControllerBase
             return TypedResults.Content("""
                 <?xml version="1.0" encoding="UTF-8"?>
 
-                """ + response.OuterXml);
+                """ + response.OuterXml, contentType: "application/soap+xml");
         }
-        else if (request.SelectSingleNode("/S:Envelope/S:Body/ps:RequestMultipleSecurityTokens", nsmgr) is not null)
+        else if (request.Body?.RequestMultipleSecurityTokens is { } requestMultipleSecurityTokens)
         {
             // user token request (user token + device token -> next user token + next session key + xbox token)
 
-            string? userTokenString = request.SelectSingleNode("/S:Envelope/S:Header/wsse:Security/e:EncryptedData[@Id='BinaryDAToken0']/e:CipherData/e:CipherValue", nsmgr)?.InnerText;
-            string? deviceDATokenString = request.SelectSingleNode("/S:Envelope/S:Header/wsse:Security/wsse:BinarySecurityToken[@Id='DeviceDAToken']", nsmgr)?.InnerText;
+            Debug.Assert(request.Header.Security?.EncryptedData?.Id is "BinaryDAToken0");
+            var userTokenString = request.Header.Security?.EncryptedData.CipherData?.CipherValue;
+            Debug.Assert(request.Header.Security?.BinarySecurityToken?.Id is "DeviceDAToken");
+            var deviceDATokenString = request.Header.Security?.BinarySecurityToken.Value;
 
             string? deviceDATokenXMLStringEncoded = null;
             if (!string.IsNullOrEmpty(deviceDATokenString))
@@ -426,31 +247,38 @@ internal sealed partial class LoginController : SolaceControllerBase
                 deviceTokenString = deviceTokenXml.SelectSingleNode("/EncryptedData/CipherData/CipherValue")?.InnerText ?? string.Empty;
             }
 
-            double requestCount = EvaluateNumber(request, "count(/S:Envelope/S:Body/ps:RequestMultipleSecurityTokens/*)", nsmgr);
-
-            string? requestType1 = request.SelectSingleNode("/S:Envelope/S:Body/ps:RequestMultipleSecurityTokens/wst:RequestSecurityToken[1]/wst:RequestType/text()", nsmgr)?.InnerText;
-            string? appliesTo1 = request.SelectSingleNode("/S:Envelope/S:Body/ps:RequestMultipleSecurityTokens/wst:RequestSecurityToken[1]/wsp:AppliesTo/wsa:EndpointReference/wsa:Address/text()", nsmgr)?.InnerText;
-            string? requestType2 = request.SelectSingleNode("/S:Envelope/S:Body/ps:RequestMultipleSecurityTokens/wst:RequestSecurityToken[2]/wst:RequestType/text()", nsmgr)?.InnerText;
-            string? appliesTo2 = request.SelectSingleNode("/S:Envelope/S:Body/ps:RequestMultipleSecurityTokens/wst:RequestSecurityToken[2]/wsp:AppliesTo/wsa:EndpointReference/wsa:Address/text()", nsmgr)?.InnerText;
-
-            if (requestCount is not 2 || requestType1 is not "http://schemas.xmlsoap.org/ws/2005/02/trust/Issue" || appliesTo1 is not "http://Passport.NET/tb" || requestType2 is not "http://schemas.xmlsoap.org/ws/2005/02/trust/Issue" || appliesTo2 is not "cobrandid=90023&scope=service%3A%3Auser.auth.xboxlive.com%3A%3Ambi_ssl" || userTokenString is null)
+            if (requestMultipleSecurityTokens.SecurityTokenRequests is null)
             {
                 return TypedResults.BadRequest();
             }
 
-            var userToken = JwtUtils.Verify<Tokens.Live.UserToken>(userTokenString, _cryptoSecrets.LoginUserTokenSecret, _logger, allowExpired: true);
+            if (requestMultipleSecurityTokens.SecurityTokenRequests.Count is not 2)
+            {
+                return TypedResults.BadRequest();
+            }
+
+            if (requestMultipleSecurityTokens.SecurityTokenRequests[0].RequestType is not "http://schemas.xmlsoap.org/ws/2005/02/trust/Issue" ||
+                requestMultipleSecurityTokens.SecurityTokenRequests[0].AppliesTo?.EndpointReference?.Address is not "http://Passport.NET/tb" ||
+                requestMultipleSecurityTokens.SecurityTokenRequests[1].RequestType is not "http://schemas.xmlsoap.org/ws/2005/02/trust/Issue" ||
+                requestMultipleSecurityTokens.SecurityTokenRequests[1].AppliesTo?.EndpointReference?.Address is not "cobrandid=90023&scope=service%3A%3Auser.auth.xboxlive.com%3A%3Ambi_ssl" ||
+                userTokenString is null)
+            {
+                return TypedResults.BadRequest();
+            }
+
+            var userToken = JwtUtils.Verify<UserToken>(userTokenString, cryptoSecrets.LoginUserTokenSecret, logger, allowExpired: true);
 #pragma warning disable IDE0059 // Unnecessary assignment of a value
-            var deviceToken = JwtUtils.Verify<Tokens.Live.DeviceToken>(deviceTokenString, _cryptoSecrets.LoginDeviceTokenSecret, _logger, allowExpired: true);
+            var deviceToken = JwtUtils.Verify<DeviceToken>(deviceTokenString, cryptoSecrets.LoginDeviceTokenSecret, logger, allowExpired: true);
 #pragma warning restore IDE0059 // Unnecessary assignment of a value
 
-            if (userToken is null || userToken.Expired is true)
+            if (userToken is null or { Expired: true, })
             {
-                var headerValidity = ValidityDatePair.Create(_loginSoapHeaderValidityMinutes);
-                string nonce = GenerateNonce();
+                var headerValidity = ValidityDatePair.Create(authSettings.SoapHeaderValidityMinutes);
+                var nonce = GenerateNonce();
 
-                string scheme = Request.IsHttps ? "https" : "http";
-                string host = Request.Host.Value!;
-                string path = Request.Path.Value ?? "";
+                string scheme = httpContext.Request.IsHttps ? "https" : "http";
+                string host = httpContext.Request.Host.Value!;
+                string path = httpContext.Request.Path.Value ?? "";
 
                 if (path.EndsWith("RST2.srf", StringComparison.OrdinalIgnoreCase))
                 {
@@ -462,7 +290,7 @@ internal sealed partial class LoginController : SolaceControllerBase
                     path += "/";
                 }
 
-                string reauthenticateURL = userToken != null
+                var reauthenticateURL = userToken is not null
                     ? $"{scheme}://{host}{path}ppsecure/reauthenticateStart?username={HttpUtility.UrlEncode(userToken.Data.Username)}&userToken={HttpUtility.UrlEncode(userTokenString)}"
                     : $"{scheme}://{host}{path}ppsecure/InlineConnect.srf";
 
@@ -473,8 +301,8 @@ internal sealed partial class LoginController : SolaceControllerBase
                 ppEle.AppendChild(inlineauthurlEle);
                 reauthenticateURLDocument.AppendChild(ppEle);
 
-                string reauthenticateURLDocumentCipherText = DoAESEncryption(
-                    ImmutableCollectionsMarshal.AsArray(_cryptoSecrets.LoginUserTokenSessionKey)!,
+                var reauthenticateURLDocumentCipherText = DoAESEncryption(
+                    ImmutableCollectionsMarshal.AsArray(cryptoSecrets.LoginUserTokenSessionKey)!,
                     nonce,
                     reauthenticateURLDocument.OuterXml
                 );
@@ -499,16 +327,16 @@ internal sealed partial class LoginController : SolaceControllerBase
 
                             security.AppendChild(timestamp);
 
-                            XmlElement derivedKeyToken = response.CreateElement("wssc", "DerivedKeyToken", "http://schemas.xmlsoap.org/ws/2005/02/sc");
+                            var derivedKeyToken = response.CreateElement("wssc", "DerivedKeyToken", "http://schemas.xmlsoap.org/ws/2005/02/sc");
                             derivedKeyToken.SetAttribute("xmlns:wssc", "http://schemas.xmlsoap.org/ws/2005/02/sc");
                             derivedKeyToken.SetAttribute("xmlns:ns1", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
 
-                            XmlAttribute idAttr = response.CreateAttribute("ns1", "Id", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
+                            var idAttr = response.CreateAttribute("ns1", "Id", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
                             idAttr.Value = "EncKey";
                             derivedKeyToken.Attributes.Append(idAttr);
                             derivedKeyToken.SetAttribute("Algorithm", "urn:liveid:SP800-108CTR-HMAC-SHA256");
                             {
-                                XmlElement nonceEle = response.CreateElement("wssc", "Nonce", "http://schemas.xmlsoap.org/ws/2005/02/sc");
+                                var nonceEle = response.CreateElement("wssc", "Nonce", "http://schemas.xmlsoap.org/ws/2005/02/sc");
                                 nonceEle.InnerText = nonce;
                                 derivedKeyToken.AppendChild(nonceEle);
                             }
@@ -594,18 +422,18 @@ internal sealed partial class LoginController : SolaceControllerBase
             }
             else
             {
-                var headerValidity = ValidityDatePair.Create(_loginSoapHeaderValidityMinutes);
-                string nonce = GenerateNonce();
+                var headerValidity = ValidityDatePair.Create(authSettings.SoapHeaderValidityMinutes);
+                var nonce = GenerateNonce();
 
-                var nextUserTokenValidity = ValidityDatePair.Create(_loginUserTokenValidityMinutes);
+                var nextUserTokenValidity = ValidityDatePair.Create(authSettings.UserTokenValidityMinutes);
                 var nextUserToken = userToken.Data;
-                string nextUserTokenString = JwtUtils.Sign(nextUserToken, _cryptoSecrets.LoginUserTokenSecret, nextUserTokenValidity);
+                var nextUserTokenString = JwtUtils.Sign(nextUserToken, cryptoSecrets.LoginUserTokenSecret, nextUserTokenValidity);
 
-                var xboxTokenValidity = ValidityDatePair.Create(_loginXboxTokenValidityMinutes);
-                var xboxToken = new Tokens.Shared.XboxTicketToken(userToken.Data.UserId, userToken.Data.Username);
-                string xboxTokenString = JwtUtils.Sign(xboxToken, _cryptoSecrets.LoginXboxTokenSecret, xboxTokenValidity);
+                var xboxTokenValidity = ValidityDatePair.Create(authSettings.XboxTokenValidityMinutes);
+                var xboxToken = new Common.XboxTicketToken(userToken.Data.UserId, userToken.Data.Username);
+                var xboxTokenString = JwtUtils.Sign(xboxToken, cryptoSecrets.LoginXboxTokenSecret, xboxTokenValidity);
 
-                string nextSessionKey = _cryptoSecrets.LoginUserTokenSessionKeyBase64; // todo: random?
+                var nextSessionKey = cryptoSecrets.LoginUserTokenSessionKeyBase64; // todo: random?
 
                 var tokenDocument = new XmlDocument();
 
@@ -629,8 +457,8 @@ internal sealed partial class LoginController : SolaceControllerBase
                     binarySecret.InnerText = nextSessionKey;
 
                     AddTokenResponse("urn:passport:legacy", "http://Passport.NET/tb",
-                         nextUserTokenValidity.IssuedStr, nextUserTokenValidity.ExpiresStr,
-                         encryptedData, binarySecret);
+                        nextUserTokenValidity.IssuedStr, nextUserTokenValidity.ExpiresStr,
+                        encryptedData, binarySecret);
 
                     var binarySecurityToken = CreateElement(tokenDocument, "wsse", "BinarySecurityToken");
                     binarySecurityToken.SetAttribute("Id", "Compact1");
@@ -692,9 +520,9 @@ internal sealed partial class LoginController : SolaceControllerBase
                 }
 
                 tokenDocument.AppendChild(requestSecurityTokenResponseCollection);
-                string tokenDocumentString = tokenDocument.OuterXml;
+                var tokenDocumentString = tokenDocument.OuterXml;
 
-                string tokenDocumentCipherText = DoAESEncryption(ImmutableCollectionsMarshal.AsArray(_cryptoSecrets.LoginUserTokenSessionKey)!, nonce, tokenDocumentString);
+                var tokenDocumentCipherText = DoAESEncryption(ImmutableCollectionsMarshal.AsArray(cryptoSecrets.LoginUserTokenSessionKey)!, nonce, tokenDocumentString);
 
                 var response = new XmlDocument();
                 var envelope = CreateElement(response, "S", "Envelope");
@@ -716,15 +544,15 @@ internal sealed partial class LoginController : SolaceControllerBase
 
                             security.AppendChild(timestamp);
 
-                            XmlElement derivedKeyToken = response.CreateElement("wssc", "DerivedKeyToken", "http://schemas.xmlsoap.org/ws/2005/02/sc");
+                            var derivedKeyToken = response.CreateElement("wssc", "DerivedKeyToken", "http://schemas.xmlsoap.org/ws/2005/02/sc");
                             derivedKeyToken.SetAttribute("xmlns:wssc", "http://schemas.xmlsoap.org/ws/2005/02/sc");
                             derivedKeyToken.SetAttribute("xmlns:ns1", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
-                            XmlAttribute idAttr = response.CreateAttribute("ns1", "Id", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
+                            var idAttr = response.CreateAttribute("ns1", "Id", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd");
                             idAttr.Value = "EncKey";
                             derivedKeyToken.Attributes.Append(idAttr);
                             derivedKeyToken.SetAttribute("Algorithm", "urn:liveid:SP800-108CTR-HMAC-SHA256");
                             {
-                                XmlElement nonceEle = response.CreateElement("wssc", "Nonce", "http://schemas.xmlsoap.org/ws/2005/02/sc");
+                                var nonceEle = response.CreateElement("wssc", "Nonce", "http://schemas.xmlsoap.org/ws/2005/02/sc");
                                 nonceEle.InnerText = nonce;
 
                                 derivedKeyToken.AppendChild(nonceEle);
@@ -789,98 +617,62 @@ internal sealed partial class LoginController : SolaceControllerBase
         {
             return TypedResults.BadRequest();
         }
-
-        XmlElement CreateElement(XmlDocument doc, string prefix, string localName)
-        {
-            return doc.CreateElement(prefix, localName, nsmgr.LookupNamespace(prefix));
-        }
-
-        double EvaluateNumber(XmlDocument document, string xpath, XmlNamespaceManager nsmgr)
-        {
-            var expr = document.CreateNavigator()!.Compile(xpath);
-            expr.SetContext(nsmgr);
-            object result = document.CreateNavigator()!.Evaluate(expr);
-            if (result is double d)
-            {
-                return d;
-            }
-
-            return 0;
-        }
     }
 
-    private LoginResponse CreateLoginResponse(Account account)
+    private static string LookupNamespace(string prefix)
+        => namespaces[prefix];
+
+    private static XmlElement CreateElement(XmlDocument doc, string prefix, string localName)
+        => doc.CreateElement(prefix, localName, LookupNamespace(prefix));
+
+    private static double EvaluateNumber(XmlDocument document, string xpath, XmlNamespaceManager nsmgr)
     {
-        Debug.Assert(account.Username is not null);
+        var expr = document.CreateNavigator()!.Compile(xpath);
+        expr.SetContext(nsmgr);
+        object result = document.CreateNavigator()!.Evaluate(expr);
+        if (result is double d)
+        {
+            return d;
+        }
 
-        var tokenValidity = ValidityDatePair.Create(_loginUserTokenValidityMinutes);
-        var token = new Tokens.Live.UserToken(
-            account.Id,
-            account.Username,
-            Convert.ToBase64String(account.PasswordSalt),
-            Convert.ToBase64String(account.PasswordHash)
-        );
-        string tokenString = JwtUtils.Sign(token, _cryptoSecrets.LoginUserTokenSecret, tokenValidity);
-
-        return new LoginResponse(
-            account.Id,
-            account.Username,
-            account.FirstName ?? account.Username,
-            account.LastName ?? account.Username,
-            tokenString,
-            tokenValidity.IssuedStr,
-            tokenValidity.ExpiresStr,
-            _cryptoSecrets.LoginUserTokenSessionKeyBase64 // todo: random?
-        );
+        return 0;
     }
 
     private static string GenerateNonce()
     {
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(32);
+        var buffer = ArrayPool<byte>.Shared.Rent(32);
 
         var bufferSpan = buffer.AsSpan();
-        _rng.GetBytes(bufferSpan);
-        string base64 = Convert.ToBase64String(bufferSpan);
+        RandomNumberGenerator.Fill(bufferSpan);
+        var base64 = Convert.ToBase64String(bufferSpan);
 
         ArrayPool<byte>.Shared.Return(buffer);
 
         return base64;
     }
 
-    private static Guid GenerateAccountId(string username)
-    {
-        Span<byte> usernameUTF8 = stackalloc byte[51]; // Encoding.UTF8.GetMaxByteCount(MaxUsernameLength)
-        int usernameUTF8Length = Encoding.UTF8.GetBytes(username, usernameUTF8);
-        usernameUTF8 = usernameUTF8[..usernameUTF8Length];
-
-        Span<byte> usernameHash = stackalloc byte[32];
-        SHA256.HashData(usernameUTF8, usernameHash);
-
-        return new Guid(usernameHash[..16], false);
-    }
-
     private static string DoAESEncryption(byte[] sessionKey, string nonceBase64, string plainText)
     {
-        byte[] nonce = Convert.FromBase64String(nonceBase64);
-        byte[] plainTextBytes = Encoding.UTF8.GetBytes(plainText);
+        var nonce = Convert.FromBase64String(nonceBase64);
+        var plainTextBytes = Encoding.UTF8.GetBytes(plainText);
 
         byte[]? messageKey;
         using (var hmac = new HMACSHA256(sessionKey))
         {
-            int w1 = hmac.TransformBlock([0, 0, 0, 1], 0, 4, null, 0);
-            byte[] labelBytes = Encoding.UTF8.GetBytes("WS-SecureConversationWS-SecureConversation");
-            int w2 = hmac.TransformBlock(labelBytes, 0, labelBytes.Length, null, 0);
-            int w3 = hmac.TransformBlock([0], 0, 1, null, 0);
-            int w4 = hmac.TransformBlock(nonce, 0, nonce.Length, null, 0);
-            byte[] w5 = hmac.TransformFinalBlock([0, 0, 1, 0], 0, 4);
+            var w1 = hmac.TransformBlock([0, 0, 0, 1], 0, 4, null, 0);
+            var labelBytes = Encoding.UTF8.GetBytes("WS-SecureConversationWS-SecureConversation");
+            var w2 = hmac.TransformBlock(labelBytes, 0, labelBytes.Length, null, 0);
+            var w3 = hmac.TransformBlock([0], 0, 1, null, 0);
+            var w4 = hmac.TransformBlock(nonce, 0, nonce.Length, null, 0);
+            var w5 = hmac.TransformFinalBlock([0, 0, 1, 0], 0, 4);
 
             messageKey = hmac.Hash;
         }
 
         Debug.Assert(messageKey is not null);
 
-        byte[] iv = new byte[16];
-        _rng.GetBytes(iv);
+        var iv = new byte[16];
+        RandomNumberGenerator.Fill(iv);
 
         // Encrypt with AES-256-CBC
         byte[] cipherText;
@@ -896,7 +688,7 @@ internal sealed partial class LoginController : SolaceControllerBase
 #pragma warning disable CA5401 // Do not use CreateEncryptor with non-default IV
             using (var encryptor = aes.CreateEncryptor(messageKey, iv))
             {
-                byte[] cipherData = encryptor.TransformFinalBlock(plainTextBytes, 0, plainTextBytes.Length);
+                var cipherData = encryptor.TransformFinalBlock(plainTextBytes, 0, plainTextBytes.Length);
                 cipherText = new byte[iv.Length + cipherData.Length];
                 iv.AsSpan().CopyTo(cipherText.AsSpan());
                 cipherData.AsSpan().CopyTo(cipherText.AsSpan(iv.Length..));
@@ -908,17 +700,172 @@ internal sealed partial class LoginController : SolaceControllerBase
     }
 
     [GeneratedRegex("&da=([^&]*)")]
-    private partial Regex GetDeviceDATokenStringRegex();
+    private static partial Regex GetDeviceDATokenStringRegex();
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Login attempt - Username: {Username}")]
-    private partial void LogLoginAttempt(string Username);
+    [XmlRoot(ElementName = "Envelope", Namespace = "http://www.w3.org/2003/05/soap-envelope")]
+    public sealed class SoapEnvelope
+    {
+        [XmlElement(ElementName = "Header", Namespace = "http://www.w3.org/2003/05/soap-envelope")]
+        public SoapHeader? Header { get; set; }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Register attempt - Username: {Username}, First name: {FirstName}, Last name: {LastName}")]
-    private partial void LogRegisterAttempt(string Username, string? FirstName, string? LastName);
+        [XmlElement(ElementName = "Body", Namespace = "http://www.w3.org/2003/05/soap-envelope")]
+        public SoapBody? Body { get; set; }
+    }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Account created - Id: {AccountId}, Username: {Username}")]
-    private partial void LogAccountCreated(Guid AccountId, string Username);
+    public sealed class SoapHeader
+    {
+        [XmlElement(ElementName = "Action", Namespace = "http://www.w3.org/2005/08/addressing")]
+        public string? Action { get; set; }
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Concurrency conflict hit for username {Username}")]
-    private partial void LogConcurrencyConflictHitForUsername(string Username);
+        [XmlElement(ElementName = "To", Namespace = "http://www.w3.org/2005/08/addressing")]
+        public string? To { get; set; }
+
+        [XmlElement(ElementName = "MessageID", Namespace = "http://www.w3.org/2005/08/addressing")]
+        public string? MessageID { get; set; }
+
+        [XmlElement(ElementName = "AuthInfo", Namespace = "http://schemas.microsoft.com/Passport/SoapServices/PPCRL")]
+        public AuthInfo? AuthInfo { get; set; }
+
+        [XmlElement(ElementName = "Security", Namespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd")]
+        public SecurityHeader? Security { get; set; }
+    }
+
+    public sealed class AuthInfo
+    {
+        [XmlElement(ElementName = "BinaryVersion")]
+        public int BinaryVersion { get; set; }
+
+        [XmlElement(ElementName = "DeviceType")]
+        public string? DeviceType { get; set; }
+
+        [XmlElement(ElementName = "HostingApp")]
+        public string? HostingApp { get; set; }
+
+        [XmlElement(ElementName = "InlineUX")]
+        public string? InlineUX { get; set; }
+
+        [XmlElement(ElementName = "ConsentFlags")]
+        public string? ConsentFlags { get; set; }
+
+        [XmlElement(ElementName = "IsConnected")]
+        public string? IsConnected { get; set; }
+
+        [XmlElement(ElementName = "ClientAppURI")]
+        public string? ClientAppURI { get; set; }
+    }
+
+    public sealed class SecurityHeader
+    {
+        [XmlElement(ElementName = "UsernameToken", Namespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd")]
+        public UsernameToken? UsernameToken { get; set; }
+
+        [XmlElement(ElementName = "EncryptedData", Namespace = "http://www.w3.org/2001/04/xmlenc#")]
+        public EncryptedData? EncryptedData { get; set; }
+
+        [XmlElement(ElementName = "BinarySecurityToken", Namespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd")]
+        public BinarySecurityToken? BinarySecurityToken { get; set; }
+
+        [XmlElement(ElementName = "Timestamp", Namespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd")]
+        public Timestamp? Timestamp { get; set; }
+
+        // Catch-all for extra complex XML structures like Signatures or DerivedKeyTokens to prevent parsing failures
+        [XmlAnyElement]
+        public XmlElement[]? AdditionalElements { get; set; }
+    }
+
+    public sealed class UsernameToken
+    {
+        [XmlAttribute(AttributeName = "Id", Namespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd")]
+        public string? Id { get; set; }
+
+        [XmlElement(ElementName = "Username", Namespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd")]
+        public string? Username { get; set; }
+
+        [XmlElement(ElementName = "Password", Namespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd")]
+        public string? Password { get; set; }
+    }
+
+    public sealed class EncryptedData
+    {
+        [XmlAttribute(AttributeName = "Id")]
+        public string? Id { get; set; }
+
+        [XmlAttribute(AttributeName = "Type")]
+        public string? Type { get; set; }
+
+        [XmlElement(ElementName = "CipherData", Namespace = "http://www.w3.org/2001/04/xmlenc#")]
+        public CipherData? CipherData { get; set; }
+    }
+
+    public sealed class CipherData
+    {
+        [XmlElement(ElementName = "CipherValue", Namespace = "http://www.w3.org/2001/04/xmlenc#")]
+        public string? CipherValue { get; set; }
+    }
+
+    public sealed class BinarySecurityToken
+    {
+        [XmlAttribute(AttributeName = "ValueType")]
+        public string? ValueType { get; set; }
+
+        [XmlAttribute(AttributeName = "Id")]
+        public string? Id { get; set; }
+
+        [XmlText]
+        public string? Value { get; set; }
+    }
+
+    public sealed class Timestamp
+    {
+        [XmlAttribute(AttributeName = "Id", Namespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd")]
+        public string? Id { get; set; }
+
+        [XmlElement(ElementName = "Created", Namespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd")]
+        public string? Created { get; set; }
+
+        [XmlElement(ElementName = "Expires", Namespace = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd")]
+        public string? Expires { get; set; }
+    }
+
+    public sealed class SoapBody
+    {
+        [XmlElement(ElementName = "RequestSecurityToken", Namespace = "http://schemas.xmlsoap.org/ws/2005/02/trust")]
+        public RequestSecurityToken? RequestSecurityToken { get; set; }
+
+        [XmlElement(ElementName = "RequestMultipleSecurityTokens", Namespace = "http://schemas.microsoft.com/Passport/SoapServices/PPCRL")]
+        public RequestMultipleSecurityTokens? RequestMultipleSecurityTokens { get; set; }
+    }
+
+    public sealed class RequestMultipleSecurityTokens
+    {
+        [XmlAttribute(AttributeName = "Id")]
+        public string? Id { get; set; }
+
+        [XmlElement(ElementName = "RequestSecurityToken", Namespace = "http://schemas.xmlsoap.org/ws/2005/02/trust")]
+        public List<RequestSecurityToken>? SecurityTokenRequests { get; set; }
+    }
+
+    public sealed class RequestSecurityToken
+    {
+        [XmlAttribute(AttributeName = "Id")]
+        public string? Id { get; set; }
+
+        [XmlElement(ElementName = "RequestType", Namespace = "http://schemas.xmlsoap.org/ws/2005/02/trust")]
+        public string? RequestType { get; set; }
+
+        [XmlElement(ElementName = "AppliesTo", Namespace = "http://schemas.xmlsoap.org/ws/2004/09/policy")]
+        public AppliesTo? AppliesTo { get; set; }
+    }
+
+    public sealed class AppliesTo
+    {
+        [XmlElement(ElementName = "EndpointReference", Namespace = "http://www.w3.org/2005/08/addressing")]
+        public EndpointReference? EndpointReference { get; set; }
+    }
+
+    public sealed class EndpointReference
+    {
+        [XmlElement(ElementName = "Address", Namespace = "http://www.w3.org/2005/08/addressing")]
+        public string? Address { get; set; }
+    }
 }

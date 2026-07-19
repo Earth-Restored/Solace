@@ -1,23 +1,25 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
+using System.Text.Json.Serialization;
+using Immediate.Apis.Shared;
+using Immediate.Handlers.Shared;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Solace.DB;
 
-namespace Solace.ApiServer.Controllers.XboxLive;
+namespace Solace.AuthServer.Features.XboxLive.Accounts;
 
-[Route("")]
-[Route("accounts.xboxlive.com")]
-internal sealed class AccountsController : LoginServerControllerBase
+[Handler]
+[MapGet("accounts.xboxlive.com/users/current/profile")]
+public sealed partial class GetCurrentProfile(
+    IHttpContextAccessor httpContextAccessor,
+    CryptoSecrets cryptoSecrets,
+    EarthDbContext earthDb,
+    ILogger<GetCurrentProfile> logger)
 {
-    private readonly EarthDbContext _dbContext;
+    public sealed record Query;
 
-    public AccountsController(EarthDbContext context, CryptoSecrets cryptoSecrets, ILogger<AccountsController> logger)
-        : base(cryptoSecrets, logger)
-    {
-        _dbContext = context;
-    }
-
-    private sealed record ProfileResponse(
+    [JsonNamingPolicy(JsonKnownNamingPolicy.CamelCase)]
+    public sealed record Response(
         string? GamerTag,
         string? MidasConsole,
         DateTime TouAcceptanceDate,
@@ -45,12 +47,14 @@ internal sealed class AccountsController : LoginServerControllerBase
         int UserXuid
     );
 
-    [HttpGet("users/current/profile")]
-    public async Task<Results<ContentHttpResult, NotFound, UnauthorizedHttpResult, BadRequest>> GetProfile()
+    private async ValueTask<Results<Ok<Response>, NotFound, UnauthorizedHttpResult, BadRequest>> HandleAsync(
+        Query _,
+        CancellationToken cancellationToken)
     {
-        var cancellationToken = Request.HttpContext.RequestAborted;
+        var httpContext = httpContextAccessor.HttpContext;
+        Debug.Assert(httpContext is not null);
 
-        var authUnion = XboxLiveAuth();
+        var authUnion = AuthUtils.XboxLiveAuth(httpContext.Request, cryptoSecrets, logger);
         if (authUnion.IsB)
         {
             return authUnion.B.Result is UnauthorizedHttpResult unauthorized ? unauthorized : (BadRequest)authUnion.B.Result;
@@ -58,7 +62,8 @@ internal sealed class AccountsController : LoginServerControllerBase
 
         var token = authUnion.A;
 
-        var account = await _dbContext.Accounts
+        var account = await earthDb.Accounts
+            .AsNoTracking()
             .Select(account => new { account.Id, account.Username, account.FirstName, account.LastName, account.CreatedDate, })
             .FirstOrDefaultAsync(account => account.Id == token.UserId, cancellationToken);
 
@@ -67,7 +72,7 @@ internal sealed class AccountsController : LoginServerControllerBase
             return TypedResults.NotFound();
         }
 
-        return JsonCamelCase(new ProfileResponse(
+        return TypedResults.Ok(new Response(
             GamerTag: account.Username,
             MidasConsole: null,
             TouAcceptanceDate: new DateTime(1, 1, 1),

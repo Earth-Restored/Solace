@@ -6,7 +6,6 @@ using Solace.ApiServer.Types.Common;
 namespace Solace.ApiServer;
 
 [JsonSourceGenerationOptions(WriteIndented = false, PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
-[JsonSerializable(typeof(Controllers.XboxLive.ProfileController.BatchProfileSettingsRequest))]
 [JsonSerializable(typeof(Controllers.PlayfabApi.AuthenticationController.GetEntityTokenRequest))]
 [JsonSerializable(typeof(Controllers.PlayfabApi.EventController.WriteTelemetryEventsRequest))]
 [JsonSerializable(typeof(Controllers.PlayfabApi.ClientController.GetUserPublisherDataRequest))]

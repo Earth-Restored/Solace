@@ -19,7 +19,7 @@ public static class LoginUtils
             Convert.ToBase64String(account.PasswordSalt),
             Convert.ToBase64String(account.PasswordHash)
         );
-        string tokenString = JwtUtils.Sign(token, cryptoSecrets.LoginUserTokenSecret, tokenValidity);
+        var tokenString = JwtUtils.Sign(token, cryptoSecrets.LoginUserTokenSecret, tokenValidity);
 
         return new LoginResponse(
             account.Id,

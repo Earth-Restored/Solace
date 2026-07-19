@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization.Metadata;
 using Immediate.Handlers.Shared;
 using Immediate.Validations.Shared;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -47,6 +48,16 @@ internal sealed partial class Program2
     {
         var builder = WebApplication.CreateSlimBuilder(args);
 
+        builder.Services.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.TypeInfoResolver = new DefaultJsonTypeInfoResolver
+            {
+                Modifiers = {
+                    Common.Asp.Json.ForcePascalCaseAttribute.PascalCaseModifier,
+                },
+            };
+        });
+
         var earthDbConnectionString = builder.Configuration.GetConnectionString("EarthDb");
 
         Debug.Assert(earthDbConnectionString is not null);
@@ -74,6 +85,7 @@ internal sealed partial class Program2
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().Secrets);
 
         builder.Services.Configure<Features.Live.Login.AuthSettings>(builder.Configuration.GetSection("Authentication:Login"));
+        builder.Services.Configure<Features.XboxLive.AuthSettings>(builder.Configuration.GetSection("Authentication:XboxLive"));
         builder.Services.Configure<Common.Asp.Captcha.CaptchaOptions>(builder.Configuration.GetSection("Captcha"));
 
         var captchaProvider = builder.Configuration.GetValue("Captcha:Provider", Common.Asp.Captcha.CaptchaProvider.NoOp);
@@ -115,8 +127,11 @@ internal sealed partial class Program2
 
         app.UseAntiforgery();
 
+        Features.Live.Login.DeviceAddCredential.MapEndpoint(app);
+        Features.Live.Login.RST2.MapEndpoint(app);
+
         app.MapSolaceAuthServerEndpoints();
-        
+
         app.MapRazorComponents<App>();
 
         app.Run();
