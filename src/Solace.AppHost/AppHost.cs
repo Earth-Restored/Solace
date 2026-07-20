@@ -193,7 +193,7 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
             Target = "/home/app/.aspnet/DataProtection-Keys",
             ReadOnly = false,
         });
-        
+
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
         {
             Name = "static-data-volume",
@@ -270,6 +270,9 @@ var adminPanelPort = builder.Configuration.GetValue<int>("AdminPanel:Port", 5000
 var locatorPublicEndPoint = builder.AddParameterForEnvironment("Shared:PublicEndpoints:Locator", prefixToRemove: "Shared:");
 var authServerPublicEndPoint = builder.AddParameterForEnvironment("Shared:PublicEndpoints:AuthServer", prefixToRemove: "Shared:");
 
+var buildplatePreviewEnabled = builder.AddParameterForEnvironment("AdminPanel:BuildplatePreview:Enabled", prefixToRemove: "AdminPanel:");
+var buildplatePreviewGenerationMaxConcurrency = builder.AddParameterForEnvironment("AdminPanel:BuildplatePreview:GenerationMaxConcurrency", prefixToRemove: "AdminPanel:");
+
 var adminPanel = builder.AddProject<Projects.Solace_AdminPanel>("admin-panel")
     .WithHttpEndpoint(port: adminPanelPort, name: "http")
     .WithEndpoint("http", endpoint =>
@@ -283,12 +286,13 @@ var adminPanel = builder.AddProject<Projects.Solace_AdminPanel>("admin-panel")
     .WithReference(objectStore)
     .WaitFor(objectStore)
     .WithEnvironment("StaticDataPath", staticDataPath)
-    .WithEnvironment("EnableAdminPanelBuildplatePreview", builder.Configuration["AdminPanel:EnableAdminPanelBuildplatePreview"])
     .WithEnvironmentFromConfig(captchaProvider)
     .WithEnvironmentFromConfig(captchaCloudflareTurnstileSiteKey)
     .WithEnvironmentFromConfig(captchaCloudflareTurnstileSecretKey)
     .WithEnvironmentFromConfig(locatorPublicEndPoint)
     .WithEnvironmentFromConfig(authServerPublicEndPoint)
+    .WithEnvironmentFromConfig(buildplatePreviewEnabled)
+    .WithEnvironmentFromConfig(buildplatePreviewGenerationMaxConcurrency)
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume

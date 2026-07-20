@@ -90,6 +90,9 @@
     [Parameter] public bool IsNight { get; set; }
     [Parameter] public ResourcePackManager? ResourcePackManager { get; set; }
 
+    private static SemaphoreSlim? _generationSemaphore;
+    private static readonly Lock _semaphoreLock = new();
+
     private ElementReference _previewContainer;
     private Viewer? _viewer3D;
     private ViewerSettings _settings = new();
@@ -122,28 +125,22 @@
         _scene.Add(new AmbientLight() { Intensity = 2 });
         _scene.Add(new DirectionalLight() { Intensity = 2 });
         _scene.BackGroundColor = IsNight ? "#070066" : "#3B69F5";
-    }
 
-    protected override async Task OnParametersSetAsync()
-    {
-        if (_previewDataUri is null && !_isPreviewFailed && _isPreviewLoading && !_isCurrentlyLoadingTask)
+        if (_generationSemaphore is null)
         {
-            ResetProgress();
-
-            _isCurrentlyLoadingTask = true;
-
-            InvokeAsync(async () =>
+            lock (_semaphoreLock)
             {
-                try
+                if (_generationSemaphore is null)
                 {
-                    await Task.Run(async () => await LoadPreviewAsync());
+                    var maxConcurrency = Configuration.GetValue<int>("BuildplatePreview:GenerationMaxConcurrency", 2);
+                    if (maxConcurrency <= 0)
+                    {
+                        maxConcurrency = 2;
+                    }
+
+                    _generationSemaphore = new SemaphoreSlim(maxConcurrency, maxConcurrency);
                 }
-                finally
-                {
-                    _isCurrentlyLoadingTask = false;
-                    StateHasChanged();
-                }
-            }).Forget();
+            }
         }
     }
 
@@ -152,6 +149,25 @@
         if (firstRender)
         {
             _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Components/Pages/Buildplates.razor.js");
+
+            if (_previewDataUri is null && !_isPreviewFailed && _isPreviewLoading && !_isCurrentlyLoadingTask)
+            {
+                ResetProgress();
+                _isCurrentlyLoadingTask = true;
+
+                InvokeAsync(async () =>
+                {
+                    try
+                    {
+                        await Task.Run(async () => await LoadPreviewAsync());
+                    }
+                    finally
+                    {
+                        _isCurrentlyLoadingTask = false;
+                        StateHasChanged();
+                    }
+                }).Forget();
+            }
         }
 
         if (_viewer3D is not null)
@@ -291,7 +307,7 @@
 
     private async Task LoadPreviewAsync(bool getFromCache = true)
     {
-        if (!Configuration.GetValue<bool>("EnableAdminPanelBuildplatePreview"))
+        if (!Configuration.GetValue<bool>("BuildplatePreview:Enabled"))
         {
             _isPreviewLoading = false;
             return;
@@ -306,6 +322,14 @@
 
         ResetProgress();
         var progress = new Progress<ProgressReport>(UpdateProgress);
+
+        _progressStatus = "Queued for generation, please wait";
+        await InvokeAsync(StateHasChanged);
+
+        if (_generationSemaphore is not null)
+        {
+            await _generationSemaphore.WaitAsync();
+        }
 
         try
         {
@@ -336,6 +360,8 @@
         }
         finally
         {
+            _generationSemaphore?.Release();
+
             _progressCts?.Cancel();
             _isPreviewLoading = false;
             await InvokeAsync(StateHasChanged);
