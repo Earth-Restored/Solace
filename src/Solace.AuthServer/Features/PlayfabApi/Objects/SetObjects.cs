@@ -5,7 +5,7 @@ using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Solace.Common.Asp.Json;
 
-namespace Solace.AuthServer.Features.PlayfabApi.Object;
+namespace Solace.AuthServer.Features.PlayfabApi.Objects;
 
 [Handler]
 [MapPost("Object/SetObjects")]

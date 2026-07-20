@@ -23,7 +23,7 @@ public sealed partial class Reauthenticate(
     {
         [FromForm(Name = "userToken")]
         public required string UserToken { get; init; }
-        
+
         [FromForm(Name = "password")]
         public required string Password { get; init; }
     }
@@ -32,7 +32,7 @@ public sealed partial class Reauthenticate(
         [AsParameters] Command command,
         CancellationToken cancellationToken)
     {
-       
+
         if (string.IsNullOrEmpty(command.UserToken) || string.IsNullOrEmpty(command.Password))
         {
             return TypedResults.BadRequest("Invalid user or password");

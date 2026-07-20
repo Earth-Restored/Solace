@@ -64,7 +64,7 @@ public sealed class BuildplateMeshGenerator
         {
             foreach (var entry in zip.Entries)
             {
-                if (!entry.IsDirectory && entry.FullName.StartsWith("region"))
+                if (!entry.IsDirectory && entry.FullName.StartsWith("region", StringComparison.Ordinal))
                 {
                     var entryStream = await entry.OpenAsync(cancellationToken);
                     var regionData = GC.AllocateUninitializedArray<byte>(checked((int)entry.Length));

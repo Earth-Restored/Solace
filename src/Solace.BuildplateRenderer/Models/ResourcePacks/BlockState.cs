@@ -33,7 +33,7 @@ public readonly struct BlockState : IEquatable<BlockState>
 
         _properties = properties;
         _propertiesLength = propertiesLength;
-        _properties.AsSpan(0, _propertiesLength).Sort((a, b) => a.Key.CompareTo(b.Key));
+        _properties.AsSpan(0, _propertiesLength).Sort((a, b) => a.Key.CompareTo(b.Key, StringComparison.Ordinal));
 
         _hashCode = CalculateHash();
     }

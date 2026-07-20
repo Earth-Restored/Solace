@@ -393,7 +393,7 @@ public sealed class ResourcePack
     {
         ThrowHelper.ThrowIfLessThan(result.Length, 1);
 
-        if (!blockState.BlockId.StartsWith(_namePrefix))
+        if (!blockState.BlockId.StartsWith(_namePrefix, StringComparison.Ordinal))
         {
             return 0;
         }
@@ -549,7 +549,7 @@ public sealed class ResourcePack
 
     public async Task<byte[]?> TryGetTextureDataPNGAsync(string name, CancellationToken cancellationToken = default)
     {
-        if (name.StartsWith(_namePrefix))
+        if (name.StartsWith(_namePrefix, StringComparison.Ordinal))
         {
             name = name[_namePrefix.Length..];
         }

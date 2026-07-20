@@ -3,7 +3,7 @@ using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Solace.Common.Asp.Json;
 
-namespace Solace.AuthServer.Features.PlayfabApi.Event;
+namespace Solace.AuthServer.Features.PlayfabApi.Events;
 
 [Handler]
 [MapPost("Event/WriteTelemetryEvents")]
