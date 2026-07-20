@@ -23,7 +23,7 @@ internal sealed class InventoryController : SolaceControllerBase
     private readonly Catalog _catalog;
     private readonly ILogger<InventoryController> _logger;
 
-    public InventoryController(EarthDbContext earthDB, StaticData.StaticData staticData, ILogger<InventoryController> logger)
+    public InventoryController(EarthDbContext earthDB, StaticData.StaticDataProvider staticData, ILogger<InventoryController> logger)
     {
         _earthDb = earthDB;
         _catalog = staticData.Catalog;
@@ -76,7 +76,7 @@ internal sealed class InventoryController : SolaceControllerBase
             }
         }
 
-        var inventoryResponse = new Types.Inventory.Inventory(
+        var inventoryResponse = new Types.Inventory.InventoryResponse(
             [.. hotbar.Items.Select(item => item is not null ? new HotbarItem(
                 item.Uuid,
                 item.Count,

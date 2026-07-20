@@ -17,7 +17,7 @@ internal sealed class CatalogController : SolaceControllerBase
     private readonly Catalog _catalog;
     private readonly CatalogResponseCacheService _responseCache;
 
-    public CatalogController(StaticData.StaticData staticData, CatalogResponseCacheService responseCache)
+    public CatalogController(StaticData.StaticDataProvider staticData, CatalogResponseCacheService responseCache)
     {
         _catalog = staticData.Catalog;
         _responseCache = responseCache;

@@ -15,9 +15,9 @@ namespace Solace.ApiServer.Controllers;
 internal sealed class ProfileController : SolaceControllerBase
 {
     private readonly EarthDbContext _earthDB;
-    private readonly StaticData.StaticData _staticData;
+    private readonly StaticData.StaticDataProvider _staticData;
 
-    public ProfileController(EarthDbContext earthDB, StaticData.StaticData staticData)
+    public ProfileController(EarthDbContext earthDB, StaticData.StaticDataProvider staticData)
     {
         _earthDB = earthDB;
         _staticData = staticData;
@@ -53,11 +53,11 @@ internal sealed class ProfileController : SolaceControllerBase
             profile.Health = maxPlayerHealth;
         }
 
-        var resp = Json.Serialize(new EarthApiResponse(new Types.Profile.Profile(
+        var resp = Json.Serialize(new EarthApiResponse(new Types.Profile.ProfileResponse(
             Enumerable.Range(0, levels.Length).Select(levelIndex =>
             {
                 var level = levels[levelIndex];
-                return new KeyValuePair<int, Types.Profile.Profile.LevelR>(levelIndex + 1, new(level.ExperienceRequired, LevelUtils.MakeLevelRewards(level).ToApiResponse()));
+                return new KeyValuePair<int, Types.Profile.ProfileResponse.LevelR>(levelIndex + 1, new(level.ExperienceRequired, LevelUtils.MakeLevelRewards(level).ToApiResponse()));
             }).ToDictionary(),
             profile.Experience,
             profile.Level,

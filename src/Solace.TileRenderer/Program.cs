@@ -171,10 +171,10 @@ internal static partial class App
         }
 
         LogLoadingStaticData(programLogger);
-        StaticData.StaticData staticData;
+        StaticData.StaticDataProvider staticData;
         try
         {
-            staticData = new StaticData.StaticData(builder.Configuration["StaticDataPath"]!);
+            staticData = new StaticData.StaticDataProvider(builder.Configuration["StaticDataPath"]!);
         }
         catch (StaticDataException exception)
         {
@@ -227,7 +227,7 @@ internal static partial class App
     internal sealed class StartupDependencies
     {
         public EventBusClient EventBus { get; set; } = null!;
-        public StaticData.StaticData StaticData { get; set; } = null!;
+        public StaticData.StaticDataProvider StaticData { get; set; } = null!;
         public ITileDataSource TileDataSource { get; set; } = null!;
     }
 

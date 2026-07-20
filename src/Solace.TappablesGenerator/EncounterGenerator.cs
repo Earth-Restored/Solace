@@ -12,12 +12,12 @@ internal sealed partial class EncounterGenerator
     private static readonly TimeSpan MIN_DELAY = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan MAX_DELAY = TimeSpan.FromMinutes(2);
 
-    private readonly StaticData.StaticData _staticData;
+    private readonly StaticData.StaticDataProvider _staticData;
     private readonly TimeSpan _maxDuration;
 
     private readonly Random _random;
 
-    public EncounterGenerator(StaticData.StaticData staticData, ILogger<EncounterGenerator> logger)
+    public EncounterGenerator(StaticData.StaticDataProvider staticData, ILogger<EncounterGenerator> logger)
     {
         _staticData = staticData;
 

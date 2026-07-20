@@ -14,11 +14,11 @@ internal sealed partial class TappableGenerator
     private static readonly TimeSpan MIN_DELAY = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan MAX_DELAY = TimeSpan.FromMinutes(2);
 
-    private readonly StaticData.StaticData _staticData;
+    private readonly StaticData.StaticDataProvider _staticData;
 
     private readonly Random _random;
 
-    public TappableGenerator(StaticData.StaticData staticData, ILogger<TappableGenerator> logger)
+    public TappableGenerator(StaticData.StaticDataProvider staticData, ILogger<TappableGenerator> logger)
     {
         _staticData = staticData;
 

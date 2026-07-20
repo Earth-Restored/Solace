@@ -2,8 +2,8 @@
 
 namespace Solace.ApiServer.Types.Profile;
 
-internal sealed record Profile(
-    Dictionary<int, Profile.LevelR> LevelDistribution,
+internal sealed record ProfileResponse(
+    Dictionary<int, ProfileResponse.LevelR> LevelDistribution,
     int TotalExperience,
     int Level,
     int CurrentLevelExperience,

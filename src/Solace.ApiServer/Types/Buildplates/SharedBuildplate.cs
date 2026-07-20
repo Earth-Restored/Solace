@@ -6,7 +6,7 @@ internal sealed record SharedBuildplate(
     string PlayerId,
     string SharedOn,
     SharedBuildplate.BuildplateDataR BuildplateData,
-    Inventory.Inventory Inventory
+    Inventory.InventoryResponse Inventory
 )
 {
     internal sealed record BuildplateDataR(

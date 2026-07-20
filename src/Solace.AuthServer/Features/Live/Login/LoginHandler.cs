@@ -15,13 +15,13 @@ namespace Solace.AuthServer.Features.Live.Login;
 [Handler]
 [MapPost("ppsecure/login")]
 [MapGroup<LiveLoginGroup>]
-public sealed partial class Login(
+public sealed partial class LoginHandler(
     EarthDbContext earthDb,
     CryptoSecrets cryptoSecrets,
     IOptions<AuthSettings> authSettings,
     ICaptchaValidator captchaValidator,
     IHttpContextAccessor httpContextAccessor,
-    ILogger<Login> logger)
+    ILogger<LoginHandler> logger)
 {
     public sealed record Command
     {

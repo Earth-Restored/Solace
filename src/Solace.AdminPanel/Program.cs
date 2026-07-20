@@ -345,10 +345,10 @@ internal static partial class App
         LogConnectedToObjectStore(programLogger);
 
         LogLoadingStaticData(programLogger);
-        StaticData.StaticData staticData;
+        StaticData.StaticDataProvider staticData;
         try
         {
-            staticData = new StaticData.StaticData(builder.Configuration["StaticDataPath"]!);
+            staticData = new StaticData.StaticDataProvider(builder.Configuration["StaticDataPath"]!);
         }
         catch (StaticData.StaticDataException exception)
         {
@@ -506,7 +506,7 @@ internal static partial class App
     {
         public EventBusClient EventBus { get; set; } = null!;
         public ObjectStoreClient ObjectStore { get; set; } = null!;
-        public StaticData.StaticData StaticData { get; set; } = null!;
+        public StaticData.StaticDataProvider StaticData { get; set; } = null!;
     }
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "Unhandled exception")]

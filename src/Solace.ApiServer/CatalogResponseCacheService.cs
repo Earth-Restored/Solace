@@ -22,7 +22,7 @@ internal sealed class CatalogResponseCacheService
     private readonly Catalog _catalog;
     private readonly IMemoryCache _cache;
 
-    public CatalogResponseCacheService(StaticData.StaticData staticData, IMemoryCache cache)
+    public CatalogResponseCacheService(StaticData.StaticDataProvider staticData, IMemoryCache cache)
     {
         _catalog = staticData.Catalog;
         _cache = cache;

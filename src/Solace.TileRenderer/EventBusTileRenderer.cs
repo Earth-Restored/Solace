@@ -9,15 +9,15 @@ internal sealed partial class EventBusTileRenderer : IAsyncDisposable
 {
     private readonly ITileDataSource _dataSource;
     private readonly EventBusClient _eventBus;
-    private readonly TileRenderer _renderer;
+    private readonly VectorTileRenderer _renderer;
 
     private readonly ILogger<EventBusTileRenderer> _logger;
 
-    public EventBusTileRenderer(ITileDataSource dataSource, EventBusClient eventBus, StaticData.StaticData staticData, ILogger<EventBusTileRenderer> logger)
+    public EventBusTileRenderer(ITileDataSource dataSource, EventBusClient eventBus, StaticData.StaticDataProvider staticData, ILogger<EventBusTileRenderer> logger)
     {
         _dataSource = dataSource;
         _eventBus = eventBus;
-        _renderer = TileRenderer.Create(dataSource.GetTagMapJson(staticData.TileRenderer), logger);
+        _renderer = VectorTileRenderer.Create(dataSource.GetTagMapJson(staticData.TileRenderer), logger);
         _logger = logger;
     }
 

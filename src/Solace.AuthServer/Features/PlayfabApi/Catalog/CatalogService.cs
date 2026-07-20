@@ -13,7 +13,7 @@ public sealed class CatalogService
     private readonly FrozenDictionary<Guid, CatalogItem> _itemById;
     private readonly IEdmModel _edmModel;
 
-    public CatalogService(StaticData.StaticData staticData)
+    public CatalogService(StaticData.StaticDataProvider staticData)
     {
         _itemData = CreateItemData(staticData);
 
@@ -174,7 +174,7 @@ public sealed class CatalogService
         );
     }
 
-    private CatalogItem[] CreateItemData(StaticData.StaticData staticData)
+    private CatalogItem[] CreateItemData(StaticData.StaticDataProvider staticData)
     {
         var someCurrencyId = Guid.Parse("0113e233-7637-48e7-91b0-349fdc74713d");
 

@@ -17,9 +17,9 @@ namespace Solace.ApiServer.Controllers;
 internal sealed class TokensController : SolaceControllerBase
 {
     private readonly EarthDbContext _earthDb;
-    private readonly StaticData.StaticData _staticData;
+    private readonly StaticData.StaticDataProvider _staticData;
 
-    public TokensController(EarthDbContext earthDb, StaticData.StaticData staticData)
+    public TokensController(EarthDbContext earthDb, StaticData.StaticDataProvider staticData)
     {
         _earthDb = earthDb;
         _staticData = staticData;

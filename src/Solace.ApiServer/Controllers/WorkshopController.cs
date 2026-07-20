@@ -36,9 +36,9 @@ namespace Solace.ApiServer.Controllers;
 internal sealed class WorkshopController : SolaceControllerBase
 {
     private readonly EarthDbContext _earthDb;
-    private readonly StaticData.StaticData _staticData;
+    private readonly StaticData.StaticDataProvider _staticData;
 
-    public WorkshopController(EarthDbContext earthDb, StaticData.StaticData staticData)
+    public WorkshopController(EarthDbContext earthDb, StaticData.StaticDataProvider staticData)
     {
         _earthDb = earthDb;
         _staticData = staticData;

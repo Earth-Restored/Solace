@@ -20,9 +20,9 @@ internal sealed class TappablesController : SolaceControllerBase
 {
     private readonly TappablesManager _tappablesManager;
     private readonly EarthDbContext _earthDB;
-    private readonly StaticData.StaticData _staticData;
+    private readonly StaticData.StaticDataProvider _staticData;
 
-    public TappablesController(TappablesManager tappablesManager, EarthDbContext earthDb, StaticData.StaticData staticData)
+    public TappablesController(TappablesManager tappablesManager, EarthDbContext earthDb, StaticData.StaticDataProvider staticData)
     {
         _tappablesManager = tappablesManager;
         _earthDB = earthDb;

@@ -30,7 +30,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
     private readonly ObjectStoreClient _objectStore;
     private readonly ILogger<BuildplatesController> _logger;
 
-    public BuildplatesController(EarthDbContext earthDB, BuildplateInstancesManager buildplateInstancesManager, StaticData.StaticData staticData, TappablesManager tappablesManager, ObjectStoreClient objectStore, ILogger<BuildplatesController> logger)
+    public BuildplatesController(EarthDbContext earthDB, BuildplateInstancesManager buildplateInstancesManager, StaticData.StaticDataProvider staticData, TappablesManager tappablesManager, ObjectStoreClient objectStore, ILogger<BuildplatesController> logger)
     {
         _earthDB = earthDB;
         _buildplateInstancesManager = buildplateInstancesManager;
@@ -244,7 +244,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
                 preview,
                 0
             ),
-            new Types.Inventory.Inventory(
+            new Types.Inventory.InventoryResponse(
                 [.. sharedBuildplate.Hotbar.Select(item => item is not null ? new HotbarItem(
                     item.Uuid,
                     item.Count,

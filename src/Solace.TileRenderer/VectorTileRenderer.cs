@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Solace.TileRenderer;
 
-internal sealed partial class TileRenderer
+internal sealed partial class VectorTileRenderer
 {
     // Map layers with their JSON string versions
     private static readonly FrozenDictionary<string, RenderLayer> layerStringMapping = new Dictionary<string, RenderLayer>()
@@ -55,13 +55,13 @@ internal sealed partial class TileRenderer
     private readonly List<string> _tags;
     private readonly Dictionary<string, Dictionary<string, RenderLayer>> _tagsMap;
 
-    private TileRenderer(List<string> tags, Dictionary<string, Dictionary<string, RenderLayer>> tagsMap)
+    private VectorTileRenderer(List<string> tags, Dictionary<string, Dictionary<string, RenderLayer>> tagsMap)
     {
         _tags = tags;
         _tagsMap = tagsMap;
     }
 
-    public static TileRenderer Create(string tagMapJson, ILogger logger)
+    public static VectorTileRenderer Create(string tagMapJson, ILogger logger)
     {
         List<string> tags = [];
         Dictionary<string, Dictionary<string, RenderLayer>> tagsMap = new(StringComparer.OrdinalIgnoreCase);
@@ -102,7 +102,7 @@ internal sealed partial class TileRenderer
 
         LogLoadedTags(logger);
 
-        return new TileRenderer(tags, tagsMap);
+        return new VectorTileRenderer(tags, tagsMap);
     }
 
     public async Task RenderAsync(ITileDataSource dataSource, SKCanvas canvas, int tileX, int tileY, int zoom, ILogger logger, CancellationToken cancellationToken = default)

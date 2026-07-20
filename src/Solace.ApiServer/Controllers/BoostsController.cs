@@ -21,7 +21,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
     private readonly Catalog _catalog;
     private readonly ILogger<BoostsController> _logger;
 
-    public BoostsController(EarthDbContext earthDB, StaticData.StaticData staticData, ILogger<BoostsController> logger)
+    public BoostsController(EarthDbContext earthDB, StaticData.StaticDataProvider staticData, ILogger<BoostsController> logger)
     {
         _earthDb = earthDB;
         _catalog = staticData.Catalog;

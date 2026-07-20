@@ -36,7 +36,7 @@ internal static class TokenUtils
     }
 
     // does not handle redeeming the token itself (removing it from the list of tokens belonging to the player)
-    public static async Task<TokenEF> DoActionsOnRedeemedTokenAsync(EarthDbContext earthDb, ResultsEF.Builder results, TokenEF token, Guid accountId, DateTimeOffset currentTime, StaticData.StaticData staticData)
+    public static async Task<TokenEF> DoActionsOnRedeemedTokenAsync(EarthDbContext earthDb, ResultsEF.Builder results, TokenEF token, Guid accountId, DateTimeOffset currentTime, StaticData.StaticDataProvider staticData)
     {
         switch (token)
         {

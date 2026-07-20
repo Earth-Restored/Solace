@@ -127,7 +127,7 @@ internal sealed partial class Program2
         }
 
         LogLoadingStaticData(programLogger);
-        StaticData.StaticData staticData;
+        StaticData.StaticDataProvider staticData;
         try
         {
             staticData = new(builder.Configuration["StaticDataPath"]!);
@@ -195,7 +195,7 @@ internal sealed partial class Program2
     internal sealed class StartupDependencies
     {
         public Common.Asp.Auth.CryptoSecrets Secrets { get; set; } = null!;
-        public StaticData.StaticData StaticData { get; set; } = null!;
+        public StaticData.StaticDataProvider StaticData { get; set; } = null!;
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Using NoOp captcha provider")]

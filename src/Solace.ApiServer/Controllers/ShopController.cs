@@ -23,13 +23,13 @@ namespace Solace.ApiServer.Controllers;
 [Route("1/api/v{version:apiVersion}/commerce")]
 internal sealed partial class ShopController : SolaceControllerBase
 {
-    private readonly StaticData.StaticData _staticData;
+    private readonly StaticData.StaticDataProvider _staticData;
     private readonly EarthDbContext _earthDB;
     private readonly EventBusClient _eventBus;
     private readonly ObjectStoreClient _objectStore;
     private readonly ILogger<ShopController> _logger;
 
-    public ShopController(StaticData.StaticData staticData, EarthDbContext earthDB, EventBusClient eventBus, ObjectStoreClient objectStore, ILogger<ShopController> logger)
+    public ShopController(StaticData.StaticDataProvider staticData, EarthDbContext earthDB, EventBusClient eventBus, ObjectStoreClient objectStore, ILogger<ShopController> logger)
     {
         _staticData = staticData;
         _earthDB = earthDB;

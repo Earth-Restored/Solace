@@ -24,7 +24,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
 
     private RequestHandler? _requestHandler;
 
-    public BuildplateInstanceRequestHandler(IDbContextFactory<EarthDbContext> earthDbFactory, ObjectStoreClient objectStoreClient, StaticData.StaticData staticData, BuildplateInstancesManager buildplateInstancesManager, ILogger<BuildplateInstanceRequestHandler> logger)
+    public BuildplateInstanceRequestHandler(IDbContextFactory<EarthDbContext> earthDbFactory, ObjectStoreClient objectStoreClient, StaticData.StaticDataProvider staticData, BuildplateInstancesManager buildplateInstancesManager, ILogger<BuildplateInstanceRequestHandler> logger)
     {
         _earthDbFactory = earthDbFactory;
         _objectStoreClient = objectStoreClient;

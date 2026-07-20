@@ -69,7 +69,7 @@ internal sealed class Rewards
         return this;
     }
 
-    public async Task ToRedeemQueryAsync(EarthDbContext earthDb, ResultsEF.Builder results, Guid accountId, DateTimeOffset currentTime, StaticData.StaticData staticData, CancellationToken cancellationToken = default)
+    public async Task ToRedeemQueryAsync(EarthDbContext earthDb, ResultsEF.Builder results, Guid accountId, DateTimeOffset currentTime, StaticData.StaticDataProvider staticData, CancellationToken cancellationToken = default)
     {
         var checkLevelUp = false;
         if (_rubies > 0 || _experiencePoints > 0)

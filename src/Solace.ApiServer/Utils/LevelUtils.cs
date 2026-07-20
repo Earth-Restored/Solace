@@ -9,7 +9,7 @@ namespace Solace.ApiServer.Utils;
 internal sealed partial class LevelUtils
 {
 #pragma warning disable IDE0060 // Remove unused parameter
-    public static async Task CheckAndHandlePlayerLevelUpAsync(EarthDbContext earthDb, ResultsEF.Builder results, Guid accountId, DateTimeOffset currentTime, StaticData.StaticData staticData)
+    public static async Task CheckAndHandlePlayerLevelUpAsync(EarthDbContext earthDb, ResultsEF.Builder results, Guid accountId, DateTimeOffset currentTime, StaticData.StaticDataProvider staticData)
 #pragma warning restore IDE0060 // Remove unused parameter
     {
         var profile = await earthDb.Profiles

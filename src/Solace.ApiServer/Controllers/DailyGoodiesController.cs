@@ -18,9 +18,9 @@ namespace Solace.ApiServer.Controllers;
 internal sealed class DailyGoodiesController : SolaceControllerBase
 {
     private readonly EarthDbContext _earthDb;
-    private readonly StaticData.StaticData _staticData;
+    private readonly StaticData.StaticDataProvider _staticData;
 
-    public DailyGoodiesController(EarthDbContext earthDB, StaticData.StaticData staticData)
+    public DailyGoodiesController(EarthDbContext earthDB, StaticData.StaticDataProvider staticData)
     {
         _earthDb = earthDB;
         _staticData = staticData;

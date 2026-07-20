@@ -7,7 +7,7 @@ using Solace.DB;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 using Solace.StaticData;
-using SData = Solace.StaticData.StaticData;
+using SData = Solace.StaticData.StaticDataProvider;
 using Microsoft.AspNetCore.Authentication;
 using Asp.Versioning;
 using Solace.ApiServer.Authentication;
