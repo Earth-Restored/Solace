@@ -305,7 +305,7 @@ internal static partial class App
         public EventBusClient EventBus { get; set; } = null!;
         public ObjectStoreClient ObjectStore { get; set; } = null!;
         public SData StaticData { get; set; } = null!;
-        public CryptoSecrets Secrets { get; set; } = null!;
+        public Common.Asp.Auth.CryptoSecrets Secrets { get; set; } = null!;
     }
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "Unhandled exception")]

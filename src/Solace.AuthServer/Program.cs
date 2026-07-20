@@ -194,7 +194,7 @@ internal sealed partial class Program2
 
     internal sealed class StartupDependencies
     {
-        public CryptoSecrets Secrets { get; set; } = null!;
+        public Common.Asp.Auth.CryptoSecrets Secrets { get; set; } = null!;
         public StaticData.StaticData StaticData { get; set; } = null!;
     }
 

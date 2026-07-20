@@ -5,7 +5,7 @@ using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Solace.Common.Asp;
+using Solace.Common.Asp.Auth;
 using Solace.DB;
 
 namespace Solace.AuthServer.Features.XboxLive.Profile;

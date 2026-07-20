@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Solace.Common.Asp;
+using Solace.Common.Asp.Auth;
 using Solace.Common.Asp.Captcha;
 using Solace.DB;
 using static Solace.Common.Constants.AccountConstants;

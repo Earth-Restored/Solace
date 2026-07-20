@@ -73,7 +73,7 @@ public sealed partial class Search(
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "An error occured while searching for items");
+            LogSearchError(exception);
             items = [];
         }
 
@@ -94,4 +94,7 @@ public sealed partial class Search(
             response
         ));
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "An error occured while searching for items")]
+    private partial void LogSearchError(Exception exception);
 }

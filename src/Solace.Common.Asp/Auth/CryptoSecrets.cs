@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using BitcoderCZ.Utils;
 
-namespace Solace.Common.Asp;
+namespace Solace.Common.Asp.Auth;
 
 public sealed class CryptoSecrets
 {

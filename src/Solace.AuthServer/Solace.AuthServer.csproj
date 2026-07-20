@@ -17,7 +17,6 @@
     <PackageReference Include="Immediate.Validations" />
     <PackageReference Include="Nager.PublicSuffix" />
     <PackageReference Include="OData2Linq" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
   </ItemGroup>
 
   <ItemGroup>
