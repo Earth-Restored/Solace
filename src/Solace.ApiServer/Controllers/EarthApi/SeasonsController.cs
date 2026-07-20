@@ -24,7 +24,7 @@ internal sealed class SeasonsController : SolaceControllerBase
     {
         var now = HttpContext.GetTimestamp();
         DateTime endDate = now.UtcDateTime.Date.AddDays(30);
-        long endsAt = new DateTimeOffset(endDate, TimeSpan.Zero).ToUnixTimeMilliseconds();
+        var endsAt = new DateTimeOffset(endDate, TimeSpan.Zero).ToUnixTimeMilliseconds();
 
         return EarthJson(new Dictionary<string, object>
         {
@@ -64,7 +64,7 @@ internal sealed class SeasonsController : SolaceControllerBase
     [HttpPut("player/challenges/season/active/{id}")]
     public Results<ContentHttpResult, BadRequest> SetActiveSeasonChallenge(string id)
     {
-        string selectedChallengeId = string.IsNullOrWhiteSpace(id) ? DefaultActiveSeasonChallengeId : id;
+        var selectedChallengeId = string.IsNullOrWhiteSpace(id) ? DefaultActiveSeasonChallengeId : id;
         var now = HttpContext.GetTimestamp();
         var updates = new EarthApiResponse.UpdatesResponse();
         updates.Map["challenges"] = (int)now.ToUnixTimeSeconds();

@@ -49,9 +49,9 @@ internal sealed partial class TappablesManager : IAsyncDisposable
             .SelectMany(stream => stream)
             .Where(tappable =>
             {
-                double dx = LonToX(tappable.Lon) * (1 << 16) - LonToX(lon) * (1 << 16);
-                double dy = LatToY(tappable.Lat) * (1 << 16) - LatToY(lat) * (1 << 16);
-                double distanceSquared = dx * dx + dy * dy;
+                var dx = LonToX(tappable.Lon) * (1 << 16) - LonToX(lon) * (1 << 16);
+                var dy = LatToY(tappable.Lat) * (1 << 16) - LatToY(lat) * (1 << 16);
+                var distanceSquared = dx * dx + dy * dy;
                 return distanceSquared <= radius * radius;
             })];
 
@@ -62,9 +62,9 @@ internal sealed partial class TappablesManager : IAsyncDisposable
             .SelectMany(encounters => encounters!.Values)
             .Where(encounter =>
             {
-                double dx = LonToX(encounter.Lon) * (1 << 16) - LonToX(lon) * (1 << 16);
-                double dy = LatToY(encounter.Lat) * (1 << 16) - LatToY(lat) * (1 << 16);
-                double distanceSquared = dx * dx + dy * dy;
+                var dx = LonToX(encounter.Lon) * (1 << 16) - LonToX(lon) * (1 << 16);
+                var dy = LatToY(encounter.Lat) * (1 << 16) - LatToY(lat) * (1 << 16);
+                var distanceSquared = dx * dx + dy * dy;
                 return distanceSquared <= radius * radius;
             })];
 
@@ -76,18 +76,18 @@ internal sealed partial class TappablesManager : IAsyncDisposable
             .SelectMany(encounters => encounters)
             .Where(encounter =>
             {
-                double dx = LonToX(encounter.Lon) * (1 << 16) - LonToX(lon) * (1 << 16);
-                double dy = LatToY(encounter.Lat) * (1 << 16) - LatToY(lat) * (1 << 16);
-                double distanceSquared = dx * dx + dy * dy;
+                var dx = LonToX(encounter.Lon) * (1 << 16) - LonToX(lon) * (1 << 16);
+                var dy = LatToY(encounter.Lat) * (1 << 16) - LatToY(lat) * (1 << 16);
+                var distanceSquared = dx * dx + dy * dy;
                 return distanceSquared <= radius * radius;
             })];
 
     private static IEnumerable<(int X, int Y)> GetTileIdsAround(double lat, double lon, double radius)
     {
-        int tileX = XToTile(LonToX(lon));
-        int tileY = YToTile(LatToY(lat));
-        int tileRadius = (int)Math.Ceiling(radius);
-        int sideLength = (tileRadius * 2) + 1;
+        var tileX = XToTile(LonToX(lon));
+        var tileY = YToTile(LatToY(lat));
+        var tileRadius = (int)Math.Ceiling(radius);
+        var sideLength = (tileRadius * 2) + 1;
 
         return Enumerable.Range(tileX - tileRadius, sideLength).Select(x => Enumerable.Range(tileY - tileRadius, sideLength).Select(y => (x, y))).SelectMany(stream => stream);
     }
@@ -301,7 +301,7 @@ internal sealed partial class TappablesManager : IAsyncDisposable
 
     public static bool TryParseTileId(ReadOnlySpan<char> tileIdStr, out (int X, int Y) tileId)
     {
-        int underscoreIndex = tileIdStr.IndexOf('_');
+        var underscoreIndex = tileIdStr.IndexOf('_');
 
         if (underscoreIndex is -1)
         {

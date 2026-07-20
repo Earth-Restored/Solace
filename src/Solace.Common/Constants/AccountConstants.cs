@@ -29,7 +29,7 @@ public static partial class AccountConstants
     {
         Debug.Assert(password.Length <= 128);
 
-        byte[] passwordUTF8 = Encoding.UTF8.GetBytes(password);
+        var passwordUTF8 = Encoding.UTF8.GetBytes(password);
 
         return Org.BouncyCastle.Crypto.Generators.SCrypt.Generate(passwordUTF8, salt, 16384, 8, 1, 64);
     }

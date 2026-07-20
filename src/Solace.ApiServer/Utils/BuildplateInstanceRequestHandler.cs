@@ -115,7 +115,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                                     return null;
                                 }
 
-                                bool? respawn = HandlePlayerDead(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, request.Timestamp);
+                                var respawn = HandlePlayerDead(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, request.Timestamp);
                                 return respawn is not null ? Json.Serialize(respawn.Value) : null;
                             }
                         case "getInitialPlayerState":
@@ -155,7 +155,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                                     return null;
                                 }
 
-                                object response = await HandleInventoryRemoveAsync(requestWithBuildplateId.InstanceId, requestWithBuildplateId.Request);
+                                var response = await HandleInventoryRemoveAsync(requestWithBuildplateId.InstanceId, requestWithBuildplateId.Request);
                                 return response is not null ? Json.Serialize(response) : null;
                             }
                         case "inventoryUpdateWear":
@@ -238,7 +238,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
             return null;
         }
 
-        string serverDataBase64 = Convert.ToBase64String(serverData.Value.Span);
+        var serverDataBase64 = Convert.ToBase64String(serverData.Value.Span);
 
         return new BuildplateLoadResponse(serverDataBase64);
     }
@@ -263,7 +263,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
             return null;
         }
 
-        string serverDataBase64 = Convert.ToBase64String(serverData.Value.Span);
+        var serverDataBase64 = Convert.ToBase64String(serverData.Value.Span);
 
         return new BuildplateLoadResponse(serverDataBase64);
     }
@@ -288,7 +288,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
             return null;
         }
 
-        string serverDataBase64 = Convert.ToBase64String(serverData.Value.Span);
+        var serverDataBase64 = Convert.ToBase64String(serverData.Value.Span);
 
         return new BuildplateLoadResponse(serverDataBase64);
     }
@@ -332,7 +332,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
             return false;
         }
 
-        string? preview = await _buildplateInstancesManager.GetBuildplatePreviewAsync(serverData, buildplateUnsafeForPreviewGenerator.Night);
+        var preview = await _buildplateInstancesManager.GetBuildplatePreviewAsync(serverData, buildplateUnsafeForPreviewGenerator.Night);
         if (preview is null)
         {
             LogCouldNotGeneratePreviewForBuildplate();
@@ -508,7 +508,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                     var inventoryResponseHotbar = new InventoryResponse.HotbarItem[7];
                     Dictionary<Guid, int> inventoryResponseStackableItems = [];
                     LinkedList<InventoryResponse.Item> inventoryResponseNonStackableItems = [];
-                    for (int index = 0; index < 7; index++)
+                    for (var index = 0; index < 7; index++)
                     {
                         var item = hotbar.Items[index];
                         if (item is not null)
@@ -568,7 +568,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
             return null;
         }
 
-        bool usesBackpack = instanceInfo.Type is BuildplateInstancesManager.InstanceType.ENCOUNTER;
+        var usesBackpack = instanceInfo.Type is BuildplateInstancesManager.InstanceType.ENCOUNTER;
         if (usesBackpack)
         {
             await using var earthDb = await _earthDbFactory.CreateDbContextAsync(cancellationToken);
@@ -620,7 +620,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                 }
             }
 
-            for (int index = 0; index < 7; index++)
+            for (var index = 0; index < 7; index++)
             {
                 InventoryResponse.HotbarItem? hotbarItem = backpackContents.Hotbar[index];
                 if (hotbarItem is not null)
@@ -782,7 +782,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
             await InventoryUtils.AddInstanceItemsAsync(earthDb, ResultsEF.Builder.Null, [new NonStackableItemInstanceEF(inventoryAddItemMessage.PlayerId, inventoryAddItemMessage.ItemId, inventoryAddItemMessage.InstanceId!.Value, inventoryAddItemMessage.Wear)], cancellationToken);
         }
 
-        bool journalItemUnlocked = false;
+        var journalItemUnlocked = false;
         if (await JournalUtils.AddCollectedItemAsync(earthDb, ResultsEF.Builder.Null, inventoryAddItemMessage.PlayerId, inventoryAddItemMessage.ItemId, timestamp, inventoryAddItemMessage.Count, cancellationToken) == 0)
         {
             if (catalogItem.JournalEntry is not null)
@@ -887,7 +887,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
             .AsTracking()
             .FirstAsync(hotbar => hotbar.Id == inventorySetHotbarMessage.PlayerId, cancellationToken: cancellationToken);
 
-        for (int index = 0; index < hotbar.Items.Length; index++)
+        for (var index = 0; index < hotbar.Items.Length; index++)
         {
             InventorySetHotbarMessage.Item item = inventorySetHotbarMessage.Items[index];
             hotbar.Items[index] = item is not null ? new HotbarEF.Item(item.ItemId, item.Count, item.InstanceId) : null;

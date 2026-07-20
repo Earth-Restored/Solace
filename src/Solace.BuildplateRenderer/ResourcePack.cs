@@ -58,7 +58,7 @@ public sealed class ResourcePack
         {
             foreach (var file in blockModelsDir.EnumerateFiles())
             {
-                string modelName = Path.GetFileNameWithoutExtension(file.Name);
+                var modelName = Path.GetFileNameWithoutExtension(file.Name);
                 BlockModelJson model;
                 using (var fs = File.OpenRead(file.FullName))
                 {
@@ -82,7 +82,7 @@ public sealed class ResourcePack
         {
             foreach (var file in blockStatesDir.EnumerateFiles())
             {
-                string blockName = $"{packName}:{Path.GetFileNameWithoutExtension(file.Name)}";
+                var blockName = $"{packName}:{Path.GetFileNameWithoutExtension(file.Name)}";
                 BlockStateJson json;
                 using (var fs = File.OpenRead(file.FullName))
                 {
@@ -96,7 +96,7 @@ public sealed class ResourcePack
                         var props = ParseVariantString(variant.Key);
                         var state = BlockState.CreateNoCopy(blockName, props);
 
-                        int totalWeight = 0;
+                        var totalWeight = 0;
                         foreach (var item in variant.Value)
                         {
                             totalWeight += item.Weight;
@@ -110,7 +110,7 @@ public sealed class ResourcePack
                     var builder = ImmutableArray.CreateBuilder<MultipartCase>(json.Multipart.Length);
                     foreach (var @case in json.Multipart)
                     {
-                        int totalWeight = 0;
+                        var totalWeight = 0;
                         foreach (var item in @case.Apply)
                         {
                             totalWeight += item.Weight;
@@ -418,7 +418,7 @@ public sealed class ResourcePack
             }
 
             var propertiesArray = ArrayPool<KeyValuePair<string, string>>.Shared.Rent(propertySchema.Count);
-            int propertiesArrayLength = 0;
+            var propertiesArrayLength = 0;
             foreach (var item in blockState.Properties)
             {
                 if (propertySchema.Contains(item.Key))
@@ -443,7 +443,7 @@ public sealed class ResourcePack
             return 0;
         }
 
-        int resultLength = 0;
+        var resultLength = 0;
         foreach (var item in multipart)
         {
             if (item.When is null || DoesConditionMatch(item.When.Value, blockState))
@@ -463,9 +463,9 @@ public sealed class ResourcePack
                 return variants[0];
             }
 
-            float r = rng.NextSingle() * totalWeight;
+            var r = rng.NextSingle() * totalWeight;
 
-            float cumulative = 0f;
+            var cumulative = 0f;
             foreach (var variant in variants)
             {
                 cumulative += variant.Weight;
@@ -500,7 +500,7 @@ public sealed class ResourcePack
         {
             foreach (var requirement in andGroup.AsSpan())
             {
-                string targetProperty = requirement.Key;
+                var targetProperty = requirement.Key;
                 MPSBuffer allowedValues = requirement.Value;
 
                 if (!StateSatisfiesRequirement(blockState, targetProperty, allowedValues))
@@ -518,7 +518,7 @@ public sealed class ResourcePack
             {
                 if (property.Key == key)
                 {
-                    for (int i = 0; i < allowedValues.Count; i++)
+                    for (var i = 0; i < allowedValues.Count; i++)
                     {
                         if (allowedValues[i] == property.Value)
                         {
@@ -615,7 +615,7 @@ public sealed class ResourcePack
             }
         }
 
-        int frameCount = textureImage.Height / height;
+        var frameCount = textureImage.Height / height;
 
         var textureInfo = new TextureInfo()
         {

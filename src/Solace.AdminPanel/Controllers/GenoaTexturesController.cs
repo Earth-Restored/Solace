@@ -30,9 +30,9 @@ internal sealed class GenoaTexturesController : ControllerBase
 
         var path = Path.Combine(cachePath, "textures", "ui", "items", name + ".png");
 
-        string baseDirectory = Path.GetFullPath(Path.Combine(cachePath, "textures", "ui", "items"));
+        var baseDirectory = Path.GetFullPath(Path.Combine(cachePath, "textures", "ui", "items"));
 
-        string fullPath = Path.GetFullPath(Path.Combine(baseDirectory, name + ".png"));
+        var fullPath = Path.GetFullPath(Path.Combine(baseDirectory, name + ".png"));
 
         if (!fullPath.StartsWith(baseDirectory, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
         {

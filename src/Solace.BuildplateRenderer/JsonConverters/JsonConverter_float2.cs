@@ -19,8 +19,8 @@ internal sealed class JsonConverter_float2 : JsonConverter<float2>
 
 		float x = 0, y = 0;
 
-		string propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(float2.X)) ?? nameof(float2.X);
-		string propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(float2.Y)) ?? nameof(float2.Y);
+		var propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(float2.X)) ?? nameof(float2.X);
+		var propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(float2.Y)) ?? nameof(float2.Y);
 
 		while (reader.Read())
 		{
@@ -31,7 +31,7 @@ internal sealed class JsonConverter_float2 : JsonConverter<float2>
 
 			if (reader.TokenType == JsonTokenType.PropertyName)
 			{
-				string? propertyName = reader.GetString();
+				var propertyName = reader.GetString();
 				reader.Read();
 
 #pragma warning disable IDE0045 // Convert to conditional expression
@@ -67,8 +67,8 @@ internal sealed class JsonConverter_float2 : JsonConverter<float2>
 	{
 		writer.WriteStartObject();
 
-		string propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(float2.X)) ?? nameof(float2.X);
-		string propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(float2.Y)) ?? nameof(float2.Y);
+		var propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(float2.X)) ?? nameof(float2.X);
+		var propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(float2.Y)) ?? nameof(float2.Y);
 
 		writer.WriteNumber(propertyX, value.X);
 		writer.WriteNumber(propertyY, value.Y);

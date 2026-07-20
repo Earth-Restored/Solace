@@ -43,7 +43,7 @@ public sealed partial record class WorldData(
 #pragma warning disable CA2014 // Do not use stackalloc in loops
                         Span<Range> parts = stackalloc Range[3];
 #pragma warning restore CA2014 // Do not use stackalloc in loops
-                        int partCount = entryPath.SplitAny(parts, ['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
+                        var partCount = entryPath.SplitAny(parts, ['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
 
                         if (partCount != 2)
                         {
@@ -84,13 +84,13 @@ public sealed partial record class WorldData(
             {
                 using (var zip = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
                 {
-                    foreach (string dirName in (IEnumerable<string>)["region", "entities"])
+                    foreach (var dirName in (IEnumerable<string>)["region", "entities"])
                     {
-                        foreach (string fileName in (IEnumerable<string>)["r.0.0.mca", "r.0.-1.mca", "r.-1.0.mca", "r.-1.-1.mca"])
+                        foreach (var fileName in (IEnumerable<string>)["r.0.0.mca", "r.0.-1.mca", "r.-1.0.mca", "r.-1.-1.mca"])
                         {
-                            string filePath = $"{dirName}/{fileName}";
+                            var filePath = $"{dirName}/{fileName}";
 
-                            if (!worldFileContents.TryGetValue(filePath, out byte[]? data))
+                            if (!worldFileContents.TryGetValue(filePath, out var data))
                             {
                                 LogWorldFileFileMissing(logger, filePath);
                                 return null;
@@ -114,8 +114,8 @@ public sealed partial record class WorldData(
             return null;
         }
 
-        byte[]? buildplateMetadataFileData = worldFileContents.GetValueOrDefault(MetadataFileName);
-        string? buildplateMetadataString = buildplateMetadataFileData is not null
+        var buildplateMetadataFileData = worldFileContents.GetValueOrDefault(MetadataFileName);
+        var buildplateMetadataString = buildplateMetadataFileData is not null
             ? Encoding.UTF8.GetString(buildplateMetadataFileData)
             : null;
 

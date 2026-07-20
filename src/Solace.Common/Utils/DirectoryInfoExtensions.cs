@@ -17,7 +17,7 @@ public static class DirectoryInfoExtensions
 
             foreach (FileInfo file in directoryInfo.GetFiles())
             {
-                string targetFilePath = Path.Combine(destDirectoryName, file.Name);
+                var targetFilePath = Path.Combine(destDirectoryName, file.Name);
                 file.CopyTo(targetFilePath, true);
             }
 
@@ -25,7 +25,7 @@ public static class DirectoryInfoExtensions
             {
                 foreach (DirectoryInfo subDir in subDirs)
                 {
-                    string newDestDir = Path.Combine(destDirectoryName, subDir.Name);
+                    var newDestDir = Path.Combine(destDirectoryName, subDir.Name);
                     subDir.CopyTo(newDestDir, true);
                 }
             }

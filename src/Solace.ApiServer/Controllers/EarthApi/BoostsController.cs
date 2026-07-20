@@ -187,7 +187,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             .AsTracking()
             .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
-        bool profileChanged = false;
+        var profileChanged = false;
 
         if (PruneBoostsAndUpdateProfile(boosts, profile, requestStartedOn, _catalog.ItemsCatalog))
         {
@@ -201,9 +201,9 @@ internal sealed partial class BoostsController : SolaceControllerBase
             return EarthJson(null, null);
         }
 
-        int newIndex = -1;
-        bool extendExisting = false;
-        for (int index = 0; index < boosts.ActiveBoosts.Length; index++)
+        var newIndex = -1;
+        var extendExisting = false;
+        for (var index = 0; index < boosts.ActiveBoosts.Length; index++)
         {
             var boost = boosts.ActiveBoosts[index];
 
@@ -216,7 +216,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         if (!extendExisting)
         {
-            for (int index = 0; index < boosts.ActiveBoosts.Length; index++)
+            for (var index = 0; index < boosts.ActiveBoosts.Length; index++)
             {
                 if (boosts.ActiveBoosts[index] is null)
                 {
@@ -278,7 +278,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             .AsTracking()
             .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
-        bool profileChanged = false;
+        var profileChanged = false;
 
         if (PruneBoostsAndUpdateProfile(boosts, profile, requestStartedOn, _catalog.ItemsCatalog))
         {
@@ -297,7 +297,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             return EarthJson(null, null);
         }
 
-        for (int index = 0; index < boosts.ActiveBoosts.Length; index++)
+        for (var index = 0; index < boosts.ActiveBoosts.Length; index++)
         {
             var boost = boosts.ActiveBoosts[index];
 
@@ -310,7 +310,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
         if (item.BoostInfo.Effects.Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostEffectType.HEALTH))
         {
             profileChanged = true;
-            int maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _catalog.ItemsCatalog);
+            var maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _catalog.ItemsCatalog);
             if (profile.Health > maxPlayerHealth)
             {
                 profile.Health = maxPlayerHealth;
@@ -328,14 +328,14 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
     private static bool PruneBoostsAndUpdateProfile(BoostsEF boosts, ProfileEF profile, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
     {
-        bool profileChanged = false;
+        var profileChanged = false;
         var prunedBoosts = boosts.Prune(currentTime);
         if (prunedBoosts.SelectMany(activeBoost => itemsCatalog.GetItem(activeBoost.ItemId)!.BoostInfo!.Effects).Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostEffectType.HEALTH))
         {
             profileChanged = true;
         }
 
-        int maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, currentTime, itemsCatalog);
+        var maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, currentTime, itemsCatalog);
         if (profile.Health > maxPlayerHealth)
         {
             profile.Health = maxPlayerHealth;

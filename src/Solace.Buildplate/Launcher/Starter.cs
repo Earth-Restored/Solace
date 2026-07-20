@@ -55,8 +55,8 @@ internal sealed partial class Starter
 			return null;
 		}
 
-		int port = FindPort(_portsInUse, _basePort);
-		int serverInternalPort = FindPort(_serverInternalPortsInUse, SERVER_INTERNAL_BASE_PORT);
+		var port = FindPort(_portsInUse, _basePort);
+		var serverInternalPort = FindPort(_serverInternalPortsInUse, SERVER_INTERNAL_BASE_PORT);
 		
 		var instanceLogger = _loggerFactory.CreateLogger($"{nameof(Instance)}({port}/{serverInternalPort})");
 		var instance = Instance.Run(_eventBusClient, playerId, buildplateId, buildplateSource, instanceId, survival, night, saveEnabled, inventoryType, shutdownTime, _publicAddress, port, serverInternalPort, _javaCmd, _fountainBridgeJar, _serverTemplateDir, _fabricJarName, _connectorPluginJar, baseDir, _eventBusConnectionString, _loggerFactory, instanceLogger);
@@ -75,7 +75,7 @@ internal sealed partial class Starter
 	{
 		lock (portsInUse)
 		{
-			int port = basePort;
+			var port = basePort;
 			while (portsInUse.Contains(port) || !CanBindPort(port))
 			{
 				port++;

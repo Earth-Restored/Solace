@@ -29,13 +29,13 @@ public sealed class ResourcePackManager
 
         // Load in reverse (from base to highest priority custom)
         // This allows custom packs to reference block models from base packs.
-        for (int i = packsToLoad.Count - 1; i >= 0; i--)
+        for (var i = packsToLoad.Count - 1; i >= 0; i--)
         {
             var packDef = packsToLoad[i];
 
             BlockModel? FallbackResolver(string modelName)
             {
-                for (int j = i + 1; j < packs.Length; j++)
+                for (var j = i + 1; j < packs.Length; j++)
                 {
                     if (packs[j].TryGetBlockModel(modelName, out var baseModel))
                     {
@@ -54,9 +54,9 @@ public sealed class ResourcePackManager
 
     public int GetModelVariants(BlockState blockState, Random rng, Span<VariantModel> result)
     {
-        for (int i = 0; i < _packs.Length; i++)
+        for (var i = 0; i < _packs.Length; i++)
         {
-            int count = _packs[i].GetModelVariants(blockState, rng, result);
+            var count = _packs[i].GetModelVariants(blockState, rng, result);
             if (count > 0)
             {
                 return count;
@@ -68,7 +68,7 @@ public sealed class ResourcePackManager
 
     public BlockModel GetBlockModel(string modelName)
     {
-        for (int i = 0; i < _packs.Length; i++)
+        for (var i = 0; i < _packs.Length; i++)
         {
             if (_packs[i].TryGetBlockModel(modelName, out var model))
             {
@@ -81,7 +81,7 @@ public sealed class ResourcePackManager
 
     public async Task<byte[]> GetTextureDataPNGAsync(string name, CancellationToken cancellationToken = default)
     {
-        for (int i = 0; i < _packs.Length; i++)
+        for (var i = 0; i < _packs.Length; i++)
         {
             var textureData = await _packs[i].TryGetTextureDataPNGAsync(name, cancellationToken);
             if (textureData is not null)
@@ -109,7 +109,7 @@ public sealed class ResourcePackManager
                 return image;
             }
 
-            for (int i = 0; i < _packs.Length; i++)
+            for (var i = 0; i < _packs.Length; i++)
             {
                 var textureData = await _packs[i].TryGetTextureDataPNGAsync(name, cancellationToken);
                 if (textureData is not null)

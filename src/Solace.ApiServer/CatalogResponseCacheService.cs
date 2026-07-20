@@ -75,7 +75,7 @@ internal sealed class CatalogResponseCacheService
     {
         ItemsCatalog.ItemR[] items = [.. _catalog.ItemsCatalog.Items.Select(item =>
         {
-            string categoryString = item.Category switch
+            var categoryString = item.Category switch
             {
                 CICICategory.CONSTRUCTION => "Construction",
                 CICICategory.EQUIPMENT => "Equipment",
@@ -97,7 +97,7 @@ internal sealed class CatalogResponseCacheService
                 _ => throw new UnreachableException(),
             };
 
-            string typeString = item.Type switch
+            var typeString = item.Type switch
             {
                 CICIType.BLOCK => "Block",
                 CICIType.ITEM => "Item",
@@ -109,7 +109,7 @@ internal sealed class CatalogResponseCacheService
                 _ => throw new UnreachableException(),
             };
 
-            string useTypeString = item.UseType switch
+            var useTypeString = item.UseType switch
             {
                 CICIUseType.NONE => "None",
 
@@ -123,7 +123,7 @@ internal sealed class CatalogResponseCacheService
                 _ => throw new UnreachableException(),
             };
 
-            string alternativeUseTypeString = item.AlternativeUseType switch
+            var alternativeUseTypeString = item.AlternativeUseType switch
             {
                 CICIUseType.NONE => "None",
 
@@ -196,14 +196,14 @@ internal sealed class CatalogResponseCacheService
             BoostMetadata? boostMetadata;
             if (item.BoostInfo is not null)
             {
-                string boostTypeString = item.BoostInfo.Type switch
+                var boostTypeString = item.BoostInfo.Type switch
                 {
                     CICIBIType.POTION => "Potion",
                     CICIBIType.INVENTORY_ITEM => "InventoryItem",
                     _ => throw new UnreachableException(),
                 };
 
-                string boostAttributeString = item.BoostInfo.Effects[0].Type switch
+                var boostAttributeString = item.BoostInfo.Effects[0].Type switch
                 {
                     CICIBIEType.ADVENTURE_XP => "ItemExperiencePoints",
                     CICIBIEType.CRAFTING => "Crafting",
@@ -242,7 +242,7 @@ internal sealed class CatalogResponseCacheService
             ItemsCatalog.ItemR.ItemData.JournalMetadataR? journalMetadata;
             if (item.JournalEntry is not null)
             {
-                string behaviorString = item.JournalEntry.Behavior switch
+                var behaviorString = item.JournalEntry.Behavior switch
                 {
                     CICIJEBehavior.NONE => "None",
                     CICIJEBehavior.PASSIVE => "Passive",
@@ -251,7 +251,7 @@ internal sealed class CatalogResponseCacheService
                     _ => throw new UnreachableException(),
                 };
 
-                string biomeString = item.JournalEntry.Biome switch
+                var biomeString = item.JournalEntry.Biome switch
                 {
                     CICIJEBiome.NONE => "None",
                     CICIJEBiome.OVERWORLD => "Overworld",
@@ -362,7 +362,7 @@ internal sealed class CatalogResponseCacheService
     {
         RecipesCatalog.CraftingRecipe[] crafting = [.. _catalog.RecipesCatalog.Crafting.Select(recipe =>
         {
-            string categoryString = recipe.Category switch
+            var categoryString = recipe.Category switch
             {
                 CRCCRCategory.CONSTRUCTION => "Construction",
                 CRCCRCategory.EQUIPMENT => "Equipment",
@@ -402,7 +402,7 @@ internal sealed class CatalogResponseCacheService
         Dictionary<string, JournalCatalog.Item> items = [];
         foreach (Catalog.ItemJournalGroupsCatalogR.JournalGroup group in _catalog.ItemJournalGroupsCatalog.Groups)
         {
-            string parentCollectionString = group.ParentCollection switch
+            var parentCollectionString = group.ParentCollection switch
             {
                 CIJGCJGParentCollection.BLOCKS => "Blocks",
                 CIJGCJGParentCollection.ITEMS_CRAFTED => "ItemsCrafted",

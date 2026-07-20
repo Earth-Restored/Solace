@@ -40,12 +40,12 @@ internal sealed class DatabaseTileDataSource : ITileDataSource
             await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
 
             List<List<IWKBObject>> layers = [];
-            for (int i = 0; i <= (int)RenderLayer.LAYER_NONE; i++)
+            for (var i = 0; i <= (int)RenderLayer.LAYER_NONE; i++)
             {
                 layers.Add([]);
             }
 
-            int rowCount = 0;
+            var rowCount = 0;
             while (await reader.ReadAsync(cancellationToken))
             {
                 rowCount++;
@@ -57,17 +57,17 @@ internal sealed class DatabaseTileDataSource : ITileDataSource
 
                 RenderLayer targetLayer = RenderLayer.LAYER_NONE;
 
-                for (int i = 0; i < ctx.Tags.Length; i++)
+                for (var i = 0; i < ctx.Tags.Length; i++)
                 {
                     var tagName = ctx.Tags[i];
 
-                    int ord = reader.GetOrdinal(tagName);
+                    var ord = reader.GetOrdinal(tagName);
                     if (await reader.IsDBNullAsync(ord, cancellationToken))
                     {
                         continue;
                     }
 
-                    string tagValue = reader.GetString(ord);
+                    var tagValue = reader.GetString(ord);
 
                     if (ctx.TryGetLayer(tagName, tagValue, out targetLayer))
                     {
@@ -75,7 +75,7 @@ internal sealed class DatabaseTileDataSource : ITileDataSource
                     }
                 }
 
-                byte[] wkb = (byte[])reader[11];
+                var wkb = (byte[])reader[11];
                 if (wkb.Length < 5)
                 {
                     continue; // invalid

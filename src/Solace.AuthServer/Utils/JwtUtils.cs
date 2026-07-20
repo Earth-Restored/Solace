@@ -97,12 +97,12 @@ internal static partial class JwtUtils
                 IssuerSigningKey = signingKey,
             }, out _).Claims.ToDictionary(claim => claim.Type, claim => claim.Value);
 
-            if (!claims.TryGetValue("iat", out string? iat) || !claims.TryGetValue("exp", out string? exp) || !claims.TryGetValue("data", out string? dataJson))
+            if (!claims.TryGetValue("iat", out var iat) || !claims.TryGetValue("exp", out var exp) || !claims.TryGetValue("data", out var dataJson))
             {
                 return null;
             }
 
-            if (!long.TryParse(iat, CultureInfo.InvariantCulture, out long issuedSeconds) || !long.TryParse(exp, CultureInfo.InvariantCulture, out long expiresSeconds))
+            if (!long.TryParse(iat, CultureInfo.InvariantCulture, out var issuedSeconds) || !long.TryParse(exp, CultureInfo.InvariantCulture, out var expiresSeconds))
             {
                 return null;
             }

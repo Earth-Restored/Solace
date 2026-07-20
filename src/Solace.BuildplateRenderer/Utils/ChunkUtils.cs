@@ -44,12 +44,12 @@ internal static class ChunkUtils
 
 		var longArray = nbt.Span;
 
-		int bits = 4;
+		var bits = 4;
 
-		for (int b = 4; b <= 64; b++)
+		for (var b = 4; b <= 64; b++)
 		{
-			int vpl = 64 / b;
-			int expectedLength = (4096 + vpl - 1) / vpl;
+			var vpl = 64 / b;
+			var expectedLength = (4096 + vpl - 1) / vpl;
 
 			if (expectedLength == longArray.Length)
 			{
@@ -58,16 +58,16 @@ internal static class ChunkUtils
 			}
 		}
 
-		int valuesPerLong = 64 / bits;
-		long mask = (1L << bits) - 1;
+		var valuesPerLong = 64 / bits;
+		var mask = (1L << bits) - 1;
 
-		int dataIndex = 0;
+		var dataIndex = 0;
 
-		for (int i = 0; i < longArray.Length; i++)
+		for (var i = 0; i < longArray.Length; i++)
 		{
-			long value = longArray[i];
+			var value = longArray[i];
 
-			for (int j = 0; j < valuesPerLong; j++)
+			for (var j = 0; j < valuesPerLong; j++)
 			{
 				if (dataIndex >= 4096)
 				{
@@ -83,7 +83,7 @@ internal static class ChunkUtils
 
 	public static BlockState? TagToBlockStateVisibleFromPool(CompoundTag paletteEntry)
 	{
-		string blockName = ((StringTag)paletteEntry["Name"]).Value;
+		var blockName = ((StringTag)paletteEntry["Name"]).Value;
 
 		if (InvisibleBlocks.Contains(blockName))
 		{
@@ -97,7 +97,7 @@ internal static class ChunkUtils
 		}
 
 		var propertiesArray = ArrayPool<KeyValuePair<string, string>>.Shared.Rent(64);
-		int propertiesArrayLength = 0;
+		var propertiesArrayLength = 0;
 		if (paletteEntry.TryGetValue("Properties", out var propertiesTag))
 		{
 			foreach (var item in (ICollection<KeyValuePair<string, Tag>>)(CompoundTag)propertiesTag)

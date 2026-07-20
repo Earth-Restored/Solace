@@ -80,7 +80,7 @@ internal sealed class MapboxTileReader
 
     private Geometry? ReadPoint(TileGeometryTransform tgs, RepeatedField<uint> geometry)
     {
-        var currentIndex = 0; int currentX = 0; int currentY = 0;
+        var currentIndex = 0; var currentX = 0; var currentY = 0;
         var sequences = ReadCoordinateSequences(tgs, geometry, ref currentIndex, ref currentX, ref currentY, forPoint: true);
 
         return CreatePuntal(sequences);
@@ -88,7 +88,7 @@ internal sealed class MapboxTileReader
 
     private Geometry? ReadLineString(TileGeometryTransform tgs, RepeatedField<uint> geometry)
     {
-        int currentIndex = 0; int currentX = 0; int currentY = 0;
+        var currentIndex = 0; var currentX = 0; var currentY = 0;
         var sequences = ReadCoordinateSequences(tgs, geometry, ref currentIndex, ref currentX, ref currentY);
 
         return CreateLineal(sequences);
@@ -96,7 +96,7 @@ internal sealed class MapboxTileReader
 
     private Geometry ReadPolygon(TileGeometryTransform tgs, RepeatedField<uint> geometry)
     {
-        int currentIndex = 0; int currentX = 0; int currentY = 0;
+        var currentIndex = 0; var currentX = 0; var currentY = 0;
         var sequences = ReadCoordinateSequences(tgs, geometry, ref currentIndex, ref currentX, ref currentY, 1);
         return CreatePolygonal(sequences);
     }
@@ -109,7 +109,7 @@ internal sealed class MapboxTileReader
         }
 
         var points = new Point[sequences.Length];
-        for (int i = 0; i < sequences.Length; i++)
+        for (var i = 0; i < sequences.Length; i++)
         {
             points[i] = _factory.CreatePoint(sequences[i]);
         }
@@ -130,7 +130,7 @@ internal sealed class MapboxTileReader
         }
 
         var lineStrings = new LineString[sequences.Length];
-        for (int i = 0; i < sequences.Length; i++)
+        for (var i = 0; i < sequences.Length; i++)
         {
             lineStrings[i] = _factory.CreateLineString(sequences[i]);
         }
@@ -150,7 +150,7 @@ internal sealed class MapboxTileReader
         LinearRing? shell = null;
         var holes = new List<LinearRing>();
 
-        for (int i = 0; i < sequences.Length; i++)
+        for (var i = 0; i < sequences.Length; i++)
         {
             var ring = _factory.CreateLinearRing(sequences[i]);
 
@@ -279,7 +279,7 @@ internal sealed class MapboxTileReader
     {
         var res = new CoordinateSequence[numSequences];
         var currentPosition = (currentX, currentY);
-        for (int i = 0; i < numSequences; i++)
+        for (var i = 0; i < numSequences; i++)
         {
             res[i] = _factory.CoordinateSequenceFactory.Create(1, 2);
 

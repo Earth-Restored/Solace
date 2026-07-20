@@ -237,9 +237,9 @@ public sealed partial class RST2
                 }
             }
 
-            string? deviceDATokenXMLString = HttpUtility.UrlDecode(deviceDATokenXMLStringEncoded);
+            var deviceDATokenXMLString = HttpUtility.UrlDecode(deviceDATokenXMLStringEncoded);
 
-            string deviceTokenString = string.Empty;
+            var deviceTokenString = string.Empty;
             if (deviceDATokenXMLString is not null)
             {
                 var deviceTokenXml = new XmlDocument();

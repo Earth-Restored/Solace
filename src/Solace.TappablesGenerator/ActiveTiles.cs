@@ -47,11 +47,11 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
                 var currentTime = DateTimeOffset.UtcNow;
                 PruneActiveTiles(currentTime);
 
-                int sideLength = (ACTIVE_TILE_RADIUS * 2) + 1;
+                var sideLength = (ACTIVE_TILE_RADIUS * 2) + 1;
                 var newActiveTiles = new List<ActiveTile>(sideLength * sideLength);
-                for (int tileX = activeTileNotification.X - ACTIVE_TILE_RADIUS; tileX < activeTileNotification.X + ACTIVE_TILE_RADIUS + 1; tileX++)
+                for (var tileX = activeTileNotification.X - ACTIVE_TILE_RADIUS; tileX < activeTileNotification.X + ACTIVE_TILE_RADIUS + 1; tileX++)
                 {
-                    for (int tileY = activeTileNotification.Y - ACTIVE_TILE_RADIUS; tileY < activeTileNotification.Y + ACTIVE_TILE_RADIUS + 1; tileY++)
+                    for (var tileY = activeTileNotification.Y - ACTIVE_TILE_RADIUS; tileY < activeTileNotification.Y + ACTIVE_TILE_RADIUS + 1; tileY++)
                     {
                         ActiveTile activeTile = MarkTileActive(tileX, tileY, currentTime);
 

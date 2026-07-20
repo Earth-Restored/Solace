@@ -16,7 +16,7 @@ public sealed class PlayerLevels
         {
             var levels = ImmutableArray.CreateBuilder<Level>();
             string file;
-            for (int levelIndex = 2; File.Exists(file = Path.Combine(dir, $"{levelIndex}.json")); levelIndex++)
+            for (var levelIndex = 2; File.Exists(file = Path.Combine(dir, $"{levelIndex}.json")); levelIndex++)
             {
                 using (var stream = File.OpenRead(file))
                 {
@@ -30,7 +30,7 @@ public sealed class PlayerLevels
 
             Levels = levels.DrainToImmutable();
 
-            for (int index = 1; index < Levels.Length; index++)
+            for (var index = 1; index < Levels.Length; index++)
             {
                 if (Levels[index].ExperienceRequired <= Levels[index - 1].ExperienceRequired)
                 {

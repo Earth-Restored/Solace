@@ -72,17 +72,17 @@ internal static class BoostUtils
 
     public static StatModiferValues GetActiveStatModifiers(BoostsEF boosts, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
     {
-        int maxPlayerHealth = 0;
-        int attackMultiplier = 0;
-        int defenseMultiplier = 0;
-        int foodMultiplier = 0;
-        int miningSpeedMultiplier = 0;
-        int craftingMultiplier = 0;
-        int smeltingMultiplier = 0;
-        int tappableInteractionRadius = 0;
-        bool keepHotbar = false;
-        bool keepInventory = false;
-        bool keepXp = false;
+        var maxPlayerHealth = 0;
+        var attackMultiplier = 0;
+        var defenseMultiplier = 0;
+        var foodMultiplier = 0;
+        var miningSpeedMultiplier = 0;
+        var craftingMultiplier = 0;
+        var smeltingMultiplier = 0;
+        var tappableInteractionRadius = 0;
+        var keepHotbar = false;
+        var keepInventory = false;
+        var keepXp = false;
 
         foreach (var effect in BoostUtils.GetActiveEffects(boosts, currentTime, itemsCatalog))
         {
@@ -144,7 +144,7 @@ internal static class BoostUtils
 
     public static Effect BoostEffectToApiResponse(Catalog.ItemsCatalogR.Item.BoostEffect effect, TimeSpan boostDuration)
     {
-        string effectTypeString = effect.Type switch
+        var effectTypeString = effect.Type switch
         {
             CICIBIEType.ADVENTURE_XP => "ItemExperiencePoints",
             CICIBIEType.CRAFTING => "CraftingSpeed",
@@ -163,7 +163,7 @@ internal static class BoostUtils
             _ => throw new UnreachableException(),
         };
 
-        string activationString = effect.Activation switch
+        var activationString = effect.Activation switch
         {
             CICIBIEActivation.INSTANT => "Instant",
             CICIBIEActivation.TIMED => "Timed",

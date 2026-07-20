@@ -90,7 +90,7 @@ internal static partial class App
 
         var earthDbConnectionString = builder.Configuration.GetConnectionString("EarthDb");
 
-        bool isEFTooling = Assembly.GetEntryAssembly()?.GetName().Name == "ef";
+        var isEFTooling = Assembly.GetEntryAssembly()?.GetName().Name == "ef";
 
         if (isEFTooling)
         {

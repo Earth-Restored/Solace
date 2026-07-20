@@ -14,9 +14,9 @@ internal sealed class JsonConverter_Vector3 : JsonConverter<Vector3>
 	{
 		if (reader.TokenType is JsonTokenType.StartArray)
 		{
-			float x = ReadNextFloat(ref reader);
-			float y = ReadNextFloat(ref reader);
-			float z = ReadNextFloat(ref reader);
+			var x = ReadNextFloat(ref reader);
+			var y = ReadNextFloat(ref reader);
+			var z = ReadNextFloat(ref reader);
 
 			if (!reader.Read() || reader.TokenType != JsonTokenType.EndArray)
 			{
@@ -30,9 +30,9 @@ internal sealed class JsonConverter_Vector3 : JsonConverter<Vector3>
 		{
 			float x = 0, y = 0, z = 0;
 
-			string propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(Vector3.X)) ?? nameof(Vector3.X);
-			string propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(Vector3.Y)) ?? nameof(Vector3.Y);
-			string propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(Vector3.Z)) ?? nameof(Vector3.Z);
+			var propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(Vector3.X)) ?? nameof(Vector3.X);
+			var propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(Vector3.Y)) ?? nameof(Vector3.Y);
+			var propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(Vector3.Z)) ?? nameof(Vector3.Z);
 
 			while (reader.Read())
 			{
@@ -43,7 +43,7 @@ internal sealed class JsonConverter_Vector3 : JsonConverter<Vector3>
 
 				if (reader.TokenType is JsonTokenType.PropertyName)
 				{
-					string? propertyName = reader.GetString();
+					var propertyName = reader.GetString();
 					reader.Read();
 
 					if (StringEquals(propertyName, propertyX))
@@ -92,9 +92,9 @@ internal sealed class JsonConverter_Vector3 : JsonConverter<Vector3>
 	{
 		writer.WriteStartObject();
 
-		string propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(Vector3.X)) ?? nameof(Vector3.X);
-		string propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(Vector3.Y)) ?? nameof(Vector3.Y);
-		string propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(Vector3.Z)) ?? nameof(Vector3.Z);
+		var propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(Vector3.X)) ?? nameof(Vector3.X);
+		var propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(Vector3.Y)) ?? nameof(Vector3.Y);
+		var propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(Vector3.Z)) ?? nameof(Vector3.Z);
 
 		writer.WriteNumber(propertyX, value.X);
 		writer.WriteNumber(propertyY, value.Y);

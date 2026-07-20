@@ -14,9 +14,9 @@ internal sealed class JsonConverter_int3 : JsonConverter<int3>
 	{
 		if (reader.TokenType is JsonTokenType.StartArray)
 		{
-			int x = ReadNextInt(ref reader);
-			int y = ReadNextInt(ref reader);
-			int z = ReadNextInt(ref reader);
+			var x = ReadNextInt(ref reader);
+			var y = ReadNextInt(ref reader);
+			var z = ReadNextInt(ref reader);
 
 			if (!reader.Read() || reader.TokenType != JsonTokenType.EndArray)
 			{
@@ -30,9 +30,9 @@ internal sealed class JsonConverter_int3 : JsonConverter<int3>
 		{
 			int x = 0, y = 0, z = 0;
 
-			string propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(int3.X)) ?? nameof(int3.X);
-			string propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(int3.Y)) ?? nameof(int3.Y);
-			string propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(int3.Z)) ?? nameof(int3.Z);
+			var propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(int3.X)) ?? nameof(int3.X);
+			var propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(int3.Y)) ?? nameof(int3.Y);
+			var propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(int3.Z)) ?? nameof(int3.Z);
 
 			while (reader.Read())
 			{
@@ -43,7 +43,7 @@ internal sealed class JsonConverter_int3 : JsonConverter<int3>
 
 				if (reader.TokenType == JsonTokenType.PropertyName)
 				{
-					string? propertyName = reader.GetString();
+					var propertyName = reader.GetString();
 					reader.Read();
 
 					if (StringEquals(propertyName, propertyX))
@@ -96,9 +96,9 @@ internal sealed class JsonConverter_int3 : JsonConverter<int3>
 	{
 		writer.WriteStartObject();
 
-		string propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(int3.X)) ?? nameof(int3.X);
-		string propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(int3.Y)) ?? nameof(int3.Y);
-		string propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(int3.Z)) ?? nameof(int3.Z);
+		var propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(int3.X)) ?? nameof(int3.X);
+		var propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(int3.Y)) ?? nameof(int3.Y);
+		var propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(int3.Z)) ?? nameof(int3.Z);
 
 		writer.WriteNumber(propertyX, value.X);
 		writer.WriteNumber(propertyY, value.Y);

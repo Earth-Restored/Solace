@@ -137,7 +137,7 @@ internal sealed class TappablesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        int experiencePointsGlobalMultiplier = 0;
+        var experiencePointsGlobalMultiplier = 0;
 
         Dictionary<Guid, int> experiencePointsPerItemMultiplier = [];
         foreach (var effect in BoostUtils.GetActiveEffects(boosts, requestStartedOn, _staticData.Catalog.ItemsCatalog))
@@ -163,8 +163,8 @@ internal sealed class TappablesController : SolaceControllerBase
         foreach (TappablesManager.Tappable.Item item in tappable.Items)
         {
             rewards.AddItem(item.Id, item.Count);
-            int experiencePoints = _staticData.Catalog.ItemsCatalog.GetItem(item.Id)!.Experience.Tappable;
-            int experiencePointsMultiplier = experiencePointsGlobalMultiplier + experiencePointsPerItemMultiplier.GetValueOrDefault(item.Id);
+            var experiencePoints = _staticData.Catalog.ItemsCatalog.GetItem(item.Id)!.Experience.Tappable;
+            var experiencePointsMultiplier = experiencePointsGlobalMultiplier + experiencePointsPerItemMultiplier.GetValueOrDefault(item.Id);
             if (experiencePointsMultiplier > 0)
             {
                 experiencePoints = experiencePoints * (experiencePointsMultiplier + 100) / 100;

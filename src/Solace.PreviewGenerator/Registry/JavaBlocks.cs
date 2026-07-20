@@ -94,7 +94,7 @@ public static partial class JavaBlocks
                 var element = _element as JsonObject;
                 Debug.Assert(element is not null);
 
-                string baseName = element["name"]!.GetValue<string>()!;
+                var baseName = element["name"]!.GetValue<string>()!;
 
                 var statesArray = (JsonArray)element["states"]!;
                 var stateNames = new List<string>(statesArray.Count);
@@ -103,10 +103,10 @@ public static partial class JavaBlocks
                     var stateElement = _stateElement as JsonObject;
                     Debug.Assert(stateElement is not null);
 
-                    string stateName = stateElement["name"]!.GetValue<string>()!;
+                    var stateName = stateElement["name"]!.GetValue<string>()!;
                     stateNames.Add(stateName);
 
-                    string name = baseName + stateName;
+                    var name = baseName + stateName;
 
                     try
                     {
@@ -140,7 +140,7 @@ public static partial class JavaBlocks
             return null;
         }
 
-        string name = bedrockMappingObject["name"]!.GetValue<string>()!;
+        var name = bedrockMappingObject["name"]!.GetValue<string>()!;
 
         SortedDictionary<string, object> state = [];
         if (bedrockMappingObject.TryGetPropertyValue("state", out var stateToken))
@@ -172,13 +172,13 @@ public static partial class JavaBlocks
             }
         }
 
-        int id = BedrockBlocks.GetId(name, state);
+        var id = BedrockBlocks.GetId(name, state);
         if (id == -1)
         {
             throw new BedrockMappingFailException("Cannot find Bedrock block with provided name and state");
         }
 
-        bool waterlogged = bedrockMappingObject.TryGetPropertyValue("waterlogged", out var waterloggedToken) && waterloggedToken!.GetValue<bool>();
+        var waterlogged = bedrockMappingObject.TryGetPropertyValue("waterlogged", out var waterloggedToken) && waterloggedToken!.GetValue<bool>();
 
         BedrockMapping.BlockEntityR? blockEntity = null;
         if (bedrockMappingObject.TryGetPropertyValue("block_entity", out var blockEntityToken))
@@ -186,12 +186,12 @@ public static partial class JavaBlocks
             var blockEntityObject = blockEntityToken as JsonObject;
             Debug.Assert(blockEntityObject is not null);
 
-            string type = blockEntityObject["type"]!.GetValue<string>()!;
+            var type = blockEntityObject["type"]!.GetValue<string>()!;
             switch (type)
             {
                 case "bed":
                     {
-                        string color = blockEntityObject["color"]!.GetValue<string>()!;
+                        var color = blockEntityObject["color"]!.GetValue<string>()!;
                         blockEntity = new BedrockMapping.BedBlockEntity(type, color);
                     }
 
@@ -201,7 +201,7 @@ public static partial class JavaBlocks
                         NbtMap? contents = null;
                         if (blockEntityObject.TryGetPropertyValue("contents", out var contentsToken) && contentsToken!.GetValueKind() is not JsonValueKind.Null)
                         {
-                            string contentsName = contentsToken.GetValue<string>()!;
+                            var contentsName = contentsToken.GetValue<string>()!;
                             if (javaBlocksArray is not null)
                             {
                                 var element = javaBlocksArray
@@ -263,8 +263,8 @@ public static partial class JavaBlocks
                     break;
                 case "piston":
                     {
-                        bool sticky = blockEntityObject["sticky"]!.GetValue<bool>();
-                        bool extended = blockEntityObject["extended"]!.GetValue<bool>();
+                        var sticky = blockEntityObject["sticky"]!.GetValue<bool>();
+                        var extended = blockEntityObject["extended"]!.GetValue<bool>();
                         blockEntity = new BedrockMapping.PistonBlockEntity(type, sticky, extended);
                     }
 
@@ -278,12 +278,12 @@ public static partial class JavaBlocks
             var extraDataObject = extra_dataToken as JsonObject;
             Debug.Assert(extraDataObject is not null);
 
-            string type = extraDataObject["type"]!.GetValue<string>();
+            var type = extraDataObject["type"]!.GetValue<string>();
             switch (type)
             {
                 case "note_block":
                     {
-                        int pitch = extraDataObject["pitch"]!.GetValue<int>();
+                        var pitch = extraDataObject["pitch"]!.GetValue<int>();
                         extraData = new BedrockMapping.NoteBlockExtraData(pitch);
                     }
 
@@ -347,7 +347,7 @@ public static partial class JavaBlocks
     {
         EnsureInitialized();
 
-        string? name = map.GetValueOrDefault(id);
+        var name = map.GetValueOrDefault(id);
         if (name is null && fabricRegistryManager is not null)
         {
             name = null;//fabricRegistryManager.getBlockName(id);

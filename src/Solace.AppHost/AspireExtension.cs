@@ -43,7 +43,7 @@ internal static class AspireExtension
             string? prefixToRemove = null,
             bool isSecret = false)
         {
-            string parameterName = configPath.Replace(':', '-');
+            var parameterName = configPath.Replace(':', '-');
 
             var envName = configPath;
             if (!string.IsNullOrEmpty(prefixToRemove) && envName.StartsWith(prefixToRemove, StringComparison.Ordinal))
@@ -85,7 +85,7 @@ internal static class AspireExtension
 
             envName = envName.Replace(":", "__", StringComparison.Ordinal);
 
-            string parameterName = configPath.Replace(':', '-');
+            var parameterName = configPath.Replace(':', '-');
 
             var parameter = builder.AddParameter(
                 parameterName,

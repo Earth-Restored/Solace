@@ -13,12 +13,12 @@ public static partial class Generator
     {
         var serverDataZip = ServerDataZip.Read(stream);
 
-        int sideLength = (CHUNK_RADIUS * 2) + 1;
+        var sideLength = (CHUNK_RADIUS * 2) + 1;
         var chunks = new List<Chunk>(sideLength * sideLength);
 
-        for (int chunkX = -CHUNK_RADIUS; chunkX < CHUNK_RADIUS; chunkX++)
+        for (var chunkX = -CHUNK_RADIUS; chunkX < CHUNK_RADIUS; chunkX++)
         {
-            for (int chunkZ = -CHUNK_RADIUS; chunkZ < CHUNK_RADIUS; chunkZ++)
+            for (var chunkZ = -CHUNK_RADIUS; chunkZ < CHUNK_RADIUS; chunkZ++)
             {
                 var chunk = Chunk.Read(serverDataZip.GetChunkNBT(chunkX, chunkZ), logger);
                 if (chunk is null)
@@ -39,14 +39,14 @@ public static partial class Generator
                     .Select(subchunkY =>
                     {
                         Dictionary<int, int> palette = [];
-                        int[] blocks = new int[4096];
-                        for (int x = 0; x < 16; x++)
+                        var blocks = new int[4096];
+                        for (var x = 0; x < 16; x++)
                         {
-                            for (int y = 0; y < 16; y++)
+                            for (var y = 0; y < 16; y++)
                             {
-                                for (int z = 0; z < 16; z++)
+                                for (var z = 0; z < 16; z++)
                                 {
-                                    int blockId = chunk.Blocks[(x * 256 + y + subchunkY * 16) * 16 + z];
+                                    var blockId = chunk.Blocks[(x * 256 + y + subchunkY * 16) * 16 + z];
                                     blocks[(x * 16 + y) * 16 + z] = palette.ComputeIfAbsent(blockId, blockId1 => palette.Count);
                                 }
                             }
@@ -63,8 +63,8 @@ public static partial class Generator
                                 [.. palette.Keys
                                     .Select(blockId =>
                                         {
-                                            string? name = BedrockBlocks.GetName(blockId) ?? throw new InvalidOperationException();
-                                            int data = 0;
+                                            var name = BedrockBlocks.GetName(blockId) ?? throw new InvalidOperationException();
+                                            var data = 0;
                                             while (blockId - data - 1 >= 0 && name == BedrockBlocks.GetName(blockId - data - 1))
                                             {
                                                 data++;

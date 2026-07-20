@@ -85,7 +85,7 @@ internal sealed partial class ShopController : SolaceControllerBase
 
                         using var previewDataReader = new StreamReader(previewData, Encoding.ASCII);
 
-                        string model = await previewDataReader.ReadToEndAsync(cancellationToken);
+                        var model = await previewDataReader.ReadToEndAsync(cancellationToken);
 
                         //var itemFromMap = staticData.Catalog.ShopCatalog.Items.GetValueOrDefault(itemId);
 
@@ -224,7 +224,7 @@ internal sealed partial class ShopController : SolaceControllerBase
                             break;
                         }
 
-                        bool spent = profile.Rubies.Spend(expectedPurchasePrice);
+                        var spent = profile.Rubies.Spend(expectedPurchasePrice);
                         Debug.Assert(spent);
 
                         await _earthDB.SaveChangesAsync(cancellationToken);
@@ -261,7 +261,7 @@ internal sealed partial class ShopController : SolaceControllerBase
 
                         // TODO: add to activity log?
 
-                        bool spent = profile.Rubies.Spend(expectedPurchasePrice);
+                        var spent = profile.Rubies.Spend(expectedPurchasePrice);
                         Debug.Assert(spent);
 
                         await _earthDB.SaveChangesAsync(cancellationToken);

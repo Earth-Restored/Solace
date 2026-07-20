@@ -49,14 +49,14 @@ internal static partial class RegionUtils
         Debug.Assert(path.StartsWith("r."), $"{nameof(path)} should start with 'r.' at this point.");
         path = path[2..];
 
-        int dotIndex = path.IndexOf('.');
+        var dotIndex = path.IndexOf('.');
         Debug.Assert(dotIndex != -1, $"{nameof(path)} should contain '.' at this point.");
-        int regionX = int.Parse(path[..dotIndex]);
+        var regionX = int.Parse(path[..dotIndex]);
         path = path[(dotIndex + 1)..];
 
         dotIndex = path.IndexOf('.');
         Debug.Assert(dotIndex != -1, $"{nameof(path)} should contain '.' at this point.");
-        int regionZ = int.Parse(path[..dotIndex]);
+        var regionZ = int.Parse(path[..dotIndex]);
 
         return new int2(regionX, regionZ);
     }
@@ -72,18 +72,18 @@ internal static partial class RegionUtils
     {
         ValidateLocalCoords(localPosition);
 
-        int chunkIndex = LocalToIndex(localPosition);
+        var chunkIndex = LocalToIndex(localPosition);
 
-        int offset = BinaryPrimitives.ReadInt32BigEndian(regionData[(chunkIndex * 4)..]) >> 8;
+        var offset = BinaryPrimitives.ReadInt32BigEndian(regionData[(chunkIndex * 4)..]) >> 8;
 
         return offset >= 2;
     }
 
     public static IEnumerable<int2> GetChunkPositions(ReadOnlyMemory<byte> regionData)
     {
-        for (int z = 0; z < RegionSize; z++)
+        for (var z = 0; z < RegionSize; z++)
         {
-            for (int x = 0; x < RegionSize; x++)
+            for (var x = 0; x < RegionSize; x++)
             {
                 var pos = new int2(x, z);
                 if (ContainsChunk(regionData.Span, pos))
@@ -102,11 +102,11 @@ internal static partial class RegionUtils
 
         Debug.Assert(ContainsChunk(dataSpan, localPosition), $"{nameof(regionData)} should contain a chunk at {localPosition}.");
 
-        int chunkIndex = LocalToIndex(localPosition);
+        var chunkIndex = LocalToIndex(localPosition);
 
-        int offset = (BinaryPrimitives.ReadInt32BigEndian(dataSpan[(chunkIndex * 4)..]) >> 8) * ChunkSize;
+        var offset = (BinaryPrimitives.ReadInt32BigEndian(dataSpan[(chunkIndex * 4)..]) >> 8) * ChunkSize;
 
-        int length = BinaryPrimitives.ReadInt32BigEndian(dataSpan[offset..]) - 1;
+        var length = BinaryPrimitives.ReadInt32BigEndian(dataSpan[offset..]) - 1;
         compressionType = dataSpan[offset + 4];
 
         return regionData.Slice(offset + 5, length);
@@ -117,7 +117,7 @@ internal static partial class RegionUtils
     {
         ValidateLocalCoords(localPosition);
 
-        ReadOnlyMemory<byte> chunkData = ReadRawChunkData(regionData, localPosition, out byte compressionType);
+        ReadOnlyMemory<byte> chunkData = ReadRawChunkData(regionData, localPosition, out var compressionType);
 
         MemoryStream uncompressed;
 
@@ -143,7 +143,7 @@ internal static partial class RegionUtils
                 break;
             case CompressionTypeNone:
                 {
-                    byte[] buffer = new byte[chunkData.Length];
+                    var buffer = new byte[chunkData.Length];
                     chunkData.CopyTo(buffer.AsMemory());
                     uncompressed = new MemoryStream(buffer);
                     break;
@@ -181,11 +181,11 @@ internal static partial class RegionUtils
         Debug.Assert(index % ChunkSize == 0, $"{nameof(index)} should be a multiple of {nameof(ChunkSize)}.");
         Debug.Assert(index / ChunkSize >= 2, $"{nameof(index)} should be greater than or equal to 2×{nameof(ChunkSize)}.");
 
-        int chunkIndex = LocalToIndex(localPosition);
+        var chunkIndex = LocalToIndex(localPosition);
 
-        uint dataLength = checked((uint)chunkData.Length);
+        var dataLength = checked((uint)chunkData.Length);
         Debug.Assert(index + dataLength + 5 <= regionData.Length, $"There should be enough space in {nameof(regionData)} to fit {nameof(chunkData)} starting at {index}");
-        uint paddedLength = CalculatePaddedLength(dataLength);
+        var paddedLength = CalculatePaddedLength(dataLength);
 
         BinaryPrimitives.WriteUInt32BigEndian(regionData[(chunkIndex * 4)..], ((index / ChunkSize) << 8) | paddedLength / ChunkSize);
         BinaryPrimitives.WriteUInt32BigEndian(regionData[((chunkIndex * 4) + TimestampOffset)..], (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds());
@@ -217,8 +217,8 @@ internal static partial class RegionUtils
         writer.WriteTag(chunkNBT);
         zlib.Flush();
 
-        uint dataLength = checked((uint)ms.Length);
-        uint paddedLength = CalculatePaddedLength(dataLength);
+        var dataLength = checked((uint)ms.Length);
+        var paddedLength = CalculatePaddedLength(dataLength);
 
         uint index;
         if (regionData.Length == 0)
@@ -228,7 +228,7 @@ internal static partial class RegionUtils
         }
         else
         {
-            byte[] newRegionData = new byte[regionData.Length + paddedLength];
+            var newRegionData = new byte[regionData.Length + paddedLength];
             Buffer.BlockCopy(regionData, 0, newRegionData, 0, regionData.Length);
 
             index = (uint)regionData.Length;

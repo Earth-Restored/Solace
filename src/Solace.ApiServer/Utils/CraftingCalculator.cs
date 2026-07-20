@@ -12,8 +12,8 @@ internal static class CraftingCalculator
         Catalog.RecipesCatalogR.CraftingRecipe recipe = catalog.RecipesCatalog.Crafting.Where(craftingRecipe => craftingRecipe.Id == activeJob.RecipeId).First();
 
         var roundDuration = TimeSpan.FromSeconds(recipe.Duration);
-        int completedRounds = activeJob.FinishedEarly ? activeJob.TotalRounds : int.Min((int)((currentTime - activeJob.StartTime) / roundDuration), activeJob.TotalRounds);
-        int availableRounds = completedRounds - activeJob.CollectedRounds;
+        var completedRounds = activeJob.FinishedEarly ? activeJob.TotalRounds : int.Min((int)((currentTime - activeJob.StartTime) / roundDuration), activeJob.TotalRounds);
+        var availableRounds = completedRounds - activeJob.CollectedRounds;
 
         LinkedList<InputItem> input = [];
         if (activeJob.Input.Length != recipe.Ingredients.Length)
@@ -21,9 +21,9 @@ internal static class CraftingCalculator
             throw new InvalidOperationException();
         }
 
-        for (int index = 0; index < recipe.Ingredients.Length; index++)
+        for (var index = 0; index < recipe.Ingredients.Length; index++)
         {
-            int usedCount = recipe.Ingredients[index].Count * completedRounds;
+            var usedCount = recipe.Ingredients[index].Count * completedRounds;
             InputItem[] inputItems = activeJob.Input[index].Items;
             foreach (InputItem inputItem in inputItems)
             {
@@ -93,13 +93,13 @@ internal static class CraftingCalculator
             throw new ArgumentException($"{nameof(remainingTime)} is negative.", nameof(remainingTime));
         }
 
-        int periods = (int)remainingTime.TotalSeconds / 10;
+        var periods = (int)remainingTime.TotalSeconds / 10;
         if ((int)remainingTime.TotalSeconds % 10 > 0)
         {
             periods = periods + 1;
         }
 
-        int price = periods * 5;
+        var price = periods * 5;
         var changesAt = TimeSpan.FromMilliseconds((periods - 1) * 10000);
         var validFor = remainingTime - changesAt;
 

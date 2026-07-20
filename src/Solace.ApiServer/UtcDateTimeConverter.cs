@@ -12,7 +12,7 @@ internal sealed class UtcDateTimeConverter : JsonConverter<DateTime>
 
     public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        string? str = reader.GetString();
+        var str = reader.GetString();
 
         if (DateTime.TryParseExact(str, Format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var dt))
         {

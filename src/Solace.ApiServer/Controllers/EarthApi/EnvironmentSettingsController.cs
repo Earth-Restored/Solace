@@ -61,7 +61,7 @@ internal sealed class EnvironmentSettingsController : ControllerBase
             ["paid_earned_rubies_enabled"] = true,
         });
 
-        string sResp = Json.Serialize(resp, new JsonSerializerOptions()
+        var sResp = Json.Serialize(resp, new JsonSerializerOptions()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -104,7 +104,7 @@ internal sealed class EnvironmentSettingsController : ControllerBase
             ["maximumpersonalcontinuouschallenges"] = 3
         });
 
-        string sResp = Json.Serialize(resp, new JsonSerializerOptions()
+        var sResp = Json.Serialize(resp, new JsonSerializerOptions()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,

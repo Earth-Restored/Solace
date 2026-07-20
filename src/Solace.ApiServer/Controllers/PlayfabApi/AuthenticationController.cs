@@ -72,7 +72,7 @@ internal sealed class AuthenticationController : LoginServerControllerBase
 
                     var entityTokenValidity = ValidityDatePair.Create(_playfabApiEntityTokenValidityMinutes);
                     var entityToken = new Tokens.Playfab.EntityToken(request.Entity.Id, request.Entity.Type);
-                    string entityTokenSting = JwtUtils.Sign(entityToken, CryptoSecrets.PlayfabEntityTokenSecret, entityTokenValidity);
+                    var entityTokenSting = JwtUtils.Sign(entityToken, CryptoSecrets.PlayfabEntityTokenSecret, entityTokenValidity);
 
                     return JsonPascalCase(new PlayfabOkResponse(
                         200,

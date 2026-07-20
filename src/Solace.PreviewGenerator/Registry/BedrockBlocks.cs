@@ -58,8 +58,8 @@ public static partial class BedrockBlocks
                 var element = _element as JsonObject;
                 Debug.Assert(element is not null);
 
-                int id = element["id"]!.GetValue<int>();
-                string name = element["name"]!.GetValue<string>()!;
+                var id = element["id"]!.GetValue<int>();
+                var name = element["name"]!.GetValue<string>()!;
                 SortedDictionary<string, object> state = [];
                 var stateObject = (JsonObject)element["state"]!;
                 foreach (var entry in stateObject)

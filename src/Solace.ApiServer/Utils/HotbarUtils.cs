@@ -34,7 +34,7 @@ internal static class HotbarUtils
         Dictionary<Guid, int> usedStackableItemCounts = [];
         Dictionary<Guid, HashSet<Guid>> usedNonStackableItemInstances = [];
 
-        for (int index = 0; index < hotbar.Items.Length; index++)
+        for (var index = 0; index < hotbar.Items.Length; index++)
         {
             var item = hotbar.Items[index];
             if (item is null)

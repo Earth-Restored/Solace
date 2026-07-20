@@ -216,7 +216,7 @@ internal sealed partial class InstanceManager
 
                     LogGeneratingBuildplatePreview();
 
-                    string? preview = PreviewGenerator.GeneratePreview(serverData, previewRequest.Night, App.StaticDataPath, _logger);
+                    var preview = PreviewGenerator.GeneratePreview(serverData, previewRequest.Night, App.StaticDataPath, _logger);
                     if (preview is null)
                     {
                         LogCouldNotGeneratePreviewForBuildplate();
@@ -261,7 +261,7 @@ internal sealed partial class InstanceManager
         LogShutdownSignalReceived(_runningInstanceCount);
         while (_runningInstanceCount > 0)
         {
-            int runningInstanceCount = _runningInstanceCount;
+            var runningInstanceCount = _runningInstanceCount;
             _lock.Exit();
 
             await Task.Delay(1000);

@@ -215,7 +215,7 @@ internal sealed partial class Instance
             _requestHandler = await _eventBusClient.AddRequestHandlerAsync(_eventBusQueueName,
                 async request =>
                 {
-                    object? responseObject = await HandleConnectorRequest(request);
+                    var responseObject = await HandleConnectorRequest(request);
                     return responseObject is not null ? Json.Serialize(responseObject) : null;
                 },
                 async exception =>
@@ -451,10 +451,10 @@ internal sealed partial class Instance
                 break;
             case "playerDead":
                 {
-                    string? playerId = ReadJson<string>(request.Data);
+                    var playerId = ReadJson<string>(request.Data);
                     if (playerId is not null)
                     {
-                        bool? respawn = await SendEventBusRequest<bool?>("playerDead", playerId, true);
+                        var respawn = await SendEventBusRequest<bool?>("playerDead", playerId, true);
                         if (respawn is not null)
                         {
                             return respawn.Value;
@@ -465,7 +465,7 @@ internal sealed partial class Instance
                 break;
             case "getInventory":
                 {
-                    string? playerId = ReadJson<string>(request.Data);
+                    var playerId = ReadJson<string>(request.Data);
                     if (playerId is not null)
                     {
                         InventoryResponse? inventoryResponse = await SendEventBusRequest<InventoryResponse>("getInventory", playerId, true);
@@ -492,7 +492,7 @@ internal sealed partial class Instance
                     {
                         if (inventoryRemoveItemRequest.InstanceId is not null)
                         {
-                            bool? success = await SendEventBusRequest<bool?>("inventoryRemove", inventoryRemoveItemRequest, true);
+                            var success = await SendEventBusRequest<bool?>("inventoryRemove", inventoryRemoveItemRequest, true);
                             if (success is not null)
                             {
                                 return success.Value;
@@ -500,7 +500,7 @@ internal sealed partial class Instance
                         }
                         else
                         {
-                            int? removedCount = await SendEventBusRequest<int?>("inventoryRemove", inventoryRemoveItemRequest, true);
+                            var removedCount = await SendEventBusRequest<int?>("inventoryRemove", inventoryRemoveItemRequest, true);
                             if (removedCount is not null)
                             {
                                 return removedCount.Value;
@@ -527,7 +527,7 @@ internal sealed partial class Instance
                 break;
             case "getInitialPlayerState":
                 {
-                    string? playerId = ReadJson<string>(request.Data);
+                    var playerId = ReadJson<string>(request.Data);
                     if (playerId is not null)
                     {
                         InitialPlayerStateResponse? initialPlayerStateResponse = await SendEventBusRequest<InitialPlayerStateResponse>("getInitialPlayerState", playerId, true);
@@ -594,7 +594,7 @@ internal sealed partial class Instance
 
         try
         {
-            string? response = await _requestSender.RequestAsync("buildplates", type, Json.Serialize(obj));
+            var response = await _requestSender.RequestAsync("buildplates", type, Json.Serialize(obj));
 
             if (response is null)
             {
@@ -641,7 +641,7 @@ internal sealed partial class Instance
             return null;
         }
 
-        bool warnedMissingServerFiles = false;
+        var warnedMissingServerFiles = false;
         if (!CopyServerFile(new DirectoryInfo(Path.Combine(_serverTemplateDir.FullName, ".fabric", "server")), new DirectoryInfo(Path.Combine(workDir.FullName, ".fabric", "server")), true))
         {
             if (!warnedMissingServerFiles)
@@ -678,7 +678,7 @@ internal sealed partial class Instance
 
         await File.WriteAllTextAsync(Path.Combine(workDir.FullName, "eula.txt"), "eula=true");
 
-        string serverProperties = new StringBuilder()
+        var serverProperties = new StringBuilder()
             .Append("online-mode=false\n")
             .Append("enforce-secure-profile=false\n")
             .Append("sync-chunk-writes=false\n")
@@ -746,7 +746,7 @@ internal sealed partial class Instance
                     continue;
                 }
 
-                string path = Path.Combine(worldDir.FullName, entry.FullName);
+                var path = Path.Combine(worldDir.FullName, entry.FullName);
 
                 using (var zipStream = await entry.OpenAsync())
                 using (var fs = File.OpenWriteNew(path))
@@ -897,8 +897,8 @@ internal sealed partial class Instance
 
             try
             {
-                bool useShellExecute = true;
-                bool redirect = false;
+                var useShellExecute = true;
+                var redirect = false;
 
                 _serverProcess = new ConsoleProcess(_javaCmd, _logger, useShellExecute: useShellExecute, redirect: redirect, openInNewWindow: true);
 
@@ -953,8 +953,8 @@ internal sealed partial class Instance
 
             try
             {
-                bool useShellExecute = true;
-                bool redirect = false;
+                var useShellExecute = true;
+                var redirect = false;
 
                 var bridgeLogger = _loggerFactory.CreateLogger($"{nameof(Instance)}({Port}/{_serverInternalPort}/bridge)");
 

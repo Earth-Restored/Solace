@@ -190,7 +190,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         var results = new ResultsEF.Builder();
 
         var providedItems = new InputItem[startRequest.Ingredients.Length];
-        for (int index = 0; index < startRequest.Ingredients.Length; index++)
+        for (var index = 0; index < startRequest.Ingredients.Length; index++)
         {
             StartRequestCraftingItem item = startRequest.Ingredients[index];
             if (item.ItemInstanceIds is null || item.ItemInstanceIds.Length == 0)
@@ -220,8 +220,8 @@ internal sealed class WorkshopController : SolaceControllerBase
         foreach (Catalog.RecipesCatalogR.CraftingRecipe.Ingredient ingredient in recipe.Ingredients)
         {
             var ingredientItems = new List<InputItem>(providedItems.Length);
-            int requiredCount = ingredient.Count * startRequest.Multiplier;
-            for (int index = 0; index < providedItems.Length; index++)
+            var requiredCount = ingredient.Count * startRequest.Multiplier;
+            for (var index = 0; index < providedItems.Length; index++)
             {
                 InputItem providedItem = providedItems[index];
                 if (providedItem.Count == 0)
@@ -396,10 +396,10 @@ internal sealed class WorkshopController : SolaceControllerBase
         }
 
         SmeltingSlotEF.Fuel? fuel;
-        int requiredFuelHeat = recipe.HeatRequired * startRequest.Multiplier - (smeltingSlot.Burning is not null ? smeltingSlot.Burning.RemainingHeat : 0);
+        var requiredFuelHeat = recipe.HeatRequired * startRequest.Multiplier - (smeltingSlot.Burning is not null ? smeltingSlot.Burning.RemainingHeat : 0);
         if (startRequest.Fuel is not null && startRequest.Fuel.Quantity > 0)
         {
-            int requiredFuelCount = 0;
+            var requiredFuelCount = 0;
             while (requiredFuelHeat > 0)
             {
                 requiredFuelCount += 1;
@@ -486,7 +486,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         {
             CraftingCalculator.State state = CraftingCalculator.CalculateState(requestStartedOn, craftingSlot.ActiveJob, _staticData.Catalog);
 
-            int quantity = state.AvailableRounds * state.Output.Count;
+            var quantity = state.AvailableRounds * state.Output.Count;
             if (quantity > 0)
             {
                 rewards.AddItem(state.Output.Id, quantity);
@@ -539,7 +539,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         {
             SmeltingCalculator.State state = SmeltingCalculator.CalculateState(requestStartedOn, smeltingSlot.ActiveJob, smeltingSlot.Burning, _staticData.Catalog);
 
-            int quantity = state.AvailableRounds * state.Output.Count;
+            var quantity = state.AvailableRounds * state.Output.Count;
             if (quantity > 0)
             {
                 rewards.AddItem(state.Output.Id, quantity);
@@ -627,7 +627,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         }
 
         var rewards = new Rewards();
-        int outputQuantity = state.AvailableRounds * state.Output.Count;
+        var outputQuantity = state.AvailableRounds * state.Output.Count;
         if (outputQuantity > 0)
         {
             rewards.AddItem(state.Output.Id, outputQuantity);
@@ -705,7 +705,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         }
 
         var rewards = new Rewards();
-        int outputQuantity = state.AvailableRounds * state.Output.Count;
+        var outputQuantity = state.AvailableRounds * state.Output.Count;
         if (outputQuantity > 0)
         {
             rewards.AddItem(state.Output.Id, outputQuantity);
@@ -953,7 +953,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
         }
 
-        int unlockPrice = CraftingCalculator.CalculateUnlockPrice(slotIndex);
+        var unlockPrice = CraftingCalculator.CalculateUnlockPrice(slotIndex);
 
         if (expectedPurchasePrice.ExpectedPurchasePrice != unlockPrice)
         {
@@ -1005,7 +1005,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
         }
 
-        int unlockPrice = SmeltingCalculator.CalculateUnlockPrice(slotIndex);
+        var unlockPrice = SmeltingCalculator.CalculateUnlockPrice(slotIndex);
 
         if (expectedPurchasePrice.ExpectedPurchasePrice != unlockPrice)
         {

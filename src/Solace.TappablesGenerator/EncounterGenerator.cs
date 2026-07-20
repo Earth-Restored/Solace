@@ -52,8 +52,8 @@ internal sealed partial class EncounterGenerator
 
             Span<float> tileBounds = stackalloc float[4];
             GetTileBounds(tileX, tileY, tileBounds);
-            float lat = _random.NextSingle(tileBounds[1], tileBounds[0]);
-            float lon = _random.NextSingle(tileBounds[2], tileBounds[3]);
+            var lat = _random.NextSingle(tileBounds[1], tileBounds[0]);
+            var lon = _random.NextSingle(tileBounds[2], tileBounds[3]);
 
             var encounter = new Encounter(
                 Guid.CreateVersion7(),

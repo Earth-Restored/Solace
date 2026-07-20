@@ -112,7 +112,7 @@ public sealed partial class ConsoleProcess : IDisposable
 
         if (OperatingSystem.IsLinux() && openInNewWindow)
         {
-            bool hasDisplay = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")) ||
+            var hasDisplay = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")) ||
                 !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
 
             if (!hasDisplay || !IsLinuxTerminalAvailable())
@@ -267,7 +267,7 @@ public sealed partial class ConsoleProcess : IDisposable
 
             var linuxArgs = args.Select(a => $"'{a.Replace("'", "'\\''", StringComparison.Ordinal)}'");
 
-            string innerCommand = $"'{_filePath.Replace("'", "'\\''", StringComparison.Ordinal)}' {string.Join(" ", linuxArgs)}";
+            var innerCommand = $"'{_filePath.Replace("'", "'\\''", StringComparison.Ordinal)}' {string.Join(" ", linuxArgs)}";
 
             innerCommand = innerCommand
                 .Replace("\\", "\\\\", StringComparison.Ordinal)
@@ -285,13 +285,13 @@ public sealed partial class ConsoleProcess : IDisposable
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             // todo: currently not tested
-            string arguments = FormatStandardArguments(args);
-            string command = $"'{_filePath}' {arguments}";
+            var arguments = FormatStandardArguments(args);
+            var command = $"'{_filePath}' {arguments}";
 
 #if KEEP_WINDOW_OPEN
             string appleScript = $"tell application \"Terminal\" to do script \"{command.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
 #else
-            string appleScript = $"tell application \"Terminal\" to do script \"{command.Replace("\"", "\\\"", StringComparison.Ordinal)}; exit\"";
+            var appleScript = $"tell application \"Terminal\" to do script \"{command.Replace("\"", "\\\"", StringComparison.Ordinal)}; exit\"";
 #endif
 
             Process.StartInfo.FileName = "osascript";
@@ -365,7 +365,7 @@ public sealed partial class ConsoleProcess : IDisposable
                     if (File.Exists(pidFile))
                     {
                         var content = await File.ReadAllTextAsync(pidFile, cts.Token);
-                        if (int.TryParse(content.Trim(), out int pid))
+                        if (int.TryParse(content.Trim(), out var pid))
                         {
                             File.Delete(pidFile);
                             return pid;

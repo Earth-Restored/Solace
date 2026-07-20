@@ -76,7 +76,7 @@ internal static class ImporterExtensions
 
             using var ms = new MemoryStream();
             await meshData.ToGlbAsync(resourcePackManager, ms);
-            bool getBufferSuccess = ms.TryGetBuffer(out var buffer);
+            var getBufferSuccess = ms.TryGetBuffer(out var buffer);
             Debug.Assert(getBufferSuccess);
 
             dbBuildplatePreview = new DbBuildplatePreview()
@@ -145,7 +145,7 @@ internal static class ImporterExtensions
 
             using var ms = new MemoryStream();
             await meshData.ToGlbAsync(resourcePackManager, ms);
-            bool getBufferSuccess = ms.TryGetBuffer(out var buffer);
+            var getBufferSuccess = ms.TryGetBuffer(out var buffer);
             Debug.Assert(getBufferSuccess);
 
             dbBuildplatePreview = new DbBuildplatePreview()

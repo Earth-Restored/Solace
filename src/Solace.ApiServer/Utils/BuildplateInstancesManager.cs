@@ -94,7 +94,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
 
         Debug.Assert(_requestSender is not null);
 
-        string? instanceIdString = await _requestSender.RequestAsync("buildplates", "start", Json.Serialize(new StartRequest(playerId, encounterId, buildplateId, night, type, shutdownTime)));
+        var instanceIdString = await _requestSender.RequestAsync("buildplates", "start", Json.Serialize(new StartRequest(playerId, encounterId, buildplateId, night, type, shutdownTime)));
         if (!Guid.TryParse(instanceIdString, out var instanceId))
         {
             LogBuildplateStartRequestWasRejectedIgnored();
@@ -140,7 +140,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
 
         Debug.Assert(_requestSender is not null);
 
-        string? preview = await _requestSender.RequestAsync("buildplates", "preview", Json.Serialize(new PreviewRequest(Convert.ToBase64String(serverData), night)));
+        var preview = await _requestSender.RequestAsync("buildplates", "preview", Json.Serialize(new PreviewRequest(Convert.ToBase64String(serverData), night)));
         if (preview is null)
         {
             LogPreviewRequestWasRejectedIgnored();

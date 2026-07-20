@@ -30,7 +30,7 @@ internal static class JavaSkinProcessor
         using var pngStream = new MemoryStream();
         await image.SaveAsPngAsync(pngStream, cancellationToken);
 
-        bool isSkinSlim = skinType switch
+        var isSkinSlim = skinType switch
         {
             SkinType.Auto => image[54, 20].A == 0,
             SkinType.Slim => true,

@@ -49,16 +49,16 @@ internal sealed class ProfileController : SolaceControllerBase
             .FirstAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
 
         var levels = _staticData.Levels.Levels;
-        int currentLevelExperience = profile.Experience - (profile.Level > 1 ? profile.Level - 2 < levels.Length ? levels[profile.Level - 2].ExperienceRequired : levels[^1].ExperienceRequired : 0);
-        int experienceRemaining = profile.Level - 1 < levels.Length ? levels[profile.Level - 1].ExperienceRequired - profile.Experience : 0;
+        var currentLevelExperience = profile.Experience - (profile.Level > 1 ? profile.Level - 2 < levels.Length ? levels[profile.Level - 2].ExperienceRequired : levels[^1].ExperienceRequired : 0);
+        var experienceRemaining = profile.Level - 1 < levels.Length ? levels[profile.Level - 1].ExperienceRequired - profile.Experience : 0;
 
-        int maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _staticData.Catalog.ItemsCatalog);
+        var maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _staticData.Catalog.ItemsCatalog);
         if (profile.Health > maxPlayerHealth)
         {
             profile.Health = maxPlayerHealth;
         }
 
-        string resp = Json.Serialize(new EarthApiResponse(new Types.Profile.Profile(
+        var resp = Json.Serialize(new EarthApiResponse(new Types.Profile.Profile(
             Enumerable.Range(0, levels.Length).Select(levelIndex =>
             {
                 var level = levels[levelIndex];
@@ -87,7 +87,7 @@ internal sealed class ProfileController : SolaceControllerBase
             .AsNoTracking()
             .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
-        string resp = Json.Serialize(new EarthApiResponse(profile.Rubies.Purchased + profile.Rubies.Earned));
+        var resp = Json.Serialize(new EarthApiResponse(profile.Rubies.Purchased + profile.Rubies.Earned));
         return TypedResults.Content(resp, "application/json");
     }
 
@@ -104,7 +104,7 @@ internal sealed class ProfileController : SolaceControllerBase
             .AsNoTracking()
             .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
-        string resp = Json.Serialize(new EarthApiResponse(new Types.Profile.SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned)));
+        var resp = Json.Serialize(new EarthApiResponse(new Types.Profile.SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned)));
         return TypedResults.Content(resp, "application/json");
     }
 

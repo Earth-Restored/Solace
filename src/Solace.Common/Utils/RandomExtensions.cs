@@ -12,8 +12,8 @@ public static class RandomExtensions
                 throw new ArgumentOutOfRangeException(nameof(min), "Minimum value must be less than maximum value.");
             }
 
-            float range = max - min;
-            float sample = random.NextSingle() * range;
+            var range = max - min;
+            var sample = random.NextSingle() * range;
             return sample + min;
         }
     }

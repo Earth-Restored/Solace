@@ -45,7 +45,7 @@ public static class DictionaryExtensions
                 }
             }
 
-            for (int i = 0; i < toRemove.Count; i++)
+            for (var i = 0; i < toRemove.Count; i++)
             {
                 dicionary.Remove(toRemove[i]);
             }

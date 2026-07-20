@@ -13,7 +13,7 @@ internal sealed class ChallengeProgressVersion
 
     public void EnsureDate(long timestamp)
     {
-        string today = DateTimeOffset.FromUnixTimeMilliseconds(timestamp)
+        var today = DateTimeOffset.FromUnixTimeMilliseconds(timestamp)
             .UtcDateTime
             .ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 

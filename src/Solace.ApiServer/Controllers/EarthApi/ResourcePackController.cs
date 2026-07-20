@@ -15,7 +15,7 @@ internal sealed class ResourcePackController : ControllerBase
     [HttpGet]
     public ContentResult Get()
     {
-        string resp = Json.Serialize(new EarthApiResponse(new ResourcePackResponse[]{
+        var resp = Json.Serialize(new EarthApiResponse(new ResourcePackResponse[]{
             new ResourcePackResponse(
                 0,
                 [2020, 1214, 4],

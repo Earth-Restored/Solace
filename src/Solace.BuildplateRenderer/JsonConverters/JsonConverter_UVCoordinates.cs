@@ -15,10 +15,10 @@ internal sealed class JsonConverter_UVCoordinates : JsonConverter<UVCoordinates>
 	{
 		if (reader.TokenType is JsonTokenType.StartArray)
 		{
-			float x1 = ReadNextFloat(ref reader);
-			float y1 = ReadNextFloat(ref reader);
-			float x2 = ReadNextFloat(ref reader);
-			float y2 = ReadNextFloat(ref reader);
+			var x1 = ReadNextFloat(ref reader);
+			var y1 = ReadNextFloat(ref reader);
+			var x2 = ReadNextFloat(ref reader);
+			var y2 = ReadNextFloat(ref reader);
 
 			if (!reader.Read() || reader.TokenType != JsonTokenType.EndArray)
 			{

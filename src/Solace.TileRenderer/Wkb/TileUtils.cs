@@ -10,7 +10,7 @@ internal static class TileUtils
     // All functions operate in degrees
     public static Point LonLatToSlippy(Point lonLat, int zoom)
     {
-        double latRad = DegToRad(lonLat.Y);
+        var latRad = DegToRad(lonLat.Y);
         return new Point(
             (lonLat.X + 180.0) / 360.0 * (1 << zoom),
             (1.0 - double.Asinh(double.Tan(latRad)) / Pi) / 2.0 * (1 << zoom)
@@ -19,7 +19,7 @@ internal static class TileUtils
 
     public static Point SlippyTolonLat(Point slippy, int zoom)
     {
-        double n = Pi - 2.0 * Pi * slippy.Y / (1 << zoom);
+        var n = Pi - 2.0 * Pi * slippy.Y / (1 << zoom);
         return new Point(
             slippy.X / (1 << zoom) * 360.0 - 180,
             180.0 / Pi * double.Atan(0.5 * (double.Exp(n) - double.Exp(-n)))

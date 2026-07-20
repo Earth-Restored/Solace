@@ -25,7 +25,7 @@ internal abstract class SolaceControllerBase : ControllerBase
 
     protected bool TryGetAccountId(out Guid accountId)
     {
-        string? playerIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var playerIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(playerIdString))
         {
             accountId = default;

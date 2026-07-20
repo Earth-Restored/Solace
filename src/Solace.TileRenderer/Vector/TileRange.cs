@@ -129,8 +129,8 @@ public sealed class TileRange : IEnumerable<Tile?>
                 return true;
             }
 
-            int x = _current.X;
-            int y = _current.Y;
+            var x = _current.X;
+            var y = _current.Y;
 
             if (x == _range.XMax)
             {
@@ -210,8 +210,8 @@ public sealed class TileRange : IEnumerable<Tile?>
             if (_current is null)
             { 
                 // start with the center tile.
-                int centerX = (int)double.Floor((_range.XMax + _range.XMin) / 2.0);
-                int centerY = (int)double.Ceiling((_range.YMax + _range.YMin) / 2.0);
+                var centerX = (int)double.Floor((_range.XMax + _range.XMin) / 2.0);
+                var centerY = (int)double.Ceiling((_range.YMax + _range.YMin) / 2.0);
                 _current = new Tile(centerX, centerY, _range.Zoom);
                 _enumeratedTiles.Add(_current);
                 return true;

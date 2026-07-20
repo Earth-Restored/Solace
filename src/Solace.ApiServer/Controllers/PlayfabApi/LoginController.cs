@@ -111,11 +111,11 @@ internal sealed partial class LoginController : SolaceControllerBase
 
         var sessionTicketValidity = ValidityDatePair.Create(_playfabApiSessionTicketValidityMinutes);
         var sessionTicket = new Tokens.Shared.PlayfabSessionTicket(userId);
-        string sessionTicketString = JwtUtils.Sign(sessionTicket, _cryptoSecrets.PlayfabSessionTicketSecret, sessionTicketValidity);
+        var sessionTicketString = JwtUtils.Sign(sessionTicket, _cryptoSecrets.PlayfabSessionTicketSecret, sessionTicketValidity);
 
         var entityTokenValidity = ValidityDatePair.Create(_playfabApiEntityTokenValidityMinutes);
         var entityToken = new Tokens.Playfab.EntityToken(userId, "title_player_account");
-        string entityTokenString = JwtUtils.Sign(entityToken, _cryptoSecrets.PlayfabEntityTokenSecret, entityTokenValidity);
+        var entityTokenString = JwtUtils.Sign(entityToken, _cryptoSecrets.PlayfabEntityTokenSecret, entityTokenValidity);
 
         return JsonPascalCase(new PlayfabOkResponse(
             200,

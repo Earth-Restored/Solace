@@ -18,7 +18,7 @@ public sealed class Playfab
         try
         {
             var shopTabs = ImmutableArray.CreateBuilder<Tab>(2);
-            foreach (string file in Directory.EnumerateFiles(Path.Combine(dir, "shop_tabs"))
+            foreach (var file in Directory.EnumerateFiles(Path.Combine(dir, "shop_tabs"))
                 .OrderBy(file => Path.GetFileName(file)))
             {
                 if (Path.GetExtension(file) != ".json")
@@ -42,7 +42,7 @@ public sealed class Playfab
                 .Where(line => !string.IsNullOrWhiteSpace(line) && line.Length > 0)];
 
             List<Item> items = [];
-            foreach (string file in Directory.EnumerateFiles(Path.Combine(dir, "items")))
+            foreach (var file in Directory.EnumerateFiles(Path.Combine(dir, "items")))
             {
                 if (Path.GetExtension(file) != ".json")
                 {

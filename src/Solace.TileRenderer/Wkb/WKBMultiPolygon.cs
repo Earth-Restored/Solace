@@ -22,13 +22,13 @@ internal sealed class WKBMultiPolygon : IWKBObject
 
     public static IWKBObject Load(BinaryReader reader)
     {
-        bool byteOrder = reader.ReadByte() == 1;
+        var byteOrder = reader.ReadByte() == 1;
         if (byteOrder != BitConverter.IsLittleEndian)
         {
             throw new NotImplementedException();
         }
 
-        uint wkbType = reader.ReadUInt32();
+        var wkbType = reader.ReadUInt32();
 
         uint srid = 0;
         if ((wkbType & Constants.WkbSRID) != 0)
@@ -36,9 +36,9 @@ internal sealed class WKBMultiPolygon : IWKBObject
             srid = reader.ReadUInt32();
         }
 
-        int numWKBPolygons = reader.ReadInt32();
+        var numWKBPolygons = reader.ReadInt32();
         var wkbPolygons = new WKBPolygon[numWKBPolygons];
-        for (int i = 0; i < numWKBPolygons; i++)
+        for (var i = 0; i < numWKBPolygons; i++)
         {
             wkbPolygons[i] = (WKBPolygon)WKBPolygon.Load(reader);
         }
@@ -48,7 +48,7 @@ internal sealed class WKBMultiPolygon : IWKBObject
 
     public void Render(SKCanvas canvas, Tile tile, SKColor color, float strokeWidth)
     {
-        for (int i = 0; i < WKBPolygons.Length; i++)
+        for (var i = 0; i < WKBPolygons.Length; i++)
         {
             WKBPolygons[i].Render(canvas, tile, color, strokeWidth);
         }

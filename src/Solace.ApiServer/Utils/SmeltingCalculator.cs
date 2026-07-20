@@ -12,7 +12,7 @@ internal static class SmeltingCalculator
         Catalog.RecipesCatalogR.SmeltingRecipe? recipe = catalog.RecipesCatalog.GetSmeltingRecipe(activeJob.RecipeId);
         Debug.Assert(recipe is not null);
 
-        int totalHeatRequired = recipe.HeatRequired * activeJob.TotalRounds;
+        var totalHeatRequired = recipe.HeatRequired * activeJob.TotalRounds;
         var totalCompletionTime = activeJob.StartTime + CalculateDurationForHeat(totalHeatRequired, burning, activeJob.AddedFuel);
         DateTimeOffset nextCompletionTime = DateTimeOffset.MinValue;
         int completedRounds;
@@ -37,8 +37,8 @@ internal static class SmeltingCalculator
             throw new InvalidOperationException();
         }
 
-        int availableRounds = completedRounds - activeJob.CollectedRounds;
-        bool completed = completedRounds == activeJob.TotalRounds;
+        var availableRounds = completedRounds - activeJob.CollectedRounds;
+        var completed = completedRounds == activeJob.TotalRounds;
 
         InputItem input;
         if (activeJob.Input.Count != activeJob.TotalRounds)
@@ -60,7 +60,7 @@ internal static class SmeltingCalculator
             input = new InputItem(activeJob.Input.Id, activeJob.Input.Count - completedRounds, []);
         }
 
-        int consumedAddedFuelCount = 0;
+        var consumedAddedFuelCount = 0;
         var fuelEndTime = completed ? totalCompletionTime : currentTime;
         SmeltingSlotEF.Fuel currentFuel;
         int currentFuelTotalHeat;
@@ -262,13 +262,13 @@ internal static class SmeltingCalculator
             throw new ArgumentException($"{nameof(remainingTime)} is negative.", nameof(remainingTime));
         }
 
-        int periods = (int)remainingTime.TotalSeconds / 10;
+        var periods = (int)remainingTime.TotalSeconds / 10;
         if ((int)remainingTime.TotalSeconds % 10 > 0)
         {
             periods = periods + 1;
         }
 
-        int price = periods * 5;
+        var price = periods * 5;
         var changesAt = TimeSpan.FromMilliseconds((periods - 1) * 10000);
         var validFor = remainingTime - changesAt;
 

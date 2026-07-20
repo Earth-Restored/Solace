@@ -23,15 +23,15 @@ public static class TimeFormatter
 
     public static TimeSpan ParseDuration(string duration)
     {
-        string[] parts = duration.Split(':');
+        var parts = duration.Split(':');
         if (parts.Length < 3)
         {
             throw new ArgumentException("Invalid duration format");
         }
 
-        long hours = long.Parse(parts[0]);
-        long minutes = long.Parse(parts[1]);
-        long seconds = long.Parse(parts[2]);
+        var hours = long.Parse(parts[0]);
+        var minutes = long.Parse(parts[1]);
+        var seconds = long.Parse(parts[2]);
 
         return TimeSpan.FromSeconds(hours * 3600 + minutes * 60 + seconds);
     }

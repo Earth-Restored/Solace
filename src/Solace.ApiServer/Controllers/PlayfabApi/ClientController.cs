@@ -50,7 +50,7 @@ internal sealed partial class ClientController : SolaceControllerBase
 
         Match tokenMatch = GetAuthRegex().Match(tokenHeader[0] ?? "");
 
-        string? tokenString = tokenMatch.Success ? tokenMatch.Groups[1].Value : null;
+        var tokenString = tokenMatch.Success ? tokenMatch.Groups[1].Value : null;
 
         if (tokenString is null)
         {
@@ -119,7 +119,7 @@ internal sealed partial class ClientController : SolaceControllerBase
 
         Match tokenMatch = GetAuthRegex().Match(tokenHeader[0] ?? "");
 
-        string? tokenString = tokenMatch.Success ? tokenMatch.Groups[1].Value : null;
+        var tokenString = tokenMatch.Success ? tokenMatch.Groups[1].Value : null;
 
         if (tokenString is null)
         {

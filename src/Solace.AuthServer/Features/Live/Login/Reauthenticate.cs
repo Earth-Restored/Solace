@@ -44,12 +44,12 @@ public sealed partial class Reauthenticate(
             return TypedResults.Forbid();
         }
 
-        byte[] passwordBytes = Encoding.UTF8.GetBytes(command.Password);
-        byte[] saltBytes = Convert.FromBase64String(existingToken.Data.PasswordSalt);
+        var passwordBytes = Encoding.UTF8.GetBytes(command.Password);
+        var saltBytes = Convert.FromBase64String(existingToken.Data.PasswordSalt);
 
-        byte[] passwordCheckHash = Org.BouncyCastle.Crypto.Generators.SCrypt.Generate(passwordBytes, saltBytes, 16384, 8, 1, 64);
+        var passwordCheckHash = Org.BouncyCastle.Crypto.Generators.SCrypt.Generate(passwordBytes, saltBytes, 16384, 8, 1, 64);
 
-        string passwordCheckHashBase64 = Convert.ToBase64String(passwordCheckHash);
+        var passwordCheckHashBase64 = Convert.ToBase64String(passwordCheckHash);
         if (passwordCheckHashBase64 != existingToken.Data.PasswordHash)
         {
             return TypedResults.BadRequest("Invalid user or password");

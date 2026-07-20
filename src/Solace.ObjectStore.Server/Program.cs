@@ -67,7 +67,7 @@ internal static partial class App
 
         builder.Services.AddGrpc();
 
-        string dataDirectory = Path.GetFullPath(builder.Configuration.GetValue<string>("DataDirectory", "data/object_store"));
+        var dataDirectory = Path.GetFullPath(builder.Configuration.GetValue<string>("DataDirectory", "data/object_store"));
 
         builder.Services.AddSingleton(new DataStore(new DirectoryInfo(dataDirectory)));
 

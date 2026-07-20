@@ -35,10 +35,10 @@ public static class IOExtenions
             }
 
             const string VersionPlaceholder = "___VERSION_PLACEHOLDER___";
-            string templateWithToken = template.Replace("{{version}}", VersionPlaceholder, StringComparison.Ordinal);
-            string escapedTemplate = Regex.Escape(templateWithToken);
+            var templateWithToken = template.Replace("{{version}}", VersionPlaceholder, StringComparison.Ordinal);
+            var escapedTemplate = Regex.Escape(templateWithToken);
 
-            string pattern = "^" + escapedTemplate.Replace(VersionPlaceholder, @"(?<version>\d+(?:\.\d+)+)", StringComparison.Ordinal) + "$";
+            var pattern = "^" + escapedTemplate.Replace(VersionPlaceholder, @"(?<version>\d+(?:\.\d+)+)", StringComparison.Ordinal) + "$";
 
             var regex = new Regex(pattern, RegexOptions.CultureInvariant);
 
@@ -91,7 +91,7 @@ public static class IOExtenions
             var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
             var extension = Path.GetExtension(filePath);
 
-            int count = 1;
+            var count = 1;
             string uniquePath;
 
             do

@@ -67,7 +67,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
 
             using var previewDataReader = new StreamReader(previewData, Encoding.ASCII);
 
-            string model = await previewDataReader.ReadToEndAsync();
+            var model = await previewDataReader.ReadToEndAsync();
             return new OwnedBuildplate(
                 buildplate.Id.ToString(),
                 "00000000-0000-0000-0000-000000000000",
@@ -167,7 +167,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             NumberOfTimesViewed = 0,
         };
 
-        for (int index = 0; index < 7; index++)
+        for (var index = 0; index < 7; index++)
         {
             var item = hotbar.Items[index];
             SharedBuildplateEF.HotbarItem? sharedBuildplateHotbarItem;
@@ -229,7 +229,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.InternalServerError();
         }
 
-        string? preview = await _buildplateInstancesManager.GetBuildplatePreviewAsync(serverData, sharedBuildplate.Night);
+        var preview = await _buildplateInstancesManager.GetBuildplatePreviewAsync(serverData, sharedBuildplate.Night);
         if (preview is null)
         {
             LogSharedBuildplatePreviewGenerateError(sharedBuildplateId);
@@ -348,7 +348,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
         // TODO: this also relies on the buildplate server starting in less than ~20 seconds as the client will eventually time out the HTTP request and crash anyway
         //BuildplateInstance buildplateInstance = this.instanceInfoToApiResponse(instanceInfo);
         BuildplateInstancesManager.InstanceInfo? instanceInfo1;
-        int waitCount = 0;
+        var waitCount = 0;
         do
         {
             instanceInfo1 = _buildplateInstancesManager.GetInstanceInfo(instanceId);

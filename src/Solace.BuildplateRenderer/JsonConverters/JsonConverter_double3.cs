@@ -19,9 +19,9 @@ internal sealed class JsonConverter_double3 : JsonConverter<double3>
 
 		double x = 0, y = 0, z = 0;
 
-		string propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(double3.X)) ?? nameof(double3.X);
-		string propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Y)) ?? nameof(double3.Y);
-		string propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Z)) ?? nameof(double3.Z);
+		var propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(double3.X)) ?? nameof(double3.X);
+		var propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Y)) ?? nameof(double3.Y);
+		var propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Z)) ?? nameof(double3.Z);
 
 		while (reader.Read())
 		{
@@ -32,7 +32,7 @@ internal sealed class JsonConverter_double3 : JsonConverter<double3>
 
 			if (reader.TokenType == JsonTokenType.PropertyName)
 			{
-				string? propertyName = reader.GetString();
+				var propertyName = reader.GetString();
 				reader.Read();
 
 				if (StringEquals(propertyName, propertyX))
@@ -72,9 +72,9 @@ internal sealed class JsonConverter_double3 : JsonConverter<double3>
 	{
 		writer.WriteStartObject();
 
-		string propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(double3.X)) ?? nameof(double3.X);
-		string propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Y)) ?? nameof(double3.Y);
-		string propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Z)) ?? nameof(double3.Z);
+		var propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(double3.X)) ?? nameof(double3.X);
+		var propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Y)) ?? nameof(double3.Y);
+		var propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Z)) ?? nameof(double3.Z);
 
 		writer.WriteNumber(propertyX, value.X);
 		writer.WriteNumber(propertyY, value.Y);

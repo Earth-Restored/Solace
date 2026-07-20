@@ -93,11 +93,11 @@ public static class MeshDataExtensions
 
     private static async Task<Vector4?> GetColorFromTexture(string path, Biome biome, ResourcePackManager resourcePackManager)
     {
-        float temp = Math.Clamp(biome.Temperature, 0f, 1f);
-        float humidity = Math.Clamp(biome.Downfall, 0f, 1f) * temp;
+        var temp = Math.Clamp(biome.Temperature, 0f, 1f);
+        var humidity = Math.Clamp(biome.Downfall, 0f, 1f) * temp;
 
-        int u = (int)((1.0f - temp) * 255.0f);
-        int v = (int)((1.0f - humidity) * 255.0f);
+        var u = (int)((1.0f - temp) * 255.0f);
+        var v = (int)((1.0f - humidity) * 255.0f);
 
         try
         {
@@ -123,10 +123,10 @@ public static class MeshDataExtensions
 
             foreach (var kvp in mesh.Primitives)
             {
-                string textureId = kvp.Key;
+                var textureId = kvp.Key;
                 MeshPrimitive primitiveData = kvp.Value;
 
-                byte[] textureBytes = await resourcePack.GetTextureDataPNGAsync(textureId);
+                var textureBytes = await resourcePack.GetTextureDataPNGAsync(textureId);
 
                 Vector4? colorMultiplier = await TryGetColorMultiplierAsync(textureId, biome, resourcePack);
 
@@ -145,7 +145,7 @@ public static class MeshDataExtensions
                 var verts = primitiveData.Vertices;
                 var indices = primitiveData.Indices;
 
-                for (int i = 0; i < indices.Count; i += 3)
+                for (var i = 0; i < indices.Count; i += 3)
                 {
                     var v1 = CreateVertexBuilder(verts[indices[i]]);
                     var v2 = CreateVertexBuilder(verts[indices[i + 1]]);

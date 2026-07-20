@@ -78,7 +78,7 @@ internal static partial class App
 
         var earthDbConnectionString = builder.Configuration.GetConnectionString("EarthDb");
 
-        bool isEFTooling = Assembly.GetEntryAssembly()?.GetName().Name == "ef";
+        var isEFTooling = Assembly.GetEntryAssembly()?.GetName().Name == "ef";
 
         if (isEFTooling)
         {
@@ -278,7 +278,7 @@ internal static partial class App
             {
                 LogImportingShopBuildplate(logger, buildplate.Id);
 
-                string name = "unknown buildplate";
+                var name = "unknown buildplate";
                 var bpPlayfabItem = staticData.Playfab.Items.Values.FirstOrDefault(item => item.Data is Playfab.Item.BuildplateData bpData && bpData.Id == buildplate.Id);
                 if (bpPlayfabItem is not null)
                 {

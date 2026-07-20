@@ -71,7 +71,7 @@ public readonly struct BlockState : IEquatable<BlockState>
             return false;
         }
 
-        for (int i = 0; i < _propertiesLength; i++)
+        for (var i = 0; i < _propertiesLength; i++)
         {
             if (_properties[i].Key != other._properties[i].Key ||
                 _properties[i].Value != other._properties[i].Value)

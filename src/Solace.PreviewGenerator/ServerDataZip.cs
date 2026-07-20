@@ -33,23 +33,23 @@ internal sealed class ServerDataZip
 
     public CompoundTag GetChunkNBT(int x, int z)
     {
-        int regionX = x >> 5;
-        int regionZ = z >> 5;
-        int chunkX = x & 31;
-        int chunkZ = z & 31;
-        int chunkIndex = (chunkZ << 5) | chunkX;
+        var regionX = x >> 5;
+        var regionZ = z >> 5;
+        var chunkX = x & 31;
+        var chunkZ = z & 31;
+        var chunkIndex = (chunkZ << 5) | chunkX;
 
         using var ms = new MemoryStream(_files[$"region/r.{regionX}.{regionZ}.mca"]);
         using var reader = new BinaryReader(ms);
 
         ms.Seek(chunkIndex * 4, SeekOrigin.Begin);
-        int offset = (int)(reader.ReadUInt32BE() >> 8);
+        var offset = (int)(reader.ReadUInt32BE() >> 8);
 
         ms.Seek(offset * 4096, SeekOrigin.Begin);
 
-        int length = (int)reader.ReadUInt32BE();
-        byte compressionType = reader.ReadByte();
-        byte[] compressed = new byte[length];
+        var length = (int)reader.ReadUInt32BE();
+        var compressionType = reader.ReadByte();
+        var compressed = new byte[length];
         ms.Read(compressed);
         byte[] uncompressed;
         switch (compressionType)

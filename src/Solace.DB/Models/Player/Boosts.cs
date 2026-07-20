@@ -20,7 +20,7 @@ public sealed class BoostsEF : IEntityWithId<Guid>
 
     public IEnumerable<ActiveBoost> Prune(DateTimeOffset currentTime)
     {
-        for (int index = 0; index < ActiveBoosts.Length; index++)
+        for (var index = 0; index < ActiveBoosts.Length; index++)
         {
             ActiveBoost? activeBoost = ActiveBoosts[index];
             if (activeBoost is not null && activeBoost.StartTime + activeBoost.Duration < currentTime)

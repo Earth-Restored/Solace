@@ -12,7 +12,7 @@ internal static partial class TileUtils
 {
     public static async Task<bool> TryWriteTile(int tileX, int tileY, int zoom, Stream dest, IDbContextFactory<EarthDbContext> earthDbFactory, EventBusClient eventBus, ObjectStoreClient objectStore, ILogger logger, CancellationToken cancellationToken)
     {
-        long dbPos = ToDbPos(tileX, tileY);
+        var dbPos = ToDbPos(tileX, tileY);
 
         Guid? objectStoreId = null;
 
@@ -32,7 +32,7 @@ internal static partial class TileUtils
 
         LogRenderingTile(logger);
         await using var requestSender = await eventBus.AddRequestSenderAsync();
-        string? tilePng64 = await requestSender.RequestAsync("tile", "renderTile", JsonSerializer.Serialize(new RenderTileRequest(tileX, tileY, zoom), AppJsonContext.Default.RenderTileRequest));
+        var tilePng64 = await requestSender.RequestAsync("tile", "renderTile", JsonSerializer.Serialize(new RenderTileRequest(tileX, tileY, zoom), AppJsonContext.Default.RenderTileRequest));
 
         if (string.IsNullOrEmpty(tilePng64))
         {
@@ -40,7 +40,7 @@ internal static partial class TileUtils
             return false;
         }
 
-        byte[] tilePng = Convert.FromBase64String(tilePng64);
+        var tilePng = Convert.FromBase64String(tilePng64);
 
         var tileObjectId = await objectStore.StoreAsync(tilePng, cancellationToken);
 

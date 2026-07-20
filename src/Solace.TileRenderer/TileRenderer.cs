@@ -72,15 +72,15 @@ internal sealed partial class TileRenderer
         {
             foreach (JsonProperty tagField in doc.RootElement.EnumerateObject())
             {
-                string tagName = tagField.Name;
+                var tagName = tagField.Name;
 
                 tags.Add(tagName);
                 tagsMap[tagName] = new(StringComparer.OrdinalIgnoreCase);
 
                 foreach (JsonProperty valueField in tagField.Value.EnumerateObject())
                 {
-                    string tagValue = valueField.Name;
-                    string tagMapping = "_NO_RENDER";
+                    var tagValue = valueField.Name;
+                    var tagMapping = "_NO_RENDER";
 
                     if (valueField.Value.ValueKind is JsonValueKind.String)
                     {
@@ -116,7 +116,7 @@ internal sealed partial class TileRenderer
         var layers = await dataSource.GetTileAsync(new RenderContext(_tags, _tagsMap), zoom, tileX, tileY, logger, cancellationToken);
 
         LogRenderingImage(logger);
-        for (int renderLayer = 0; renderLayer < (int)RenderLayer.LAYER_NONE; renderLayer++)
+        for (var renderLayer = 0; renderLayer < (int)RenderLayer.LAYER_NONE; renderLayer++)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -133,7 +133,7 @@ internal sealed partial class TileRenderer
 
     private static SKColor LayerToColor(int layer)
     {
-        byte bwColor = (byte)(layerColourMapping[layer] * 255);
+        var bwColor = (byte)(layerColourMapping[layer] * 255);
         return new SKColor(bwColor, bwColor, bwColor);
     }
 

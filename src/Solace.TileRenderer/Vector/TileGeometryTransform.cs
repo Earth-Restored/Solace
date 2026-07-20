@@ -51,16 +51,16 @@ internal readonly struct TileGeometryTransform
             throw new ArgumentException($"{nameof(sequence)} is empty.", nameof(sequence));
         }
 
-        double lon = sequence.GetOrdinate(index, Ordinate.X);
-        double lat = sequence.GetOrdinate(index, Ordinate.Y);
+        var lon = sequence.GetOrdinate(index, Ordinate.X);
+        var lat = sequence.GetOrdinate(index, Ordinate.Y);
 
         var meters = WebMercatorHandler.LatLonToMeters(lat, lon);
         var pixels = WebMercatorHandler.FromMetersToPixels(meters, ZoomResolution);
 
-        int localX = (int)(pixels.x - _left);
-        int localY = (int)(_top - pixels.y);
-        int dx = localX - currentX;
-        int dy = localY - currentY;
+        var localX = (int)(pixels.x - _left);
+        var localY = (int)(_top - pixels.y);
+        var dx = localX - currentX;
+        var dy = localY - currentY;
         currentX = localX;
         currentY = localY;
 
@@ -76,8 +76,8 @@ internal readonly struct TileGeometryTransform
     /// <returns>WGS84 coordinates of the point in tile "pixel" coordinates (<paramref name="x"/>, <paramref name="y"/>).</returns>
     public (double longitude, double latitude) TransformInverse(int x, int y)
     {
-        long globalX = _left + x;
-        long globalY = _top - y;
+        var globalX = _left + x;
+        var globalY = _top - y;
 
         var meters = WebMercatorHandler.FromPixelsToMeters((globalX, globalY), ZoomResolution);
         var coordinates = WebMercatorHandler.MetersToLatLon(meters);
@@ -109,8 +109,8 @@ internal readonly struct TileGeometryTransform
         (double x1, double y1) = WebMercatorHandler.FromMetersToPixels(WebMercatorHandler.LatLonToMeters(env.MinY, env.MinX), ZoomResolution);
         (double x2, double y2) = WebMercatorHandler.FromMetersToPixels(WebMercatorHandler.LatLonToMeters(env.MaxY, env.MaxX), ZoomResolution);
 
-        double dx = Math.Abs(x2 - x1);
-        double dy = Math.Abs(y2 - y1);
+        var dx = Math.Abs(x2 - x1);
+        var dy = Math.Abs(y2 - y1);
 
         // Both must be greater than 0, and at least one of them needs to be larger than 1. 
         return dx > 0 && dy > 0 && (dx > 1 || dy > 1);
@@ -118,8 +118,8 @@ internal readonly struct TileGeometryTransform
 
     public (long x, long y) ExtentInPixel(Envelope env)
     {
-        (long minX, long minY) = WebMercatorHandler.FromMetersToPixels(WebMercatorHandler.LatLonToMeters(env.MinY, env.MinX), ZoomResolution);
-        (long maxX, long maxY) = WebMercatorHandler.FromMetersToPixels(WebMercatorHandler.LatLonToMeters(env.MaxY, env.MaxX), ZoomResolution);
+        (var minX, var minY) = WebMercatorHandler.FromMetersToPixels(WebMercatorHandler.LatLonToMeters(env.MinY, env.MinX), ZoomResolution);
+        (var maxX, var maxY) = WebMercatorHandler.FromMetersToPixels(WebMercatorHandler.LatLonToMeters(env.MaxY, env.MaxX), ZoomResolution);
 
         return (maxX - minX, maxY - minY);
     }

@@ -165,7 +165,7 @@ public sealed class NbtMapBuilder : IDictionary<string, object>, IReadOnlyDictio
 
     public NbtMapBuilder Rename(string oldName, string newName)
     {
-        if (TryGetValue(oldName, out object? o))
+        if (TryGetValue(oldName, out var o))
         {
             Remove(oldName);
             Add(newName, o);

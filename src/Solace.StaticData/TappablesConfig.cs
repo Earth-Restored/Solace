@@ -14,7 +14,7 @@ public sealed class TappablesConfig
         try
         {
             var tappables = ImmutableArray.CreateBuilder<TappableConfig>();
-            foreach (string file in Directory.EnumerateFiles(dir))
+            foreach (var file in Directory.EnumerateFiles(dir))
             {
                 if (Path.GetExtension(file) != ".json")
                 {

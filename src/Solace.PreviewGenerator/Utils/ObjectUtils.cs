@@ -48,8 +48,8 @@ public static class ObjectUtils
 
         foreach (PropertyInfo property in type1.GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
-            object? value1 = property.GetValue(obj1);
-            object? value2 = property.GetValue(obj2);
+            var value1 = property.GetValue(obj1);
+            var value2 = property.GetValue(obj2);
 
             if (!DeepEquals(value1, value2))
             {

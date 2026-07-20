@@ -92,10 +92,10 @@ internal sealed class InventoryController : SolaceControllerBase
             [.. stackableItems.Select(item =>
             {
                 var uuid = item.ItemId;
-                int count = item.Count - hotbarItemCounts.GetValueOrDefault(uuid);
+                var count = item.Count - hotbarItemCounts.GetValueOrDefault(uuid);
                 var itemJournalEntry = journalEntries[uuid];
-                string firstSeen = TimeFormatter.FormatTime(itemJournalEntry.FirstSeen);
-                string lastSeen = TimeFormatter.FormatTime(itemJournalEntry.LastSeen);
+                var firstSeen = TimeFormatter.FormatTime(itemJournalEntry.FirstSeen);
+                var lastSeen = TimeFormatter.FormatTime(itemJournalEntry.LastSeen);
 
                 return new StackableInventoryItem(
                     uuid,
@@ -109,8 +109,8 @@ internal sealed class InventoryController : SolaceControllerBase
             {
                 var uuid = group.Key;
                 var itemJournalEntry = journalEntries[uuid];
-                string firstSeen = TimeFormatter.FormatTime(itemJournalEntry.FirstSeen);
-                string lastSeen = TimeFormatter.FormatTime(itemJournalEntry.LastSeen);
+                var firstSeen = TimeFormatter.FormatTime(itemJournalEntry.FirstSeen);
+                var lastSeen = TimeFormatter.FormatTime(itemJournalEntry.LastSeen);
                 return new NonStackableInventoryItem(
                     uuid,
                     [.. group.Where(instance => !hotbarItemInstances.Contains(instance.InstanceId)).Select(instance => new NonStackableInventoryItem.Instance(instance.InstanceId, ItemWear.WearToHealth(uuid, instance.Wear, _catalog.ItemsCatalog)))],
@@ -160,7 +160,7 @@ internal sealed class InventoryController : SolaceControllerBase
             item.InstanceId is not null ? ItemWear.WearToHealth(item.Uuid, _earthDb.NonStackableItems.AsNoTracking().First(nsi => nsi.AccountId == accountId && nsi.ItemId == item.Uuid && nsi.InstanceId == item.InstanceId.Value).Wear, _catalog.ItemsCatalog) : 0.0f
         ) : null)];
 
-        string resp = Json.Serialize(hotbarItems);
+        var resp = Json.Serialize(hotbarItems);
         return TypedResults.Content(resp, "application/json");
     }
 
@@ -221,15 +221,15 @@ internal sealed class InventoryController : SolaceControllerBase
             }
         }
 
-        int healing = item.ConsumeInfo.Heal;
+        var healing = item.ConsumeInfo.Heal;
 
-        int healingMultiplier = BoostUtils.GetActiveStatModifiers(boosts, requestStartedOn, _catalog.ItemsCatalog).FoodMultiplier;
+        var healingMultiplier = BoostUtils.GetActiveStatModifiers(boosts, requestStartedOn, _catalog.ItemsCatalog).FoodMultiplier;
         if (healingMultiplier > 0)
         {
             healing = healing * (healingMultiplier + 100) / 100;
         }
 
-        int maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _catalog.ItemsCatalog);
+        var maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _catalog.ItemsCatalog);
         profile.Health += healing;
         if (profile.Health > maxPlayerHealth)
         {

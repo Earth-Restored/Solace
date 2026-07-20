@@ -13,10 +13,10 @@ internal sealed class LinearRing
 
     public static LinearRing Load(BinaryReader reader)
     {
-        int numPoints = reader.ReadInt32();
+        var numPoints = reader.ReadInt32();
         var points = new Point[numPoints];
 
-        for (int i = 0; i < numPoints; i++)
+        for (var i = 0; i < numPoints; i++)
         {
             points[i] = Point.Load(reader);
         }
@@ -36,7 +36,7 @@ internal sealed class LinearRing
 
         using var path = new SKPathBuilder();
 
-        for (int i = 0; i < Points.Length; i++)
+        for (var i = 0; i < Points.Length; i++)
         {
             var pixelPoint = tile.ToLocalPixel(Points[i]);
 

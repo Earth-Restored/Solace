@@ -70,7 +70,7 @@ public static partial class BlockEntityTranslator
                         return null;
                     }
 
-                    int javaBlockId = javaNbt.Get<IntTag>("blockStateId").Value;
+                    var javaBlockId = javaNbt.Get<IntTag>("blockStateId").Value;
                     JavaBlocks.BedrockMapping? bedrockMapping = JavaBlocks.GetBedrockMapping(javaBlockId);
                     if (bedrockMapping is null)
                     {

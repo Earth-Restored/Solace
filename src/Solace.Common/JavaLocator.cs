@@ -33,7 +33,7 @@ public static partial class JavaLocator
                 var file = new FileInfo(Path.Combine(javaHome, "bin", "java"));
                 if (file.CanExecute())
                 {
-                    string path = file.FullName;
+                    var path = file.FullName;
                     LogUseJavaHome(logger, path);
                     return path;
                 }
@@ -41,7 +41,7 @@ public static partial class JavaLocator
                 file = new FileInfo(Path.Combine(javaHome, "bin", "java.exe"));
                 if (file.CanExecute())
                 {
-                    string path = file.FullName;
+                    var path = file.FullName;
                     LogUseJavaHome(logger, path);
                     return path;
                 }

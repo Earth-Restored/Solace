@@ -65,7 +65,7 @@ internal sealed class SpanStream : Stream
 
         var bufferSpan = _buffer.Span;
 
-        int n = _length - _position;
+        var n = _length - _position;
         if (n > count)
         {
             n = count;
@@ -80,7 +80,7 @@ internal sealed class SpanStream : Stream
 
         if (n <= 8)
         {
-            int byteCount = n;
+            var byteCount = n;
             while (--byteCount >= 0)
             {
                 buffer[offset + byteCount] = bufferSpan[_position + byteCount];
@@ -100,7 +100,7 @@ internal sealed class SpanStream : Stream
     {
         EnsureNotClosed();
 
-        int n = Math.Min(_length - _position, buffer.Length);
+        var n = Math.Min(_length - _position, buffer.Length);
         if (n <= 0)
         {
             return 0;
@@ -127,10 +127,10 @@ internal sealed class SpanStream : Stream
         ValidateCopyToArguments(destination, bufferSize);
         EnsureNotClosed();
 
-        int originalPosition = _position;
+        var originalPosition = _position;
 
         // Seek to the end of the SpanStream.
-        int remaining = InternalEmulateRead(_length - originalPosition);
+        var remaining = InternalEmulateRead(_length - originalPosition);
 
         // If we were already at or past the end, there's no copying to do so just quit.
         if (remaining > 0)
@@ -151,7 +151,7 @@ internal sealed class SpanStream : Stream
         {
             case SeekOrigin.Begin:
                 {
-                    int tempPosition = unchecked((int)offset);
+                    var tempPosition = unchecked((int)offset);
                     if (offset < 0 || tempPosition < 0)
                     {
                         throw new IOException("An attempt was made to move the position before the beginning of the stream.");
@@ -163,7 +163,7 @@ internal sealed class SpanStream : Stream
 
             case SeekOrigin.Current:
                 {
-                    int tempPosition = unchecked(_position + (int)offset);
+                    var tempPosition = unchecked(_position + (int)offset);
                     if (unchecked(_position + offset) < 0 || tempPosition < 0)
                     {
                         throw new IOException("An attempt was made to move the position before the beginning of the stream.");
@@ -175,7 +175,7 @@ internal sealed class SpanStream : Stream
 
             case SeekOrigin.End:
                 {
-                    int tempPosition = unchecked(_length + (int)offset);
+                    var tempPosition = unchecked(_length + (int)offset);
                     if (unchecked(_length + offset) < 0 || tempPosition < 0)
                     {
                         throw new IOException("An attempt was made to move the position before the beginning of the stream.");
@@ -205,13 +205,13 @@ internal sealed class SpanStream : Stream
 
     public byte[] ToArray()
     {
-        int count = _length;
+        var count = _length;
         if (count == 0)
         {
             return [];
         }
 
-        byte[] copy = GC.AllocateUninitializedArray<byte>(count);
+        var copy = GC.AllocateUninitializedArray<byte>(count);
         _buffer.Span[..count].CopyTo(copy);
         return copy;
     }
@@ -223,7 +223,7 @@ internal sealed class SpanStream : Stream
 
         var bufferSpan = _buffer.Span;
 
-        int i = _position + count;
+        var i = _position + count;
 
         // Check for overflow
         if (i < 0)
@@ -233,7 +233,7 @@ internal sealed class SpanStream : Stream
 
         if (i > _length)
         {
-            bool mustZero = _position > _length;
+            var mustZero = _position > _length;
             if (i > _buffer.Length)
             {
                 throw new IOException("Stream was too long.");
@@ -249,7 +249,7 @@ internal sealed class SpanStream : Stream
 
         if (count <= 8)
         {
-            int byteCount = count;
+            var byteCount = count;
             while (--byteCount >= 0)
             {
                 bufferSpan[_position + byteCount] = buffer[offset + byteCount];
@@ -270,7 +270,7 @@ internal sealed class SpanStream : Stream
         var bufferSpan = _buffer.Span;
 
         // Check for overflow
-        int i = _position + buffer.Length;
+        var i = _position + buffer.Length;
         if (i < 0)
         {
             throw new IOException("Stream was too long.");
@@ -278,7 +278,7 @@ internal sealed class SpanStream : Stream
 
         if (i > _length)
         {
-            bool mustZero = _position > _length;
+            var mustZero = _position > _length;
             if (i > _buffer.Length)
             {
                 throw new IOException("Stream was too long.");
@@ -304,8 +304,8 @@ internal sealed class SpanStream : Stream
 
         if (_position >= _length)
         {
-            int newLength = _position + 1;
-            bool mustZero = _position > _length;
+            var newLength = _position + 1;
+            var mustZero = _position > _length;
             if (newLength >= _buffer.Length)
             {
                 throw new IOException("Stream was too long.");
@@ -344,7 +344,7 @@ internal sealed class SpanStream : Stream
     {
         EnsureNotClosed();
 
-        int n = _length - _position;
+        var n = _length - _position;
         if (n > count)
         {
             n = count;

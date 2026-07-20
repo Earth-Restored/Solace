@@ -113,16 +113,16 @@ internal sealed class CatalogController : SolaceControllerBase
     private HashSet<string> ProductIdsFromQuery()
     {
         var productIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (string key in new[] { "productId", "id", "productIds", "recentlyViewedProductIds", "ids" })
+        foreach (var key in new[] { "productId", "id", "productIds", "recentlyViewedProductIds", "ids" })
         {
-            foreach (string? value in Request.Query[key])
+            foreach (var value in Request.Query[key])
             {
                 if (value is null)
                 {
                     continue;
                 }
 
-                foreach (string productId in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                foreach (var productId in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                 {
                     productIds.Add(productId);
                 }
@@ -178,7 +178,7 @@ internal sealed class CatalogController : SolaceControllerBase
 
                 break;
             case JsonValueKind.String:
-                string? productId = element.GetString();
+                var productId = element.GetString();
                 if (!string.IsNullOrWhiteSpace(productId))
                 {
                     productIds.Add(productId);

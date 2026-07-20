@@ -39,7 +39,7 @@ internal static class EarthDbContextExtensions
                 new() { Id = CryptoSecrets.PlayfabSessionTicketName, Value = GenerateSecureSecret(64) },
             ];
 
-            string insertSql = """
+            var insertSql = """
                 INSERT INTO "Secrets" ("Id", "Value") VALUES ({0}, {1}) ON CONFLICT ("Id") DO NOTHING;
                 """;
 

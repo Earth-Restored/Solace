@@ -43,9 +43,9 @@ internal sealed partial class Chunk
         Array.Fill(extraDatas, null);
 
         HashSet<string> alreadyNotifiedMissingBlocks = [];
-        for (int subchunkY = 0; subchunkY < 16; subchunkY++)
+        for (var subchunkY = 0; subchunkY < 16; subchunkY++)
         {
-            int sectionIndex = subchunkY + 4 + 1; // Java world height starts at -64, plus one section for bottommost lighting
+            var sectionIndex = subchunkY + 4 + 1; // Java world height starts at -64, plus one section for bottommost lighting
             var sectionTag = (CompoundTag)chunkTag.Get<ListTag>("sections")[sectionIndex];
 
             CompoundTag blockStatesTag = sectionTag.Get<CompoundTag>("block_states");
@@ -78,13 +78,13 @@ internal sealed partial class Chunk
                 javaBlocks = ReadBitArray(blockStatesTag.Get<LongArrayTag>("data"), javaPalette.Count);
             }
 
-            for (int x = 0; x < 16; x++)
+            for (var x = 0; x < 16; x++)
             {
-                for (int y = 0; y < 16; y++)
+                for (var y = 0; y < 16; y++)
                 {
-                    for (int z = 0; z < 16; z++)
+                    for (var z = 0; z < 16; z++)
                     {
-                        string javaName = javaPalette[javaBlocks[(y * 16 + z) * 16 + x]];
+                        var javaName = javaPalette[javaBlocks[(y * 16 + z) * 16 + x]];
 
                         JavaBlocks.BedrockMapping? bedrockMapping = JavaBlocks.GetBedrockMapping(javaName);
                         if (bedrockMapping is null)
@@ -96,7 +96,7 @@ internal sealed partial class Chunk
                         }
 
                         // TODO: how to handle waterlogged blocks???
-                        int bedrockId = bedrockMapping is not null ? bedrockMapping.Id : BedrockBlocks.AirId;
+                        var bedrockId = bedrockMapping is not null ? bedrockMapping.Id : BedrockBlocks.AirId;
                         Blocks[(x * 256 + y + subchunkY * 16) * 16 + z] = bedrockId;
 
                         JavaBlocks.BedrockMapping.BlockEntityR? blockEntityMapping = bedrockMapping is not null && bedrockMapping.BlockEntity is not null ? bedrockMapping.BlockEntity : null;
@@ -118,10 +118,10 @@ internal sealed partial class Chunk
         foreach (Tag blockEntityTag in chunkTag.Get<ListTag>("block_entities"))
         {
             var blockEntityCompoundTag = (CompoundTag)blockEntityTag;
-            int x = GetChunkBlockOffset(blockEntityCompoundTag.Get<IntTag>("x").Value);
-            int y = blockEntityCompoundTag.Get<IntTag>("y").Value;
-            int z = GetChunkBlockOffset(blockEntityCompoundTag.Get<IntTag>("z").Value);
-            string type = blockEntityCompoundTag.Get<StringTag>("id").Value;
+            var x = GetChunkBlockOffset(blockEntityCompoundTag.Get<IntTag>("x").Value);
+            var y = blockEntityCompoundTag.Get<IntTag>("y").Value;
+            var z = GetChunkBlockOffset(blockEntityCompoundTag.Get<IntTag>("z").Value);
+            var type = blockEntityCompoundTag.Get<StringTag>("id").Value;
             var blockEntityInfo = new BlockEntityInfo(x, y, z, BlockEntityType.FURNACE, blockEntityCompoundTag);    // TODO: use proper type (currently this doesn't matter for any of our translator implementations)
 
             JavaBlocks.BedrockMapping.BlockEntityR? blockEntityMapping = blockEntityMappings[(x * 256 + y) * 16 + z];
@@ -143,7 +143,7 @@ internal sealed partial class Chunk
     // TODO: this relies on the state tags in the block names in the Java blocks registry matching the actual server names/values and to be sorted in alphabetical order, should verify/ensure that this is the case
     private static string ReadPaletteEntry(CompoundTag paletteEntryTag)
     {
-        string name = paletteEntryTag.Get<StringTag>("Name").Value;
+        var name = paletteEntryTag.Get<StringTag>("Name").Value;
 
         List<string> properties = [];
         if (paletteEntryTag.ContainsKey("Properties"))
@@ -166,15 +166,15 @@ internal sealed partial class Chunk
 
     private static int[] ReadBitArray(LongArrayTag longArrayTag, int maxValue)
     {
-        int[] @out = new int[4096];
-        int outIndex = 0;
+        var @out = new int[4096];
+        var outIndex = 0;
 
         long[] @in = longArrayTag;
-        int inIndex = 0;
+        var inIndex = 0;
         int inSubIndex;
 
-        int bits = 64;
-        for (int bits1 = 4; bits1 <= 64; bits1++)
+        var bits = 64;
+        for (var bits1 = 4; bits1 <= 64; bits1++)
         {
             if (maxValue <= (1 << bits1))
             {
@@ -183,9 +183,9 @@ internal sealed partial class Chunk
             }
         }
 
-        int valuesPerLong = 64 / bits;
+        var valuesPerLong = 64 / bits;
 
-        long currentIn = @in[inIndex++];
+        var currentIn = @in[inIndex++];
         inSubIndex = 0;
         while (outIndex < @out.Length)
         {
@@ -195,7 +195,7 @@ internal sealed partial class Chunk
                 inSubIndex = 0;
             }
 
-            long value = (currentIn >> (inSubIndex++ * bits)) & ((1 << bits) - 1);
+            var value = (currentIn >> (inSubIndex++ * bits)) & ((1 << bits) - 1);
             @out[outIndex++] = (int)value;
         }
 

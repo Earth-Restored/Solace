@@ -63,7 +63,7 @@ internal sealed class CatalogController : SolaceControllerBase
         IEnumerable<Item> items;
         try
         {
-            string filter = request.Filter
+            var filter = request.Filter
                 .Replace("platforms/any(tp: tp eq 'android.googleplay' and tp eq 'title.earth')", "platforms/any(tp: tp eq 'android.googleplay') and platforms/any(tp: tp eq 'title.earth')");
 
             var oDataQuery = itemData.AsQueryable().OData(settings =>
@@ -312,7 +312,7 @@ internal sealed class CatalogController : SolaceControllerBase
 
     private static Item ToResponse(Item item, HttpRequest request)
     {
-        string host = $"{(request.IsHttps ? "https://" : "http://")}{request.Host.Value}";
+        var host = $"{(request.IsHttps ? "https://" : "http://")}{request.Host.Value}";
 
         return item with
         {

@@ -240,7 +240,7 @@ public sealed partial class Importer : IAsyncDisposable
             return null;
         }
 
-        byte[]? serverData = await ObjectStoreClient.GetArrayAsync(template.ServerDataObjectId, cancellationToken);
+        var serverData = await ObjectStoreClient.GetArrayAsync(template.ServerDataObjectId, cancellationToken);
 
         if (serverData is null)
         {
@@ -531,7 +531,7 @@ public sealed partial class Importer : IAsyncDisposable
                 return false;
             }
 
-            int scale = worldData.Size switch
+            var scale = worldData.Size switch
             {
                 8 => 14,
                 16 => 33,

@@ -42,7 +42,7 @@ internal sealed class ChallengesController : ControllerBase
     {
         // TODO: this is currently just a stub required for the journal to load properly in the client
 
-        string resp = Json.Serialize(new EarthApiResponse(new Dictionary<string, object>()
+        var resp = Json.Serialize(new EarthApiResponse(new Dictionary<string, object>()
         {
             { "challenges", new Dictionary<string, object>()
             {

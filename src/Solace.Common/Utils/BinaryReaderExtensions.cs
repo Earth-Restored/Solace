@@ -9,7 +9,7 @@ public static class BinaryReaderExtensions
         public uint ReadUInt32BE()
         {
             Span<byte> buffer = stackalloc byte[sizeof(uint)];
-            int read = reader.Read(buffer);
+            var read = reader.Read(buffer);
             if (read != sizeof(uint))
             {
                 throw new EndOfStreamException($"{sizeof(uint)} bytes required from stream, but only {read} returned.");

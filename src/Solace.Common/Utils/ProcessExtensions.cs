@@ -78,7 +78,7 @@ public static partial class ProcessExtensions
         {
             Debug.Assert(RuntimeInformation.IsOSPlatform(OSPlatform.Windows));
 
-            string exePath = Path.GetFullPath("Solace.KillHelper.exe");
+            var exePath = Path.GetFullPath("Solace.KillHelper.exe");
 
             var startInfo = new ProcessStartInfo(exePath, [process.Id.ToString(CultureInfo.InvariantCulture)])
             {
@@ -113,7 +113,7 @@ public static partial class ProcessExtensions
         {
             try
             {
-                string signal = await process.UnixGetSignalAsync(cancellationToken);
+                var signal = await process.UnixGetSignalAsync(cancellationToken);
 
                 var killProc = Process.Start("kill", $"-s {signal} {process.Id}");
                 await killProc.WaitForExitAsync(1000, cancellationToken);
@@ -136,7 +136,7 @@ public static partial class ProcessExtensions
                 {
                     // We want to see WHERE the symlink points, not read its contents.
                     var linkInfo = File.ResolveLinkTarget($"/proc/{process.Id}/fd/0", returnFinalTarget: true);
-                    string targetPath = linkInfo?.FullName ?? string.Empty;
+                    var targetPath = linkInfo?.FullName ?? string.Empty;
 
                     if (targetPath.Contains("/dev/tty", StringComparison.Ordinal) || targetPath.Contains("/dev/pts", StringComparison.Ordinal))
                     {
@@ -159,7 +159,7 @@ public static partial class ProcessExtensions
                 using var ps = Process.Start(psi);
                 if (ps is not null)
                 {
-                    string tty = await ps.StandardOutput.ReadToEndAsync(cancellationToken);
+                    var tty = await ps.StandardOutput.ReadToEndAsync(cancellationToken);
                     await ps.WaitForExitAsync(cancellationToken);
 
                     if (!string.IsNullOrWhiteSpace(tty) && !tty.Contains('?', StringComparison.Ordinal))

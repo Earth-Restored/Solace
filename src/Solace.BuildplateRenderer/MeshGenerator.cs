@@ -67,7 +67,7 @@ public sealed class BuildplateMeshGenerator
                 if (!entry.IsDirectory && entry.FullName.StartsWith("region"))
                 {
                     var entryStream = await entry.OpenAsync(cancellationToken);
-                    byte[] regionData = GC.AllocateUninitializedArray<byte>(checked((int)entry.Length));
+                    var regionData = GC.AllocateUninitializedArray<byte>(checked((int)entry.Length));
                     await entryStream.ReadExactlyAsync(regionData, cancellationToken);
 
                     CacheRegion(regionData, RegionUtils.PathToPos(entry.FullName), subChunkCache);
@@ -125,7 +125,7 @@ public sealed class BuildplateMeshGenerator
 
     private void ProcessCachedSubChunk(CachedSubChunk subChunk, Dictionary<int3, CachedSubChunk> cache, MeshData mesh, int3 offset)
     {
-        bool foundVisibleBlock = false;
+        var foundVisibleBlock = false;
         foreach (var entry in subChunk.Palette)
         {
             if (!ChunkUtils.InvisibleBlocks.Contains(((StringTag)((CompoundTag)entry)["Name"]).Value))
@@ -149,7 +149,7 @@ public sealed class BuildplateMeshGenerator
         foreach (var blockIndex in subChunk.Blocks)
         {
             var paletteEntry = (CompoundTag)subChunk.Palette[blockIndex];
-            string blockName = ((StringTag)paletteEntry["Name"]).Value;
+            var blockName = ((StringTag)paletteEntry["Name"]).Value;
 
             if (!ChunkUtils.InvisibleBlocks.Contains(blockName))
             {
@@ -159,7 +159,7 @@ public sealed class BuildplateMeshGenerator
                     goto incrementPos;
                 }
 
-                int propertiesArrayLength = 0;
+                var propertiesArrayLength = 0;
                 if (paletteEntry.TryGetValue("Properties", out var propertiesTag))
                 {
                     foreach (var item in (ICollection<KeyValuePair<string, Tag>>)(CompoundTag)propertiesTag)
@@ -196,8 +196,8 @@ public sealed class BuildplateMeshGenerator
 
                         int3 localPos = rawBlockPos - (targetSubChunkCoord * ChunkUtils.SubChunkSize);
 
-                        int targetIndex = localPos.X + localPos.Z * ChunkUtils.Width + localPos.Y * ChunkUtils.Width * ChunkUtils.Width;
-                        int targetBlockIndex = targetSubChunk.Blocks[targetIndex];
+                        var targetIndex = localPos.X + localPos.Z * ChunkUtils.Width + localPos.Y * ChunkUtils.Width * ChunkUtils.Width;
+                        var targetBlockIndex = targetSubChunk.Blocks[targetIndex];
 
                         return ChunkUtils.TagToBlockStateVisibleFromPool((CompoundTag)targetSubChunk.Palette[targetBlockIndex]);
                     },
@@ -239,7 +239,7 @@ public sealed class BuildplateMeshGenerator
             Matrix4x4 elementTransform = CreateElementTransform(element.Rotation);
             Matrix4x4 finalTransform = elementTransform * variantTransform;
 
-            for (int i = 0; i < 6; i++)
+            for (var i = 0; i < 6; i++)
             {
                 var direction = (Direction)i;
 
@@ -273,7 +273,7 @@ public sealed class BuildplateMeshGenerator
                     }
                 }
 
-                string actualTexture = face.Texture;
+                var actualTexture = face.Texture;
                 while (actualTexture.StartsWith('#') && model.Textures is not null)
                 {
                     model.Textures.TryGetValue(actualTexture[1..], out actualTexture!);
@@ -292,7 +292,7 @@ public sealed class BuildplateMeshGenerator
 
     private static void BuildFace(Vector3 blockPosition, Direction dir, Vector3 from, Vector3 to, BlockFace face, Matrix4x4 transform, bool uvLock, MeshPrimitive primitive)
     {
-        int startIndex = primitive.Vertices.Count;
+        var startIndex = primitive.Vertices.Count;
 
         Span<Vector3> corners = stackalloc Vector3[4];
         GetFaceVertices(dir, from, to, corners, out Vector3 normal);
@@ -300,7 +300,7 @@ public sealed class BuildplateMeshGenerator
         Span<Vector2> uvs = stackalloc Vector2[4];
         CalculateUVs(face.UV, face.Rotation, uvs);
 
-        for (int i = 0; i < 4; i++)
+        for (var i = 0; i < 4; i++)
         {
             var pos = blockPosition + Vector3.Transform(corners[i], transform);
 
@@ -328,9 +328,9 @@ public sealed class BuildplateMeshGenerator
         Vector3 origin = r.Origin * BlockModelScale;
 
         // deg to rad
-        float radX = r.X * (float.Pi / 180f);
-        float radY = r.Y * (float.Pi / 180f);
-        float radZ = r.Z * (float.Pi / 180f);
+        var radX = r.X * (float.Pi / 180f);
+        var radY = r.Y * (float.Pi / 180f);
+        var radZ = r.Z * (float.Pi / 180f);
 
         Matrix4x4 matrix = Matrix4x4.Identity;
 
@@ -342,9 +342,9 @@ public sealed class BuildplateMeshGenerator
 
         if (r.ReScale)
         {
-            float scaleX = r.X != 0 ? 1f / float.Cos(radX) : 1f;
-            float scaleY = r.Y != 0 ? 1f / float.Cos(radY) : 1f;
-            float scaleZ = r.Z != 0 ? 1f / float.Cos(radZ) : 1f;
+            var scaleX = r.X != 0 ? 1f / float.Cos(radX) : 1f;
+            var scaleY = r.Y != 0 ? 1f / float.Cos(radY) : 1f;
+            var scaleZ = r.Z != 0 ? 1f / float.Cos(radZ) : 1f;
             matrix *= Matrix4x4.CreateScale(scaleX, scaleY, scaleZ);
         }
 
@@ -370,9 +370,9 @@ public sealed class BuildplateMeshGenerator
 
     private static Matrix4x4 CreateMinecraftRotation(float degreesX, float degreesY, float degreesZ)
     {
-        float radX = degreesX * (float.Pi / 180f);
-        float radY = -degreesY * (float.Pi / 180f);
-        float radZ = degreesZ * (float.Pi / 180f);
+        var radX = degreesX * (float.Pi / 180f);
+        var radY = -degreesY * (float.Pi / 180f);
+        var radZ = degreesZ * (float.Pi / 180f);
 
         return Matrix4x4.CreateRotationY(radY)
             * Matrix4x4.CreateRotationX(radX)
@@ -439,10 +439,10 @@ public sealed class BuildplateMeshGenerator
         Debug.Assert(result.Length is 4);
 
         // Scale 0-16 to 0-1.
-        float u0 = uv.Min.X * BlockModelScale;
-        float v0 = uv.Min.Y * BlockModelScale;
-        float u1 = uv.Max.X * BlockModelScale;
-        float v1 = uv.Max.Y * BlockModelScale;
+        var u0 = uv.Min.X * BlockModelScale;
+        var v0 = uv.Min.Y * BlockModelScale;
+        var u1 = uv.Max.X * BlockModelScale;
+        var v1 = uv.Max.Y * BlockModelScale;
 
         // top-left, bottom-left, bottom-right, top-right
         result[0] = new Vector2(u0, v0);
@@ -453,7 +453,7 @@ public sealed class BuildplateMeshGenerator
         // If rotation is applied (90, 180, 270), shift the array
         if (rotation != 0)
         {
-            int shifts = (rotation / 90) % 4;
+            var shifts = (rotation / 90) % 4;
             if (shifts is 1)
             {
                 var tmp = result[0];
@@ -509,13 +509,13 @@ public sealed class BuildplateMeshGenerator
     private static Direction GetClosestDirection(Vector3 normal)
     {
         normal = Vector3.Normalize(normal);
-        float maxDot = -2f; // init lower than any possible dot product (-1 to 1)
+        var maxDot = -2f; // init lower than any possible dot product (-1 to 1)
         Direction closest = Direction.Up;
 
-        for (int i = 0; i < 6; i++)
+        for (var i = 0; i < 6; i++)
         {
             var dir = (Direction)i;
-            float dot = Vector3.Dot(normal, GetDirectionVector3(dir));
+            var dot = Vector3.Dot(normal, GetDirectionVector3(dir));
             if (dot > maxDot)
             {
                 maxDot = dot;
@@ -542,7 +542,7 @@ public sealed class BuildplateMeshGenerator
         // todo: the rng doesn't change this... right?
         var modelVariantsLength = _resourcePack.GetModelVariants(blockState, _rng, modelVariants);
 
-        bool result = IsFaceFullAndOpaque(modelVariants.AsSpan(0, modelVariantsLength), faceDirection);
+        var result = IsFaceFullAndOpaque(modelVariants.AsSpan(0, modelVariantsLength), faceDirection);
 
         ArrayPool<VariantModel>.Shared.Return(modelVariants);
 
@@ -580,7 +580,7 @@ public sealed class BuildplateMeshGenerator
             }
         }
 
-        for (int i = 0; i < 256; i++)
+        for (var i = 0; i < 256; i++)
         {
             if (!faceGrid[i])
             {
@@ -608,7 +608,7 @@ public sealed class BuildplateMeshGenerator
             new Vector3(to.X, to.Y, to.Z)
         ];
 
-        for (int i = 0; i < 8; i++)
+        for (var i = 0; i < 8; i++)
         {
             var transformed = Vector3.Transform(corners[i], transform);
             min = Vector3.Min(min, transformed);
@@ -620,7 +620,7 @@ public sealed class BuildplateMeshGenerator
     {
         const float Epsilon = 0.01f;
         float uMin = 0, uMax = 0, vMin = 0, vMax = 0;
-        bool touchesFace = false;
+        var touchesFace = false;
 
         if (normal.X < -0.5f)      // West Face
         {
@@ -659,14 +659,14 @@ public sealed class BuildplateMeshGenerator
         }
 
         // Convert normalized (0.0 - 1.0) coordinates to grid indices (0 - 16)
-        int startU = int.Clamp((int)double.Round(uMin * 16), 0, 16);
-        int endU = int.Clamp((int)double.Round(uMax * 16), 0, 16);
-        int startV = int.Clamp((int)double.Round(vMin * 16), 0, 16);
-        int endV = int.Clamp((int)double.Round(vMax * 16), 0, 16);
+        var startU = int.Clamp((int)double.Round(uMin * 16), 0, 16);
+        var endU = int.Clamp((int)double.Round(uMax * 16), 0, 16);
+        var startV = int.Clamp((int)double.Round(vMin * 16), 0, 16);
+        var endV = int.Clamp((int)double.Round(vMax * 16), 0, 16);
 
-        for (int v = startV; v < endV; v++)
+        for (var v = startV; v < endV; v++)
         {
-            for (int u = startU; u < endU; u++)
+            for (var u = startU; u < endU; u++)
             {
                 grid[u + v * 16] = true;
             }

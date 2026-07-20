@@ -66,7 +66,7 @@ internal sealed class ReadOnlySpanStream : Stream
 
         var bufferSpan = _buffer.Span;
 
-        int n = _length - _position;
+        var n = _length - _position;
         if (n > count)
         {
             n = count;
@@ -81,7 +81,7 @@ internal sealed class ReadOnlySpanStream : Stream
 
         if (n <= 8)
         {
-            int byteCount = n;
+            var byteCount = n;
             while (--byteCount >= 0)
             {
                 buffer[offset + byteCount] = bufferSpan[_position + byteCount];
@@ -101,7 +101,7 @@ internal sealed class ReadOnlySpanStream : Stream
     {
         EnsureNotClosed();
 
-        int n = Math.Min(_length - _position, buffer.Length);
+        var n = Math.Min(_length - _position, buffer.Length);
         if (n <= 0)
         {
             return 0;
@@ -128,10 +128,10 @@ internal sealed class ReadOnlySpanStream : Stream
         ValidateCopyToArguments(destination, bufferSize);
         EnsureNotClosed();
 
-        int originalPosition = _position;
+        var originalPosition = _position;
 
         // Seek to the end of the ReadOnlySpanStream.
-        int remaining = InternalEmulateRead(_length - originalPosition);
+        var remaining = InternalEmulateRead(_length - originalPosition);
 
         // If we were already at or past the end, there's no copying to do so just quit.
         if (remaining > 0)
@@ -152,7 +152,7 @@ internal sealed class ReadOnlySpanStream : Stream
         {
             case SeekOrigin.Begin:
                 {
-                    int tempPosition = unchecked((int)offset);
+                    var tempPosition = unchecked((int)offset);
                     if (offset < 0 || tempPosition < 0)
                     {
                         throw new IOException("An attempt was made to move the position before the beginning of the stream.");
@@ -164,7 +164,7 @@ internal sealed class ReadOnlySpanStream : Stream
 
             case SeekOrigin.Current:
                 {
-                    int tempPosition = unchecked(_position + (int)offset);
+                    var tempPosition = unchecked(_position + (int)offset);
                     if (unchecked(_position + offset) < 0 || tempPosition < 0)
                     {
                         throw new IOException("An attempt was made to move the position before the beginning of the stream.");
@@ -176,7 +176,7 @@ internal sealed class ReadOnlySpanStream : Stream
 
             case SeekOrigin.End:
                 {
-                    int tempPosition = unchecked(_length + (int)offset);
+                    var tempPosition = unchecked(_length + (int)offset);
                     if (unchecked(_length + offset) < 0 || tempPosition < 0)
                     {
                         throw new IOException("An attempt was made to move the position before the beginning of the stream.");
@@ -206,13 +206,13 @@ internal sealed class ReadOnlySpanStream : Stream
 
     public byte[] ToArray()
     {
-        int count = _length;
+        var count = _length;
         if (count == 0)
         {
             return [];
         }
 
-        byte[] copy = GC.AllocateUninitializedArray<byte>(count);
+        var copy = GC.AllocateUninitializedArray<byte>(count);
         _buffer.Span[..count].CopyTo(copy);
         return copy;
     }
@@ -248,7 +248,7 @@ internal sealed class ReadOnlySpanStream : Stream
     {
         EnsureNotClosed();
 
-        int n = _length - _position;
+        var n = _length - _position;
         if (n > count)
         {
             n = count;

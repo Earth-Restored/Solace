@@ -8,7 +8,7 @@ internal static partial class Program
     {
         Debug.Assert(RuntimeInformation.IsOSPlatform(OSPlatform.Windows));
 
-        int processId = int.Parse(args[0], CultureInfo.InvariantCulture);
+        var processId = int.Parse(args[0], CultureInfo.InvariantCulture);
 
         FreeConsole(); // free our console
         if (AttachConsole((uint)processId))

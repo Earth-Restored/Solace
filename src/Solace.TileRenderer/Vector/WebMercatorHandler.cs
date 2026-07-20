@@ -17,8 +17,8 @@ public static class WebMercatorHandler
     /// <returns>Point (x, y) in the Web Mercator coordinate system</returns>
     public static (double x, double y) LatLonToMeters(double lat, double lon)
     {
-        double x = lon * OriginShift / 180;
-        double y = double.Log(double.Tan((90 + lat) * double.Pi / 360)) / (double.Pi / 180);
+        var x = lon * OriginShift / 180;
+        var y = double.Log(double.Tan((90 + lat) * double.Pi / 360)) / (double.Pi / 180);
         y = y * OriginShift / 180;
         return (x, y);
     }
@@ -30,8 +30,8 @@ public static class WebMercatorHandler
     /// <returns>Point (lat, lon) in the WGS84 coordinate system</returns>
     public static (double x, double y) MetersToLatLon((double x, double y) m)
     {
-        double x = m.x / OriginShift * 180;
-        double y = m.y / OriginShift * 180;
+        var x = m.x / OriginShift * 180;
+        var y = m.y / OriginShift * 180;
         y = 180 / double.Pi * (2 * double.Atan(double.Exp(y * double.Pi / 180)) - double.Pi / 2);
 
         //Clamp latitude value to acceptable range.
@@ -50,7 +50,7 @@ public static class WebMercatorHandler
     [Obsolete("MetersToPixels is deprecated, please use FromMetersToPixels instead.")]
     public static (double x, double y) MetersToPixels((double x, double y) m, int zoom, int tileSize = 512)
     {
-        double res = Resolution(zoom, tileSize);
+        var res = Resolution(zoom, tileSize);
         return MetersToPixels(m, res);
     }
 
@@ -64,7 +64,7 @@ public static class WebMercatorHandler
     /// <remarks>Pixel coordinates are truncated to integer values</remarks>
     public static (long x, long y) FromMetersToPixels((double x, double y) m, int zoom, int tileSize = 512)
     {
-        double res = Resolution(zoom, tileSize);
+        var res = Resolution(zoom, tileSize);
         return FromMetersToPixels(m, res);
     }
 
@@ -77,8 +77,8 @@ public static class WebMercatorHandler
     [Obsolete("MetersToPixels is deprecated, please use FromMetersToPixels instead.")]
     public static (double x, double y) MetersToPixels((double x, double y) m, double res)
     {
-        double x = (m.x + OriginShift) / res;
-        double y = (m.y + OriginShift) / res;
+        var x = (m.x + OriginShift) / res;
+        var y = (m.y + OriginShift) / res;
         return (x, y);
     }
 
@@ -91,8 +91,8 @@ public static class WebMercatorHandler
     /// <remarks>Pixel coordinates are truncated to integer values</remarks>
     public static (long x, long y) FromMetersToPixels((double x, double y) m, double res)
     {
-        long x = (long)((m.x + OriginShift) / res);
-        long y = (long)((m.y + OriginShift) / res);
+        var x = (long)((m.x + OriginShift) / res);
+        var y = (long)((m.y + OriginShift) / res);
         return (x, y);
     }
 
@@ -106,7 +106,7 @@ public static class WebMercatorHandler
     [Obsolete("PixelsToMeters is deprecated, please use FromPixelsToMeters instead.")]
     public static (double x, double y) PixelsToMeters((double x, double y) p, int zoom, int tileSize = 512)
     {
-        double res = Resolution(zoom, tileSize);
+        var res = Resolution(zoom, tileSize);
         return PixelsToMeters(p, res);
     }
 
@@ -119,7 +119,7 @@ public static class WebMercatorHandler
     /// <returns>Point (x, y) in the Web Mercator coordinate system</returns>
     public static (double x, double y) FromPixelsToMeters((long x, long y) p, int zoom, int tileSize = 512)
     {
-        double res = Resolution(zoom, tileSize);
+        var res = Resolution(zoom, tileSize);
         return FromPixelsToMeters(p, res);
     }
 
@@ -132,8 +132,8 @@ public static class WebMercatorHandler
     [Obsolete("PixelsToMeters is deprecated, please use FromPixelsToMeters instead.")]
     public static (double x, double y) PixelsToMeters((double x, double y) p, double res)
     {
-        double x = p.x * res - OriginShift;
-        double y = p.y * res - OriginShift;
+        var x = p.x * res - OriginShift;
+        var y = p.y * res - OriginShift;
         return (x, y);
     }
 
@@ -145,8 +145,8 @@ public static class WebMercatorHandler
     /// <returns>Point (x, y) in the Web Mercator coordinate system</returns>
     public static (double x, double y) FromPixelsToMeters((long x, long y) p, double res)
     {
-        double x = p.x * res - OriginShift;
-        double y = p.y * res - OriginShift;
+        var x = p.x * res - OriginShift;
+        var y = p.y * res - OriginShift;
         return (x, y);
     }
 

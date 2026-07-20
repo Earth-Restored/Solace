@@ -47,7 +47,7 @@ internal sealed partial class OpenMapTilesDataSource : ITileDataSource
             var tile = reader.Read(await response.Content.ReadAsStreamAsync(cancellationToken), tileDefinition);
 
             List<List<IWKBObject>> layers = [];
-            for (int i = 0; i <= (int)RenderLayer.LAYER_NONE; i++)
+            for (var i = 0; i <= (int)RenderLayer.LAYER_NONE; i++)
             {
                 layers.Add([]);
             }
@@ -57,7 +57,7 @@ internal sealed partial class OpenMapTilesDataSource : ITileDataSource
                 var features = layer.Features;
                 foreach (var feature in features)
                 {
-                    string? featureClass = feature.Attributes.GetOptionalValue("class") as string;
+                    var featureClass = feature.Attributes.GetOptionalValue("class") as string;
                     if (!ctx.TryGetLayer(layer.Name, featureClass ?? "*", out var targetLayer))
                     {
                         if (layer.Name is "landcover" or /*"housenumber" or*/ "poi" or "transportation_name")
@@ -105,7 +105,7 @@ internal sealed partial class OpenMapTilesDataSource : ITileDataSource
             LogErrorConvertingMapData(logger, exception);
 
             List<List<IWKBObject>> layers = [];
-            for (int i = 0; i <= (int)RenderLayer.LAYER_NONE; i++)
+            for (var i = 0; i <= (int)RenderLayer.LAYER_NONE; i++)
             {
                 layers.Add([]);
             }

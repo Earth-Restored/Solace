@@ -26,7 +26,7 @@ internal sealed class ETagMiddleware
 
             if (IsEtagSupported(response))
             {
-                string checksum = CalculateChecksum(ms);
+                var checksum = CalculateChecksum(ms);
 
                 response.Headers[HeaderNames.ETag] = checksum;
 
@@ -67,13 +67,13 @@ internal sealed class ETagMiddleware
 
     private static string CalculateChecksum(MemoryStream ms)
     {
-        string checksum = "";
+        var checksum = "";
 
 #pragma warning disable CA5350 // Do Not Use Weak Cryptographic Algorithms - ok for etag
         using (var algo = SHA1.Create())
         {
             ms.Position = 0;
-            byte[] bytes = algo.ComputeHash(ms);
+            var bytes = algo.ComputeHash(ms);
             checksum = $"\"{WebEncoders.Base64UrlEncode(bytes)}\"";
         }
 #pragma warning restore CA5350 // Do Not Use Weak Cryptographic Algorithms

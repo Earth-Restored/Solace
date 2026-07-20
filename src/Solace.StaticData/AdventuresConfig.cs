@@ -26,9 +26,9 @@ public sealed class AdventuresConfig
                 folders.Add(crystalType.Folder);
             }
 
-            foreach (string folder in folders)
+            foreach (var folder in folders)
             {
-                string buildplatesFile = Path.Combine(dir, folder, $"{folder}-buildplates.json");
+                var buildplatesFile = Path.Combine(dir, folder, $"{folder}-buildplates.json");
                 if (!File.Exists(buildplatesFile))
                 {
                     continue;
@@ -71,7 +71,7 @@ public sealed class AdventuresConfig
 
     public string? TryPickTemplateForCrystalItem(string itemName, Random random)
     {
-        string normalizedName = itemName.StartsWith("minecraft:", StringComparison.OrdinalIgnoreCase)
+        var normalizedName = itemName.StartsWith("minecraft:", StringComparison.OrdinalIgnoreCase)
             ? itemName["minecraft:".Length..]
             : itemName;
 
@@ -81,13 +81,13 @@ public sealed class AdventuresConfig
             return null;
         }
 
-        string folder = normalizedName[prefix.Length..];
+        var folder = normalizedName[prefix.Length..];
         return PickTemplateForFolder(folder, random);
     }
 
     private static AdventureSpawnConfig LoadSpawnConfig(string dir)
     {
-        string spawnConfigFile = Path.Combine(dir, "adventures-spawn.json");
+        var spawnConfigFile = Path.Combine(dir, "adventures-spawn.json");
         if (!File.Exists(spawnConfigFile))
         {
             return AdventureSpawnConfig.Disabled;
@@ -105,14 +105,14 @@ public sealed class AdventuresConfig
             .Select(item => (Item: item, Weight: int.Max(0, weightSelector(item))))
             .Where(item => item.Weight > 0)
             .ToArray();
-        int totalWeight = weightedItems.Sum(item => item.Weight);
+        var totalWeight = weightedItems.Sum(item => item.Weight);
         if (totalWeight <= 0)
         {
             return default;
         }
 
 #pragma warning disable CA5394 // Do not use insecure randomness - idc
-        int roll = random.Next(0, totalWeight);
+        var roll = random.Next(0, totalWeight);
 #pragma warning restore CA5394 // Do not use insecure randomness
         foreach (var item in weightedItems)
         {

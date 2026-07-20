@@ -17,7 +17,7 @@ internal sealed partial class LevelUtils
             .AsTracking()
             .FirstAsync(profile => profile.Id == accountId);
 
-        bool changed = false;
+        var changed = false;
         while (profile.Level - 1 < staticData.Levels.Levels.Length && profile.Experience >= staticData.Levels.Levels[profile.Level - 1].ExperienceRequired)
         {
             changed = true;

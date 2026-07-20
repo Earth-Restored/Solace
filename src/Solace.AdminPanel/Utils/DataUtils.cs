@@ -11,8 +11,8 @@ internal static class DataUtils
 
         const string Prefix = "data:application/octet-stream;base64,";
 
-        int base64Length = ((data.Length + 2) / 3) * 4;
-        int totalLength = Prefix.Length + base64Length;
+        var base64Length = ((data.Length + 2) / 3) * 4;
+        var totalLength = Prefix.Length + base64Length;
 
         fixed (byte* ptr = data)
         {

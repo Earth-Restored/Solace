@@ -38,7 +38,7 @@ public static class IdTranslator
         }
 
         Span<char> buffer = stackalloc char[32];
-        bool formatted = id.TryFormat(buffer, out int charsWritten, "N");
+        var formatted = id.TryFormat(buffer, out var charsWritten, "N");
         Debug.Assert(formatted && charsWritten == 32);
 
         ReadOnlySpan<char> trimmed = buffer.TrimStart('0');
@@ -92,7 +92,7 @@ public static class IdTranslator
 
     private static bool IsValidHex(ReadOnlySpan<char> chars)
     {
-        foreach (char c in chars)
+        foreach (var c in chars)
         {
             if (c is not ((>= '0' and <= '9') or (>= 'A' and <= 'F') or (>= 'a' and <= 'f')))
             {

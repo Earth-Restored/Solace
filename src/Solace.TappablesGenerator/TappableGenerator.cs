@@ -44,7 +44,7 @@ internal sealed partial class TappableGenerator
         }
 
 #pragma warning disable CA5394 // Do not use insecure randomness - idc
-        int count = _random.Next(MIN_COUNT, MAX_COUNT + 1);
+        var count = _random.Next(MIN_COUNT, MAX_COUNT + 1);
 
         var tappables = new List<Tappable>(count);
         Span<float> tileBounds = stackalloc float[4];
@@ -56,10 +56,10 @@ internal sealed partial class TappableGenerator
             TappablesConfig.TappableConfig tappableConfig = _staticData.TappablesConfig.Tappables[_random.Next(0, _staticData.TappablesConfig.Tappables.Length)];
 
             GetTileBounds(tileX, tileY, tileBounds);
-            float lat = _random.NextSingle(tileBounds[1], tileBounds[0]);
-            float lon = _random.NextSingle(tileBounds[2], tileBounds[3]);
+            var lat = _random.NextSingle(tileBounds[1], tileBounds[0]);
+            var lon = _random.NextSingle(tileBounds[2], tileBounds[3]);
 
-            int dropSetIndex = _random.Next(0, tappableConfig.DropSets.Select(dropSet => dropSet.Chance).Sum());
+            var dropSetIndex = _random.Next(0, tappableConfig.DropSets.Select(dropSet => dropSet.Chance).Sum());
             TappablesConfig.TappableConfig.DropSetR? dropSet = null;
 
             foreach (TappablesConfig.TappableConfig.DropSetR dropSet1 in tappableConfig.DropSets)

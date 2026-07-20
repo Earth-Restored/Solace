@@ -151,8 +151,8 @@ public sealed class Tile
             return false;
         }
 
-        (int x1, int y1, int zoom1) = CalculateTile(tileId1);
-        (int x2, int y2, int zoom2) = CalculateTile(tileId2);
+        (var x1, var y1, var zoom1) = CalculateTile(tileId1);
+        (var x2, var y2, var zoom2) = CalculateTile(tileId2);
 
         if (zoom1 != zoom2)
         {
@@ -230,7 +230,7 @@ public sealed class Tile
     public static (int x, int y, int zoom) CalculateTile(ulong id)
     {
         // find out the zoom level first.
-        int zoom = 0;
+        var zoom = 0;
         if (id > 0)
         {
             // only if the id is at least at zoom level 1.
@@ -279,7 +279,7 @@ public sealed class Tile
     /// </summary>
     public static Tile? CreateAroundLocation(double lat, double lon, int zoom)
     {
-        if (!CreateAroundLocation(lat, lon, zoom, out int x, out int y))
+        if (!CreateAroundLocation(lat, lon, zoom, out var x, out var y))
         {
             return null;
         }
@@ -292,7 +292,7 @@ public sealed class Tile
     /// </summary>
     public static ulong CreateAroundLocationId(double lat, double lon, int zoom)
     {
-        if (!CreateAroundLocation(lat, lon, zoom, out int x, out int y))
+        if (!CreateAroundLocation(lat, lon, zoom, out var x, out var y))
         {
             return ulong.MaxValue;
         }
@@ -320,7 +320,7 @@ public sealed class Tile
         var scale = (double)(1 << zoom);
 
         x = (int)((lon + 180.0) / 360.0 * scale);
-        double latRad = lat * double.Pi / 180.0;
+        var latRad = lat * double.Pi / 180.0;
         y = (int)((1.0 - double.Log(double.Tan(latRad) + 1.0 / double.Cos(latRad)) / double.Pi) / 2.0 * scale);
         return true;
     }
@@ -374,7 +374,7 @@ public sealed class Tile
             return new TileRange(X, Y, X, Y, Zoom);
         }
 
-        int factor = 1 << (zoom - Zoom);
+        var factor = 1 << (zoom - Zoom);
 
         return new TileRange(
             X * factor,

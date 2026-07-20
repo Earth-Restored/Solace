@@ -19,13 +19,13 @@ internal sealed class WKBLineString : IWKBObject
 
     public static IWKBObject Load(BinaryReader reader)
     {
-        bool byteOrder = reader.ReadByte() == 1;
+        var byteOrder = reader.ReadByte() == 1;
         if (byteOrder != BitConverter.IsLittleEndian)
         {
             throw new NotImplementedException();
         }
 
-        uint wkbType = reader.ReadUInt32();
+        var wkbType = reader.ReadUInt32();
 
         uint srid = 0;
         if ((wkbType & Constants.WkbSRID) != 0)
@@ -33,9 +33,9 @@ internal sealed class WKBLineString : IWKBObject
             srid = reader.ReadUInt32();
         }
 
-        int numPoints = reader.ReadInt32();
+        var numPoints = reader.ReadInt32();
         var points = new Point[numPoints];
-        for (int i = 0; i < numPoints; i++)
+        for (var i = 0; i < numPoints; i++)
         {
             points[i] = Point.Load(reader);
         }
@@ -55,7 +55,7 @@ internal sealed class WKBLineString : IWKBObject
 
         using var path = new SKPathBuilder();
 
-        for (int i = 0; i < Points.Length; i++)
+        for (var i = 0; i < Points.Length; i++)
         {
             var pixelPoint = tile.ToLocalPixel(Points[i]);
 

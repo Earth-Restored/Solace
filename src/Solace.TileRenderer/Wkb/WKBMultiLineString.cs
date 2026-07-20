@@ -22,13 +22,13 @@ internal sealed class WKBMultiLineString : IWKBObject
 
     public static IWKBObject Load(BinaryReader reader)
     {
-        bool byteOrder = reader.ReadByte() == 1;
+        var byteOrder = reader.ReadByte() == 1;
         if (byteOrder != BitConverter.IsLittleEndian)
         {
             throw new NotImplementedException();
         }
 
-        uint wkbType = reader.ReadUInt32();
+        var wkbType = reader.ReadUInt32();
 
         uint srid = 0;
         if ((wkbType & Constants.WkbSRID) != 0)
@@ -36,9 +36,9 @@ internal sealed class WKBMultiLineString : IWKBObject
             srid = reader.ReadUInt32();
         }
 
-        int numWKBLineStrings = reader.ReadInt32();
+        var numWKBLineStrings = reader.ReadInt32();
         var wkbLineStrings = new WKBLineString[numWKBLineStrings];
-        for (int i = 0; i < numWKBLineStrings; i++)
+        for (var i = 0; i < numWKBLineStrings; i++)
         {
             wkbLineStrings[i] = (WKBLineString)WKBLineString.Load(reader);
         }
@@ -48,7 +48,7 @@ internal sealed class WKBMultiLineString : IWKBObject
 
     public void Render(SKCanvas canvas, Tile tile, SKColor color, float strokeWidth)
     {
-        for (int i = 0; i < WKBLineStrings.Length; i++)
+        for (var i = 0; i < WKBLineStrings.Length; i++)
         {
             WKBLineStrings[i].Render(canvas, tile, color, strokeWidth);
         }

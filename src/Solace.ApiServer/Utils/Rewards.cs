@@ -74,7 +74,7 @@ internal sealed class Rewards
 
     public async Task ToRedeemQueryAsync(EarthDbContext earthDb, ResultsEF.Builder results, Guid accountId, DateTimeOffset currentTime, StaticData.StaticData staticData, CancellationToken cancellationToken = default)
     {
-        bool checkLevelUp = false;
+        var checkLevelUp = false;
         if (_rubies > 0 || _experiencePoints > 0)
         {
             var profile = await earthDb.Profiles

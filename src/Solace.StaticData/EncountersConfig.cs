@@ -15,7 +15,7 @@ public sealed class EncountersConfig
         try
         {
             var encounters = ImmutableArray.CreateBuilder<EncounterConfig>();
-            foreach (string file in Directory.EnumerateFiles(dir))
+            foreach (var file in Directory.EnumerateFiles(dir))
             {
                 if (Path.GetExtension(file) != ".json")
                 {
