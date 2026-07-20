@@ -6,6 +6,8 @@ using Solace.BuildplateImporter;
 using Solace.BuildplateRenderer;
 using Solace.AdminPanel.Data;
 using Solace.AdminPanel.Models.Db;
+using Solace.Common;
+using Solace.Common.Utils;
 
 namespace Solace.AdminPanel.Utils;
 
@@ -15,7 +17,7 @@ internal static class ImporterExtensions
 {
     extension(Importer importer)
     {
-        public async Task<ArraySegment<byte>?> GetTemplateAdminPanelPreviewAsync(Guid templateId, ApplicationDbContext appDbContext, ResourcePackManager resourcePackManager, bool getFromCache = true, CancellationToken cancellationToken = default)
+        public async Task<ArraySegment<byte>?> GetTemplateAdminPanelPreviewAsync(Guid templateId, ApplicationDbContext appDbContext, ResourcePackManager resourcePackManager, IProgress<ProgressReport>? progress = null, bool getFromCache = true, CancellationToken cancellationToken = default)
         {
             var dbBuildplatePreview = await appDbContext.BuildplatePreviews
                 .AsNoTracking()
@@ -25,6 +27,7 @@ internal static class ImporterExtensions
             {
                 if (getFromCache)
                 {
+                    progress?.Complete();
                     return dbBuildplatePreview.PreviewData;
                 }
                 else
@@ -33,6 +36,8 @@ internal static class ImporterExtensions
                     await appDbContext.SaveChangesAsync(cancellationToken);
                 }
             }
+
+            progress?.Report(new ProgressReport(0.005, "Fetching template"));
 
             var template = await importer.EarthDB.TemplateBuildplates
                 .AsNoTracking()
@@ -44,6 +49,8 @@ internal static class ImporterExtensions
                 return null;
             }
 
+            progress?.Report(new ProgressReport(0.02, "Fetching template data"));
+
             using var worldDataRaw = await importer.ObjectStoreClient.GetStreamAsync(template.ServerDataObjectId, cancellationToken);
 
             if (worldDataRaw is null)
@@ -52,7 +59,9 @@ internal static class ImporterExtensions
                 return null;
             }
 
-            WorldData? worldData  = await WorldData.LoadFromZipAsync(worldDataRaw, importer.Logger, cancellationToken);
+            progress?.Report(new ProgressReport(0.05, "Loading template data"));
+
+            var worldData = await WorldData.LoadFromZipAsync(worldDataRaw, importer.Logger, cancellationToken);
 
             if (worldData is null)
             {
@@ -63,16 +72,22 @@ internal static class ImporterExtensions
 
             var meshGenerator = new BuildplateMeshGenerator(resourcePackManager);
 
-            MeshData? meshData = await meshGenerator.GenerateAsync(worldData, cancellationToken);
+            progress?.Report(new ProgressReport(0.11, "Generating mesh"));
+
+            var meshData = await meshGenerator.GenerateAsync(worldData, progress?.WrapRange(0.11, 0.91), cancellationToken);
             if (meshData is null)
             {
                 return null;
             }
 
+            progress?.Report(new ProgressReport(0.91, "Finalizing mesh"));
+
             using var ms = new MemoryStream();
             await meshData.ToGlbAsync(resourcePackManager, ms);
             var getBufferSuccess = ms.TryGetBuffer(out var buffer);
             Debug.Assert(getBufferSuccess);
+
+            progress?.Complete();
 
             dbBuildplatePreview = new DbBuildplatePreview()
             {
@@ -84,7 +99,7 @@ internal static class ImporterExtensions
             return await SaveBuildplatePreviewAsync(appDbContext, dbBuildplatePreview, cancellationToken);
         }
 
-        public async Task<ArraySegment<byte>?> GetPlayerBuildplateAdminPanelPreviewAsync(Guid accountId, Guid buildplateId, ApplicationDbContext appDbContext, ResourcePackManager resourcePackManager, bool getFromCache = true, CancellationToken cancellationToken = default)
+        public async Task<ArraySegment<byte>?> GetPlayerBuildplateAdminPanelPreviewAsync(Guid accountId, Guid buildplateId, ApplicationDbContext appDbContext, ResourcePackManager resourcePackManager, IProgress<ProgressReport>? progress = null, bool getFromCache = true, CancellationToken cancellationToken = default)
         {
             var dbBuildplatePreview = await appDbContext.BuildplatePreviews
                 .AsNoTracking()
@@ -94,6 +109,7 @@ internal static class ImporterExtensions
             {
                 if (getFromCache)
                 {
+                    progress?.Complete();
                     return dbBuildplatePreview.PreviewData;
                 }
                 else
@@ -102,6 +118,8 @@ internal static class ImporterExtensions
                     await appDbContext.SaveChangesAsync(cancellationToken);
                 }
             }
+
+            progress?.Report(new ProgressReport(0.005, "Fetching buildplate"));
 
             var buildplate = await importer.EarthDB.PlayerBuildplates
                 .AsNoTracking()
@@ -113,6 +131,8 @@ internal static class ImporterExtensions
                 return null;
             }
 
+            progress?.Report(new ProgressReport(0.02, "Fetching template data"));
+
             using var worldDataRaw = await importer.ObjectStoreClient.GetStreamAsync(buildplate.ServerDataObjectId, cancellationToken);
 
             if (worldDataRaw is null)
@@ -121,7 +141,9 @@ internal static class ImporterExtensions
                 return null;
             }
 
-            WorldData? worldData = await WorldData.LoadFromZipAsync(worldDataRaw, importer.Logger, cancellationToken);
+            progress?.Report(new ProgressReport(0.05, "Loading template data"));
+
+            var worldData = await WorldData.LoadFromZipAsync(worldDataRaw, importer.Logger, cancellationToken);
 
             if (worldData is null)
             {
@@ -132,16 +154,22 @@ internal static class ImporterExtensions
 
             var meshGenerator = new BuildplateMeshGenerator(resourcePackManager);
 
-            MeshData? meshData = await meshGenerator.GenerateAsync(worldData, cancellationToken);
+            progress?.Report(new ProgressReport(0.11, "Generating mesh"));
+
+            MeshData? meshData = await meshGenerator.GenerateAsync(worldData, progress?.WrapRange(0.11, 0.91), cancellationToken);
             if (meshData is null)
             {
                 return null;
             }
 
+            progress?.Report(new ProgressReport(0.91, "Finalizing mesh"));
+
             using var ms = new MemoryStream();
             await meshData.ToGlbAsync(resourcePackManager, ms);
             var getBufferSuccess = ms.TryGetBuffer(out var buffer);
             Debug.Assert(getBufferSuccess);
+
+            progress?.Complete();
 
             dbBuildplatePreview = new DbBuildplatePreview()
             {

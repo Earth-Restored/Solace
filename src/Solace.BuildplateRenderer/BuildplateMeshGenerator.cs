@@ -8,6 +8,7 @@ using Cyotek.Data.Nbt;
 using Solace.Buildplate.Model;
 using Solace.BuildplateRenderer.Models.ResourcePacks;
 using Solace.BuildplateRenderer.Utils;
+using Solace.Common;
 using Solace.Common.Utils;
 using TagList = Cyotek.Data.Nbt.TagList;
 
@@ -56,14 +57,22 @@ public sealed class BuildplateMeshGenerator
         _resourcePack = resourcePack;
     }
 
-    public async Task<MeshData> GenerateAsync(WorldData worldData, CancellationToken cancellationToken = default)
+    public async Task<MeshData> GenerateAsync(WorldData worldData, IProgress<ProgressReport>? progress = null, CancellationToken cancellationToken = default)
     {
+        var cacheRegionsProgress = progress?.WrapRange(0.00, 0.90);
+        cacheRegionsProgress?.Report(new ProgressReport(0.00, $"Caching regions"));
+
         var mesh = new MeshData();
         var subChunkCache = new Dictionary<int3, CachedSubChunk>();
 
         using (var serverDataStream = new MemoryStream(worldData.ServerData))
         using (var zip = await ZipArchive.CreateAsync(serverDataStream, ZipArchiveMode.Read, false, null, cancellationToken))
         {
+            var regionCount = zip.Entries.Count(entry => !entry.IsDirectory && entry.FullName.StartsWith("region", StringComparison.Ordinal));
+
+            cacheRegionsProgress?.Report(new ProgressReport(0.00, null));
+
+            var regionIndex = 0;
             foreach (var entry in zip.Entries)
             {
                 if (!entry.IsDirectory && entry.FullName.StartsWith("region", StringComparison.Ordinal))
@@ -73,15 +82,24 @@ public sealed class BuildplateMeshGenerator
                     await entryStream.ReadExactlyAsync(regionData, cancellationToken);
 
                     CacheRegion(regionData, RegionUtils.PathToPos(entry.FullName), subChunkCache);
+
+                    regionIndex++;
+                    cacheRegionsProgress?.Report(new ProgressReport((double)regionIndex / regionCount, null));
                 }
             }
         }
 
+        var processChunksProgress = progress?.WrapRange(0.90, 1.00);
+        processChunksProgress?.Report(new ProgressReport(0.00, $"Processing chunks"));
+
         var worldOffset = new int3(0, -worldData.Offset / 2, 0);
 
+        var chunkIndex = 0;
         foreach (var subChunk in subChunkCache.Values)
         {
             ProcessCachedSubChunk(subChunk, subChunkCache, mesh, worldOffset);
+            chunkIndex++;
+            processChunksProgress?.Report(new ProgressReport((double)chunkIndex / subChunkCache.Count, null));
         }
 
         return mesh;

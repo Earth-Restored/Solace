@@ -10,6 +10,8 @@
 @using Solace.AdminPanel.Utils
 @using Solace.BuildplateImporter
 @using Solace.BuildplateRenderer
+@using Solace.Common
+@using Solace.Common.Utils
 @using Solace.DB
 @using Solace.EventBus.Client
 @using Solace.ObjectStore.Client
@@ -26,8 +28,21 @@
 <div @ref="_previewContainer" class="bg-dark text-secondary d-flex align-items-center justify-content-center position-relative preview-container" style="height: 220px; overflow: hidden;">
     @if (_isPreviewLoading)
     {
-        <div class="spinner-border text-light" role="status">
-            <span class="visually-hidden">Loading 3D preview...</span>
+        <div class="d-flex flex-column align-items-center justify-content-center w-75">
+            <div class="text-info mb-2 fw-bold text-center small">
+                @(_progressStatus ?? "Loading 3D preview...")
+            </div>
+            <div class="progress w-100 bg-secondary bg-opacity-25" style="height: 4px;">
+                <div class="progress-bar bg-info" role="progressbar" style="width: @(_currentProgress * 100)%; transition: width 0.2s ease;" aria-valuenow="@double.Round(_currentProgress * 100)" aria-valuemin="0" aria-valuemax="100">
+                </div>
+            </div>
+
+            @if (_currentProgress > 0)
+            {
+                <div class="text-info small mt-1" style="font-size: 0.75rem;">
+                    @(double.Round(_currentProgress * 100, 1))%
+                </div>
+            }
         </div>
     }
     else if (_isPreviewFailed)
@@ -87,6 +102,11 @@
     private bool _isCurrentlyLoadingTask = false;
     private IJSObjectReference? _jsModule;
 
+    private double _targetProgress = 0;
+    private double _currentProgress = 0;
+    private string? _progressStatus;
+    private CancellationTokenSource? _progressCts;
+
     private string DisplayScale
     {
         get
@@ -108,20 +128,22 @@
     {
         if (_previewDataUri is null && !_isPreviewFailed && _isPreviewLoading && !_isCurrentlyLoadingTask)
         {
+            ResetProgress();
+
             _isCurrentlyLoadingTask = true;
 
-            _ = InvokeAsync(async () =>
+            InvokeAsync(async () =>
+            {
+                try
                 {
-                    try
-                    {
-                        await Task.Run(async () => await LoadPreviewAsync());
-                    }
-                    finally
-                    {
-                        _isCurrentlyLoadingTask = false;
-                        StateHasChanged();
-                    }
-                });
+                    await Task.Run(async () => await LoadPreviewAsync());
+                }
+                finally
+                {
+                    _isCurrentlyLoadingTask = false;
+                    StateHasChanged();
+                }
+            }).Forget();
         }
     }
 
@@ -175,6 +197,10 @@
             return;
         }
 
+        ResetProgress();
+
+        _isCurrentlyLoadingTask = true;
+
         _isPreviewLoading = true;
         _isPreviewFailed = false;
         _isModelImported = false;
@@ -182,7 +208,85 @@
 
         StateHasChanged();
 
-        await LoadPreviewAsync(getFromCache: false);
+        InvokeAsync(async () =>
+        {
+            try
+            {
+                await Task.Run(async () => await LoadPreviewAsync(getFromCache: false));
+            }
+            finally
+            {
+                _isCurrentlyLoadingTask = false;
+                StateHasChanged();
+            }
+        }).Forget();
+    }
+
+    private void ResetProgress()
+    {
+        _progressCts?.Cancel();
+        _progressCts?.Dispose();
+        _progressCts = null;
+
+        _targetProgress = 0;
+        _currentProgress = 0;
+        _progressStatus = "Initializing...";
+    }
+
+    private void UpdateProgress(ProgressReport report)
+    {
+        _targetProgress = double.Clamp(report.PercentComplete, 0, 1);
+
+        if (report.StatusMessage is not null)
+        {
+            _progressStatus = report.StatusMessage;
+        }
+
+        if (_progressCts is null || _progressCts.IsCancellationRequested)
+        {
+            _progressCts = new CancellationTokenSource();
+            _ = InterpolateProgressAsync(_progressCts.Token);
+        }
+    }
+
+    private async Task InterpolateProgressAsync(CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                if (double.Abs(_currentProgress - _targetProgress) > 0.001)
+                {
+                    var diff = _targetProgress - _currentProgress;
+                    var step = diff * 0.15;
+
+                    if (double.Abs(step) < 0.01)
+                    {
+                        step = double.Sign(diff) * 0.01;
+                    }
+
+                    _currentProgress += step;
+
+                    if ((diff > 0 && _currentProgress > _targetProgress) ||
+                        (diff < 0 && _currentProgress < _targetProgress) ||
+                        double.Abs(_currentProgress - _targetProgress) < 0.001)
+                    {
+                        _currentProgress = _targetProgress;
+                    }
+
+                    await InvokeAsync(StateHasChanged);
+                }
+                else if (_targetProgress >= 1.0)
+                {
+                    break;
+                }
+
+                await Task.Delay(100, token);
+            }
+        }
+        catch (Exception ex) when (ex is TaskCanceledException || ex is ObjectDisposedException)
+        {
+        }
     }
 
     private async Task LoadPreviewAsync(bool getFromCache = true)
@@ -200,6 +304,9 @@
             return;
         }
 
+        ResetProgress();
+        var progress = new Progress<ProgressReport>(UpdateProgress);
+
         try
         {
             await using var importer = new Importer(await EarthDbFactory.CreateDbContextAsync(), EventBusClient, ObjectStoreClient, Logger)
@@ -211,8 +318,8 @@
 
             await using var dbContext = await ApplicationDbFactory.CreateDbContextAsync();
             var previewData = IsTemplate
-                ? await importer.GetTemplateAdminPanelPreviewAsync(BuildplateId, dbContext, ResourcePackManager, getFromCache: getFromCache)
-                : await importer.GetPlayerBuildplateAdminPanelPreviewAsync(PlayerId!.Value, BuildplateId, dbContext, ResourcePackManager, getFromCache: getFromCache);
+                ? await importer.GetTemplateAdminPanelPreviewAsync(BuildplateId, dbContext, ResourcePackManager, progress: progress, getFromCache: getFromCache)
+                : await importer.GetPlayerBuildplateAdminPanelPreviewAsync(PlayerId!.Value, BuildplateId, dbContext, ResourcePackManager, progress: progress, getFromCache: getFromCache);
 
             if (previewData is null)
             {
@@ -229,6 +336,7 @@
         }
         finally
         {
+            _progressCts?.Cancel();
             _isPreviewLoading = false;
             await InvokeAsync(StateHasChanged);
         }
@@ -246,6 +354,9 @@
     {
         try
         {
+            _progressCts?.Cancel();
+            _progressCts?.Dispose();
+
             if (_viewer3D is not null)
             {
                 await _viewer3D.DisposeAsync();
