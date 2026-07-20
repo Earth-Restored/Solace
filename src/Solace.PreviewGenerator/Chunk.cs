@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
+using Cyotek.Data.Nbt;
 using Microsoft.Extensions.Logging;
-using SharpNBT;
 using Solace.PreviewGenerator.BlockEntity;
 using Solace.PreviewGenerator.NBT;
 using Solace.PreviewGenerator.Registry;
@@ -10,7 +10,7 @@ namespace Solace.PreviewGenerator;
 
 internal sealed partial class Chunk
 {
-    public static Chunk? Read(CompoundTag chunkTag, ILogger logger)
+    public static Chunk? Read(TagCompound chunkTag, ILogger logger)
     {
         try
         {
@@ -29,10 +29,10 @@ internal sealed partial class Chunk
     public readonly int[] Blocks = new int[16 * 256 * 16];
     public readonly NbtMap?[] BlockEntities = new NbtMap[16 * 256 * 16];
 
-    private Chunk(CompoundTag chunkTag, ILogger logger)
+    private Chunk(TagCompound chunkTag, ILogger logger)
     {
-        ChunkX = chunkTag.Get<IntTag>("xPos");
-        ChunkZ = chunkTag.Get<IntTag>("zPos");
+        ChunkX = chunkTag.GetIntValue("xPos");
+        ChunkZ = chunkTag.GetIntValue("zPos");
 
         var blockEntityMappings = new JavaBlocks.BedrockMapping.BlockEntityR?[16 * 256 * 16];
         var extraDatas = new JavaBlocks.BedrockMapping.ExtraDataR?[16 * 256 * 16];
@@ -46,15 +46,15 @@ internal sealed partial class Chunk
         for (var subchunkY = 0; subchunkY < 16; subchunkY++)
         {
             var sectionIndex = subchunkY + 4 + 1; // Java world height starts at -64, plus one section for bottommost lighting
-            var sectionTag = (CompoundTag)chunkTag.Get<ListTag>("sections")[sectionIndex];
+            var sectionTag = (TagCompound)chunkTag.GetList("sections").Value[sectionIndex];
 
-            CompoundTag blockStatesTag = sectionTag.Get<CompoundTag>("block_states");
+            var blockStatesTag = sectionTag.GetCompound("block_states");
 
-            ListTag paletteTag = blockStatesTag.Get<ListTag>("palette");
+            var paletteTag = blockStatesTag.GetList("palette");
             List<string> javaPalette = new(paletteTag.Count);
-            foreach (Tag paletteEntryTag in paletteTag)
+            foreach (var paletteEntryTag in paletteTag.Value)
             {
-                javaPalette.Add(ReadPaletteEntry((CompoundTag)paletteEntryTag));
+                javaPalette.Add(ReadPaletteEntry((TagCompound)paletteEntryTag));
             }
 
             int[] javaBlocks;
@@ -63,7 +63,7 @@ internal sealed partial class Chunk
                 throw new IOException("Chunk section has empty palette");
             }
 
-            if (!blockStatesTag.ContainsKey("data"))
+            if (!blockStatesTag.Contains("data"))
             {
                 if (javaPalette.Count > 1)
                 {
@@ -75,7 +75,7 @@ internal sealed partial class Chunk
             }
             else
             {
-                javaBlocks = ReadBitArray(blockStatesTag.Get<LongArrayTag>("data"), javaPalette.Count);
+                javaBlocks = ReadBitArray(blockStatesTag.GetLongArray("data"), javaPalette.Count);
             }
 
             for (var x = 0; x < 16; x++)
@@ -99,8 +99,8 @@ internal sealed partial class Chunk
                         var bedrockId = bedrockMapping is not null ? bedrockMapping.Id : BedrockBlocks.AirId;
                         Blocks[(x * 256 + y + subchunkY * 16) * 16 + z] = bedrockId;
 
-                        JavaBlocks.BedrockMapping.BlockEntityR? blockEntityMapping = bedrockMapping is not null && bedrockMapping.BlockEntity is not null ? bedrockMapping.BlockEntity : null;
-                        NbtMap? bedrockBlockEntityData = blockEntityMapping is not null ? BlockEntityTranslator.TranslateBlockEntity(blockEntityMapping, null, logger) : null;
+                        var blockEntityMapping = bedrockMapping is not null && bedrockMapping.BlockEntity is not null ? bedrockMapping.BlockEntity : null;
+                        var bedrockBlockEntityData = blockEntityMapping is not null ? BlockEntityTranslator.TranslateBlockEntity(blockEntityMapping, null, logger) : null;
                         if (bedrockBlockEntityData is not null)
                         {
                             bedrockBlockEntityData = bedrockBlockEntityData.ToBuilder().PutInt("x", x + ChunkX * 16).PutInt("y", y + subchunkY * 16).PutInt("z", z + ChunkZ * 16).PutBoolean("isMovable", false).Build();
@@ -115,22 +115,22 @@ internal sealed partial class Chunk
             }
         }
 
-        foreach (Tag blockEntityTag in chunkTag.Get<ListTag>("block_entities"))
+        foreach (var blockEntityTag in chunkTag.GetList("block_entities").Value)
         {
-            var blockEntityCompoundTag = (CompoundTag)blockEntityTag;
-            var x = GetChunkBlockOffset(blockEntityCompoundTag.Get<IntTag>("x").Value);
-            var y = blockEntityCompoundTag.Get<IntTag>("y").Value;
-            var z = GetChunkBlockOffset(blockEntityCompoundTag.Get<IntTag>("z").Value);
-            var type = blockEntityCompoundTag.Get<StringTag>("id").Value;
-            var blockEntityInfo = new BlockEntityInfo(x, y, z, BlockEntityType.FURNACE, blockEntityCompoundTag);    // TODO: use proper type (currently this doesn't matter for any of our translator implementations)
+            var blockEntityCompoundTag = (TagCompound)blockEntityTag;
+            var x = GetChunkBlockOffset(blockEntityCompoundTag.GetIntValue("x"));
+            var y = blockEntityCompoundTag.GetIntValue("y");
+            var z = GetChunkBlockOffset(blockEntityCompoundTag.GetIntValue("z"));
+            var type = blockEntityCompoundTag.GetStringValue("id");
+            var blockEntityInfo = new BlockEntityInfo(x, y, z, BlockEntityType.FURNACE, blockEntityCompoundTag); // TODO: use proper type (currently this doesn't matter for any of our translator implementations)
 
-            JavaBlocks.BedrockMapping.BlockEntityR? blockEntityMapping = blockEntityMappings[(x * 256 + y) * 16 + z];
+            var blockEntityMapping = blockEntityMappings[(x * 256 + y) * 16 + z];
             if (blockEntityMapping is null)
             {
                 LogIgnoringBlockEntityOfType(logger, type);
             }
 
-            NbtMap? bedrockBlockEntityData = blockEntityMapping is not null ? BlockEntityTranslator.TranslateBlockEntity(blockEntityMapping, blockEntityInfo, logger) : null;
+            var bedrockBlockEntityData = blockEntityMapping is not null ? BlockEntityTranslator.TranslateBlockEntity(blockEntityMapping, blockEntityInfo, logger) : null;
             if (bedrockBlockEntityData is not null)
             {
                 bedrockBlockEntityData = bedrockBlockEntityData.ToBuilder().PutInt("x", x + ChunkX * 16).PutInt("y", y).PutInt("z", z + ChunkZ * 16).PutBoolean("isMovable", false).Build();
@@ -141,14 +141,14 @@ internal sealed partial class Chunk
     }
 
     // TODO: this relies on the state tags in the block names in the Java blocks registry matching the actual server names/values and to be sorted in alphabetical order, should verify/ensure that this is the case
-    private static string ReadPaletteEntry(CompoundTag paletteEntryTag)
+    private static string ReadPaletteEntry(TagCompound paletteEntryTag)
     {
-        var name = paletteEntryTag.Get<StringTag>("Name").Value;
+        var name = paletteEntryTag.GetStringValue("Name");
 
         List<string> properties = [];
-        if (paletteEntryTag.ContainsKey("Properties"))
+        if (paletteEntryTag.Contains("Properties"))
         {
-            foreach (Tag propertyTag in paletteEntryTag.Get<CompoundTag>("Properties"))
+            foreach (var propertyTag in paletteEntryTag.GetCompound("Properties").Value)
             {
                 properties.Add(propertyTag.Name + "=" + TagValueToString(propertyTag));
             }
@@ -164,12 +164,12 @@ internal sealed partial class Chunk
         return name;
     }
 
-    private static int[] ReadBitArray(LongArrayTag longArrayTag, int maxValue)
+    private static int[] ReadBitArray(TagLongArray longArrayTag, int maxValue)
     {
         var @out = new int[4096];
         var outIndex = 0;
 
-        long[] @in = longArrayTag;
+        long[] @in = longArrayTag.Value;
         var inIndex = 0;
         int inSubIndex;
 
@@ -208,13 +208,13 @@ internal sealed partial class Chunk
     private static string TagValueToString(Tag tag)
         => tag switch
         {
-            ByteTag @byte => @byte.IsBool ? @byte.Bool.ToString(CultureInfo.InvariantCulture) : @byte.Value.ToString(CultureInfo.InvariantCulture),
-            DoubleTag @double => @double.Value.ToString(CultureInfo.InvariantCulture),
-            FloatTag @float => @float.Value.ToString(CultureInfo.InvariantCulture),
-            IntTag @int => @int.Value.ToString(CultureInfo.InvariantCulture),
-            LongTag @long => @long.Value.ToString(CultureInfo.InvariantCulture),
-            ShortTag @short => @short.Value.ToString(CultureInfo.InvariantCulture),
-            StringTag @string => @string.Value,
+            TagByte @byte => @byte.Value.ToString(CultureInfo.InvariantCulture),
+            TagDouble @double => @double.Value.ToString(CultureInfo.InvariantCulture),
+            TagFloat @float => @float.Value.ToString(CultureInfo.InvariantCulture),
+            TagInt @int => @int.Value.ToString(CultureInfo.InvariantCulture),
+            TagLong @long => @long.Value.ToString(CultureInfo.InvariantCulture),
+            TagShort @short => @short.Value.ToString(CultureInfo.InvariantCulture),
+            TagString @string => @string.Value,
             _ => throw new ArgumentException($"Unsuported tag type '{tag.GetType()}'", nameof(tag)),
         };
 

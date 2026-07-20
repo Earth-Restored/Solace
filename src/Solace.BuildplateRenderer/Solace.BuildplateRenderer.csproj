@@ -14,7 +14,7 @@
   <ItemGroup>
     <PackageReference Include="BitcoderCZ.Buffers" />
     <PackageReference Include="BitcoderCZ.Maths" />
-    <PackageReference Include="SharpNBT" />
+    <PackageReference Include="Cyotek.Data.Nbt" />
     <PackageReference Include="SharpGLTF.Core" />
     <PackageReference Include="SharpGLTF.Toolkit" />
     <PackageReference Include="SixLabors.ImageSharp" />

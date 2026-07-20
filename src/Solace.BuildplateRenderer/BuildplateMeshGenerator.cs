@@ -4,11 +4,12 @@ using System.IO.Compression;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using BitcoderCZ.Maths.Vectors;
-using SharpNBT;
+using Cyotek.Data.Nbt;
 using Solace.Buildplate.Model;
 using Solace.BuildplateRenderer.Models.ResourcePacks;
 using Solace.BuildplateRenderer.Utils;
 using Solace.Common.Utils;
+using TagList = Cyotek.Data.Nbt.TagList;
 
 namespace Solace.BuildplateRenderer;
 
@@ -94,29 +95,29 @@ public sealed class BuildplateMeshGenerator
             var chunkPos = RegionUtils.LocalToChunk(localPosition, regionPosition);
 
             // https://minecraft.wiki/w/Chunk_format
-            foreach (var item in (ListTag)chunkNBT["sections"])
+            foreach (var item in ((TagList)chunkNBT.DocumentRoot["sections"]).Value)
             {
-                var subChunkNBT = (CompoundTag)item;
-                if (!subChunkNBT.ContainsKey("block_states"))
+                var subChunkNBT = (TagCompound)item;
+                if (!subChunkNBT.Contains("block_states"))
                 {
                     continue;
                 }
 
-                var blockStates = (CompoundTag)subChunkNBT["block_states"];
-                if (!blockStates.ContainsKey("palette"))
+                var blockStates = (TagCompound)subChunkNBT["block_states"];
+                if (!blockStates.Contains("palette"))
                 {
                     continue;
                 }
 
-                var subChunkCoord = new int3(chunkPos.X, ((ByteTag)subChunkNBT["Y"]).Value, chunkPos.Y);
+                var subChunkCoord = new int3(chunkPos.X, ((TagByte)subChunkNBT["Y"]).Value, chunkPos.Y);
 
-                var blocks = blockStates.ContainsKey("data")
-                    ? ChunkUtils.ReadBlockData((LongArrayTag)blockStates["data"])
+                var blocks = blockStates.Contains("data")
+                    ? ChunkUtils.ReadBlockData((TagLongArray)blockStates["data"])
                     : ChunkUtils.EmptySubChunk;
 
                 cache[subChunkCoord] = new CachedSubChunk
                 {
-                    Palette = (ListTag)blockStates["palette"],
+                    Palette = (TagList)blockStates["palette"],
                     Blocks = blocks,
                     ChunkPosition = subChunkCoord
                 };
@@ -127,9 +128,9 @@ public sealed class BuildplateMeshGenerator
     private void ProcessCachedSubChunk(CachedSubChunk subChunk, Dictionary<int3, CachedSubChunk> cache, MeshData mesh, int3 offset)
     {
         var foundVisibleBlock = false;
-        foreach (var entry in subChunk.Palette)
+        foreach (var entry in subChunk.Palette.Value)
         {
-            if (!ChunkUtils.InvisibleBlocks.Contains(((StringTag)((CompoundTag)entry)["Name"]).Value))
+            if (!ChunkUtils.InvisibleBlocks.Contains(((TagString)((TagCompound)entry)["Name"]).Value))
             {
                 foundVisibleBlock = true;
                 break;
@@ -149,8 +150,8 @@ public sealed class BuildplateMeshGenerator
 
         foreach (var blockIndex in subChunk.Blocks)
         {
-            var paletteEntry = (CompoundTag)subChunk.Palette[blockIndex];
-            var blockName = ((StringTag)paletteEntry["Name"]).Value;
+            var paletteEntry = (TagCompound)subChunk.Palette.Value[blockIndex];
+            var blockName = ((TagString)paletteEntry["Name"]).Value;
 
             if (!ChunkUtils.InvisibleBlocks.Contains(blockName))
             {
@@ -161,9 +162,9 @@ public sealed class BuildplateMeshGenerator
                 }
 
                 var propertiesArrayLength = 0;
-                if (paletteEntry.TryGetValue("Properties", out var propertiesTag))
+                if (paletteEntry.Value.TryGetValue("Properties", out var propertiesTag))
                 {
-                    foreach (var item in (ICollection<KeyValuePair<string, Tag>>)(CompoundTag)propertiesTag)
+                    foreach (var tag in ((TagCompound)propertiesTag).Value)
                     {
                         if (propertiesArrayLength >= propertiesArray.Length)
                         {
@@ -171,7 +172,7 @@ public sealed class BuildplateMeshGenerator
                             propertiesArray = ArrayPool<KeyValuePair<string, string>>.Shared.Rent(propertiesArray.Length * 2);
                         }
 
-                        propertiesArray[propertiesArrayLength++] = new(item.Key, ((StringTag)item.Value).Value);
+                        propertiesArray[propertiesArrayLength++] = new(tag.Name, ((TagString)tag).Value);
                     }
                 }
 
@@ -200,7 +201,7 @@ public sealed class BuildplateMeshGenerator
                         var targetIndex = localPos.X + localPos.Z * ChunkUtils.Width + localPos.Y * ChunkUtils.Width * ChunkUtils.Width;
                         var targetBlockIndex = targetSubChunk.Blocks[targetIndex];
 
-                        return ChunkUtils.TagToBlockStateVisibleFromPool((CompoundTag)targetSubChunk.Palette[targetBlockIndex]);
+                        return ChunkUtils.TagToBlockStateVisibleFromPool((TagCompound)targetSubChunk.Palette.Value[targetBlockIndex]);
                     },
                     blockState => ArrayPool<KeyValuePair<string, string>>.Shared.Return(blockState._properties));
                 }
@@ -676,7 +677,7 @@ public sealed class BuildplateMeshGenerator
 
     private sealed class CachedSubChunk
     {
-        public ListTag Palette { get; init; } = null!;
+        public TagList Palette { get; init; } = null!;
         public int[] Blocks { get; init; } = null!;
         public int3 ChunkPosition { get; init; }
     }

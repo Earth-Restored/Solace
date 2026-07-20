@@ -4,11 +4,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SharpNBT" />
+    <ProjectReference Include="..\Solace.Common\Solace.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Solace.Common\Solace.Common.csproj" />
+    <PackageReference Include="Cyotek.Data.Nbt" />
   </ItemGroup>
 
 </Project>

@@ -6,7 +6,7 @@ using System.Buffers;
 using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
 using BitcoderCZ.Maths.Vectors;
-using SharpNBT;
+using Cyotek.Data.Nbt;
 using Solace.BuildplateRenderer.Models.ResourcePacks;
 
 namespace Solace.BuildplateRenderer.Utils;
@@ -33,16 +33,16 @@ internal static class ChunkUtils
 	public static int2 BlockToChunk(int2 blockPosition)
 		=> new int2(blockPosition.X >> 4, blockPosition.Y >> 4);
 
-	public static int[] ReadBlockData(LongArrayTag nbt)
+	public static int[] ReadBlockData(TagLongArray nbt)
 	{
-		if (nbt.Count == 0)
+		if (nbt.Value.Length == 0)
 		{
 			return EmptySubChunk;
 		}
 
 		var resultData = GC.AllocateUninitializedArray<int>(Width * SubChunkSize * Width);
 
-		var longArray = nbt.Span;
+		var longArray = nbt.Value;
 
 		var bits = 4;
 
@@ -81,9 +81,9 @@ internal static class ChunkUtils
 		return resultData;
 	}
 
-	public static BlockState? TagToBlockStateVisibleFromPool(CompoundTag paletteEntry)
+	public static BlockState? TagToBlockStateVisibleFromPool(TagCompound paletteEntry)
 	{
-		var blockName = ((StringTag)paletteEntry["Name"]).Value;
+		var blockName = ((TagString)paletteEntry["Name"]).Value;
 
 		if (InvisibleBlocks.Contains(blockName))
 		{
@@ -98,9 +98,9 @@ internal static class ChunkUtils
 
 		var propertiesArray = ArrayPool<KeyValuePair<string, string>>.Shared.Rent(64);
 		var propertiesArrayLength = 0;
-		if (paletteEntry.TryGetValue("Properties", out var propertiesTag))
+		if (paletteEntry.Value.TryGetValue("Properties", out var propertiesTag))
 		{
-			foreach (var item in (ICollection<KeyValuePair<string, Tag>>)(CompoundTag)propertiesTag)
+			foreach (var tag in ((TagCompound)propertiesTag).Value)
 			{
 				if (propertiesArrayLength >= propertiesArray.Length)
 				{
@@ -108,7 +108,7 @@ internal static class ChunkUtils
 					propertiesArray = ArrayPool<KeyValuePair<string, string>>.Shared.Rent(propertiesArray.Length * 2);
 				}
 
-				propertiesArray[propertiesArrayLength++] = new(item.Key, ((StringTag)item.Value).Value);
+				propertiesArray[propertiesArrayLength++] = new(tag.Name, ((TagString)tag).Value);
 			}
 		}
 

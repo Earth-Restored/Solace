@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using SharpNBT;
 using Solace.PreviewGenerator.BlockEntity;
 using Solace.PreviewGenerator.NBT;
 using Solace.PreviewGenerator.Registry;
@@ -62,15 +61,15 @@ public static partial class BlockEntityTranslator
                         return null;
                     }
 
-                    CompoundTag javaNbt = javaBlockEntityInfo.Nbt!;
+                    var javaNbt = javaBlockEntityInfo.Nbt!;
 
-                    if (!javaNbt.ContainsKey("blockStateId"))
+                    if (!javaNbt.Contains("blockStateId"))
                     {
                         LogMovingBlockEntityDataDidNotContainNumericBlockStateId(logger);
                         return null;
                     }
 
-                    var javaBlockId = javaNbt.Get<IntTag>("blockStateId").Value;
+                    var javaBlockId = javaNbt.GetIntValue("blockStateId");
                     JavaBlocks.BedrockMapping? bedrockMapping = JavaBlocks.GetBedrockMapping(javaBlockId);
                     if (bedrockMapping is null)
                     {
@@ -100,16 +99,16 @@ public static partial class BlockEntityTranslator
                         }
                     }
 
-                    if (!javaNbt.ContainsKey("basePos"))
+                    if (!javaNbt.Contains("basePos"))
                     {
                         LogMovingBlockEntityDataDidNotContainPistonBasePosition(logger);
                         return null;
                     }
 
-                    CompoundTag basePosTag = javaNbt.Get<CompoundTag>("basePos");
-                    builder.PutInt("pistonPosX", basePosTag.Get<IntTag>("x").Value);
-                    builder.PutInt("pistonPosY", basePosTag.Get<IntTag>("y").Value);
-                    builder.PutInt("pistonPosZ", basePosTag.Get<IntTag>("z").Value);
+                    var basePosTag = javaNbt.GetCompound("basePos");
+                    builder.PutInt("pistonPosX", basePosTag.GetIntValue("x"));
+                    builder.PutInt("pistonPosY", basePosTag.GetIntValue("y"));
+                    builder.PutInt("pistonPosZ", basePosTag.GetIntValue("z"));
 
                     return builder.Build();
                 }

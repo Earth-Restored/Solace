@@ -1,16 +1,16 @@
-﻿using SharpNBT;
+﻿using Cyotek.Data.Nbt;
 
 namespace Solace.PreviewGenerator.BlockEntity;
 
-public class BlockEntityInfo
+public sealed class BlockEntityInfo
 {
-    public readonly int X;
-    public readonly int Y;
-    public readonly int Z;
-    public readonly BlockEntityType Type;
-    public readonly CompoundTag? Nbt;
+    public int X { get; }
+    public int Y { get; }
+    public int Z { get; }
+    public BlockEntityType Type { get; }
+    public TagCompound? Nbt { get; }
 
-    public BlockEntityInfo(int x, int y, int z, BlockEntityType type, CompoundTag? nbt)
+    public BlockEntityInfo(int x, int y, int z, BlockEntityType type, TagCompound? nbt)
     {
         X = x;
         Y = y;

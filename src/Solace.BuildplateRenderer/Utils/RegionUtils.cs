@@ -4,7 +4,7 @@ using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using BitcoderCZ.Maths.Vectors;
-using SharpNBT;
+using Cyotek.Data.Nbt;
 
 namespace Solace.BuildplateRenderer.Utils;
 
@@ -159,84 +159,16 @@ internal static partial class RegionUtils
     }
 
     /// <exception cref="InvalidDataException">Thrown if the compression type is invalid.</exception>
-    public static CompoundTag ReadChunkNTB(ReadOnlyMemory<byte> regionData, int2 localPosition)
+    public static NbtDocument ReadChunkNTB(ReadOnlyMemory<byte> regionData, int2 localPosition)
     {
         ValidateLocalCoords(localPosition);
 
         using (MemoryStream ms = ReadChunkData(regionData, localPosition))
-        using (var tagReader = new TagReader(ms, FormatOptions.Java))
         {
-            CompoundTag tag = tagReader.ReadTag<CompoundTag>();
-
-            return tag;
+            var document = new NbtDocument();
+            document.Load(ms);
+            return document;
         }
-    }
-
-    public static void WriteRawChunkData(Span<byte> regionData, Stream chunkData, uint index, byte compressionType, int2 localPosition)
-    {
-        ValidateLocalCoords(localPosition);
-
-        Debug.Assert(chunkData.CanRead, $"{nameof(chunkData)} should be readable.");
-        Debug.Assert(chunkData.CanSeek, $"{nameof(chunkData)} should be seekable.");
-        Debug.Assert(index % ChunkSize == 0, $"{nameof(index)} should be a multiple of {nameof(ChunkSize)}.");
-        Debug.Assert(index / ChunkSize >= 2, $"{nameof(index)} should be greater than or equal to 2×{nameof(ChunkSize)}.");
-
-        var chunkIndex = LocalToIndex(localPosition);
-
-        var dataLength = checked((uint)chunkData.Length);
-        Debug.Assert(index + dataLength + 5 <= regionData.Length, $"There should be enough space in {nameof(regionData)} to fit {nameof(chunkData)} starting at {index}");
-        var paddedLength = CalculatePaddedLength(dataLength);
-
-        BinaryPrimitives.WriteUInt32BigEndian(regionData[(chunkIndex * 4)..], ((index / ChunkSize) << 8) | paddedLength / ChunkSize);
-        BinaryPrimitives.WriteUInt32BigEndian(regionData[((chunkIndex * 4) + TimestampOffset)..], (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-
-        BinaryPrimitives.WriteUInt32BigEndian(regionData[(int)index..], dataLength + 1);
-        regionData[(int)index + 4] = compressionType;
-
-        chunkData.Position = 0;
-        chunkData.ReadExactly(regionData.Slice((int)index + 5, (int)dataLength));
-    }
-
-    public static void WriteChunkNBT(ref byte[] regionData, CompoundTag chunkNBT, int2 localPosition)
-    {
-        ValidateLocalCoords(localPosition);
-
-        using var ms = new MemoryStream();
-        using var zlib = new ZLibStream(ms, CompressionLevel.SmallestSize);
-        using var writer = new TagWriter(zlib, FormatOptions.Java);
-
-        // for some reason if the name is empty, the type doesn't get written... wtf, also in this case an empty name is expected
-        // compound type
-        zlib.WriteByte(10);
-
-        // name length
-        Debug.Assert(string.IsNullOrEmpty(chunkNBT.Name), $"{nameof(chunkNBT)}.Name should be null or empty.");
-        zlib.WriteByte(0);
-        zlib.WriteByte(0);
-
-        writer.WriteTag(chunkNBT);
-        zlib.Flush();
-
-        var dataLength = checked((uint)ms.Length);
-        var paddedLength = CalculatePaddedLength(dataLength);
-
-        uint index;
-        if (regionData.Length == 0)
-        {
-            regionData = new byte[HeaderLength + paddedLength];
-            index = HeaderLength;
-        }
-        else
-        {
-            var newRegionData = new byte[regionData.Length + paddedLength];
-            Buffer.BlockCopy(regionData, 0, newRegionData, 0, regionData.Length);
-
-            index = (uint)regionData.Length;
-
-            regionData = newRegionData;
-        }
-
-        WriteRawChunkData(regionData, ms, index, CompressionTypeZlib, localPosition);
     }
 
     [Conditional("DEBUG")]

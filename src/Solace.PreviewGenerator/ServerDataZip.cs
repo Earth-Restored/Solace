@@ -1,5 +1,5 @@
-﻿using SharpNBT;
-using System.IO.Compression;
+﻿using System.IO.Compression;
+using Cyotek.Data.Nbt;
 using Solace.Common.Utils;
 
 namespace Solace.PreviewGenerator;
@@ -31,7 +31,7 @@ internal sealed class ServerDataZip
         }
     }
 
-    public CompoundTag GetChunkNBT(int x, int z)
+    public TagCompound GetChunkNBT(int x, int z)
     {
         var regionX = x >> 5;
         var regionZ = z >> 5;
@@ -82,11 +82,11 @@ internal sealed class ServerDataZip
         }
 
         using (var tagStream = new MemoryStream(uncompressed))
-        using (var tagReader = new TagReader(tagStream, FormatOptions.Java, false))
         {
-            CompoundTag tag = tagReader.ReadTag<CompoundTag>();
+            var document = new NbtDocument();
+            document.Load(tagStream);
 
-            return tag;
+            return document.DocumentRoot;
         }
     }
 }
