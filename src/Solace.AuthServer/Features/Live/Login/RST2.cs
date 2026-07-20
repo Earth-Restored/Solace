@@ -17,15 +17,15 @@ namespace Solace.AuthServer.Features.Live.Login;
 
 public sealed partial class RST2
 {
-    private static readonly XmlReaderSettings xmlReaderSettings = new XmlReaderSettings
+    private static readonly XmlReaderSettings xmlReaderSettings = new()
     {
         DtdProcessing = DtdProcessing.Prohibit,
         XmlResolver = null,
     };
 
-    private static readonly XmlSerializer xmlSerializer = new XmlSerializer(typeof(SoapEnvelope));
+    private static readonly XmlSerializer xmlSerializer = new(typeof(SoapEnvelope));
 
-    private static readonly Dictionary<string, string> namespaces = new Dictionary<string, string>
+    private static readonly Dictionary<string, string> namespaces = new()
     {
         { "S", "http://www.w3.org/2003/05/soap-envelope"},
         { "wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"},
@@ -47,7 +47,7 @@ public sealed partial class RST2
         .DisableAntiforgery()
         .Accepts<string>("application/x-www-form-urlencoded");
 
-    // todo: implement
+    // todo: strongly typed response, same as request
     private static async Task<Results<ContentHttpResult, BadRequest>> HandleAsync(
         HttpContext httpContext,
         [FromServices] IOptions<AuthSettings> authSettingsOption,
@@ -276,9 +276,9 @@ public sealed partial class RST2
                 var headerValidity = ValidityDatePair.Create(authSettings.SoapHeaderValidityMinutes);
                 var nonce = GenerateNonce();
 
-                string scheme = httpContext.Request.IsHttps ? "https" : "http";
-                string host = httpContext.Request.Host.Value!;
-                string path = httpContext.Request.Path.Value ?? "";
+                var scheme = httpContext.Request.IsHttps ? "https" : "http";
+                var host = httpContext.Request.Host.Value!;
+                var path = httpContext.Request.Path.Value ?? "";
 
                 if (path.EndsWith("RST2.srf", StringComparison.OrdinalIgnoreCase))
                 {
@@ -625,19 +625,6 @@ public sealed partial class RST2
     private static XmlElement CreateElement(XmlDocument doc, string prefix, string localName)
         => doc.CreateElement(prefix, localName, LookupNamespace(prefix));
 
-    private static double EvaluateNumber(XmlDocument document, string xpath, XmlNamespaceManager nsmgr)
-    {
-        var expr = document.CreateNavigator()!.Compile(xpath);
-        expr.SetContext(nsmgr);
-        object result = document.CreateNavigator()!.Evaluate(expr);
-        if (result is double d)
-        {
-            return d;
-        }
-
-        return 0;
-    }
-
     private static string GenerateNonce()
     {
         var buffer = ArrayPool<byte>.Shared.Rent(32);
@@ -686,13 +673,12 @@ public sealed partial class RST2
             aes.IV = iv;
 
 #pragma warning disable CA5401 // Do not use CreateEncryptor with non-default IV
-            using (var encryptor = aes.CreateEncryptor(messageKey, iv))
-            {
-                var cipherData = encryptor.TransformFinalBlock(plainTextBytes, 0, plainTextBytes.Length);
-                cipherText = new byte[iv.Length + cipherData.Length];
-                iv.AsSpan().CopyTo(cipherText.AsSpan());
-                cipherData.AsSpan().CopyTo(cipherText.AsSpan(iv.Length..));
-            }
+            using var encryptor = aes.CreateEncryptor(messageKey, iv);
+
+            var cipherData = encryptor.TransformFinalBlock(plainTextBytes, 0, plainTextBytes.Length);
+            cipherText = new byte[iv.Length + cipherData.Length];
+            iv.AsSpan().CopyTo(cipherText.AsSpan());
+            cipherData.AsSpan().CopyTo(cipherText.AsSpan(iv.Length..));
 #pragma warning restore CA5401 // Do not use CreateEncryptor with non-default IV
         }
 

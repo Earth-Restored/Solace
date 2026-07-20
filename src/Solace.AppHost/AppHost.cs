@@ -180,6 +180,7 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
     .WithEnvironmentFromConfig(captchaProvider)
     .WithEnvironmentFromConfig(captchaCloudflareTurnstileSiteKey)
     .WithEnvironmentFromConfig(captchaCloudflareTurnstileSecretKey)
+    .WithEnvironment("StaticDataPath", staticDataPath)
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
@@ -190,6 +191,17 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
             Target = "/home/app/.aspnet/DataProtection-Keys",
             ReadOnly = false,
         });
+        
+        service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
+        {
+            Name = "static-data-volume",
+            Type = "bind",
+            Source = staticDataPath,
+            Target = "/app/static-data",
+            ReadOnly = true,
+        });
+
+        service.Environment["StaticDataPath"] = "/app/static-data";
     });
 
 var locatorPort = builder.Configuration.GetValue<int>("Locator:Port", 8080);

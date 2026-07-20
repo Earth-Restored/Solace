@@ -46,7 +46,7 @@ public static partial class GetTitleEndpoints
         {
             case "default":
                 {
-                    string protocol = httpContext.Request.IsHttps ? "https" : "http";
+                    var protocol = httpContext.Request.IsHttps ? "https" : "http";
                     var host = httpContext.Request.Host;
                     Debug.Assert(host.HasValue);
 

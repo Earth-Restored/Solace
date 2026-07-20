@@ -41,7 +41,7 @@ public static class ProfileUtils
             ["GameDisplayName"] = account.Username,
             ["GameDisplayPicRaw"] = $"{(request.IsHttps ? "https://" : "http://")}{request.Host.Value}/{account.ProfilePictureUrl ?? Account.DefaultPictureUrl}",
             ["Gamertag"] = account.Username,
-            ["Gamerscore"] = "0",
+            ["Gamerscore"] = "100",
             ["FirstName"] = account.FirstName ?? account.Username,
             ["LastName"] = account.LastName ?? account.Username,
             ["SpeechAccessibility"] = "",

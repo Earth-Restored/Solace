@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Runtime.Loader;
 #endif
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Net.Http.Headers;
 using Solace.AuthServer.Utils;
 using Solace.Common;
 using Solace.DB;
@@ -83,9 +84,13 @@ internal sealed partial class Program2
 
         builder.Services.AddSingleton<StartupDependencies>();
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().Secrets);
+        builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().StaticData);
+
+        builder.Services.AddSingleton<Features.PlayfabApi.Catalog.CatalogService>();
 
         builder.Services.Configure<Features.Live.Login.AuthSettings>(builder.Configuration.GetSection("Authentication:Login"));
         builder.Services.Configure<Features.XboxLive.AuthSettings>(builder.Configuration.GetSection("Authentication:XboxLive"));
+        builder.Services.Configure<Features.PlayfabApi.AuthSettings>(builder.Configuration.GetSection("Authentication:PlayfabApi"));
         builder.Services.Configure<Common.Asp.Captcha.CaptchaOptions>(builder.Configuration.GetSection("Captcha"));
 
         var captchaProvider = builder.Configuration.GetValue("Captcha:Provider", Common.Asp.Captcha.CaptchaProvider.NoOp);
@@ -121,9 +126,57 @@ internal sealed partial class Program2
             startupDeps.Secrets = await db.GetOrInitializeSecretsAsync();
         }
 
+        LogLoadingStaticData(programLogger);
+        StaticData.StaticData staticData;
+        try
+        {
+            staticData = new(builder.Configuration["StaticDataPath"]!);
+        }
+        catch (StaticData.StaticDataException exception)
+        {
+            LogLoadStaticDataError(programLogger, exception);
+            loggerFactory.Dispose();
+            return 5;
+        }
+
+        LogLoadedStaticData(programLogger);
+
+        startupDeps.StaticData = staticData;
+
         // app.UseHttpsRedirection();
 
-        app.UseStaticFiles();
+        app.UseStaticFiles(new StaticFileOptions()
+        {
+            OnPrepareResponse = ctx =>
+            {
+                if (ctx.File.Name is "master_loc_contents.json")
+                {
+                    ctx.Context.Response.ContentType = "application/octet-stream";
+
+                    var headers = ctx.Context.Response.Headers;
+
+                    headers[HeaderNames.CacheControl] = "max-age=86312";
+
+                    headers[HeaderNames.Expires] = DateTime.UtcNow.AddDays(1).ToString("R");
+
+                    headers[HeaderNames.AccessControlAllowOrigin] = "*";
+                    headers[HeaderNames.AccessControlExposeHeaders] = "x-ms-request-id,Server,x-ms-version,Content-Type,ETag,Last-Modified,x-ms-creation-time,Content-MD5,x-ms-lease-status,x-ms-lease-state,x-ms-blob-type,x-ms-server-encrypted,Accept-Ranges,x-ms-last-access-time,Content-Length,Date,Transfer-Encoding";
+
+                    headers["x-ms-request-id"] = Guid.NewGuid().ToString();
+                    headers["x-ms-version"] = "2025-11-05";
+                    headers["x-ms-blob-type"] = "BlockBlob";
+                    headers["x-ms-server-encrypted"] = "true";
+
+                    headers["Content-MD5"] = "23BzFiCu2jx/FJOAo68/IA==";
+
+                    var nowRfc = DateTime.UtcNow.ToString("R");
+                    headers["x-ms-creation-time"] = "Wed, 02 Oct 2024 17:03:16 GMT";
+                    headers["x-ms-last-access-time"] = nowRfc;
+                    headers["x-ms-lease-status"] = "unlocked";
+                    headers["x-ms-lease-state"] = "available";
+                }
+            },
+        });
 
         app.UseAntiforgery();
 
@@ -142,8 +195,18 @@ internal sealed partial class Program2
     internal sealed class StartupDependencies
     {
         public CryptoSecrets Secrets { get; set; } = null!;
+        public StaticData.StaticData StaticData { get; set; } = null!;
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Using NoOp captcha provider")]
     private static partial void LogUsingNoOpCaptchaProvider(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loading static data")]
+    private static partial void LogLoadingStaticData(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Failed to load static data")]
+    private static partial void LogLoadStaticDataError(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded static data")]
+    private static partial void LogLoadedStaticData(ILogger logger);
 }
