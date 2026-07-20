@@ -438,13 +438,6 @@
         bp.IsRegeneratingPreview = true;
         bp.ErrorMessage = null;
 
-        @* if (!await ServerManager.EnsureComponentsOnline(EventBusServer.ExeName, ObjectStoreServer.ExeName, BuildplateLauncher.ExeName))
-        {
-            bp.ErrorMessage = "The server must be running.";
-            bp.IsRegeneratingPreview = false;
-            return;
-        } *@
-
         try
         {
             await using var importer = new Importer(await EarthDbFactory.CreateDbContextAsync(), EventBusClient, ObjectStoreClient, Logger)
@@ -541,12 +534,6 @@
     {
         _deleteErrorMessage = null;
 
-        @* if (!await ServerManager.EnsureComponentsOnline(ObjectStoreServer.ExeName))
-        {
-            _deleteErrorMessage = "The server must be running to delete buildplates.";
-            return;
-        } *@
-
         if (_bpToDelete is not null && HasPermission(Permissions.ManageBuildplates))
         {
             try
@@ -630,12 +617,6 @@
 
         try
         {
-            @* if (!await ServerManager.EnsureComponentsOnline(Programs.ObjectStoreServer.ExeName))
-            {
-                _exportErrorMessage = $"Export failed: Failed to start necesarry server components";
-                return;
-            } *@
-
             MemoryStream fileStream;
             if (solaceFormat)
             {
@@ -675,12 +656,6 @@
                 if (data is null)
                 {
                     // try to regenerate
-                    @* if (!await ServerManager.EnsureComponentsOnline(Programs.ObjectStoreServer.ExeName, Programs.EventBusServer.ExeName, Programs.BuildplateLauncher.ExeName))
-                    {
-                        _exportErrorMessage = $"Export failed: Failed to start necesarry server components";
-                        return;
-                    } *@
-
                     await using var importer = new Importer(await EarthDbFactory.CreateDbContextAsync(), EventBusClient, ObjectStoreClient, Logger)
                     {
                         OwnsEarthDb = true,

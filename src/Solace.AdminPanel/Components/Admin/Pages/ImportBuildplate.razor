@@ -288,14 +288,6 @@
         isImporting = true;
         StateHasChanged();
 
-        @* if (!await ServerManager.EnsureComponentsOnline(EventBusServer.ExeName, ObjectStoreServer.ExeName,
-BuildplateLauncher.ExeName))
-        {
-            ShowDialog(false, "The server must be running to import buildplates.");
-            isImporting = false;
-            return;
-        } *@
-
         try
         {
             await using var importer = new Importer(await EarthDbFactory.CreateDbContextAsync(), EventBusClient, ObjectStoreClient, Logger)

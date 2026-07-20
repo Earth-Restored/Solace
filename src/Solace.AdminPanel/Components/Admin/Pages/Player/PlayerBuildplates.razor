@@ -523,14 +523,6 @@ _playerPageSize));
         template.SuccessMessage = null;
         StateHasChanged();
 
-        @* if (!await ServerManager.EnsureComponentsOnline(EventBusServer.ExeName, ObjectStoreServer.ExeName,
-BuildplateLauncher.ExeName))
-        {
-            template.ErrorMessage = "The server must be running.";
-            template.IsAdding = false;
-            return;
-        } *@
-
         try
         {
             await using var importer = new Importer(await EarthDbFactory.CreateDbContextAsync(), EventBusClient, ObjectStoreClient, Logger)
@@ -596,12 +588,6 @@ BuildplateLauncher.ExeName))
         var item = _playerBuildplates?.FirstOrDefault(x => x.Id == id);
         if (item is not null)
         {
-            @* if (!await ServerManager.EnsureComponentsOnline(ObjectStoreServer.ExeName))
-            {
-                _errorMessage = "The server must be running.";
-                return;
-            } *@
-
             _idToDelete = id;
             _nameToDelete = item.Name;
             _showDeleteModal = true;
@@ -724,14 +710,6 @@ BuildplateLauncher.ExeName))
 
         bp.IsRegeneratingPreview = true;
         bp.ErrorMessage = null;
-
-        @* if (!await ServerManager.EnsureComponentsOnline(EventBusServer.ExeName, ObjectStoreServer.ExeName,
-BuildplateLauncher.ExeName))
-        {
-            bp.ErrorMessage = "The server must be running.";
-            bp.IsRegeneratingPreview = false;
-            return;
-        } *@
 
         try
         {

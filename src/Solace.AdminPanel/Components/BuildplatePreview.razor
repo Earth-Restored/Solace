@@ -111,17 +111,17 @@
             _isCurrentlyLoadingTask = true;
 
             _ = InvokeAsync(async () =>
-                        {
-                            try
-                            {
-                                await Task.Run(async () => await LoadPreviewAsync());
-                            }
-                            finally
-                            {
-                                _isCurrentlyLoadingTask = false;
-                                StateHasChanged();
-                            }
-                        });
+                {
+                    try
+                    {
+                        await Task.Run(async () => await LoadPreviewAsync());
+                    }
+                    finally
+                    {
+                        _isCurrentlyLoadingTask = false;
+                        StateHasChanged();
+                    }
+                });
         }
     }
 
@@ -192,13 +192,6 @@
             _isPreviewLoading = false;
             return;
         }
-
-        @* if (!await ServerManager.EnsureComponentsOnline(ObjectStoreServer.ExeName))
-        {
-            _isPreviewLoading = false;
-            _isPreviewFailed = true;
-            return;
-        } *@
 
         if (ResourcePackManager is null)
         {
