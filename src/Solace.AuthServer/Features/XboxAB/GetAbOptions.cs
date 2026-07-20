@@ -28,7 +28,7 @@ public static partial class GetAbOptions
 
     private static async ValueTask<Result> HandleAsync(
         Query _,
-        CancellationToken token)
+        CancellationToken cancellationToken)
             => new Result(
             [ 
                 //"mc-sunsetting_1",

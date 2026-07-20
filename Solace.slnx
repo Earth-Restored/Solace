@@ -3,6 +3,7 @@
     <File Path=".editorconfig" />
   </Folder>
   <Project Path="src/Solace.AdminPanel/Solace.AdminPanel.csproj" />
+  <Project Path="src/Solace.Analyzer/Solace.Analyzer.csproj" />
   <Project Path="src/Solace.ApiServer/Solace.ApiServer.csproj" />
   <Project Path="src/Solace.AppHost/Solace.AppHost.csproj" />
   <Project Path="src/Solace.AuthServer/Solace.AuthServer.csproj" />
