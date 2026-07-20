@@ -8,9 +8,3 @@ public sealed class CaptchaOptions
     
     public string? CloudflareTurnstileSecretKey { get; init; }
 }
-
-public enum CaptchaProvider
-{
-    NoOp,
-    CloudflareTurnstile,
-}

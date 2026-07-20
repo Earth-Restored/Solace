@@ -1,6 +1,6 @@
 ﻿namespace Solace.DB.Models.Player;
 
-public sealed class BuildplateEF : IEntityWithId<Guid>
+public sealed class PlayerBuildplateEF : IEntityWithId<Guid>
 {
     public Guid Id { get; set; }
 

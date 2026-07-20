@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
@@ -11,6 +12,8 @@ using Solace.Common;
 using Solace.DB;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
+
+namespace Solace.Cdn;
 
 internal static class Program
 {
@@ -35,7 +38,9 @@ internal static class Program
     }
 }
 
+#pragma warning disable MA0048 // File name must match type name
 internal sealed partial class App
+#pragma warning restore MA0048 // File name must match type name
 {
     private static string staticDataPath = null!;
 
@@ -91,7 +96,7 @@ internal sealed partial class App
         var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
         Debug.Assert(eventBusConnectionString is not null);
 
-        Logs.LogConnectingToEventBus(programLogger);
+        LogConnectingToEventBus(programLogger);
         EventBusClient eventBus;
         try
         {
@@ -99,17 +104,17 @@ internal sealed partial class App
         }
         catch (Exception exception)
         {
-            Logs.LogConnectToEventBusError(programLogger, exception);
+            LogConnectToEventBusError(programLogger, exception);
             loggerFactory.Dispose();
             return 3;
         }
 
-        Logs.LogConnectedToEventBus(programLogger);
+        LogConnectedToEventBus(programLogger);
 
         var objectStoreConnectionString = builder.Configuration["services:object-store:http:0"];
         Debug.Assert(objectStoreConnectionString is not null);
 
-        Logs.LogConnectingToObjectStore(programLogger);
+        LogConnectingToObjectStore(programLogger);
         ObjectStoreClient objectStore;
         try
         {
@@ -117,12 +122,12 @@ internal sealed partial class App
         }
         catch (Exception exception)
         {
-            Logs.LogConnectToObjectStoreError(programLogger, exception);
+            LogConnectToObjectStoreError(programLogger, exception);
             loggerFactory.Dispose();
             return 4;
         }
 
-        Logs.LogConnectedToObjectStore(programLogger);
+        LogConnectedToObjectStore(programLogger);
 
         startupDeps.EventBus = eventBus;
         startupDeps.ObjectStore = objectStore;
@@ -158,7 +163,7 @@ internal sealed partial class App
 
         if (!System.IO.File.Exists(resourcePackFilePath))
         {
-            Logs.LogResourcepackNotFound(logger);
+            LogResourcepackNotFound(logger);
             return TypedResults.BadRequest(); // we cannot serve you.
         }
 
@@ -175,10 +180,7 @@ internal sealed partial class App
         public EventBusClient EventBus { get; set; } = null!;
         public ObjectStoreClient ObjectStore { get; set; } = null!;
     }
-}
-
-internal static partial class Logs
-{
+    
     [LoggerMessage(Level = LogLevel.Error, Message = "Resource pack file not found")]
     public static partial void LogResourcepackNotFound(ILogger logger);
 

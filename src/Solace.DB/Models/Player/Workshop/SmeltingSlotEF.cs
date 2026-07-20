@@ -44,7 +44,7 @@ public sealed class SmeltingSlotEF : IEquatable<SmeltingSlotEF>, ICloneable<Smel
         }
 
         public bool Equals(SmeltingSlotEF? x, SmeltingSlotEF? y)
-            => x == y || (x != null && y != null && (x.ActiveJob?.Equals(y.ActiveJob) ?? false) && (x.Burning?.Equals(y.Burning) ?? false) && x.Locked == y.Locked);
+            => x?.Equals(y) ?? ReferenceEquals(x, y) || (x != null && y != null && (x.ActiveJob?.Equals(y.ActiveJob) ?? false) && (x.Burning?.Equals(y.Burning) ?? false) && x.Locked == y.Locked);
 
         public int GetHashCode([DisallowNull] SmeltingSlotEF obj)
             => HashCode.Combine(obj.ActiveJob, obj.Burning, obj.Locked);

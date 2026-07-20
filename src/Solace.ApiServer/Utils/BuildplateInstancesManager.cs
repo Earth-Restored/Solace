@@ -42,12 +42,14 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
     {
         if (playerId is null && type is not InstanceType.ENCOUNTER)
         {
+#pragma warning disable MA0015 // Specify the parameter name in ArgumentException
             throw new ArgumentException($"{nameof(playerId)} cannot be null when {nameof(type)} is not {nameof(InstanceType.ENCOUNTER)}.");
         }
 
         if (encounterId is not null && type is not InstanceType.ENCOUNTER)
         {
             throw new ArgumentException($"{nameof(encounterId)} can only be set when {nameof(type)} is {nameof(InstanceType.ENCOUNTER)}.");
+#pragma warning restore MA0015 // Specify the parameter name in ArgumentException
         }
 
         if (playerId is not null && encounterId is not null)

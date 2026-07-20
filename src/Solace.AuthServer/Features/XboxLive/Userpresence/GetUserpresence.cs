@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json.Serialization;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
@@ -59,7 +60,7 @@ public sealed partial class GetUserpresence(
 
         var xuidMatch = XuidUtils.GetXuidRegex().Match(query.XuidParam);
 
-        var xuidString = xuidMatch.Success ? xuidMatch.Groups[1].Value : null;
+        var xuidString = xuidMatch.Success ? xuidMatch.Groups["xuid"].Value : null;
 
         if (xuidString is null || !Guid.TryParse(xuidString, out var xuid))
         {
@@ -78,7 +79,7 @@ public sealed partial class GetUserpresence(
                             "",
                             "Full",
                             "Active",
-                            DateTime.UtcNow.Subtract(TimeSpan.FromHours(1)).ToString("yyyy-MM-ddTHH:mm:ss.fffffff")
+                            DateTime.UtcNow.Subtract(TimeSpan.FromHours(1)).ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture)
                         ),
                     ]
                 ),

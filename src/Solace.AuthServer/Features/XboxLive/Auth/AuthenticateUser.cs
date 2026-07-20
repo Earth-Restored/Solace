@@ -64,10 +64,10 @@ public sealed partial class AuthenticateUser(
             tokenValidity.IssuedStr,
             tokenValidity.ExpiresStr,
             JwtUtils.Sign<AuthToken>(token, cryptoSecrets.LiveAuthTokenSecret, tokenValidity),
-            new()
+            new(StringComparer.Ordinal)
             {
                 ["xui"] = [
-                    new()
+                    new(StringComparer.Ordinal)
                     {
                         ["uhs"] = token.Uhs.ToString(),
                     },

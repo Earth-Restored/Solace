@@ -1,11 +1,13 @@
 ﻿using System.Globalization;
+using System.Runtime.InteropServices;
 
 namespace Solace.TileRenderer.Wkb;
 
-internal struct Point
+[StructLayout(LayoutKind.Auto)]
+internal readonly struct Point
 {
-    public double X;
-    public double Y;
+    public double X { get; }
+    public double Y { get; }
 
     public Point(double x, double y)
     {

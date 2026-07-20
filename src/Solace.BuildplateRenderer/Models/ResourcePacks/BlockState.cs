@@ -41,7 +41,7 @@ public readonly struct BlockState : IEquatable<BlockState>
     public ReadOnlySpan<KeyValuePair<string, string>> Properties => _properties.AsSpan(0, _propertiesLength);
 
     public static BlockState Create(string blockId, IEnumerable<KeyValuePair<string, string>> properties)
-        => CreateNoCopy(blockId, [.. properties.OrderBy(p => p.Key)]);
+        => CreateNoCopy(blockId, [.. properties.OrderBy(p => p.Key, StringComparer.Ordinal)]);
 
     public static BlockState CreateNoCopy(string blockId, KeyValuePair<string, string>[] properties)
         => CreateNoCopy(blockId, properties, properties.Length);
@@ -102,6 +102,7 @@ public readonly struct BlockState : IEquatable<BlockState>
 }
 
 // https://minecraft.wiki/w/Blockstates_definition#JSON_format
+#pragma warning disable MA0048 // File name must match type name
 public sealed class BlockStateJson
 {
     // mutually exclusive with with Variants
@@ -184,3 +185,4 @@ public sealed class VariantModel : IEquatable<VariantModel>
     public override int GetHashCode()
         => HashCode.Combine(Model, RotationX, RotationY, RotationZ, UVLock, Weight);
 }
+#pragma warning restore MA0048 // File name must match type name

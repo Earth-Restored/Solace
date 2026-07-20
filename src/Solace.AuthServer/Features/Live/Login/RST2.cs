@@ -24,7 +24,7 @@ public sealed partial class RST2
 
     private static readonly XmlSerializer xmlSerializer = new(typeof(SoapEnvelope));
 
-    private static readonly Dictionary<string, string> namespaces = new()
+    private static readonly Dictionary<string, string> namespaces = new(StringComparer.Ordinal)
     {
         { "S", "http://www.w3.org/2003/05/soap-envelope"},
         { "wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"},
@@ -67,13 +67,10 @@ public sealed partial class RST2
         try
         {
             // can't use StreamReader because XmlSerializer is fucking old and does not support async
-            using (var stringReader = new StringReader(requestBody))
-            {
-                using (var xmlReader = XmlReader.Create(stringReader, xmlReaderSettings))
-                {
-                    request = (SoapEnvelope?)xmlSerializer.Deserialize(xmlReader);
-                }
-            }
+            using var stringReader = new StringReader(requestBody);
+            using var xmlReader = XmlReader.Create(stringReader, xmlReaderSettings);
+
+            request = (SoapEnvelope?)xmlSerializer.Deserialize(xmlReader);
         }
         catch (InvalidOperationException)
         {
@@ -92,7 +89,7 @@ public sealed partial class RST2
             // todo: use UsernameToken
 
             if (requestSecurityToken.RequestType is not "http://schemas.xmlsoap.org/ws/2005/02/trust/Issue" ||
-                requestSecurityToken.AppliesTo is not { EndpointReference: { Address: "http://Passport.NET/tb" } })
+                requestSecurityToken.AppliesTo is not { EndpointReference.Address: "http://Passport.NET/tb" })
             {
                 return TypedResults.BadRequest();
             }
@@ -230,9 +227,9 @@ public sealed partial class RST2
             if (!string.IsNullOrEmpty(deviceDATokenString))
             {
                 var match = GetDeviceDATokenStringRegex().Match(deviceDATokenString);
-                if (match.Success && match.Groups.Count > 1)
+                if (match.Success && match.Groups.ContainsKey("token"))
                 {
-                    deviceDATokenXMLStringEncoded = match.Groups[1].Value;
+                    deviceDATokenXMLStringEncoded = match.Groups["token"].Value;
                 }
             }
 
@@ -684,7 +681,7 @@ public sealed partial class RST2
         return Convert.ToBase64String(cipherText);
     }
 
-    [GeneratedRegex("&da=([^&]*)")]
+    [GeneratedRegex("&da=(?<token>[^&]*)", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 200)]
     private static partial Regex GetDeviceDATokenStringRegex();
 
     [XmlRoot(ElementName = "Envelope", Namespace = "http://www.w3.org/2003/05/soap-envelope")]

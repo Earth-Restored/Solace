@@ -1,7 +1,10 @@
+using System.Runtime.InteropServices;
+
 namespace Solace.TileRenderer.Vector;
 
 // https://github.com/NetTopologySuite/NetTopologySuite.IO.VectorTiles/blob/develop/src/NetTopologySuite.IO.VectorTiles/Tiles/BoundingBox.cs
 
+[StructLayout(LayoutKind.Auto)]
 public readonly struct BoundingBox : IEquatable<BoundingBox>
 {
     public BoundingBox(double left, double bottom, double right, double top)
@@ -13,8 +16,11 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
     }
 
     public double Left { get; }
+    
     public double Bottom { get; }
+
     public double Right { get; }
+
     public double Top { get; }
 
     public readonly override bool Equals(object? obj)

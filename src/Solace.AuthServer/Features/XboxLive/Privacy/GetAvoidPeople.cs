@@ -38,7 +38,7 @@ public sealed partial class GetAvoidPeople(
 
         var xuidMatch = XuidUtils.GetXuidRegex().Match(query.XuidParam);
 
-        var xuidString = xuidMatch.Success ? xuidMatch.Groups[1].Value : null;
+        var xuidString = xuidMatch.Success ? xuidMatch.Groups["xuid"].Value : null;
 
         if (xuidString is null || !Guid.TryParse(xuidString, out var xuid))
         {

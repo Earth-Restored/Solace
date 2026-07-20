@@ -23,7 +23,9 @@ internal sealed partial class Instance
     {
         if (playerId is null && buildplateSource is BuildplateSource.PLAYER)
         {
+#pragma warning disable MA0015 // Specify the parameter name in ArgumentException
             throw new ArgumentException($"{nameof(playerId)} cannot be null when {nameof(buildplateSource)} is {nameof(BuildplateSource.PLAYER)}");
+#pragma warning restore MA0015 // Specify the parameter name in ArgumentException
         }
 
         var instance = new Instance(eventBusClient, playerId, buildplateId, buildplateSource, instanceId, survival, night, saveEnabled, inventoryType, shutdownTime, publicAddress, port, serverInternalPort, javaCmd, fountainBridgeJar, serverTemplateDir, fabricJarName, connectorPluginJar, baseDir, eventBusConnectionString, loggerFactory, logger);
@@ -566,14 +568,16 @@ internal sealed partial class Instance
     {
         Debug.Assert(_publisher is not null);
 
-        _publisher.PublishAsync("buildplates", status, InstanceId.ToString()).ContinueWith(task =>
-        {
-            if (!task.Result)
+        _publisher.PublishAsync("buildplates", status, InstanceId.ToString())
+            .ContinueWith(task =>
             {
-                LogEventBusPublisherError();
-                BeginShutdown();
-            }
-        });
+                if (!task.Result)
+                {
+                    LogEventBusPublisherError();
+                    BeginShutdown();
+                }
+            })
+            .Forget();
     }
 
     private sealed record RequestWithInstanceId(

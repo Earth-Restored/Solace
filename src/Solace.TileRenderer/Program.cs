@@ -37,7 +37,9 @@ internal static class Program
     }
 }
 
+#pragma warning disable MA0048 // File name must match type name
 internal static partial class App
+#pragma warning restore MA0048 // File name must match type name
 {
     public static async Task<int> RunAsync(string[] args)
     {

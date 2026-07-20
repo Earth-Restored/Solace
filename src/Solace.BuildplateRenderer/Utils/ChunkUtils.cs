@@ -19,7 +19,7 @@ internal static class ChunkUtils
 
 	public static readonly int[] EmptySubChunk = new int[Width * SubChunkSize * Width];
 
-	public static readonly FrozenSet<string> InvisibleBlocks = new HashSet<string>()
+	public static readonly FrozenSet<string> InvisibleBlocks = new HashSet<string>(StringComparer.Ordinal)
 	{
 		"minecraft:air",
 		"fountain:solid_air",

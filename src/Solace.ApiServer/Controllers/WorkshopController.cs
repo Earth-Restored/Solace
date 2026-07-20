@@ -68,15 +68,15 @@ internal sealed class WorkshopController : SolaceControllerBase
             .Select(versions => new { versions.Id, versions.Crafting, versions.Smelting, })
             .FirstAsync(versions => versions.Id == accountId, cancellationToken: cancellationToken);
 
-        Dictionary<string, object> workshop = new()
+        Dictionary<string, object> workshop = new(StringComparer.Ordinal)
         {
-            ["crafting"] = new Dictionary<string, object>()
+            ["crafting"] = new Dictionary<string, object>(StringComparer.Ordinal)
             {
                 ["1"] = CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[0], requestStartedOn, versions.Crafting, 1),
                 ["2"] = CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[1], requestStartedOn, versions.Crafting, 2),
                 ["3"] = CraftingSlotModelToResponseIncludingLocked(craftingSlots.Slots[2], requestStartedOn, versions.Crafting, 3),
             },
-            ["smelting"] = new Dictionary<string, object>()
+            ["smelting"] = new Dictionary<string, object>(StringComparer.Ordinal)
             {
                 ["1"] = SmeltingSlotModelToResponseIncludingLocked(smeltingSlots.Slots[0], requestStartedOn, versions.Smelting, 1),
                 ["2"] = SmeltingSlotModelToResponseIncludingLocked(smeltingSlots.Slots[1], requestStartedOn, versions.Smelting, 2),
@@ -179,7 +179,7 @@ internal sealed class WorkshopController : SolaceControllerBase
 
         if (craftingSlot.Locked || craftingSlot.ActiveJob is not null)
         {
-            return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+            return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
         }
 
         var results = new ResultsEF.Builder();
@@ -192,7 +192,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             {
                 if (!await InventoryUtils.TakeStackableItemsAsync(_earthDb, results, accountId, item.ItemId, item.Quantity, cancellationToken))
                 {
-                    return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+                    return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
                 }
 
                 providedItems[index] = new InputItem(item.ItemId, item.Quantity, []);
@@ -202,7 +202,7 @@ internal sealed class WorkshopController : SolaceControllerBase
                 var instances = await InventoryUtils.TakeInstanceItemsAsync(_earthDb, results, accountId, item.ItemId, item.ItemInstanceIds, cancellationToken);
                 if (instances is null)
                 {
-                    return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+                    return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
                 }
 
                 providedItems[index] = new InputItem(item.ItemId, item.Quantity, [.. instances.Select(instance => new NonStackableItemInstance(instance.InstanceId, instance.Wear))]);
@@ -263,7 +263,7 @@ internal sealed class WorkshopController : SolaceControllerBase
 
             if (requiredCount > 0)
             {
-                return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+                return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
             }
 
             if (ingredientItems.Count == 0)
@@ -281,7 +281,7 @@ internal sealed class WorkshopController : SolaceControllerBase
 
         if (providedItems.Any(item => item.Count > 0))
         {
-            return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+            return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
         }
 
         craftingSlot.ActiveJob = new CraftingSlot.ActiveCraftingJob(startRequest.SessionId, recipe.Id, requestStartedOn, [.. inputItems.Select(inputItems1 => new CraftingSlot.InputRow([.. inputItems1]))], startRequest.Multiplier, 0, false);
@@ -292,7 +292,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             .Crafting()
             .Inventory();
 
-        return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
+        return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     [HttpPost("smelting/{slotIndex}/start")]
@@ -364,7 +364,7 @@ internal sealed class WorkshopController : SolaceControllerBase
 
         if (smeltingSlot.Locked || smeltingSlot.ActiveJob is not null)
         {
-            return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+            return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
         }
 
         var results = new ResultsEF.Builder();
@@ -374,7 +374,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         {
             if (!await InventoryUtils.TakeStackableItemsAsync(_earthDb, results, accountId, startRequest.Input.ItemId, startRequest.Input.Quantity, cancellationToken))
             {
-                return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+                return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
             }
 
             input = new InputItem(startRequest.Input.ItemId, startRequest.Input.Quantity, []);
@@ -384,7 +384,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             var instances = await InventoryUtils.TakeInstanceItemsAsync(_earthDb, results, accountId, startRequest.Input.ItemId, startRequest.Input.ItemInstanceIds, cancellationToken);
             if (instances is null)
             {
-                return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+                return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
             }
 
             input = new InputItem(startRequest.Input.ItemId, startRequest.Input.Quantity, [.. instances.Select(instance => new NonStackableItemInstance(instance.InstanceId, instance.Wear))]);
@@ -403,7 +403,7 @@ internal sealed class WorkshopController : SolaceControllerBase
 
             if (startRequest.Fuel.Quantity < requiredFuelCount)
             {
-                return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+                return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
             }
 
             if (requiredFuelCount > 0)
@@ -413,7 +413,7 @@ internal sealed class WorkshopController : SolaceControllerBase
                 {
                     if (!await InventoryUtils.TakeStackableItemsAsync(_earthDb, results, accountId, startRequest.Fuel.ItemId, requiredFuelCount, cancellationToken))
                     {
-                        return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+                        return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
                     }
 
                     fuelItem = new InputItem(startRequest.Fuel.ItemId, requiredFuelCount, []);
@@ -423,7 +423,7 @@ internal sealed class WorkshopController : SolaceControllerBase
                     var instances = await InventoryUtils.TakeInstanceItemsAsync(_earthDb, results, accountId, startRequest.Fuel.ItemId, startRequest.Fuel.ItemInstanceIds.Take(requiredFuelCount), cancellationToken);
                     if (instances is null)
                     {
-                        return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+                        return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
                     }
 
                     fuelItem = new InputItem(startRequest.Fuel.ItemId, requiredFuelCount, [.. instances.Select(instance => new NonStackableItemInstance(instance.InstanceId, instance.Wear))]);
@@ -440,7 +440,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         {
             if (requiredFuelHeat > 0)
             {
-                return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+                return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
             }
 
             fuel = null;
@@ -456,7 +456,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             .Smelting()
             .Inventory();
 
-        return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
+        return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     [HttpPost("crafting/{slotIndex}/collectItems")]
@@ -506,7 +506,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new DB.Models.Player.CraftingCompletedEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
         await rewards.ToRedeemQueryAsync(_earthDb, results, accountId, requestStartedOn, _staticData, cancellationToken);
 
-        return EarthJson(new Dictionary<string, object>()
+        return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal)
             {
                 { "rewards", rewards.ToApiResponse() }
             }, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
@@ -570,7 +570,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new SmeltingCompletedEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
         await rewards.ToRedeemQueryAsync(_earthDb, results, accountId, requestStartedOn, _staticData, cancellationToken);
 
-        return EarthJson(new Dictionary<string, object>()
+        return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal)
             {
                 { "rewards", rewards.ToApiResponse() }
             }, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
@@ -945,19 +945,19 @@ internal sealed class WorkshopController : SolaceControllerBase
 
         if (!craftingSlot.Locked)
         {
-            return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+            return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
         }
 
         var unlockPrice = CraftingCalculator.CalculateUnlockPrice(slotIndex);
 
         if (expectedPurchasePrice.ExpectedPurchasePrice != unlockPrice)
         {
-            return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+            return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
         }
 
         if (!profile.Rubies.Spend(unlockPrice))
         {
-            return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+            return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
         }
 
         craftingSlot.Locked = false;
@@ -968,7 +968,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             .Crafting()
             .Profile();
 
-        return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
+        return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     [HttpPost("smelting/{slotIndex}/unlock")]
@@ -997,19 +997,19 @@ internal sealed class WorkshopController : SolaceControllerBase
 
         if (!smeltingSlot.Locked)
         {
-            return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+            return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
         }
 
         var unlockPrice = SmeltingCalculator.CalculateUnlockPrice(slotIndex);
 
         if (expectedPurchasePrice.ExpectedPurchasePrice != unlockPrice)
         {
-            return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+            return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
         }
 
         if (!profile.Rubies.Spend(unlockPrice))
         {
-            return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse());
+            return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse());
         }
 
         smeltingSlot.Locked = false;
@@ -1020,7 +1020,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             .Smelting()
             .Profile();
 
-        return EarthJson(new Dictionary<string, object>(), new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
+        return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal), new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
     private Types.Workshop.CraftingSlot CraftingSlotModelToResponseIncludingLocked(CraftingSlot craftingSlotModel, DateTimeOffset currentTime, int streamVersion, int slotIndex)

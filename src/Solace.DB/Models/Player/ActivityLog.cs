@@ -3,6 +3,7 @@ using Solace.DB.Models.Common;
 
 namespace Solace.DB.Models.Player;
 
+#pragma warning disable MA0048 // File name must match type name
 public abstract class ActivityLogEntryEF
 {
     protected ActivityLogEntryEF()
@@ -135,3 +136,4 @@ public sealed class BoostActivatedEntryEF : ActivityLogEntryEF
 
     public Guid ItemId { get; init; }
 }
+#pragma warning restore MA0048 // File name must match type name

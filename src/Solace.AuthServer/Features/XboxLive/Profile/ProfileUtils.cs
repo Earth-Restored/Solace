@@ -34,7 +34,7 @@ public static class ProfileUtils
     }
 
     private static Dictionary<string, string?> GetProfile(Account account, HttpRequest request)
-        => new()
+        => new(StringComparer.Ordinal)
         {
             ["AppDisplayName"] = account.Username,
             ["AppDisplayPicRaw"] = $"{(request.IsHttps ? "https://" : "http://")}{request.Host.Value}/{account.ProfilePictureUrl ?? Account.DefaultPictureUrl}",

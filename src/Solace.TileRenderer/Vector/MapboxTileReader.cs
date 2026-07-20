@@ -311,7 +311,7 @@ internal sealed class MapboxTileReader
 
     private static AttributesTable ReadAttributeTable(global::VectorTile.Tile.Types.Feature mbTileFeature, RepeatedField<string> keys, RepeatedField<global::VectorTile.Tile.Types.Value> values)
     {
-        var att = new AttributesTable();
+        var att = new AttributesTable(StringComparer.Ordinal);
 
         for (var i = 0; i < mbTileFeature.Tags.Count; i += 2)
         {

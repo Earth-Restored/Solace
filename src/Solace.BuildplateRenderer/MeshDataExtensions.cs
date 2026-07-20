@@ -10,34 +10,34 @@ namespace Solace.BuildplateRenderer;
 
 public static class MeshDataExtensions
 {
-    private static readonly FrozenDictionary<string, string> TextureToColormap = new Dictionary<string, string>
-        {
-            { "minecraft:block/grass_block_top", "minecraft:colormap/grass.png" },
-            { "minecraft:block/grass_block_side_overlay", "minecraft:colormap/grass.png" },
-            { "minecraft:block/fern", "minecraft:colormap/grass.png" },
-            { "minecraft:block/large_fern_bottom", "minecraft:colormap/grass.png" },
-            { "minecraft:block/large_fern_top", "minecraft:colormap/grass.png" },
-            { "minecraft:block/tall_grass_bottom", "minecraft:colormap/grass.png" },
-            { "minecraft:block/tall_grass_top", "minecraft:colormap/grass.png" },
-            { "minecraft:block/short_grass", "minecraft:colormap/grass.png" },
-            { "minecraft:block/oak_leaves", "minecraft:colormap/foliage.png" },
-            { "minecraft:block/jungle_leaves", "minecraft:colormap/foliage.png" },
-            { "minecraft:block/acacia_leaves", "minecraft:colormap/foliage.png" },
-            { "minecraft:block/dark_oak_leaves", "minecraft:colormap/foliage.png" },
-            { "minecraft:block/mangrove_leaves", "minecraft:colormap/foliage.png" },
-            { "minecraft:block/vine", "minecraft:colormap/foliage.png" }
-        }.ToFrozenDictionary();
+    private static readonly FrozenDictionary<string, string> TextureToColormap = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        { "minecraft:block/grass_block_top", "minecraft:colormap/grass.png" },
+        { "minecraft:block/grass_block_side_overlay", "minecraft:colormap/grass.png" },
+        { "minecraft:block/fern", "minecraft:colormap/grass.png" },
+        { "minecraft:block/large_fern_bottom", "minecraft:colormap/grass.png" },
+        { "minecraft:block/large_fern_top", "minecraft:colormap/grass.png" },
+        { "minecraft:block/tall_grass_bottom", "minecraft:colormap/grass.png" },
+        { "minecraft:block/tall_grass_top", "minecraft:colormap/grass.png" },
+        { "minecraft:block/short_grass", "minecraft:colormap/grass.png" },
+        { "minecraft:block/oak_leaves", "minecraft:colormap/foliage.png" },
+        { "minecraft:block/jungle_leaves", "minecraft:colormap/foliage.png" },
+        { "minecraft:block/acacia_leaves", "minecraft:colormap/foliage.png" },
+        { "minecraft:block/dark_oak_leaves", "minecraft:colormap/foliage.png" },
+        { "minecraft:block/mangrove_leaves", "minecraft:colormap/foliage.png" },
+        { "minecraft:block/vine", "minecraft:colormap/foliage.png" }
+    }.ToFrozenDictionary();
 
-    private static readonly FrozenDictionary<string, Vector4> HardcodedBlockColors = new Dictionary<string, Vector4>
-        {
-            { "minecraft:block/spruce_leaves", HexToVector4(0x619961) },
-            { "minecraft:block/birch_leaves", HexToVector4(0x80A755) },
-            { "minecraft:block/lily_pad", HexToVector4(0x208030) },
-            { "minecraft:block/pumpkin_stem", HexToVector4(0xEFC00F) },
-            { "minecraft:block/attached_pumpkin_stem", HexToVector4(0xEFC00F) },
-            { "minecraft:block/melon_stem", HexToVector4(0xFFFF00) },
-            { "minecraft:block/attached_melon_stem", HexToVector4(0xFFFF00) },
-        }.ToFrozenDictionary();
+    private static readonly FrozenDictionary<string, Vector4> HardcodedBlockColors = new Dictionary<string, Vector4>(StringComparer.Ordinal)
+    {
+        { "minecraft:block/spruce_leaves", HexToVector4(0x619961) },
+        { "minecraft:block/birch_leaves", HexToVector4(0x80A755) },
+        { "minecraft:block/lily_pad", HexToVector4(0x208030) },
+        { "minecraft:block/pumpkin_stem", HexToVector4(0xEFC00F) },
+        { "minecraft:block/attached_pumpkin_stem", HexToVector4(0xEFC00F) },
+        { "minecraft:block/melon_stem", HexToVector4(0xFFFF00) },
+        { "minecraft:block/attached_melon_stem", HexToVector4(0xFFFF00) },
+    }.ToFrozenDictionary();
 
     private static Vector4 HexToVector4(int hex)
         => new Vector4(
@@ -80,7 +80,7 @@ public static class MeshDataExtensions
             return true;
         }
 
-        if (biome.Name.Contains("badlands") && (blockId.Contains("grass") || blockId.Contains("fern")))
+        if (biome.Name.Contains("badlands", StringComparison.Ordinal) && (blockId.Contains("grass", StringComparison.Ordinal) || blockId.Contains("fern", StringComparison.Ordinal)))
         {
             overrideColor = HexToVector4(0x90814D);
             return true;

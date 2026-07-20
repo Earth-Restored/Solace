@@ -25,7 +25,7 @@ internal sealed class WKBPolygon : IWKBObject
         var byteOrder = reader.ReadByte() == 1;
         if (byteOrder != BitConverter.IsLittleEndian)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException(); // todo
         }
 
         var wkbType = reader.ReadUInt32();

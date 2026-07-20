@@ -25,7 +25,7 @@ internal sealed class SeasonsController : SolaceControllerBase
         DateTime endDate = now.UtcDateTime.Date.AddDays(30);
         var endsAt = new DateTimeOffset(endDate, TimeSpan.Zero).ToUnixTimeMilliseconds();
 
-        return EarthJson(new Dictionary<string, object>
+        return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal)
         {
             ["activeSeasonId"] = ActiveSeasonId,
             ["seasonId"] = ActiveSeasonId,
@@ -37,7 +37,7 @@ internal sealed class SeasonsController : SolaceControllerBase
             ["currentXp"] = 0,
             ["tiers"] = new[]
             {
-                new Dictionary<string, object>
+                new Dictionary<string, object>(StringComparer.Ordinal)
                 {
                     ["tier"] = 1,
                     ["xpRequired"] = 0,
@@ -52,7 +52,7 @@ internal sealed class SeasonsController : SolaceControllerBase
     [HttpPost("seasonpass/purchase")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Endpoints cannot be static")]
     public ContentHttpResult PurchaseSeasonPass()
-        => EarthJson(new Dictionary<string, object>
+        => EarthJson(new Dictionary<string, object>(StringComparer.Ordinal)
         {
             ["premiumPassOwned"] = true
         });
@@ -68,7 +68,7 @@ internal sealed class SeasonsController : SolaceControllerBase
         var updates = new EarthApiResponse.UpdatesResponse();
         updates.Map["challenges"] = (int)now.ToUnixTimeSeconds();
 
-        return EarthJson(new Dictionary<string, object>
+        return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal)
         {
             ["activeSeasonChallenge"] = selectedChallengeId,
             ["activeChallengeId"] = selectedChallengeId,

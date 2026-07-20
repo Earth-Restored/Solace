@@ -68,7 +68,7 @@ internal sealed class JsonNbtConverter
         public readonly TypeE Type;
         public readonly object Value;
 
-        public JsonNbtTag(TypeE type, object value)
+        protected JsonNbtTag(TypeE type, object value)
         {
             Type = type;
             Value = value;

@@ -55,9 +55,9 @@ internal sealed class CatalogController : SolaceControllerBase
             : [.. products.Where(product => requestedProductIds.Contains(product.Id))];
         string[] invalidProductIds = requestedProductIds.Count == 0
             ? []
-            : [.. requestedProductIds.Except(matchingProducts.Select(product => product.Id))];
+            : [.. requestedProductIds.Except(matchingProducts.Select(product => product.Id), StringComparer.Ordinal)];
 
-        return EarthJson(new Dictionary<string, object>
+        return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal)
         {
             ["products"] = matchingProducts,
             ["productInfos"] = matchingProducts,

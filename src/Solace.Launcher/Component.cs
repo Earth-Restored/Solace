@@ -109,7 +109,7 @@ internal sealed class Component : IAsyncDisposable
 
         public static Builder Executable(FileInfo executableFile, IReadOnlyCollection<string> arguments)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (OperatingSystem.IsWindows())
             {
                 executableFile = new FileInfo(executableFile.FullName + ".exe");
             }

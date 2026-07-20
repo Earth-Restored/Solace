@@ -45,7 +45,9 @@ internal static class Program
     }
 }
 
+#pragma warning disable MA0048 // File name must match type name
 internal static partial class App
+#pragma warning restore MA0048 // File name must match type name
 {
     public static string Address { get; private set; } = "";
 
@@ -406,7 +408,7 @@ internal static partial class App
         var currentPermissionValues = currentClaims
             .Where(c => c.Type == "Permission")
             .Select(c => c.Value)
-            .ToHashSet();
+            .ToHashSet(StringComparer.Ordinal);
 
         foreach (var permission in Permissions.All)
         {
@@ -418,9 +420,9 @@ internal static partial class App
         }
 
         // Remove permissions from the Owner that no longer exist in the code
-        foreach (var claim in currentClaims.Where(c => c.Type == "Permission"))
+        foreach (var claim in currentClaims.Where(static c => c.Type == "Permission"))
         {
-            if (!Permissions.All.Contains(claim.Value))
+            if (!Permissions.All.Contains(claim.Value, StringComparer.Ordinal))
             {
                 await roleManager.RemoveClaimAsync(ownerRole, claim);
             }

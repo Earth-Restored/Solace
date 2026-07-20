@@ -49,7 +49,7 @@ public sealed partial class WritePlayerEvent(
 
         var tokenMatch = ClientUtils.GetAuthRegex().Match(tokenHeader[0] ?? "");
 
-        var tokenString = tokenMatch.Success ? tokenMatch.Groups[1].Value : null;
+        var tokenString = tokenMatch.Success ? tokenMatch.Groups["token"].Value : null;
 
         if (tokenString is null)
         {

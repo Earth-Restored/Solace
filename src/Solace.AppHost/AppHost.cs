@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Solace.AppHost;
 
+#pragma warning disable MA0048 // File name must match type name
 var builder = DistributedApplication.CreateBuilder(args);
+#pragma warning restore MA0048 // File name must match type name
 
 builder.AddDockerComposeEnvironment("solace-prod")
     .WithProperties(env =>

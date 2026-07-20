@@ -35,7 +35,9 @@ internal sealed record Token(
     }
 }
 
+#pragma warning disable MA0048 // File name must match type name
 internal static class TokenTypeExtensions
+#pragma warning restore MA0048 // File name must match type name
 {
     extension(Token.Type)
     {

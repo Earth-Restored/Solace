@@ -90,14 +90,14 @@ internal sealed class TappablesController : SolaceControllerBase
 
         ActiveLocation[] activeLocations = [.. activeLocationTappables, .. activeLocationEncounters];
 
-        return EarthJson(new Dictionary<string, object>()
+        return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal)
         {
             { "killSwitchedTileIds", new List<object>() },
             { "activeLocations", activeLocations }
         });
     }
 
-    [HttpPost("tappables/{tileId}")]
+    [HttpPost("tappables/{tileIdStr}")]
     public async Task<Results<ContentHttpResult, BadRequest>> RedeemTappable(string tileIdStr, CancellationToken cancellationToken)
     {
         if (!TryGetAccountId(out var accountId))
@@ -183,7 +183,7 @@ internal sealed class TappablesController : SolaceControllerBase
         await ActivityLogUtils.AddEntryAsync(_earthDB, results, accountId, new TappableEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
         await rewards.ToRedeemQueryAsync(_earthDB, results, accountId, requestStartedOn, _staticData, cancellationToken);
 
-        return EarthJson(new Dictionary<string, object?>()
+        return EarthJson(new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             { "token", new Token(
                 Token.Type.TAPPABLE,
@@ -217,7 +217,7 @@ internal sealed class TappablesController : SolaceControllerBase
 
         // TODO
 
-        var encounterStates = new Dictionary<string, EncounterState>();
+        var encounterStates = new Dictionary<string, EncounterState>(StringComparer.Ordinal);
 #pragma warning disable IDE0059 // Unnecessary assignment of a value
         foreach (var (encounterId, tileId) in requestedIds)
         {

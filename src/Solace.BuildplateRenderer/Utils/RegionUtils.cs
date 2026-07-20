@@ -246,6 +246,6 @@ internal static partial class RegionUtils
         Debug.Assert(localPosition.Y is >= 0 and < RegionSize, $"{nameof(localPosition)}.Y must be in bounds.");
     }
 
-    [GeneratedRegex(@"^region/r\.-?\d+\.-?\d+\.mca$")]
+    [GeneratedRegex(@"^region/r\.-?\d+\.-?\d+\.mca$", RegexOptions.None, matchTimeoutMilliseconds: 200)]
     private static partial Regex RegionFileRegex();
 }

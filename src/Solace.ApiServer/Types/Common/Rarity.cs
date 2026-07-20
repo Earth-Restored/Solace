@@ -14,7 +14,9 @@ internal enum Rarity
     [JsonStringEnumMemberName("oobe")] OOBE,
 }
 
+#pragma warning disable MA0048 // File name must match type name
 internal static class RarityExtensions
+#pragma warning restore MA0048 // File name must match type name
 {
     extension(Rarity)
     {

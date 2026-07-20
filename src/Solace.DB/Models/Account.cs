@@ -39,7 +39,7 @@ public sealed class Account : IEntityWithId<Guid>
 
     public BoostsEF? Boosts { get; set; }
 
-    public ICollection<BuildplateEF> Buildplates { get; set; } = [];
+    public ICollection<PlayerBuildplateEF> Buildplates { get; set; } = [];
 
     public HotbarEF? Hotbar { get; set; }
 

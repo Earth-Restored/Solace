@@ -42,7 +42,7 @@ public sealed partial class CloudflareTurnstileValidator(
 
         try
         {
-            var parameters = new Dictionary<string, string>
+            var parameters = new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 { "secret", secretKey },
                 { "response", token }

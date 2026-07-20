@@ -4,6 +4,6 @@ namespace Solace.AuthServer.Features.XboxLive;
 
 public static partial class XuidUtils
 {
-    [GeneratedRegex(@"^xuid\((.*)\)$")]
+    [GeneratedRegex(@"^xuid\((?<xuid>.*)\)$", RegexOptions.None, matchTimeoutMilliseconds: 200)]
     public static partial Regex GetXuidRegex();
 }

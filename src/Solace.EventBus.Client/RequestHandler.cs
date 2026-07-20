@@ -111,4 +111,6 @@ public sealed class RequestHandler : IAsyncDisposable
     }
 }
 
+#pragma warning disable MA0048 // File name must match type name
 public readonly record struct RequestHandlerRequest(DateTimeOffset Timestamp, string Type, string Data);
+#pragma warning restore MA0048 // File name must match type name

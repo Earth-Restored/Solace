@@ -558,8 +558,10 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             instanceInfo.Port,
             instanceInfo.Ready,
             instanceInfo.Ready ? BuildplateInstance.ApplicationStatusE.READY : BuildplateInstance.ApplicationStatusE.UNKNOWN,
+#pragma warning disable MA0140 // Both if and else branch have identical code
             instanceInfo.Ready ? BuildplateInstance.ServerStatusE.RUNNING : BuildplateInstance.ServerStatusE.RUNNING,
-            Common.Json.Serialize(new Dictionary<string, object>()
+#pragma warning restore MA0140 // Both if and else branch have identical code
+            Common.Json.Serialize(new Dictionary<string, object>(StringComparer.Ordinal)
             {
                 { "buildplateid", instanceInfo.BuildplateId }
             }),

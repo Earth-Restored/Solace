@@ -13,9 +13,9 @@ internal sealed class SummaryController : SolaceControllerBase
     [HttpGet("summary")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Endpoints cannot be static")]
     public ContentHttpResult Get()
-        => EarthJson(new Dictionary<string, object?>
+        => EarthJson(new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["status"] = "ok",
-            ["updates"] = new Dictionary<string, object>()
+            ["updates"] = new Dictionary<string, object>(StringComparer.Ordinal)
         });
 }

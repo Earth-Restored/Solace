@@ -7,7 +7,7 @@ namespace Solace.AuthServer.Features.PlayfabApi;
 
 public static partial class PlayfabApiUtils
 {
-    [GeneratedRegex("^[0-9A-F]{5}$")]
+    [GeneratedRegex("^[0-9A-F]{5}$", RegexOptions.None, matchTimeoutMilliseconds: 200)]
     public static partial Regex GetTitleIdRegex();
 
     public static Guid MinecoinCurrencyId { get; } = Guid.Parse("ecd19d3c-7635-402c-a185-eb11cb6c6946");

@@ -49,7 +49,7 @@ public sealed partial class GetProfileSettings(
         {
             var gtMatch = GetGtRegex().Match(query.GtParam);
 
-            gt = gtMatch.Success ? gtMatch.Groups[1].Value : null;
+            gt = gtMatch.Success ? gtMatch.Groups["gt"].Value : null;
         }
 
         if (gt != token.Username)
@@ -81,6 +81,6 @@ public sealed partial class GetProfileSettings(
         ]));
     }
 
-    [GeneratedRegex(@"^gt\((.*)\)$")]
+    [GeneratedRegex(@"^gt\((?<gt>.*)\)$", RegexOptions.None, matchTimeoutMilliseconds: 200)]
     private static partial Regex GetGtRegex();
 }

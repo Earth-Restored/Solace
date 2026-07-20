@@ -98,7 +98,7 @@ public static partial class JwtUtils
                 ValidateLifetime = !allowExpired,
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = signingKey,
-            }, out _).Claims.ToDictionary(claim => claim.Type, claim => claim.Value);
+            }, out _).Claims.ToDictionary(claim => claim.Type, claim => claim.Value, StringComparer.Ordinal);
 
             if (!claims.TryGetValue("iat", out var iat) || !claims.TryGetValue("exp", out var exp) || !claims.TryGetValue("data", out var dataJson))
             {
@@ -112,7 +112,7 @@ public static partial class JwtUtils
 
             var expires = DateTimeOffset.FromUnixTimeSeconds(expiresSeconds);
 
-            var data = JsonSerializer.Deserialize<TData>(dataJson);
+            var data = JsonSerializer.Deserialize<TData>(dataJson, jsonOptions);
             if (data is null)
             {
                 return null;

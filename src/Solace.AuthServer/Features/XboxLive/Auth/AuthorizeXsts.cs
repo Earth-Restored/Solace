@@ -71,10 +71,10 @@ public sealed partial class AuthorizeXsts(
                         tokenValidity.IssuedStr,
                         tokenValidity.ExpiresStr,
                         JwtUtils.Sign(token, cryptoSecrets.LiveXapiTokenSecret, tokenValidity),
-                        new()
+                        new(StringComparer.Ordinal)
                         {
                             ["xui"] = [
-                                new()
+                                new(StringComparer.Ordinal)
                                 {
                                     ["xid"] = userToken.Xid.ToString(),
                                     ["uhs"] = userToken.Uhs.ToString(),
@@ -99,10 +99,10 @@ public sealed partial class AuthorizeXsts(
                        tokenValidity.IssuedStr,
                        tokenValidity.ExpiresStr,
                        JwtUtils.Sign(token, cryptoSecrets.LiveXapiTokenSecret, tokenValidity),
-                       new()
+                       new(StringComparer.Ordinal)
                        {
                            ["xui"] = [
-                                new()
+                                new(StringComparer.Ordinal)
                                 {
                                     ["uhs"] = userToken.Uhs.ToString(),
                                 },
@@ -120,10 +120,10 @@ public sealed partial class AuthorizeXsts(
                        tokenValidity.IssuedStr,
                        tokenValidity.ExpiresStr,
                        JwtUtils.Sign(token, cryptoSecrets.LivePlayfabTokenSecret, tokenValidity),
-                       new()
+                       new(StringComparer.Ordinal)
                        {
                            ["xui"] = [
-                                new()
+                                new(StringComparer.Ordinal)
                                 {
                                     ["uhs"] = userToken.Uhs.ToString(),
                                 },

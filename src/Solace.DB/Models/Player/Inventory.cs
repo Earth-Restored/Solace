@@ -2,6 +2,7 @@
 
 namespace Solace.DB.Models.Player;
 
+#pragma warning disable MA0048 // File name must match type name
 public sealed class StackableItemEF
 {
     // ef
@@ -52,3 +53,4 @@ public sealed class NonStackableItemInstanceEF
 
     public Account Account { get; set; } = null!;
 }
+#pragma warning restore MA0048 // File name must match type name

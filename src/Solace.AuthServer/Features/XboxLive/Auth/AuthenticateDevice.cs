@@ -50,9 +50,9 @@ public sealed partial class AuthenticateDevice(
               tokenValidity.IssuedStr,
               tokenValidity.ExpiresStr,
               JwtUtils.Sign<AuthToken>(token, cryptoSecrets.LiveAuthTokenSecret, tokenValidity),
-              new()
+              new(StringComparer.Ordinal)
               {
-                  ["xdi"] = new()
+                  ["xdi"] = new(StringComparer.Ordinal)
                   {
                       ["did"] = token.Did,
                   },

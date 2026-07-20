@@ -19,7 +19,7 @@ public sealed class Playfab
         {
             var shopTabs = ImmutableArray.CreateBuilder<Tab>(2);
             foreach (var file in Directory.EnumerateFiles(Path.Combine(dir, "shop_tabs"))
-                .OrderBy(file => Path.GetFileName(file)))
+                .OrderBy(file => Path.GetFileName(file), StringComparer.Ordinal))
             {
                 if (Path.GetExtension(file) != ".json")
                 {
@@ -78,7 +78,7 @@ public sealed class Playfab
                 "B63A0803D3653643",
                 "3C0BE9326354CBB7",
                 ["mctestdefault"],
-                new Dictionary<string, Item.KeywordValues>() { ["en-US"] = new([]), ["NEUTRAL"] = new([]), ["neutral"] = new([]), },
+                new Dictionary<string, Item.KeywordValues>(StringComparer.Ordinal) { ["en-US"] = new([]), ["NEUTRAL"] = new([]), ["neutral"] = new([]), },
                 [new Item.QueryManifestContent(
                    "f3f2b4fc-f144-4357-9e41-198db3a47957",
                     "/playfab/master_loc_contents.json",
@@ -88,8 +88,8 @@ public sealed class Playfab
                      "resourcebinary"
                 )],
                 [],
-                new Dictionary<string, string>() { ["en-US"] = "Home L1" },
-                new Dictionary<string, string>() { ["en-US"] = "Home L1" }
+                new Dictionary<string, string>(StringComparer.Ordinal) { ["en-US"] = "Home L1" },
+                new Dictionary<string, string>(StringComparer.Ordinal) { ["en-US"] = "Home L1" }
             ));
 
             Items = items.ToFrozenDictionary(item => item.Id);

@@ -40,7 +40,7 @@ public sealed partial class GetPublishedItem(
                 "InvalidParams",
                 1000,
                 "Invalid input parameters",
-                new()
+                new(StringComparer.Ordinal)
                 {
                     ["ItemId"] = ["The ItemId field is required."]
                 }

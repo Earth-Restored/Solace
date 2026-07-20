@@ -13,6 +13,7 @@ using Solace.Common.Utils;
 namespace Solace.BuildplateRenderer;
 
 [StructLayout(LayoutKind.Sequential)]
+#pragma warning disable MA0048 // File name must match type name
 public readonly struct MeshVertex
 {
     public readonly Vector3 Position;
@@ -40,6 +41,7 @@ public sealed class MeshData
     // Grouped by texture
     public Dictionary<string, MeshPrimitive> Primitives { get; } = [];
 }
+#pragma warning restore MA0048 // File name must match type name
 
 public sealed class BuildplateMeshGenerator
 {

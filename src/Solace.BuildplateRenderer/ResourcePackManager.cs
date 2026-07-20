@@ -8,7 +8,7 @@ public sealed class ResourcePackManager
 {
     private readonly ResourcePack[] _packs;
 
-    private readonly ConcurrentDictionary<string, SixLabors.ImageSharp.Image<Rgba32>> _textureCache = new();
+    private readonly ConcurrentDictionary<string, SixLabors.ImageSharp.Image<Rgba32>> _textureCache = new(StringComparer.Ordinal);
 
     private readonly SemaphoreSlim _cacheLock = new(1, 1);
 

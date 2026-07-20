@@ -91,7 +91,7 @@ public static partial class BedrockBlocks
         _isInitialized = true;
 
         AirId = BedrockBlocks.GetId("minecraft:air", []);
-        SortedDictionary<string, object> hashMap = new()
+        SortedDictionary<string, object> hashMap = new(StringComparer.Ordinal)
         {
             { "liquid_depth", 0 }
         };

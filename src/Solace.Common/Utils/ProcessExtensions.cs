@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using Microsoft.Extensions.Logging;
 
 namespace Solace.Common.Utils;
@@ -41,10 +42,9 @@ public static partial class ProcessExtensions
 
             try
             {
-
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (OperatingSystem.IsWindows())
                 {
-                    if (await process.WinTrySendCtrlCAsync(timeout, logger, cancellationToken))
+                    if (await process.WindowsTrySendCtrlCAsync(timeout, logger, cancellationToken))
                     {
                         return true;
                     }
@@ -54,15 +54,19 @@ public static partial class ProcessExtensions
                         return true;
                     }
                 }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                else if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
                 {
                     if (await process.UnixTrySendShutdownSignalAsync(timeout, cancellationToken))
                     {
                         return true;
                     }
                 }
+                else
+                {
+                    throw new NotImplementedException($"OS {Environment.OSVersion} is not supported.");
+                }
             }
-            catch
+            catch (Exception exception) when (exception is not NotImplementedException)
             {
             }
 
@@ -73,10 +77,9 @@ public static partial class ProcessExtensions
             => Task.WhenAny(process.WaitForExitAsync(cancellationToken), Task.Delay(timeout, cancellationToken));
 
         #region Async
-        private async Task<bool> WinTrySendCtrlCAsync(int timeout, ILogger logger, CancellationToken cancellationToken)
+        [SupportedOSPlatform("windows")]
+        private async Task<bool> WindowsTrySendCtrlCAsync(int timeout, ILogger logger, CancellationToken cancellationToken)
         {
-            Debug.Assert(RuntimeInformation.IsOSPlatform(OSPlatform.Windows));
-
             var exePath = Path.GetFullPath("Solace.KillHelper.exe");
 
             var startInfo = new ProcessStartInfo(exePath, [process.Id.ToString(CultureInfo.InvariantCulture)])
@@ -129,7 +132,7 @@ public static partial class ProcessExtensions
 
         private async Task<string> UnixGetSignalAsync(CancellationToken cancellationToken)
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            if (OperatingSystem.IsLinux())
             {
                 try
                 {
@@ -144,7 +147,7 @@ public static partial class ProcessExtensions
                 }
                 catch { }
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            else if (OperatingSystem.IsMacOS())
             {
                 var psi = new ProcessStartInfo
                 {

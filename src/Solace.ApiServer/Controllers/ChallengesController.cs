@@ -42,9 +42,9 @@ internal sealed class ChallengesController : ControllerBase
     {
         // TODO: this is currently just a stub required for the journal to load properly in the client
 
-        var resp = Json.Serialize(new EarthApiResponse(new Dictionary<string, object>()
+        var resp = Json.Serialize(new EarthApiResponse(new Dictionary<string, object>(StringComparer.Ordinal)
         {
-            { "challenges", new Dictionary<string, object>()
+            { "challenges", new Dictionary<string, object>(StringComparer.Ordinal)
             {
                 // client requires two season challenges with these specific persona item reward UUIDs to exist in order for the journal to load, and no one has any idea why
                 { "00000000-0000-0000-0000-000000000001", new ChallengeRecord(
@@ -56,7 +56,7 @@ internal sealed class ChallengesController : ControllerBase
                     "season_1",
                     null,
                     0,
-                    TimeFormatter.FormatTime(U.CurrentTimeMillis() + 24 * 60 * 60 * 1000),
+                    TimeFormatter.FormatTime(DateTimeOffset.UtcNow.AddDays(1)),
                     "Locked",
                     false,
                     0,
@@ -76,7 +76,7 @@ internal sealed class ChallengesController : ControllerBase
                     "season_1",
                     null,
                     0,
-                    TimeFormatter.FormatTime(U.CurrentTimeMillis() + 24 * 60 * 60 * 1000),
+                    TimeFormatter.FormatTime(DateTimeOffset.UtcNow.AddDays(1)),
                     "Locked",
                     false,
                     0,

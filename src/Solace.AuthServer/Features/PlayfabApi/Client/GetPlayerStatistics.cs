@@ -47,7 +47,7 @@ public sealed partial class GetPlayerStatistics(
 
         var tokenMatch = ClientUtils.GetAuthRegex().Match(tokenHeader[0] ?? "");
 
-        var tokenString = tokenMatch.Success ? tokenMatch.Groups[1].Value : null;
+        var tokenString = tokenMatch.Success ? tokenMatch.Groups["token"].Value : null;
 
         if (tokenString is null)
         {
@@ -61,7 +61,7 @@ public sealed partial class GetPlayerStatistics(
         }
 
         // TODO
-        var statistics = new Dictionary<string, long>()
+        var statistics = new Dictionary<string, long>(StringComparer.Ordinal)
         {
             ["BlocksPlaced"] = 0,
             ["BlocksCollected"] = 0,

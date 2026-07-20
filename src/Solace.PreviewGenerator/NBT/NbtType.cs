@@ -86,7 +86,9 @@ public sealed class NbtType
     }
 }
 
+#pragma warning disable MA0048 // File name must match type name
 public static class NbtTypeEnumExtensions
+#pragma warning restore MA0048 // File name must match type name
 {
     extension(NbtType.EnumE @enum)
     {

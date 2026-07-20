@@ -17,6 +17,7 @@ public sealed class BlockModel
 }
 
 // https://minecraft.wiki/w/Model#Block_models
+#pragma warning disable MA0048 // File name must match type name
 public sealed class BlockModelJson
 {
     public string? Parent { get; init; }
@@ -221,3 +222,4 @@ public readonly struct UVCoordinates
 
     public Vector2 Max { get; init; }
 }
+#pragma warning restore MA0048 // File name must match type name

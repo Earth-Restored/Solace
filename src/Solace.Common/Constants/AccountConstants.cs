@@ -22,7 +22,7 @@ public static partial class AccountConstants
 
     public const string UsernameAllowedCharacters = "lowercase letters, numbers, underscore and colon";
 
-    [GeneratedRegex("^[a-z0-9_:]+$", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("^[a-z0-9_:]+$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 200)]
     public static partial Regex GetUsernameRegex();
 
     public static byte[] HashPassword(string password, byte[] salt)

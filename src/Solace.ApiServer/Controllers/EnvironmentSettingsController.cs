@@ -19,7 +19,7 @@ internal sealed class EnvironmentSettingsController : ControllerBase
     public ContentHttpResult Features()
     {
         // todo: make this configurable
-        var resp = new EarthApiResponse(new Dictionary<string, object>
+        var resp = new EarthApiResponse(new Dictionary<string, object>(StringComparer.Ordinal)
         {
             ["workshop_enabled"] = true,
             ["buildplates_enabled"] = true,
@@ -73,7 +73,8 @@ internal sealed class EnvironmentSettingsController : ControllerBase
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Endpoints cannot be static")]
     public ContentHttpResult Settings()
     {
-        var resp = new EarthApiResponse(new Dictionary<string, object>
+        // todo: make this configurable
+        var resp = new EarthApiResponse(new Dictionary<string, object>(StringComparer.Ordinal)
         {
             ["encounterinteractionradius"] = 40,
             ["tappableinteractionradius"] = 70,
@@ -82,8 +83,8 @@ internal sealed class EnvironmentSettingsController : ControllerBase
             ["tile0"] = 10537,
             ["slowrequesttimeout"] = 2500,
             ["cullingradius"] = 50,
-            ["commontapcount"] = 3,
-            ["epictapcount"] = 7,
+            ["commontapcount"] = 3, // doesn't do anything :(
+            ["epictapcount"] = 7, // doesn't do anything :(
             ["speedwarningcooldown"] = 3600,
             ["mintappablesrequiredpertile"] = 22,
             ["targetactivetappables"] = 30,

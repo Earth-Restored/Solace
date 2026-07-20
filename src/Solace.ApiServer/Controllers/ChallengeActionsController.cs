@@ -20,12 +20,12 @@ internal sealed class ChallengeActionsController : SolaceControllerBase
         var updates = new EarthApiResponse.UpdatesResponse();
         updates.Map["challenges"] = (int)now.ToUnixTimeSeconds();
 
-        return EarthJson(new Dictionary<string, object?>
+        return EarthJson(new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["challengeId"] = challengeId,
             ["state"] = "Claimed",
             ["rewards"] = new RedeemRewards().ToApiResponse(),
-            ["updates"] = new Dictionary<string, object>()
+            ["updates"] = new Dictionary<string, object>(StringComparer.Ordinal)
         }, updates);
     }
 
@@ -33,18 +33,18 @@ internal sealed class ChallengeActionsController : SolaceControllerBase
     [HttpPut("timed/generate")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Endpoints cannot be static")]
     public ContentHttpResult GenerateTimedChallenges()
-        => EarthJson(new Dictionary<string, object?>
+        => EarthJson(new Dictionary<string, object?>(StringComparer.Ordinal)
         {
-            ["updates"] = new Dictionary<string, object>()
+            ["updates"] = new Dictionary<string, object>(StringComparer.Ordinal)
         });
 
     [HttpPost("reset")]
     [HttpPut("reset")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Endpoints cannot be static")]
     public ContentHttpResult ResetChallenges()
-        => EarthJson(new Dictionary<string, object?>
+        => EarthJson(new Dictionary<string, object?>(StringComparer.Ordinal)
         {
-            ["updates"] = new Dictionary<string, object>()
+            ["updates"] = new Dictionary<string, object>(StringComparer.Ordinal)
         });
 
     [HttpPost("continuous/{id}/remove")]
@@ -55,10 +55,10 @@ internal sealed class ChallengeActionsController : SolaceControllerBase
         var updates = new EarthApiResponse.UpdatesResponse();
         updates.Map["challenges"] = (int)now.ToUnixTimeSeconds();
 
-        return EarthJson(new Dictionary<string, object?>
+        return EarthJson(new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["challengeId"] = id,
-            ["updates"] = new Dictionary<string, object>()
+            ["updates"] = new Dictionary<string, object>(StringComparer.Ordinal)
         }, updates);
     }
 }

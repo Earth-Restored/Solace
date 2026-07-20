@@ -159,7 +159,7 @@ public sealed partial class Importer : IAsyncDisposable
 
         if (removeFromPlayers)
         {
-            List<BuildplateEF> instances;
+            List<PlayerBuildplateEF> instances;
 
             try
             {
@@ -273,7 +273,7 @@ public sealed partial class Importer : IAsyncDisposable
 
     public async Task<bool> RegeneratePlayerBuildplatePreviewAsync(Guid accountId, Guid buildplateId, CancellationToken cancellationToken = default)
     {
-        BuildplateEF? buildplate;
+        PlayerBuildplateEF? buildplate;
 
         try
         {
@@ -593,7 +593,7 @@ public sealed partial class Importer : IAsyncDisposable
         {
             var lastModified = DateTimeOffset.UtcNow;
 
-            EarthDB.PlayerBuildplates.Add(new BuildplateEF()
+            EarthDB.PlayerBuildplates.Add(new PlayerBuildplateEF()
             {
                 Id = buildplateId,
                 AccountId = accountId,

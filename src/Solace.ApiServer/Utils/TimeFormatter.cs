@@ -26,12 +26,12 @@ public static class TimeFormatter
         var parts = duration.Split(':');
         if (parts.Length < 3)
         {
-            throw new ArgumentException("Invalid duration format");
+            throw new ArgumentException("Invalid duration format", nameof(duration));
         }
 
-        var hours = long.Parse(parts[0]);
-        var minutes = long.Parse(parts[1]);
-        var seconds = long.Parse(parts[2]);
+        var hours = long.Parse(parts[0], CultureInfo.InvariantCulture);
+        var minutes = long.Parse(parts[1], CultureInfo.InvariantCulture);
+        var seconds = long.Parse(parts[2], CultureInfo.InvariantCulture);
 
         return TimeSpan.FromSeconds(hours * 3600 + minutes * 60 + seconds);
     }

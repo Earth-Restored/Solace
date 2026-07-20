@@ -10,6 +10,7 @@ using Solace.ObjectStore.Client;
 using Solace.StaticData;
 using CICIBIEType = Solace.StaticData.Catalog.ItemsCatalogR.Item.BoostEffectType;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace Solace.ApiServer.Utils;
 
@@ -836,7 +837,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                     count = 0;
                 }
 
-                LogBuildplateInstanceAttemptedToRemoveItemFromPlayerThatIsNotInInventory(instanceId, inventoryRemoveItemRequest.ItemId, (inventoryRemoveItemRequest.Count - count).ToString(), inventoryRemoveItemRequest.PlayerId);
+                LogBuildplateInstanceAttemptedToRemoveItemFromPlayerThatIsNotInInventory(instanceId, inventoryRemoveItemRequest.ItemId, (inventoryRemoveItemRequest.Count - count).ToString(CultureInfo.InvariantCulture), inventoryRemoveItemRequest.PlayerId);
                 result = count;
             }
         }

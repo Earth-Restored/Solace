@@ -2,11 +2,13 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
 
+namespace Solace.KillHelper;
+
 internal static partial class Program
 {
     private static int Main(string[] args)
     {
-        Debug.Assert(RuntimeInformation.IsOSPlatform(OSPlatform.Windows));
+        Debug.Assert(OperatingSystem.IsWindows());
 
         var processId = int.Parse(args[0], CultureInfo.InvariantCulture);
 

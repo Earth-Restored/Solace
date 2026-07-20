@@ -4,7 +4,9 @@ using System.Security.Cryptography;
 
 namespace Solace.ApiServer.Authentication;
 
+#pragma warning disable MA0048 // File name must match type name
 internal sealed class ETagMiddleware
+#pragma warning restore MA0048 // File name must match type name
 {
     private readonly RequestDelegate _next;
 
@@ -82,7 +84,9 @@ internal sealed class ETagMiddleware
     }
 }
 
+#pragma warning disable MA0048 // File name must match type name
 internal static class ApplicationBuilderExtensions
+#pragma warning restore MA0048 // File name must match type name
 {
     extension(IApplicationBuilder app)
     {

@@ -5,7 +5,9 @@
 namespace Solace.AdminPanel.Migrations;
 
 /// <inheritdoc />
+#pragma warning disable MA0048 // File name must match type name
 public partial class AddApplicationRoleProperties : Migration
+#pragma warning restore MA0048 // File name must match type name
 {
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)

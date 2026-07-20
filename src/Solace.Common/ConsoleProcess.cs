@@ -157,7 +157,7 @@ public sealed partial class ConsoleProcess : IDisposable
         if (OpenInNewWindow)
         {
 #if KEEP_WINDOW_OPEN
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (OperatingSystem.IsWindows())
             {
                 Process.StartInfo.UseShellExecute = true;
                 Process.StartInfo.FileName = "cmd.exe";
@@ -168,7 +168,7 @@ public sealed partial class ConsoleProcess : IDisposable
                 ApplyTerminalWrapper(args);
             }
 #else
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (!OperatingSystem.IsWindows())
             {
                 ApplyTerminalWrapper(args);
             }
@@ -256,7 +256,7 @@ public sealed partial class ConsoleProcess : IDisposable
     {
         Process.StartInfo.UseShellExecute = true;
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        if (OperatingSystem.IsLinux())
         {
             if (!IsLinuxTerminalAvailable())
             {
@@ -282,7 +282,7 @@ public sealed partial class ConsoleProcess : IDisposable
             Process.StartInfo.Arguments = $"{_cachedLinuxTerminalExecArg} bash -c \"echo $$ > '{_pidFilePath}'; exec {innerCommand}\"";
 #endif
         }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        else if (OperatingSystem.IsMacOS())
         {
             // todo: currently not tested
             var arguments = FormatStandardArguments(args);
@@ -365,7 +365,7 @@ public sealed partial class ConsoleProcess : IDisposable
                     if (File.Exists(pidFile))
                     {
                         var content = await File.ReadAllTextAsync(pidFile, cts.Token);
-                        if (int.TryParse(content.Trim(), out var pid))
+                        if (int.TryParse(content.Trim(), CultureInfo.InvariantCulture, out var pid))
                         {
                             File.Delete(pidFile);
                             return pid;

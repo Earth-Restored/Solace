@@ -132,7 +132,7 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
 #pragma warning restore CA1873 // Avoid potentially expensive logging
 
             // Only include personal data for download
-            var personalData = new Dictionary<string, string>();
+            var personalData = new Dictionary<string, string>(StringComparer.Ordinal);
             var personalDataProps = typeof(ApplicationUser).GetProperties().Where(
                 prop => Attribute.IsDefined(prop, typeof(PersonalDataAttribute)));
             foreach (var p in personalDataProps)

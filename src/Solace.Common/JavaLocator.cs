@@ -11,7 +11,7 @@ public static partial class JavaLocator
         LogLocateBegin(logger);
 
         string? javaHome;
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (OperatingSystem.IsWindows())
         {
             javaHome = Environment.GetEnvironmentVariable("JAVA_HOME", EnvironmentVariableTarget.User);
             if (string.IsNullOrWhiteSpace(javaHome))

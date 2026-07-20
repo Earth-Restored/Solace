@@ -42,7 +42,7 @@ internal sealed class TokensController : SolaceControllerBase
             .Select(token => new KeyValuePair<Guid, Token>(token.TokenId, TokenToApiResponse(token)))
             .ToDictionaryAsync(cancellationToken: cancellationToken);
 
-        return EarthJson(new Dictionary<string, Dictionary<Guid, Token>>()
+        return EarthJson(new Dictionary<string, Dictionary<Guid, Token>>(StringComparer.Ordinal)
         {
             {
                 "tokens",

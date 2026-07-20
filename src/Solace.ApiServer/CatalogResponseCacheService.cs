@@ -317,10 +317,10 @@ internal sealed class CatalogResponseCacheService
                     boostMetadata,
                     journalMetadata,
                     item.JournalEntry is not null && item.JournalEntry.Sound is not null ? new ItemsCatalog.ItemR.ItemData.AudioMetadataR(
-                        new Dictionary<string, string>() { ["journal"] = item.JournalEntry.Sound },
+                        new Dictionary<string, string>(StringComparer.Ordinal) { ["journal"] = item.JournalEntry.Sound },
                         item.JournalEntry.Sound
                     ) : null,
-                    new Dictionary<string, object>()
+                    new Dictionary<string, object>(StringComparer.Ordinal)
                 ),
                 categoryString,
                 Types.Common.Rarity.FromStaticData(item.Rarity),
@@ -330,7 +330,7 @@ internal sealed class CatalogResponseCacheService
                 item.FuelInfo is not null && item.FuelInfo.ReturnItemId is not null ? [new ItemsCatalog.ItemR.ReturnItem(item.FuelInfo.ReturnItemId.Value, 1)] : [],
                 item.ConsumeInfo is not null && item.ConsumeInfo.ReturnItemId is not null ? [new ItemsCatalog.ItemR.ReturnItem(item.ConsumeInfo.ReturnItemId.Value, 1)] : [],
                 item.Experience.Tappable,
-                new Dictionary<string, int?>() { ["tappable"] = item.Experience.Tappable, ["encounter"] = item.Experience.Encounter, ["crafting"] = item.Experience.Crafting },
+                new Dictionary<string, int?>(StringComparer.Ordinal) { ["tappable"] = item.Experience.Tappable, ["encounter"] = item.Experience.Encounter, ["crafting"] = item.Experience.Crafting },
                 false
             );
         })];

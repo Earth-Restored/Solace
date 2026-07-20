@@ -50,7 +50,7 @@ internal sealed class ServerDataZip
         var length = (int)reader.ReadUInt32BE();
         var compressionType = reader.ReadByte();
         var compressed = new byte[length];
-        ms.Read(compressed);
+        ms.ReadExactly(compressed);
         byte[] uncompressed;
         switch (compressionType)
         {

@@ -176,7 +176,7 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
 
     public override async Task HandleRequests(IAsyncStreamReader<ClientMessage> requestStream, IServerStreamWriter<ServerMessage> responseStream, ServerCallContext context)
     {
-        var registeredQueues = new HashSet<string>();
+        var registeredQueues = new HashSet<string>(StringComparer.Ordinal);
         using var connection = new HandlerConnection
         {
             Writer = new SafeStreamWriter<ServerMessage>(responseStream)

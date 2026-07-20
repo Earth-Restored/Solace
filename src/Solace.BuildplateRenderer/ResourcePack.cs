@@ -50,7 +50,7 @@ public sealed class ResourcePack
     public static async Task<ResourcePack> LoadAsync(string packName, DirectoryInfo rootDir, Func<string, BlockModel?>? fallbackResolver = null, CancellationToken cancellationToken = default)
     {
         var blockModelsDir = new DirectoryInfo(Path.Combine(rootDir.FullName, "models", "block"));
-        var blockModelsJson = new Dictionary<string, BlockModelJson>();
+        var blockModelsJson = new Dictionary<string, BlockModelJson>(StringComparer.Ordinal);
 
         if (blockModelsDir.Exists)
         {
@@ -67,7 +67,7 @@ public sealed class ResourcePack
             }
         }
 
-        var blockModels = new Dictionary<string, BlockModel>(blockModelsJson.Count);
+        var blockModels = new Dictionary<string, BlockModel>(blockModelsJson.Count, StringComparer.Ordinal);
         foreach (var (modelName, _) in blockModelsJson)
         {
             ResolveBlockModel(modelName);
@@ -179,7 +179,7 @@ public sealed class ResourcePack
             }
         }
 
-        Dictionary<string, HashSet<string>> variantPropertySchema = new(blockStatesVariant.Count);
+        Dictionary<string, HashSet<string>> variantPropertySchema = new(blockStatesVariant.Count, StringComparer.Ordinal);
         foreach (var item in blockStatesVariant)
         {
             if (variantPropertySchema.ContainsKey(item.Key.BlockId))
@@ -187,7 +187,7 @@ public sealed class ResourcePack
                 continue;
             }
 
-            var propertyNames = new HashSet<string>(item.Key.PropertyCount);
+            var propertyNames = new HashSet<string>(item.Key.PropertyCount, StringComparer.Ordinal);
             foreach (var prop in item.Key.Properties)
             {
                 propertyNames.Add(prop.Key);

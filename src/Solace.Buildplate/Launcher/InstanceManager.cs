@@ -240,13 +240,15 @@ internal sealed partial class InstanceManager
     {
         Debug.Assert(_publisher is not null);
 
-        _publisher.PublishAsync("buildplates", type, message).ContinueWith(task =>
+        _publisher.PublishAsync("buildplates", type, message)
+            .ContinueWith(task =>
             {
                 if (!task.Result)
                 {
                     LogEventBusPublisherError();
                 }
-            });
+            })
+            .Forget();
     }
 
     public async Task ShutdownAsync()

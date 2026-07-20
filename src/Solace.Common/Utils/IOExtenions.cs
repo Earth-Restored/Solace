@@ -40,7 +40,7 @@ public static class IOExtenions
 
             var pattern = "^" + escapedTemplate.Replace(VersionPlaceholder, @"(?<version>\d+(?:\.\d+)+)", StringComparison.Ordinal) + "$";
 
-            var regex = new Regex(pattern, RegexOptions.CultureInvariant);
+            var regex = new Regex(pattern, RegexOptions.CultureInvariant, matchTimeout: TimeSpan.FromMilliseconds(200));
 
             var bestMatch = Directory.EnumerateFiles(directory)
                 .Select(Path.GetFileName)

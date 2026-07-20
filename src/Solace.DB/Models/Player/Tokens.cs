@@ -5,6 +5,7 @@ using Solace.DB.Models.Common;
 
 namespace Solace.DB.Models.Player;
 
+#pragma warning disable MA0048 // File name must match type name
 public abstract class TokenEF
 {
     // for EF
@@ -34,7 +35,7 @@ public abstract class RewardedTokenEF : TokenEF
     }
 
     [SetsRequiredMembers]
-    public RewardedTokenEF(Guid accountId, Rewards rewards)
+    protected RewardedTokenEF(Guid accountId, Rewards rewards)
         : base(accountId)
     {
         Rewards = rewards;
@@ -101,3 +102,4 @@ public sealed class DailyLoginTokenEF : RewardedTokenEF
     [NotMapped, JsonIgnore, MemberNotNullWhen(true, nameof(ClaimedOn))]
     public bool Claimed => ClaimedOn is not null;
 }
+#pragma warning restore MA0048 // File name must match type name

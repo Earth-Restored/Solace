@@ -155,6 +155,24 @@ dotnet_diagnostic.CA1034.severity = suggestion
 # CA1062: Validate arguments of public methods
 dotnet_diagnostic.CA1062.severity = suggestion
 
+# MA0051: Method is too long
+dotnet_diagnostic.MA0051.severity = none
+
+# MA0004: Use Task.ConfigureAwait
+dotnet_diagnostic.MA0004.severity = none
+
+# MA0006: Use String.Equals instead of equality operator
+dotnet_diagnostic.MA0006.severity = none
+
+# MA0026: Fix TODO comment
+dotnet_diagnostic.MA0026.severity = none
+
+# MA0016: Prefer using collection abstraction instead of implementation
+dotnet_diagnostic.MA0016.severity = none
+
+# MA0025: Implement the functionality instead of throwing NotImplementedException
+dotnet_diagnostic.MA0025.severity = none
+
 [*.{cs,vb}]
 #### Naming styles ####
 

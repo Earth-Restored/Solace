@@ -1,8 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.InteropServices;
 
 namespace Solace.Common.Asp.Auth;
 
+[StructLayout(LayoutKind.Auto)]
 public readonly struct ValidityDatePair
 {
     [StringSyntax(StringSyntaxAttribute.DateTimeFormat)]

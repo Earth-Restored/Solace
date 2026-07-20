@@ -85,10 +85,10 @@ public sealed class CatalogService
             item.FriendlyId is null ? [] : [new("FriendlyId", item.FriendlyId.Value)],
             item.FriendlyId,
             ((IEnumerable<KeyValuePair<string, string>>)[new("NEUTRAL", item.Title), .. item.TitleTranslations, new("neutral", item.Title)])
-                .ToDictionary(),
+                .ToDictionary(StringComparer.Ordinal),
             ((IEnumerable<KeyValuePair<string, string>>)[new("NEUTRAL", item.Description), .. item.DescriptionTranslations, new("neutral", item.Description)])
-                .ToDictionary(),
-            item.Keywords.ToDictionary(item => item.Key, item => new CatalogItem.KeywordValues(item.Value.Values)),
+                .ToDictionary(StringComparer.Ordinal),
+            item.Keywords.ToDictionary(item => item.Key, item => new CatalogItem.KeywordValues(item.Value.Values), StringComparer.Ordinal),
             item.Data switch
             {
                 StaticData.Playfab.Item.BuildplateData => "BuildplateOffer",
@@ -192,9 +192,9 @@ public sealed class CatalogService
                 "bundle",
                 [new("FriendlyId", Guid.Parse("53bee6fe-c9d9-43c9-b3af-4c5438fba4b7"))],
                 null,
-                new() { ["en-US"] = "Bold Rabbit Feet", ["NEUTRAL"] = "Bold Rabbit Feet", ["neutral"] = "Bold Rabbit Feet", },
-                new() { ["en-US"] = "§", ["NEUTRAL"] = "§", ["neutral"] = "§", },
-                new() { ["en-US"] = new(["Animal"]), ["NEUTRAL"] = new(["Animal"]), ["neutral"] = new(["Animal"]), },
+                new(StringComparer.Ordinal) { ["en-US"] = "Bold Rabbit Feet", ["NEUTRAL"] = "Bold Rabbit Feet", ["neutral"] = "Bold Rabbit Feet", },
+                new(StringComparer.Ordinal) { ["en-US"] = "§", ["NEUTRAL"] = "§", ["neutral"] = "§", },
+                new(StringComparer.Ordinal) { ["en-US"] = new(["Animal"]), ["NEUTRAL"] = new(["Animal"]), ["neutral"] = new(["Animal"]), },
                 "PersonaDurable",
                 new("301F442C3B63DC20", "master_player_account", "master_player_account"),
                 new("301F442C3B63DC20", "master_player_account", "master_player_account"),
@@ -204,7 +204,7 @@ public sealed class CatalogService
                 new(2020, 12, 7, 22, 46, 33, 066, DateTimeKind.Utc),
                 new(2023, 8, 10, 14, 11, 19, 81, DateTimeKind.Utc),
                 null,
-                [new Dictionary<string,object>() {
+                [new Dictionary<string,object>(StringComparer.Ordinal) {
                     ["Id"] = "f4a2cf48-45c1-4fda-86d0-9d24c069f0a9",
                     ["Url"] = "https://xforgeassets001.xboxlive.com/pf-title-b63a0803d3653643-20ca2/f4a2cf48-45c1-4fda-86d0-9d24c069f0a9/primary.zip",
                     ["MaxClientVersion"] = "65535.65535.65535",

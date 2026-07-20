@@ -5,8 +5,9 @@ using System.Runtime.CompilerServices;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.HttpOverrides;
+
+namespace Solace.Locator;
 
 internal static class Program
 {
@@ -31,7 +32,9 @@ internal static class Program
     }
 }
 
+#pragma warning disable MA0048 // File name must match type name
 internal sealed partial class App
+#pragma warning restore MA0048 // File name must match type name
 {
     [MemberNotNullWhen(false, nameof(ApiServerEndPoint))]
     private static bool ApiServerAuto { get; set; }
@@ -96,18 +99,18 @@ internal sealed partial class App
             apiServerEndPoint = apiServerEndPoint.TrimEnd('/');
             if (!apiServerEndPoint.StartsWith("http://", StringComparison.Ordinal) && !apiServerEndPoint.StartsWith("https://", StringComparison.Ordinal))
             {
-                Logs.LogUriMissingProtocol(programLogger, "api-server", apiServerEndPoint);
+                LogUriMissingProtocol(programLogger, "api-server", apiServerEndPoint);
                 return;
             }
 
             ApiServerEndPoint = apiServerEndPoint;
             ApiServerAuto = false;
-            Logs.LogLocatorManualMode(programLogger, "api-server", ApiServerEndPoint);
+            LogLocatorManualMode(programLogger, "api-server", ApiServerEndPoint);
         }
         else
         {
             ApiServerAuto = true;
-            Logs.LogLocatorAutoMode(programLogger, "api-server", ApiServerPort);
+            LogLocatorAutoMode(programLogger, "api-server", ApiServerPort);
         }
 
         var cdnEndPoint = builder.Configuration["PublicEndpoints:Cdn"];
@@ -116,18 +119,18 @@ internal sealed partial class App
             cdnEndPoint = cdnEndPoint.TrimEnd('/');
             if (!cdnEndPoint.StartsWith("http://", StringComparison.Ordinal) && !cdnEndPoint.StartsWith("https://", StringComparison.Ordinal))
             {
-                Logs.LogUriMissingProtocol(programLogger, "cdn", cdnEndPoint);
+                LogUriMissingProtocol(programLogger, "cdn", cdnEndPoint);
                 return;
             }
 
             CdnEndPoint = cdnEndPoint;
             CdnAuto = false;
-            Logs.LogLocatorManualMode(programLogger, "cdn", CdnEndPoint);
+            LogLocatorManualMode(programLogger, "cdn", CdnEndPoint);
         }
         else
         {
             CdnAuto = true;
-            Logs.LogLocatorAutoMode(programLogger, "cdn", CdnPort);
+            LogLocatorAutoMode(programLogger, "cdn", CdnPort);
         }
 
         static EarthApiResponse LocatorHandler(HttpContext context, ILogger<App> logger)
@@ -136,13 +139,13 @@ internal sealed partial class App
             var apiServerUri = ApiServerAuto ? $"{protocol}{context.Request.Host.Host}:{ApiServerPort}" : ApiServerEndPoint;
             var cdnUri = CdnAuto ? $"{protocol}{context.Request.Host.Host}:{CdnPort}" : CdnEndPoint;
 
-            Logs.LogLocatorIssued(logger, context.Connection.RemoteIpAddress, apiServerUri, cdnUri);
+            LogLocatorIssued(logger, context.Connection.RemoteIpAddress, apiServerUri, cdnUri);
 
-            return new EarthApiResponse(new LocatorResponse(new()
+            return new EarthApiResponse(new LocatorResponse(new(StringComparer.Ordinal)
             {
                 ["production"] = new LocatorResponse.Environment(apiServerUri, cdnUri, "20CA2"),
             },
-            new()
+            new(StringComparer.Ordinal)
             {
                 ["2020.1217.02"] = ["production"],
                 ["2020.1210.01"] = ["production"],
@@ -156,10 +159,7 @@ internal sealed partial class App
 
         app.Run();
     }
-}
-
-internal static partial class Logs
-{
+    
     [LoggerMessage(Level = LogLevel.Critical, Message = "{Component} public endpoint ({Uri}) is missing protocol, must start with http:// or https://")]
     public static partial void LogUriMissingProtocol(ILogger logger, string Component, string Uri);
 
@@ -171,22 +171,4 @@ internal static partial class Logs
 
     [LoggerMessage(Level = LogLevel.Information, Message = "{RemoteIp} has issued locator, replying with api: {ApiServerUri}, cdn: {CdnUri}")]
     public static partial void LogLocatorIssued(ILogger logger, IPAddress? RemoteIp, string ApiServerUri, string CdnUri);
-}
-
-internal sealed record LocatorResponse(
-    Dictionary<string, LocatorResponse.Environment> ServiceEnvironments,
-    Dictionary<string, List<string>> SupportedEnvironments
-)
-{
-    internal sealed record Environment(string ServiceUri, string CdnUri, string PlayfabTitleId);
-}
-
-internal sealed record EarthApiResponse(LocatorResponse Result, object Updates);
-
-[JsonSerializable(typeof(EarthApiResponse))]
-[JsonSerializable(typeof(LocatorResponse))]
-[JsonSerializable(typeof(Dictionary<string, LocatorResponse.Environment>))]
-[JsonSerializable(typeof(Dictionary<string, List<string>>))]
-internal sealed partial class AppJsonSerializerContext : JsonSerializerContext
-{
 }

@@ -9,7 +9,7 @@ namespace Solace.TileRenderer;
 internal sealed partial class VectorTileRenderer
 {
     // Map layers with their JSON string versions
-    private static readonly FrozenDictionary<string, RenderLayer> layerStringMapping = new Dictionary<string, RenderLayer>()
+    private static readonly FrozenDictionary<string, RenderLayer> layerStringMapping = new Dictionary<string, RenderLayer>(StringComparer.Ordinal)
     {
         { "RESTRICTED_AREA", RenderLayer.LAYER_RESTRICTED_AREA },
         { "HIGHWAY_MAJOR", RenderLayer.LAYER_HIGHWAY_MAJOR },

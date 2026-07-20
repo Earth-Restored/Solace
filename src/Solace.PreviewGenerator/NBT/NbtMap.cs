@@ -26,7 +26,7 @@ public sealed class NbtMap// : IDictionary<string, object>
 
     private NbtMap()
     {
-        _map = new Dictionary<string, object>();
+        _map = new Dictionary<string, object>(StringComparer.Ordinal);
     }
 
     internal NbtMap(IReadOnlyDictionary<string, object> map)
@@ -280,7 +280,7 @@ public sealed class NbtMap// : IDictionary<string, object>
 
         try
         {
-            foreach (var e in EntrySet())
+            foreach (var e in _map)
             {
                 var key = e.Key;
                 var value = e.Value;
@@ -316,9 +316,14 @@ public sealed class NbtMap// : IDictionary<string, object>
         }
 
         var h = 0;
-        foreach (var stringobjectEntry in _map)
+        foreach (var entry in _map)
         {
-            h += stringobjectEntry.GetHashCode();
+            int keyHash = entry.Key?.GetHashCode(StringComparison.Ordinal) ?? 0;
+            int valueHash = ObjectUtils.GetDeepHashCode(entry.Value);
+
+            int entryHash = HashCode.Combine(keyHash, valueHash);
+
+            h += entryHash;
         }
 
         hashCode = h;

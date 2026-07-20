@@ -97,7 +97,7 @@ internal sealed partial class SigninController : SolaceControllerBase
             userIdString = signinRequest.SessionTicket.AsSpan(0, dashIndex);
             // jwt = signinRequest.SessionTicket.AsSpan(dashIndex + 1);
 
-            if (!GetUserIdRegex().IsMatch(userIdString))
+            if (!GetPlayfabUserIdRegex().IsMatch(userIdString))
             {
                 LogBadSignInRequestWarning($"User id not match ({userIdString})");
                 return TypedResults.BadRequest();
@@ -111,7 +111,7 @@ internal sealed partial class SigninController : SolaceControllerBase
         // TODO: make the time configurable
         var authToken = _protector.Protect(userId.ToString(), TimeSpan.FromHours(1));
 
-        return EarthJson(new Dictionary<string, object?>()
+        return EarthJson(new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["authenticationToken"] = authToken,
             ["basePath"] = "/1",
@@ -124,8 +124,8 @@ internal sealed partial class SigninController : SolaceControllerBase
         });
     }
 
-    [GeneratedRegex("^[0-9A-F]{15,16}$")]
-    private static partial Regex GetUserIdRegex();
+    [GeneratedRegex("^[0-9A-F]{15,16}$", RegexOptions.None, matchTimeoutMilliseconds: 200)]
+    private static partial Regex GetPlayfabUserIdRegex();
 
     internal sealed record SigninRequest(
         double Latitude,

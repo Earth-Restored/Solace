@@ -13,6 +13,7 @@ internal sealed record Tappable(
     TappableItem[] Items
 );
 
+#pragma warning disable MA0048 // File name must match type name
 internal enum TappableRarity
 {
     COMMON,
@@ -43,3 +44,4 @@ internal static class TappableRarityExtensions
             };
     }
 }
+#pragma warning restore MA0048 // File name must match type name

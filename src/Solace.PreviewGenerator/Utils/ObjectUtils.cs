@@ -17,8 +17,8 @@ public static class ObjectUtils
             return false;
         }
 
-        Type type1 = obj1.GetType();
-        Type type2 = obj2.GetType();
+        var type1 = obj1.GetType();
+        var type2 = obj2.GetType();
 
         if (type1 != type2)
         {
@@ -58,5 +58,41 @@ public static class ObjectUtils
         }
 
         return true;
+    }
+
+    public static int GetDeepHashCode(object? obj)
+    {
+        if (obj is null)
+        {
+            return 0;
+        }
+
+        var type = obj.GetType();
+
+        if (type.IsPrimitive || obj is string)
+        {
+            return obj.GetHashCode();
+        }
+
+        if (obj is IEnumerable enumerable)
+        {
+            var hash = new HashCode();
+            foreach (var item in enumerable)
+            {
+                hash.Add(GetDeepHashCode(item));
+            }
+
+            return hash.ToHashCode();
+        }
+
+        var propertyHash = new HashCode();
+        var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        foreach (var property in properties)
+        {
+            var val = property.GetValue(obj);
+            propertyHash.Add(GetDeepHashCode(val));
+        }
+
+        return propertyHash.ToHashCode();
     }
 }

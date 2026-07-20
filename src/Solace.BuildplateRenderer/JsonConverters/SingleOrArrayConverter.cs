@@ -8,17 +8,29 @@ namespace Solace.BuildplateRenderer.JsonConverters;
 // Posted by dbc, modified by community. See post 'Timeline' for change history
 // License - CC BY-SA 4.0
 
-public class SingleOrArrayConverter<TItem> : SingleOrArrayConverter<List<TItem>, TItem>
+public sealed class SingleOrArrayConverter<TItem> : SingleOrArrayConverter<List<TItem>, TItem>
 {
-    public SingleOrArrayConverter() : this(true) { }
-    public SingleOrArrayConverter(bool canWrite) : base(canWrite) { }
+    public SingleOrArrayConverter()
+        : this(true)
+    {
+    }
+
+    public SingleOrArrayConverter(bool canWrite)
+        : base(canWrite)
+    {
+    }
 }
 
-public class SingleOrArrayConverterFactory : JsonConverterFactory
+#pragma warning disable MA0048 // File name must match type name
+public sealed class SingleOrArrayConverterFactory : JsonConverterFactory
+#pragma warning restore MA0048 // File name must match type name
 {
     public bool CanWrite { get; }
 
-    public SingleOrArrayConverterFactory() : this(true) { }
+    public SingleOrArrayConverterFactory()
+        : this(true)
+    {
+    }
 
     public SingleOrArrayConverterFactory(bool canWrite)
     {

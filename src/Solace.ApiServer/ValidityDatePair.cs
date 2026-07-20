@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.InteropServices;
 
 namespace Solace.ApiServer;
 
+[StructLayout(LayoutKind.Auto)]
 internal readonly struct ValidityDatePair
 {
     [StringSyntax(StringSyntaxAttribute.DateTimeFormat)]

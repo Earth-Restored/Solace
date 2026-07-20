@@ -42,7 +42,9 @@ internal static class Program
     }
 }
 
+#pragma warning disable MA0048 // File name must match type name
 internal sealed partial class Program2
+#pragma warning restore MA0048 // File name must match type name
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static async Task<int> Run(string[] args)

@@ -34,7 +34,7 @@ internal sealed class GenoaTexturesController : ControllerBase
 
         var fullPath = Path.GetFullPath(Path.Combine(baseDirectory, name + ".png"));
 
-        if (!fullPath.StartsWith(baseDirectory, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+        if (!fullPath.StartsWith(baseDirectory, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
         {
             return TypedResults.NotFound();
         }

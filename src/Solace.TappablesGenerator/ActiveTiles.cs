@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Solace.Common.Utils;
 using Solace.EventBus.Client;
 
 namespace Solace.TappablesGenerator;
@@ -131,7 +132,8 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
 
         Debug.Assert(_activeTileListener is not null);
 
-        _activeTileListener.Inactive(entriesToRemove.Select(item => item.Value));
+        _activeTileListener.Inactive(entriesToRemove.Select(item => item.Value))
+            .Forget();
     }
 
     internal sealed record ActiveTile(

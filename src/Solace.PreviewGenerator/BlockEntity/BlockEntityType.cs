@@ -49,7 +49,9 @@ public enum BlockEntityType : int
 #pragma warning restore CA1707 // Identifiers should not contain underscores
 }
 
-public static class BlockEntityTypeE
+#pragma warning disable MA0048 // File name must match type name
+public static class BlockEntityTypeExtensions
+#pragma warning restore MA0048 // File name must match type name
 {
     private static readonly BlockEntityType[] VALUES = Enum.GetValues<BlockEntityType>();
 

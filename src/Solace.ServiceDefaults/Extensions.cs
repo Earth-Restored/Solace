@@ -14,7 +14,9 @@ namespace Microsoft.Extensions.Hosting;
 // Adds common Aspire services: service discovery, resilience, health checks, and OpenTelemetry.
 // This project should be referenced by each service project in your solution.
 // To learn more about using this project, see https://aka.ms/aspire/service-defaults
+#pragma warning disable MA0048 // File name must match type name
 public static class AspireExtensions
+#pragma warning restore MA0048 // File name must match type name
 {
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
