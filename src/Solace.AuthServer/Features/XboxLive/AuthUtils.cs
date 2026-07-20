@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Http.HttpResults;
-using Solace.ApiServer.Utils;
 using Solace.AuthServer.Features.Common;
 using Solace.Common;
+using Solace.Common.Asp;
+using Solace.Common.Asp.Auth;
 
 namespace Solace.AuthServer.Features.XboxLive;
 

@@ -4,6 +4,7 @@ using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Solace.Common.Asp;
 
 namespace Solace.AuthServer.Features.XboxLive.Privacy;
 

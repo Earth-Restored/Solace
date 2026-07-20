@@ -4,7 +4,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BitcoderCZ.Utils" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Solace.DB/Solace.DB.csproj" />
   </ItemGroup>
 
 </Project>

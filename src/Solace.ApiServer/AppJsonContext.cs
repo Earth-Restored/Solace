@@ -1,21 +1,10 @@
 using System.Text.Json.Serialization;
 using Solace.ApiServer.Controllers;
-using Solace.ApiServer.Controllers.EarthApi;
 using Solace.ApiServer.Types.Common;
 
 namespace Solace.ApiServer;
 
 [JsonSourceGenerationOptions(WriteIndented = false, PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
-[JsonSerializable(typeof(Controllers.PlayfabApi.AuthenticationController.GetEntityTokenRequest))]
-[JsonSerializable(typeof(Controllers.PlayfabApi.EventController.WriteTelemetryEventsRequest))]
-[JsonSerializable(typeof(Controllers.PlayfabApi.ClientController.GetUserPublisherDataRequest))]
-[JsonSerializable(typeof(Controllers.PlayfabApi.ClientController.GetPlayerStatisticsRequest))]
-[JsonSerializable(typeof(Controllers.PlayfabApi.ObjectController.GetObjectsRequest))]
-[JsonSerializable(typeof(Controllers.PlayfabApi.ObjectController.SetObjectsRequest))]
-[JsonSerializable(typeof(Controllers.PlayfabApi.LoginController.LoginWithCustomIDRequest))]
-[JsonSerializable(typeof(Controllers.PlayfabApi.LoginController.LoginWithXboxRequest))]
-[JsonSerializable(typeof(Controllers.PlayfabApi.CatalogController.CatalogSearchRequest))]
-[JsonSerializable(typeof(Controllers.PlayfabApi.CatalogController.GetPublishedItemRequest))]
 [JsonSerializable(typeof(SigninController.SigninRequest))]
 [JsonSerializable(typeof(WorkshopController.StartRequestCrafting))]
 [JsonSerializable(typeof(WorkshopController.StartRequestSmelting))]

@@ -10,8 +10,9 @@ using System.Xml.Serialization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Solace.ApiServer.Utils;
 using Solace.AuthServer.Utils;
+using Solace.Common.Asp;
+using Solace.Common.Asp.Auth;
 
 namespace Solace.AuthServer.Features.Live.Login;
 

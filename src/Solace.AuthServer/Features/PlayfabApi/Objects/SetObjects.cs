@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Solace.Common.Asp;
 using Solace.Common.Asp.Json;
 
 namespace Solace.AuthServer.Features.PlayfabApi.Objects;

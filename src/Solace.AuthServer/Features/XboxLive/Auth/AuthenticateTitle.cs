@@ -2,8 +2,9 @@ using System.Text.Json.Serialization;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.Extensions.Options;
-using Solace.ApiServer.Utils;
 using Solace.AuthServer.Utils;
+using Solace.Common.Asp;
+using Solace.Common.Asp.Auth;
 using Solace.Common.Asp.Json;
 
 namespace Solace.AuthServer.Features.XboxLive.Auth;
@@ -40,7 +41,7 @@ public sealed partial class AuthenticateTitle(
     );
 
     private async ValueTask<Response> HandleAsync(
-       Command command,
+       Command _,
        CancellationToken cancellationToken)
     {
         var tokenValidity = ValidityDatePair.Create(authSettingsOption.Value.TokenValidityMinutes);

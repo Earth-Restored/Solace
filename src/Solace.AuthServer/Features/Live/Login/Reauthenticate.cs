@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Solace.ApiServer.Utils;
+using Solace.Common.Asp;
+using Solace.Common.Asp.Auth;
 using Solace.DB;
 
 namespace Solace.AuthServer.Features.Live.Login;

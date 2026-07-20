@@ -3,8 +3,8 @@ using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
-using Solace.ApiServer.Utils;
-using Solace.AuthServer.Utils;
+using Solace.Common.Asp;
+using Solace.Common.Asp.Auth;
 using Solace.Common.Asp.Json;
 
 namespace Solace.AuthServer.Features.PlayfabApi.Authentication;
