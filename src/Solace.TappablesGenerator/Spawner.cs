@@ -46,7 +46,7 @@ internal sealed partial class Spawner : IAsyncDisposable
         var nextTime = DateTimeOffset.UtcNow + SPAWN_INTERVAL;
         while (true)
         {
-            await Task.Delay(Math.Max(0, (int)(nextTime - DateTimeOffset.UtcNow).TotalMilliseconds));
+            await Task.Delay(int.Max(0, (int)(nextTime - DateTimeOffset.UtcNow).TotalMilliseconds));
 
             nextTime += SPAWN_INTERVAL;
 
@@ -139,7 +139,7 @@ internal sealed partial class Spawner : IAsyncDisposable
     private void DoSpawnCyclesForTile(int tileX, int tileY, DateTimeOffset spawnCycleTime, int spawnCycleIndex, List<Tappable> tappables, List<Encounter> encounters)
     {
         var lastSpawnCycle = _lastSpawnCycleForTile.GetValueOrDefault((tileX << 16) + tileY);
-        var cyclesToSpawn = Math.Min(spawnCycleIndex - lastSpawnCycle, _maxTappableLifetimeIntervals);
+        var cyclesToSpawn = int.Min(spawnCycleIndex - lastSpawnCycle, _maxTappableLifetimeIntervals);
         for (var index = 0; index < cyclesToSpawn; index++)
         {
             SpawnTappablesForTile(tileX, tileY, spawnCycleTime - SPAWN_INTERVAL * (cyclesToSpawn - index - 1), tappables, encounters);

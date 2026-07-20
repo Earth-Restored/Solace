@@ -342,7 +342,7 @@
 StringComparison.OrdinalIgnoreCase))
         ?? Array.Empty<PlayerBuildplate>();
 
-    private int TotalPlayerPages => Math.Max(1, (int)Math.Ceiling((double)FilteredPlayerBuildplates.Count() /
+    private int TotalPlayerPages => int.Max(1, (int)double.Ceiling((double)FilteredPlayerBuildplates.Count() /
 _playerPageSize));
 
     private IEnumerable<PlayerBuildplate> PaginatedPlayerBuildplates =>
@@ -368,7 +368,7 @@ _playerPageSize));
     private int _pageSize = 6;
     private int _totalCount = 0;
     private bool _isLoadingTemplates = false;
-    private int TotalPages => Math.Max(1, (int)Math.Ceiling((double)_totalCount / _pageSize));
+    private int TotalPages => int.Max(1, (int)double.Ceiling((double)_totalCount / _pageSize));
 
     // State for Deletion
     private bool _showDeleteModal = false;

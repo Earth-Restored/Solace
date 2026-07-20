@@ -93,7 +93,7 @@ internal sealed class CatalogController : SolaceControllerBase
                 [.. miniFig.BoostMetadata.Effects.Select(effect => new Effect(
                     effect.Type,
                     effect.Duration,
-                    effect.Value is null ? null : (int)Math.Round(effect.Value.Value),
+                    effect.Value is null ? null : (int)double.Round(effect.Value.Value),
                     effect.Unit,
                     effect.Targets,
                     effect.Items,

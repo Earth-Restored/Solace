@@ -110,7 +110,7 @@
                         <button class="page-link" @onclick="() => ChangePage(_currentPage - 1)">Previous</button>
                     </li>
 
-                    @for (int i = Math.Max(1, _currentPage - 2); i <= Math.Min(_totalPages, _currentPage + 2); i++)
+                    @for (int i = int.Max(1, _currentPage - 2); i <= int.Min(_totalPages, _currentPage + 2); i++)
                     {
                         var pageNumber = i;
                         <li class="page-item @(_currentPage == pageNumber ? "active" : "")">
@@ -330,7 +330,7 @@
         }
 
         _totalUsers = await query.CountAsync();
-        _totalPages = (int)Math.Ceiling(_totalUsers / (double)_pageSize);
+        _totalPages = (int)double.Ceiling(_totalUsers / (double)_pageSize);
 
         // Failsafe if deletion causes current page to be empty
         if (_currentPage > _totalPages && _totalPages > 0)

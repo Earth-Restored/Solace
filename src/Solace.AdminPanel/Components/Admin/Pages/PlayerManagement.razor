@@ -317,11 +317,11 @@
         {
             int removeAmount = -difference;
 
-            int takeFromPurchased = Math.Min(player.Profile.Rubies.Purchased, removeAmount);
+            int takeFromPurchased = int.Min(player.Profile.Rubies.Purchased, removeAmount);
             player.Profile.Rubies.Purchased -= takeFromPurchased;
             removeAmount -= takeFromPurchased;
 
-            player.Profile.Rubies.Earned = Math.Max(0, player.Profile.Rubies.Earned - removeAmount);
+            player.Profile.Rubies.Earned = int.Max(0, player.Profile.Rubies.Earned - removeAmount);
         }
 
         // todo: triger proper level up

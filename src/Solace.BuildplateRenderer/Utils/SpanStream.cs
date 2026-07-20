@@ -100,7 +100,7 @@ internal sealed class SpanStream : Stream
     {
         EnsureNotClosed();
 
-        var n = Math.Min(_length - _position, buffer.Length);
+        var n = int.Min(_length - _position, buffer.Length);
         if (n <= 0)
         {
             return 0;

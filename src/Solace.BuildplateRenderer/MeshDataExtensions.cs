@@ -92,8 +92,8 @@ public static class MeshDataExtensions
 
     private static async Task<Vector4?> GetColorFromTexture(string path, Biome biome, ResourcePackManager resourcePackManager)
     {
-        var temp = Math.Clamp(biome.Temperature, 0f, 1f);
-        var humidity = Math.Clamp(biome.Downfall, 0f, 1f) * temp;
+        var temp = float.Clamp(biome.Temperature, 0f, 1f);
+        var humidity = float.Clamp(biome.Downfall, 0f, 1f) * temp;
 
         var u = (int)((1.0f - temp) * 255.0f);
         var v = (int)((1.0f - humidity) * 255.0f);

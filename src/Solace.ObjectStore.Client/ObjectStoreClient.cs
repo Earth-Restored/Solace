@@ -231,7 +231,7 @@ public sealed class ObjectStoreClient : IAsyncDisposable
                 }
             }
 
-            var bytesToRead = Math.Min(buffer.Length, _currentChunk.Length);
+            var bytesToRead = int.Min(buffer.Length, _currentChunk.Length);
             _currentChunk.Span[..bytesToRead].CopyTo(buffer.Span);
             _currentChunk = _currentChunk[bytesToRead..];
 

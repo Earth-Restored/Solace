@@ -310,7 +310,7 @@
     private int _currentPage = 1;
     private int _pageSize = 8;
     private int _totalItems = 0;
-    private int TotalPages => Math.Max(1, (int)Math.Ceiling((double)_totalItems / _pageSize));
+    private int TotalPages => int.Max(1, (int)double.Ceiling((double)_totalItems / _pageSize));
 
     // Modal State
     private bool _showDeleteModal = false;

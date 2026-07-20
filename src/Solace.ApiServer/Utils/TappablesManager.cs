@@ -86,7 +86,7 @@ internal sealed partial class TappablesManager : IAsyncDisposable
     {
         var tileX = XToTile(LonToX(lon));
         var tileY = YToTile(LatToY(lat));
-        var tileRadius = (int)Math.Ceiling(radius);
+        var tileRadius = (int)double.Ceiling(radius);
         var sideLength = (tileRadius * 2) + 1;
 
         return Enumerable.Range(tileX - tileRadius, sideLength).Select(x => Enumerable.Range(tileY - tileRadius, sideLength).Select(y => (x, y))).SelectMany(stream => stream);

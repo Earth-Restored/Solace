@@ -109,8 +109,8 @@ internal readonly struct TileGeometryTransform
         (double x1, double y1) = WebMercatorHandler.FromMetersToPixels(WebMercatorHandler.LatLonToMeters(env.MinY, env.MinX), ZoomResolution);
         (double x2, double y2) = WebMercatorHandler.FromMetersToPixels(WebMercatorHandler.LatLonToMeters(env.MaxY, env.MaxX), ZoomResolution);
 
-        var dx = Math.Abs(x2 - x1);
-        var dy = Math.Abs(y2 - y1);
+        var dx = double.Abs(x2 - x1);
+        var dy = double.Abs(y2 - y1);
 
         // Both must be greater than 0, and at least one of them needs to be larger than 1. 
         return dx > 0 && dy > 0 && (dx > 1 || dy > 1);

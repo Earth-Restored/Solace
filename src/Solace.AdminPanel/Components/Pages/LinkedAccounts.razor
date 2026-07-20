@@ -818,7 +818,7 @@
         => PlayerBuildplates?.Where(bp => string.IsNullOrWhiteSpace(_buildplateSearchTerm) || bp.Name.Contains(_buildplateSearchTerm, StringComparison.OrdinalIgnoreCase))
         ?? Enumerable.Empty<PlayerBuildplate>();
 
-    private int TotalPages => Math.Max(1, (int)Math.Ceiling((double)FilteredBuildplates.Count() / _buildplatePageSize));
+    private int TotalPages => int.Max(1, (int)double.Ceiling((double)FilteredBuildplates.Count() / _buildplatePageSize));
 
     private IEnumerable<PlayerBuildplate> PaginatedBuildplates
         => FilteredBuildplates.Skip((_buildplateCurrentPage - 1) * _buildplatePageSize).Take(_buildplatePageSize);
