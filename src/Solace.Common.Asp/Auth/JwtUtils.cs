@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
-using Solace.Common;
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using BitcoderCZ.Utils;

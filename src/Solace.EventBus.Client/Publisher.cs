@@ -1,5 +1,3 @@
-using Solace.EventBus;
-
 namespace Solace.EventBus.Client;
 
 public sealed class Publisher : IAsyncDisposable

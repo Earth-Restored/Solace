@@ -2,16 +2,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using Solace.ApiServer.Types.Common;
 using Solace.ApiServer.Utils;
-using Solace.Common.Utils;
 using Solace.DB;
 using Solace.DB.Models.Player;
 using Rewards = Solace.ApiServer.Utils.Rewards;
 using Microsoft.EntityFrameworkCore;
-using Solace.DB.Utils;
-using System.Diagnostics;
 
 namespace Solace.ApiServer.Controllers;
 

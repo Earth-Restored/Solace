@@ -1,10 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Solace.Common;
-using Solace.Common.Utils;
-
-namespace Solace.DB.Models.Player;
+﻿namespace Solace.DB.Models.Player;
 
 public sealed class ItemJournalEntryEF
 {

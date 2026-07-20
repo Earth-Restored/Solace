@@ -1,8 +1,4 @@
-﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Solace.Common;
+﻿using Solace.Common;
 using Solace.EventBus.Server.Services;
 using System.Diagnostics;
 #if USE_SHARED_LIBS

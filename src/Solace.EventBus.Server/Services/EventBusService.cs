@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Globalization;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
 using Solace.Common.ObjectPool;
 using Solace.Common.Utils;

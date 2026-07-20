@@ -10,7 +10,6 @@ using System.Runtime.Loader;
 #endif
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
-using Solace.AuthServer.Utils;
 using Solace.Common;
 using Solace.Common.Asp;
 using Solace.DB;

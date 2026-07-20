@@ -1,7 +1,6 @@
 ﻿using Npgsql;
 using System.Diagnostics;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Solace.EventBus.Client;
 using Solace.StaticData;
 using Microsoft.Extensions.Logging;

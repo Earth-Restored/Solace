@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Buffers.Binary;
 using System.IO.Pipelines;
 using Google.Protobuf;
 using Grpc.Core;

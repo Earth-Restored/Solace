@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
-using Solace.Common;
 using Solace.Common.Utils;
 
 namespace Solace.Launcher;

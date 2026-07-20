@@ -2,15 +2,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using Solace.ApiServer.Utils;
 using Solace.Common;
-using Solace.Common.Utils;
 using Solace.DB;
-using Solace.DB.Models.Player;
-using Solace.StaticData;
 using Microsoft.EntityFrameworkCore;
-using Solace.DB.Utils;
 
 namespace Solace.ApiServer.Controllers;
 

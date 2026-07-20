@@ -1,5 +1,3 @@
-using Solace.Common.Utils;
-
 namespace Solace.DB.Models.Global;
 
 public sealed class Tile : IEntityWithId<long>

@@ -2,11 +2,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using System.Globalization;
 using Solace.ApiServer.Utils;
 using Solace.DB;
 using Solace.DB.Models.Player;
-using Solace.DB.Utils;
 using Microsoft.EntityFrameworkCore;
 using Solace.StaticData;
 using DBRewards = Solace.DB.Models.Common.Rewards;

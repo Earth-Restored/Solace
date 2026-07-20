@@ -1,4 +1,3 @@
-using System.Reflection.Emit;
 using Microsoft.Extensions.Configuration;
 
 namespace Solace.AppHost;

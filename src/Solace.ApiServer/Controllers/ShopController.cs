@@ -14,7 +14,6 @@ using Solace.ObjectStore.Client;
 using Solace.StaticData;
 using Solace.EventBus.Client;
 using Microsoft.EntityFrameworkCore;
-using Solace.DB.Utils;
 using Solace.ApiServer.Utils;
 
 namespace Solace.ApiServer.Controllers;

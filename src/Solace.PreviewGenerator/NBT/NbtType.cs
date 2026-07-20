@@ -1,6 +1,4 @@
-﻿using Solace.Common.Utils;
-
-namespace Solace.PreviewGenerator.NBT;
+﻿namespace Solace.PreviewGenerator.NBT;
 
 public sealed class NbtType
 {

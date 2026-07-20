@@ -2,10 +2,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
 using System.Text.Json;
 using Solace.ApiServer.Types.Catalog;
-using Solace.ApiServer.Utils;
 using Solace.StaticData;
 using Solace.ApiServer.Types.Common;
 

@@ -3,15 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
-using System.Security.Claims;
 using Solace.ApiServer.Utils;
-using Solace.Common.Utils;
 using Solace.DB;
 using Solace.DB.Models.Player;
 using Solace.StaticData;
 using Effect = Solace.ApiServer.Types.Common.Effect;
 using Microsoft.EntityFrameworkCore;
-using Solace.DB.Utils;
 
 namespace Solace.ApiServer.Controllers;
 

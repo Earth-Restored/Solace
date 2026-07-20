@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Solace.AuthServer.Features.Common;
-using Solace.AuthServer.Utils;
 using Solace.Common.Asp;
 using Solace.Common.Asp.Auth;
 using Solace.Common.Asp.Json;

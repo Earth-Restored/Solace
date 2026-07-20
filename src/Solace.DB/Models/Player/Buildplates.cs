@@ -1,8 +1,4 @@
-﻿using System.Diagnostics;
-using System.Text.Json.Serialization;
-using Solace.Common.Utils;
-
-namespace Solace.DB.Models.Player;
+﻿namespace Solace.DB.Models.Player;
 
 public sealed class BuildplateEF : IEntityWithId<Guid>
 {

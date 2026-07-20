@@ -1,7 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using Solace.Common.Utils;
-
-namespace Solace.DB.Models.Player;
+﻿namespace Solace.DB.Models.Player;
 
 public sealed class ProfileEF : IEntityWithId<Guid>
 {

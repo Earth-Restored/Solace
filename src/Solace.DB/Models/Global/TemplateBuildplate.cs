@@ -1,7 +1,4 @@
-﻿using System.Diagnostics;
-using Solace.Common.Utils;
-
-namespace Solace.DB.Models.Global;
+﻿namespace Solace.DB.Models.Global;
 
 public sealed class TemplateBuildplateEF : IEntityWithId<Guid>
 {

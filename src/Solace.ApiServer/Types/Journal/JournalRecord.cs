@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json.Serialization;
 using Solace.ApiServer.Types.Common;
 using static Solace.ApiServer.Types.Journal.JournalRecord;

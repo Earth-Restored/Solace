@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Text.Json;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Http.HttpResults;

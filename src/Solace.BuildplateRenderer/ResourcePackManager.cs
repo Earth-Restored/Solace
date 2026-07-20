@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using SharpGLTF.Schema2;
 using SixLabors.ImageSharp.PixelFormats;
 using Solace.BuildplateRenderer.Models.ResourcePacks;
 

@@ -1,11 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Solace.Common;
-using Solace.Common.Utils;
+﻿using System.Diagnostics.CodeAnalysis;
 using Solace.DB.Models.Common;
 
 namespace Solace.DB.Models.Player;

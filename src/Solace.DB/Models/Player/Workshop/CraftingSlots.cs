@@ -1,6 +1,4 @@
-﻿using Solace.Common.Utils;
-
-namespace Solace.DB.Models.Player.Workshop;
+﻿namespace Solace.DB.Models.Player.Workshop;
 
 public sealed class CraftingSlotsEF : IEntityWithId<Guid>
 {

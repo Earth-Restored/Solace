@@ -2,8 +2,6 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Solace.Common;
-using Solace.Common.Utils;
 using Solace.EventBus.Client;
 
 namespace Solace.TappablesGenerator;

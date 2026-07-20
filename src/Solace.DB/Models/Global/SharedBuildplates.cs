@@ -1,11 +1,4 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Solace.Common;
-using Solace.Common.Utils;
-
-namespace Solace.DB.Models.Global;
+﻿namespace Solace.DB.Models.Global;
 
 public sealed class SharedBuildplateEF : IEntityWithId<Guid>
 {

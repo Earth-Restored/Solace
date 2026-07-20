@@ -2,7 +2,6 @@
 using Solace.Common;
 using Solace.Common.Utils;
 using Solace.EventBus.Client;
-using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Solace.Common;
 using Solace.Common.Utils;
 using Solace.StaticData;
 

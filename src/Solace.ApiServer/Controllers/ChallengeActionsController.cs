@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Solace.ApiServer.Utils;
-using Solace.Common.Utils;
 using RedeemRewards = Solace.ApiServer.Utils.Rewards;
 
 namespace Solace.ApiServer.Controllers;

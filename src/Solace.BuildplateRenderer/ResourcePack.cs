@@ -2,7 +2,6 @@ using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Numerics;
-using System.Text.Json;
 using BitcoderCZ.Buffers;
 using Solace.BuildplateRenderer.Models.ResourcePacks;
 using Solace.BuildplateRenderer.Utils;
@@ -15,7 +14,6 @@ using BitcoderCZ.Utils;
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
 namespace Solace.BuildplateRenderer;

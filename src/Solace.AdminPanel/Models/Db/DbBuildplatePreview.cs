@@ -1,7 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
-
 namespace Solace.AdminPanel.Models.Db;
 
 internal sealed class DbBuildplatePreview

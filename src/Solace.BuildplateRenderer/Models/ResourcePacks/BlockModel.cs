@@ -1,10 +1,8 @@
-using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
-using BitcoderCZ.Maths.Vectors;
 
 namespace Solace.BuildplateRenderer.Models.ResourcePacks;
 

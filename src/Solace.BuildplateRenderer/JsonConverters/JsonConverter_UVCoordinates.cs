@@ -2,7 +2,6 @@
 // Copyright (c) BitcoderCZ. All rights reserved.
 // </copyright>
 
-using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Solace.BuildplateRenderer.Models.ResourcePacks;

@@ -4,7 +4,6 @@ using SharpGLTF.Geometry;
 using SharpGLTF.Geometry.VertexTypes;
 using SharpGLTF.Materials;
 using SharpGLTF.Scenes;
-using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace Solace.BuildplateRenderer;
