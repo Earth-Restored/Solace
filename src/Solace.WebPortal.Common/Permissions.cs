@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
 using System.Reflection;
 
-namespace Solace.WebPortal.Data;
+namespace Solace.WebPortal.Common;
 
-internal static class Permissions
+public static class Permissions
 {
     [PermissionInfo("Users", "Manage roles - add, edit, delete")]
     public const string EditRoles = "user.role.edit";
@@ -57,7 +57,7 @@ internal static class Permissions
         })];
     }
 
-    internal readonly record struct PermissionDescriptor(
+    public readonly record struct PermissionDescriptor(
         string Name,
         string Category,
         string Description

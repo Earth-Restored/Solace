@@ -4,6 +4,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Solace.WebPortal.Client/Solace.WebPortal.Client.csproj" />
+    <Project Path="src/Solace.WebPortal.Common/Solace.WebPortal.Common.csproj" />
     <Project Path="src/Solace.WebPortal/Solace.WebPortal.csproj" />
   </Folder>
   <Project Path="src/Solace.AdminPanel/Solace.AdminPanel.csproj" />

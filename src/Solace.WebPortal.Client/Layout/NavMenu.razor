@@ -1,6 +1,9 @@
-﻿@implements IDisposable
+﻿@using System.Security.Claims
+@using Solace.WebPortal.Common
+@implements IDisposable
 
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
 
 <script type="module" src="@Assets["Layout/NavMenu.razor.js"]"></script>
 
@@ -38,6 +41,15 @@
 
         <AuthorizeView>
             <Authorized>
+                @if (HasPermission(Permissions.ViewUsers))
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="Admin/Users">
+                            <span class="bi bi-people-fill" aria-hidden="true"></span> Manage Users
+                        </NavLink>
+                    </div>
+                }
+
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Manage">
                         <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
@@ -71,11 +83,17 @@
 
 @code {
     private string? currentUrl;
+    private ClaimsPrincipal? _user;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
+
+        AuthStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _user = authState.User;
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -84,8 +102,21 @@
         StateHasChanged();
     }
 
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        var authState = await task;
+        _user = authState.User;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool HasPermission(string permission)
+    {
+        return _user?.HasPermission(permission) ?? false;
+    }
+
     public void Dispose()
     {
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }

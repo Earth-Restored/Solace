@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Solace.Common;
+using Solace.WebPortal.Common;
 using Solace.WebPortal.Components;
 using Solace.WebPortal.Components.Account;
 using Solace.WebPortal.Data;
@@ -72,7 +73,10 @@ internal partial class Program2
         // Add services to the container.
         builder.Services.AddRazorComponents()
             .AddInteractiveWebAssemblyComponents()
-            .AddAuthenticationStateSerialization();
+            .AddAuthenticationStateSerialization(options =>
+            {
+                options.SerializeAllClaims = true;
+            });
 
         builder.Services.AddCascadingAuthenticationState();
         builder.Services.AddScoped<IdentityRedirectManager>();

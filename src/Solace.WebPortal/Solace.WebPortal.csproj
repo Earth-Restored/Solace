@@ -17,6 +17,7 @@
     <ProjectReference Include="../Solace.Common/Solace.Common.csproj" />
     <ProjectReference Include="../Solace.ServiceDefaults/Solace.ServiceDefaults.csproj" />
     <ProjectReference Include="../Solace.WebPortal.Client/Solace.WebPortal.Client.csproj" />
+    <ProjectReference Include="../Solace.WebPortal.Common/Solace.WebPortal.Common.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" VersionOverride="11.0.0-preview.6.26359.118" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" VersionOverride="11.0.0-preview.6.26359.118" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" VersionOverride="11.0.0-preview.6.26359.118" />
