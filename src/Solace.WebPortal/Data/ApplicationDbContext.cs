@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Solace.WebPortal.Data;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser>(options)
+public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    : IdentityDbContext<ApplicationUser, ApplicationRole, long>(options)
 {
 }

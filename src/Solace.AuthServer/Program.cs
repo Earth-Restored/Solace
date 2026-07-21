@@ -125,6 +125,8 @@ internal sealed partial class Program2
         {
             var db = scope.ServiceProvider.GetRequiredService<EarthDbContext>();
 
+            await db.Database.MigrateAsync();
+
             startupDeps.Secrets = await db.GetOrInitializeSecretsAsync();
         }
 

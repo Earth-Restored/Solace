@@ -18,6 +18,29 @@
     <Routes @rendermode="PageRenderMode" />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>
+    <script>
+        (function() {
+            var toggling = false;
+            function applyDark() {
+                var html = document.documentElement;
+                if (localStorage.getItem('darkMode') === 'true') html.classList.add('dark');
+                else html.classList.remove('dark');
+            }
+            applyDark();
+            window.toggleDarkMode = function() {
+                toggling = true;
+                var html = document.documentElement;
+                var isDark = html.classList.toggle('dark');
+                localStorage.setItem('darkMode', isDark);
+                setTimeout(function() { toggling = false; }, 100);
+            };
+            new MutationObserver(function() {
+                if (toggling) return;
+                if (localStorage.getItem('darkMode') === 'true' && !document.documentElement.classList.contains('dark'))
+                    document.documentElement.classList.add('dark');
+            }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        })();
+    </script>
 </body>
 
 </html>
