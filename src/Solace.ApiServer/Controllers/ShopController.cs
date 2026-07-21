@@ -8,8 +8,8 @@ using Solace.ApiServer.Types.Buildplates;
 using Solace.ApiServer.Types.Shop;
 using Solace.BuildplateImporter;
 using Solace.Common.Utils;
-using Solace.DB.Earth;
-using Solace.DB.Earth.Models.Player;
+using Solace.Db.Earth;
+using Solace.Db.Earth.Models.Player;
 using Solace.ObjectStore.Client;
 using Solace.StaticData;
 using Solace.EventBus.Client;
@@ -24,7 +24,7 @@ namespace Solace.ApiServer.Controllers;
 internal sealed partial class ShopController : SolaceControllerBase
 {
     private readonly StaticData.StaticDataProvider _staticData;
-    private readonly EarthDbContext _earthDB;
+    private readonly EarthDbContext _earthDb;
     private readonly EventBusClient _eventBus;
     private readonly ObjectStoreClient _objectStore;
     private readonly ILogger<ShopController> _logger;
@@ -32,7 +32,7 @@ internal sealed partial class ShopController : SolaceControllerBase
     public ShopController(StaticData.StaticDataProvider staticData, EarthDbContext earthDB, EventBusClient eventBus, ObjectStoreClient objectStore, ILogger<ShopController> logger)
     {
         _staticData = staticData;
-        _earthDB = earthDB;
+        _earthDb = earthDB;
         _eventBus = eventBus;
         _objectStore = objectStore;
         _logger = logger;
@@ -60,7 +60,7 @@ internal sealed partial class ShopController : SolaceControllerBase
                     {
                         var itemId = Guid.Parse(item.Id);
 
-                        var buildplate = await _earthDB.TemplateBuildplates
+                        var buildplate = await _earthDb.TemplateBuildplates
                             .AsNoTracking()
                             .FirstOrDefaultAsync(template => template.Id == itemId, cancellationToken);
 
@@ -188,7 +188,7 @@ internal sealed partial class ShopController : SolaceControllerBase
             return null;
         }
 
-        await using var importer = new Importer(_earthDB, _eventBus, _objectStore, _logger)
+        await using var importer = new Importer(_earthDb, _eventBus, _objectStore, _logger)
         {
             OwnsEarthDb = false,
             OwnsEventBusClient = false,
@@ -201,11 +201,11 @@ internal sealed partial class ShopController : SolaceControllerBase
         {
             case Playfab.Item.BuildplateData data:
                 {
-                    using var transaction = await _earthDB.Database.BeginTransactionAsync(cancellationToken);
+                    using var transaction = await _earthDb.Database.BeginTransactionAsync(cancellationToken);
 
                     try
                     {
-                        var profile = await _earthDB.Profiles
+                        var profile = await _earthDb.Profiles
                             .AsTracking()
                             .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
@@ -226,7 +226,7 @@ internal sealed partial class ShopController : SolaceControllerBase
                         var spent = profile.Rubies.Spend(expectedPurchasePrice);
                         Debug.Assert(spent);
 
-                        await _earthDB.SaveChangesAsync(cancellationToken);
+                        await _earthDb.SaveChangesAsync(cancellationToken);
                         await transaction.CommitAsync(cancellationToken);
 
                         rubies = profile.Rubies;
@@ -241,11 +241,11 @@ internal sealed partial class ShopController : SolaceControllerBase
                 break;
             case Playfab.Item.InventoryItemData data:
                 {
-                    using var transaction = await _earthDB.Database.BeginTransactionAsync(cancellationToken);
+                    using var transaction = await _earthDb.Database.BeginTransactionAsync(cancellationToken);
 
                     try
                     {
-                        var profile = await _earthDB.Profiles
+                        var profile = await _earthDb.Profiles
                             .AsTracking()
                             .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
@@ -255,15 +255,15 @@ internal sealed partial class ShopController : SolaceControllerBase
                             break;
                         }
 
-                        await InventoryUtils.AddStackableItemsAsync(_earthDB, ResultsEF.Builder.Null, accountId, data.Id, data.Amount, cancellationToken);
-                        await JournalUtils.AddCollectedItemAsync(_earthDB, ResultsEF.Builder.Null, accountId, data.Id, DateTimeOffset.UtcNow, data.Amount, cancellationToken);
+                        await InventoryUtils.AddStackableItemsAsync(_earthDb, ResultsEF.Builder.Null, accountId, data.Id, data.Amount, cancellationToken);
+                        await JournalUtils.AddCollectedItemAsync(_earthDb, ResultsEF.Builder.Null, accountId, data.Id, DateTimeOffset.UtcNow, data.Amount, cancellationToken);
 
                         // TODO: add to activity log?
 
                         var spent = profile.Rubies.Spend(expectedPurchasePrice);
                         Debug.Assert(spent);
 
-                        await _earthDB.SaveChangesAsync(cancellationToken);
+                        await _earthDb.SaveChangesAsync(cancellationToken);
                         await transaction.CommitAsync(cancellationToken);
 
                         rubies = profile.Rubies;

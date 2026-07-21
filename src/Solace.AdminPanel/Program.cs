@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Solace.Common;
-using Solace.DB.Earth;
+using Solace.Db.Earth;
 using Solace.AdminPanel.Components.Account;
 using Solace.AdminPanel.Data;
 using Solace.AdminPanel.Utils;

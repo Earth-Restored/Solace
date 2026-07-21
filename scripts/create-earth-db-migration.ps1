@@ -4,4 +4,4 @@ param (
     [string]$MigrationName
 )
 
-dotnet ef migrations add $MigrationName --project ./../src/Solace.DB --startup-project ./../src/Solace.ApiServer --context EarthDbContext
+dotnet ef migrations add $MigrationName --project ./../src/Solace.Db --startup-project ./../src/Solace.ApiServer --context EarthDbContext

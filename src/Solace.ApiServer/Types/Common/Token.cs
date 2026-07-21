@@ -41,12 +41,12 @@ internal static class TokenTypeExtensions
 {
     extension(Token.Type)
     {
-        public static Token.Type FromDb(DB.Earth.Models.Player.TokenEF token)
+        public static Token.Type FromDb(Db.Earth.Models.Player.TokenEF token)
             => token switch
             {
-                DB.Earth.Models.Player.LevelUpTokenEF => Token.Type.LEVEL_UP,  
-                DB.Earth.Models.Player.JournalItemUnlockedTokenEF => Token.Type.JOURNAL_ITEM_UNLOCKED,
-                DB.Earth.Models.Player.DailyLoginTokenEF => Token.Type.DAILY_LOGIN,
+                Db.Earth.Models.Player.LevelUpTokenEF => Token.Type.LEVEL_UP,  
+                Db.Earth.Models.Player.JournalItemUnlockedTokenEF => Token.Type.JOURNAL_ITEM_UNLOCKED,
+                Db.Earth.Models.Player.DailyLoginTokenEF => Token.Type.DAILY_LOGIN,
                 _ => throw new UnreachableException(),
             };
     }

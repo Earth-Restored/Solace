@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Solace.ApiServer.Utils;
 using Solace.Common;
-using Solace.DB.Earth;
+using Solace.Db.Earth;
 using Microsoft.EntityFrameworkCore;
 
 namespace Solace.ApiServer.Controllers;
@@ -14,12 +14,12 @@ namespace Solace.ApiServer.Controllers;
 [Route("1/api/v{version:apiVersion}/player")]
 internal sealed class ProfileController : SolaceControllerBase
 {
-    private readonly EarthDbContext _earthDB;
+    private readonly EarthDbContext _earthDb;
     private readonly StaticData.StaticDataProvider _staticData;
 
     public ProfileController(EarthDbContext earthDB, StaticData.StaticDataProvider staticData)
     {
-        _earthDB = earthDB;
+        _earthDb = earthDB;
         _staticData = staticData;
     }
 
@@ -35,11 +35,11 @@ internal sealed class ProfileController : SolaceControllerBase
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        var profile = await _earthDB.Profiles
+        var profile = await _earthDb.Profiles
             .AsNoTracking()
             .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
-        var boosts = await _earthDB.Boosts
+        var boosts = await _earthDb.Boosts
             .AsNoTracking()
             .FirstAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
 
@@ -78,7 +78,7 @@ internal sealed class ProfileController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var profile = await _earthDB.Profiles
+        var profile = await _earthDb.Profiles
             .AsNoTracking()
             .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
@@ -95,7 +95,7 @@ internal sealed class ProfileController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var profile = await _earthDB.Profiles
+        var profile = await _earthDb.Profiles
             .AsNoTracking()
             .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 

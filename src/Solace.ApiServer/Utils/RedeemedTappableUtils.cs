@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Solace.DB.Earth;
+using Solace.Db.Earth;
 
 namespace Solace.ApiServer.Utils;
 

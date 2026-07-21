@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
 using Solace.Common.Utils;
 using Solace.Common;
-using Solace.DB.Earth;
+using Solace.Db.Earth;
 using Microsoft.AspNetCore.DataProtection;
 using Solace.ApiServer.Authentication;
 using Solace.Common.Asp.Auth;

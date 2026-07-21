@@ -44,15 +44,15 @@ internal static class ActivityLogTypeExtensions
 {
     extension(ActivityLogEntry.Type)
     {
-        public static ActivityLogEntry.Type FromDb(DB.Earth.Models.Player.ActivityLogEntryEF entry)
+        public static ActivityLogEntry.Type FromDb(Db.Earth.Models.Player.ActivityLogEntryEF entry)
             => entry switch
             {
-                DB.Earth.Models.Player.LevelUpEntryEF => ActivityLogEntry.Type.LEVEL_UP,
-                DB.Earth.Models.Player.TappableEntryEF => ActivityLogEntry.Type.TAPPABLE,
-                DB.Earth.Models.Player.JournalItemUnlockedEntryEF => ActivityLogEntry.Type.JOURNAL_ITEM_UNLOCKED,
-                DB.Earth.Models.Player.CraftingCompletedEntryEF => ActivityLogEntry.Type.CRAFTING_COMPLETED,
-                DB.Earth.Models.Player.SmeltingCompletedEntryEF => ActivityLogEntry.Type.SMELTING_COMPLETED,
-                DB.Earth.Models.Player.BoostActivatedEntryEF => ActivityLogEntry.Type.BOOST_ACTIVATED,
+                Db.Earth.Models.Player.LevelUpEntryEF => ActivityLogEntry.Type.LEVEL_UP,
+                Db.Earth.Models.Player.TappableEntryEF => ActivityLogEntry.Type.TAPPABLE,
+                Db.Earth.Models.Player.JournalItemUnlockedEntryEF => ActivityLogEntry.Type.JOURNAL_ITEM_UNLOCKED,
+                Db.Earth.Models.Player.CraftingCompletedEntryEF => ActivityLogEntry.Type.CRAFTING_COMPLETED,
+                Db.Earth.Models.Player.SmeltingCompletedEntryEF => ActivityLogEntry.Type.SMELTING_COMPLETED,
+                Db.Earth.Models.Player.BoostActivatedEntryEF => ActivityLogEntry.Type.BOOST_ACTIVATED,
                 _ => throw new UnreachableException(),
             };
     }

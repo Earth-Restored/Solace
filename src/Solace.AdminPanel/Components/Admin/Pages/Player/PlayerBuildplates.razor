@@ -4,7 +4,7 @@
 @using Microsoft.EntityFrameworkCore
 @using Solace.BuildplateImporter
 @using Solace.BuildplateRenderer
-@using Solace.DB.Earth
+@using Solace.Db.Earth
 @using Solace.AdminPanel.Utils
 @using Solace.EventBus.Client
 @using Solace.ObjectStore.Client
@@ -463,7 +463,7 @@ _playerPageSize));
             string? searchFilter = string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm.Trim();
 
             await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
-            var query = (IQueryable<DB.Earth.Models.Global.TemplateBuildplateEF>)earthDb.TemplateBuildplates;
+            var query = (IQueryable<Db.Earth.Models.Global.TemplateBuildplateEF>)earthDb.TemplateBuildplates;
 
             if (!string.IsNullOrWhiteSpace(searchFilter))
             {

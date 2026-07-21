@@ -2,26 +2,26 @@
 using System.Text.Json;
 using Solace.Buildplate.Model;
 using Solace.Common.Utils;
-using Solace.DB.Earth.Models.Global;
-using Solace.DB.Earth.Models.Player;
+using Solace.Db.Earth.Models.Global;
+using Solace.Db.Earth.Models.Player;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Solace.DB.Earth;
+using Solace.Db.Earth;
 
 namespace Solace.BuildplateImporter;
 
 public sealed partial class Importer : IAsyncDisposable
 {
-    public readonly EarthDbContext EarthDB;
+    public readonly EarthDbContext EarthDb;
     public readonly EventBusClient? EventBusClient;
     public readonly ObjectStoreClient ObjectStoreClient;
     public readonly ILogger Logger;
 
     public Importer(EarthDbContext earthDB, EventBusClient? eventBusClient, ObjectStoreClient objectStoreClient, ILogger logger)
     {
-        EarthDB = earthDB;
+        EarthDb = earthDB;
         EventBusClient = eventBusClient;
         ObjectStoreClient = objectStoreClient;
         Logger = logger;
@@ -57,7 +57,7 @@ public sealed partial class Importer : IAsyncDisposable
         TemplateBuildplateEF? template;
         try
         {
-            template = await EarthDB.TemplateBuildplates
+            template = await EarthDb.TemplateBuildplates
                 .AsTracking()
                 .FirstOrDefaultAsync(template => template.Id == templateId, cancellationToken);
         }
@@ -116,7 +116,7 @@ public sealed partial class Importer : IAsyncDisposable
 
         try
         {
-            await EarthDB.SaveChangesAsync(cancellationToken);
+            await EarthDb.SaveChangesAsync(cancellationToken);
 
             if (!Guid.IsNullOrZero(oldPreviewObjectId))
             {
@@ -141,7 +141,7 @@ public sealed partial class Importer : IAsyncDisposable
         TemplateBuildplateEF? template;
         try
         {
-            template = await EarthDB.TemplateBuildplates
+            template = await EarthDb.TemplateBuildplates
                 .AsTracking()
                 .FirstOrDefaultAsync(template => template.Id == templateId, cancellationToken);
         }
@@ -163,7 +163,7 @@ public sealed partial class Importer : IAsyncDisposable
 
             try
             {
-                instances = await EarthDB.PlayerBuildplates
+                instances = await EarthDb.PlayerBuildplates
                     .AsNoTracking()
                     .Where(buildplate => buildplate.TemplateId == templateId)
                     .ToListAsync(cancellationToken);
@@ -184,9 +184,9 @@ public sealed partial class Importer : IAsyncDisposable
 
         try
         {
-            EarthDB.TemplateBuildplates.Remove(template);
+            EarthDb.TemplateBuildplates.Remove(template);
 
-            await EarthDB.SaveChangesAsync(cancellationToken);
+            await EarthDb.SaveChangesAsync(cancellationToken);
         }
         catch (Exception exception)
         {
@@ -221,7 +221,7 @@ public sealed partial class Importer : IAsyncDisposable
         TemplateBuildplateEF? template;
         try
         {
-            template = await EarthDB.TemplateBuildplates
+            template = await EarthDb.TemplateBuildplates
                 .AsNoTracking()
                 .FirstOrDefaultAsync(template => template.Id == templateId, cancellationToken);
         }
@@ -277,7 +277,7 @@ public sealed partial class Importer : IAsyncDisposable
 
         try
         {
-            buildplate = await EarthDB.PlayerBuildplates
+            buildplate = await EarthDb.PlayerBuildplates
                 .AsTracking()
                 .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.AccountId == accountId, cancellationToken);
         }
@@ -336,7 +336,7 @@ public sealed partial class Importer : IAsyncDisposable
 
         try
         {
-            await EarthDB.SaveChangesAsync(cancellationToken);
+            await EarthDb.SaveChangesAsync(cancellationToken);
 
             if (!Guid.IsNullOrZero(oldPreviewObjectId))
             {
@@ -360,7 +360,7 @@ public sealed partial class Importer : IAsyncDisposable
 
         try
         {
-            var buildplate = await EarthDB.PlayerBuildplates
+            var buildplate = await EarthDb.PlayerBuildplates
                 .AsTracking()
                 .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.AccountId == accountId, cancellationToken);
 
@@ -370,8 +370,8 @@ public sealed partial class Importer : IAsyncDisposable
                 return true;
             }
 
-            EarthDB.PlayerBuildplates.Remove(buildplate);
-            await EarthDB.SaveChangesAsync(cancellationToken);
+            EarthDb.PlayerBuildplates.Remove(buildplate);
+            await EarthDb.SaveChangesAsync(cancellationToken);
 
             if (!Guid.IsNullOrZero(buildplate.ServerDataObjectId))
             {
@@ -403,7 +403,7 @@ public sealed partial class Importer : IAsyncDisposable
     {
         if (OwnsEarthDb)
         {
-            EarthDB.Dispose();
+            EarthDb.Dispose();
         }
 
         if (OwnsEventBusClient && EventBusClient is not null)
@@ -445,7 +445,7 @@ public sealed partial class Importer : IAsyncDisposable
         TemplateBuildplateEF? template;
         try
         {
-            template = await EarthDB.TemplateBuildplates
+            template = await EarthDb.TemplateBuildplates
                 .AsNoTracking()
                 .FirstOrDefaultAsync(template => template.Id == templateId, cancellationToken);
         }
@@ -489,11 +489,11 @@ public sealed partial class Importer : IAsyncDisposable
 
             try
             {
-                var results = await new EarthDB.ObjectQuery(true)
+                var results = await new EarthDb.ObjectQuery(true)
                    .UpdateBuildplate(templateId, template)
                    .ExecuteAsync(earthDB, cancellationToken);
             }
-            catch (EarthDB.DatabaseException ex)
+            catch (EarthDb.DatabaseException ex)
             {
                 _logger.Error($"Failed to update template buildplate: {ex}");
                 return false;
@@ -550,8 +550,8 @@ public sealed partial class Importer : IAsyncDisposable
 
             try
             {
-                EarthDB.TemplateBuildplates.Add(template);
-                await EarthDB.SaveChangesAsync(cancellationToken);
+                EarthDb.TemplateBuildplates.Add(template);
+                await EarthDb.SaveChangesAsync(cancellationToken);
             }
             catch (Exception exception)
             {
@@ -593,7 +593,7 @@ public sealed partial class Importer : IAsyncDisposable
         {
             var lastModified = DateTimeOffset.UtcNow;
 
-            EarthDB.PlayerBuildplates.Add(new PlayerBuildplateEF()
+            EarthDb.PlayerBuildplates.Add(new PlayerBuildplateEF()
             {
                 Id = buildplateId,
                 AccountId = accountId,
@@ -608,7 +608,7 @@ public sealed partial class Importer : IAsyncDisposable
                 PreviewObjectId = previewObjectId.Value,
             });
 
-            await EarthDB.SaveChangesAsync(cancellationToken);
+            await EarthDb.SaveChangesAsync(cancellationToken);
 
             return true;
         }

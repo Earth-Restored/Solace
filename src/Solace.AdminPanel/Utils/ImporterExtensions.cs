@@ -39,7 +39,7 @@ internal static class ImporterExtensions
 
             progress?.Report(new ProgressReport(0.005, "Fetching template"));
 
-            var template = await importer.EarthDB.TemplateBuildplates
+            var template = await importer.EarthDb.TemplateBuildplates
                 .AsNoTracking()
                 .FirstOrDefaultAsync(template => template.Id == templateId, cancellationToken);
 
@@ -121,7 +121,7 @@ internal static class ImporterExtensions
 
             progress?.Report(new ProgressReport(0.005, "Fetching buildplate"));
 
-            var buildplate = await importer.EarthDB.PlayerBuildplates
+            var buildplate = await importer.EarthDb.PlayerBuildplates
                 .AsNoTracking()
                 .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.AccountId == accountId, cancellationToken);
 

@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Solace.ApiServer.Utils;
 using Solace.Common;
-using Solace.DB.Earth;
-using Solace.DB.Earth.Models.Player;
+using Solace.Db.Earth;
+using Solace.Db.Earth.Models.Player;
 using Microsoft.EntityFrameworkCore;
 using Solace.ApiServer.Types.Journal;
 
@@ -16,11 +16,11 @@ namespace Solace.ApiServer.Controllers;
 [Route("1/api/v{version:apiVersion}/player/journal")]
 internal sealed class JournalController : SolaceControllerBase
 {
-    private readonly EarthDbContext _earthDB;
+    private readonly EarthDbContext _earthDb;
 
     public JournalController(EarthDbContext earthDB)
     {
-        _earthDB = earthDB;
+        _earthDb = earthDB;
     }
 
     [HttpGet]
@@ -31,14 +31,14 @@ internal sealed class JournalController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var journalEnties = _earthDB.JournalEntries
+        var journalEnties = _earthDb.JournalEntries
             .AsNoTracking()
             .Where(entry => entry.AccountId == accountId)
             .Select(entry => new { entry.ItemId, entry.FirstSeen, entry.LastSeen, entry.AmountCollected, })
             .AsAsyncEnumerable()
             .WithCancellation(cancellationToken);
 
-        var activityLogEntries = _earthDB.ActivityLogs
+        var activityLogEntries = _earthDb.ActivityLogs
             .AsNoTracking()
             .Where(entry => entry.AccountId == accountId)
             .AsAsyncEnumerable();

@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using Solace.DB.Earth.Models.Player.Workshop;
+using Solace.Db.Earth.Models.Player.Workshop;
 using Solace.StaticData;
 
 namespace Solace.ApiServer.Utils;

@@ -1,5 +1,5 @@
 ﻿using Solace.Common.Utils;
-using Solace.DB.Earth;
+using Solace.Db.Earth;
 
 namespace Solace.ApiServer.Utils;
 

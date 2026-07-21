@@ -6,12 +6,12 @@ namespace Solace.AdminPanel.Controllers;
 // [Route("api/data/export")]
 // internal sealed class DataExportController : ControllerBase
 // {
-//     private readonly FileInfo _earthDB;
+//     private readonly FileInfo _earthDb;
 //     private readonly DirectoryInfo _objectStore;
 
 //     public DataExportController()
 //     {
-//         _earthDB = new FileInfo(Settings.Instance.EarthDatabaseConnectionString!);
+//         _earthDb = new FileInfo(Settings.Instance.EarthDatabaseConnectionString!);
 //         _objectStore = new DirectoryInfo(Path.Combine(Program.DataDirRelative, Program.ObjectStoreDirName));
 //     }
 
@@ -22,9 +22,9 @@ namespace Solace.AdminPanel.Controllers;
 
 //         using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
 //         {
-//             if (_earthDB.Exists)
+//             if (_earthDb.Exists)
 //             {
-//                 await archive.CreateEntryFromFileAsync(_earthDB.FullName, "earth.db");
+//                 await archive.CreateEntryFromFileAsync(_earthDb.FullName, "earth.db");
 //             }
 
 //             if (_objectStore.Exists)

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Solace.DB.Earth;
+using Solace.Db.Earth;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 
@@ -50,7 +50,7 @@ internal static partial class TileUtils
 
         await using (var earthDb = await earthDbFactory.CreateDbContextAsync(cancellationToken))
         {
-            var newTile = new DB.Earth.Models.Global.Tile()
+            var newTile = new Db.Earth.Models.Global.Tile()
             {
                 Id = dbPos,
                 ObjectStoreId = tileObjectId.Value,

@@ -3,8 +3,8 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using System.Linq
-@using Solace.DB.Earth
-@using Solace.DB.Earth.Utils
+@using Solace.Db.Earth
+@using Solace.Db.Earth.Utils
 @using Solace.BuildplateRenderer
 @using Solace.AdminPanel.Data
 @using Solace.AdminPanel.Utils
@@ -394,7 +394,7 @@
         public int PurchasedRubies { get; set; }
         public int EarnedRubies { get; set; }
 
-        public static InGameAccount FromDb(DB.Earth.Models.Account account)
+        public static InGameAccount FromDb(Db.Earth.Models.Account account)
         {
             Debug.Assert(account.Profile is not null);
 
