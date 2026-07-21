@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Solace.ApiServer.Utils;
 using Solace.Common;
-using Solace.DB;
+using Solace.DB.Earth;
 using Microsoft.EntityFrameworkCore;
 
 namespace Solace.ApiServer.Controllers;

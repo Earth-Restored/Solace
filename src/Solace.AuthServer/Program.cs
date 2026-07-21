@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
 using Solace.Common;
 using Solace.Common.Asp;
-using Solace.DB;
+using Solace.DB.Earth;
 
 [assembly: Behaviors(
     typeof(ValidationBehavior<,>)

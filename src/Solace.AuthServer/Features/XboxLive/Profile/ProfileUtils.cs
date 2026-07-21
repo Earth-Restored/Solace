@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using Solace.DB.Models;
+using Solace.DB.Earth.Models;
 
 namespace Solace.AuthServer.Features.XboxLive.Profile;
 

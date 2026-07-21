@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Solace.DB/Solace.DB.csproj" />
+    <ProjectReference Include="../Solace.DB.Earth/Solace.DB.Earth.csproj" />
   </ItemGroup>
 
 </Project>

@@ -2,8 +2,8 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.EntityFrameworkCore
 @using System.Security.Claims
-@using Solace.DB
-@using Solace.DB.Models.Player
+@using Solace.DB.Earth
+@using Solace.DB.Earth.Models.Player
 @using Solace.AdminPanel.Utils
 @using System.Diagnostics
 @attribute [Authorize(Policy = Permissions.ViewPlayers)]
@@ -241,7 +241,7 @@
 
 @code {
     private ClaimsPrincipal? _user;
-    private List<DB.Models.Account>? _players;
+    private List<DB.Earth.Models.Account>? _players;
     private string? _errorMessage;
 
     // Edit State
@@ -270,7 +270,7 @@
         }
     }
 
-    private void StartEdit(DB.Models.Account player)
+    private void StartEdit(DB.Earth.Models.Account player)
     {
         Debug.Assert(player.Profile is not null);
 
@@ -285,7 +285,7 @@
         _editingId = null;
     }
 
-    private async Task SaveEditAsync(DB.Models.Account player)
+    private async Task SaveEditAsync(DB.Earth.Models.Account player)
     {
         Debug.Assert(player.Profile is not null);
 

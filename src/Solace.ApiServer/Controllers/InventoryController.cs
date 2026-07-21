@@ -7,8 +7,8 @@ using Solace.ApiServer.Types.Inventory;
 using Solace.ApiServer.Utils;
 using Solace.Common;
 using Solace.Common.Utils;
-using Solace.DB;
-using Solace.DB.Models.Player;
+using Solace.DB.Earth;
+using Solace.DB.Earth.Models.Player;
 using Solace.StaticData;
 using Microsoft.EntityFrameworkCore;
 

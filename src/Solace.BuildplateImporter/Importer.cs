@@ -2,13 +2,13 @@
 using System.Text.Json;
 using Solace.Buildplate.Model;
 using Solace.Common.Utils;
-using Solace.DB;
-using Solace.DB.Models.Global;
-using Solace.DB.Models.Player;
+using Solace.DB.Earth.Models.Global;
+using Solace.DB.Earth.Models.Player;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Solace.DB.Earth;
 
 namespace Solace.BuildplateImporter;
 

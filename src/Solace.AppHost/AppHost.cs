@@ -44,6 +44,7 @@ var postgres = builder.AddPostgres("postgres")
     .WithDataVolume()
     .WithPgAdmin();
 var earthDb = postgres.AddDatabase("EarthDb");
+var webPortalDb = postgres.AddDatabase("WebPortalDb");
 
 var eventBus = builder.AddProject<Projects.Solace_EventBus_Server>("event-bus")
     .WithHttpEndpoint(name: "http");
@@ -265,22 +266,24 @@ var tileRenderer = builder.AddProject<Projects.Solace_TileRenderer>("tile-render
         service.Environment["StaticDataPath"] = "/app/static-data";
     });
 
-var adminPanelPort = builder.Configuration.GetValue<int>("AdminPanel:Port", 5000);
+var webPortalPort = builder.Configuration.GetValue<int>("WebPortal:Port", 5000);
 
 var locatorPublicEndPoint = builder.AddParameterForEnvironment("Shared:PublicEndpoints:Locator", prefixToRemove: "Shared:");
 var authServerPublicEndPoint = builder.AddParameterForEnvironment("Shared:PublicEndpoints:AuthServer", prefixToRemove: "Shared:");
 
-var buildplatePreviewEnabled = builder.AddParameterForEnvironment("AdminPanel:BuildplatePreview:Enabled", prefixToRemove: "AdminPanel:");
-var buildplatePreviewGenerationMaxConcurrency = builder.AddParameterForEnvironment("AdminPanel:BuildplatePreview:GenerationMaxConcurrency", prefixToRemove: "AdminPanel:");
+var buildplatePreviewEnabled = builder.AddParameterForEnvironment("WebPortal:BuildplatePreview:Enabled", prefixToRemove: "WebPortal:");
+var buildplatePreviewGenerationMaxConcurrency = builder.AddParameterForEnvironment("WebPortal:BuildplatePreview:GenerationMaxConcurrency", prefixToRemove: "WebPortal:");
 
-var adminPanel = builder.AddProject<Projects.Solace_AdminPanel>("admin-panel")
-    .WithHttpEndpoint(port: adminPanelPort, name: "http")
+var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
+    .WithHttpEndpoint(port: webPortalPort, name: "http")
     .WithEndpoint("http", endpoint =>
     {
         endpoint.TargetHost = "*";
     })
     .WithReference(earthDb)
     .WaitFor(earthDb)
+    .WithReference(webPortalDb)
+    .WaitFor(webPortalDb)
     .WithReference(eventBus)
     .WaitFor(eventBus)
     .WithReference(objectStore)
@@ -305,15 +308,6 @@ var adminPanel = builder.AddProject<Projects.Solace_AdminPanel>("admin-panel")
         });
 
         service.Environment["StaticDataPath"] = "/app/static-data";
-
-        service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
-        {
-            Name = "data-volume",
-            Type = "bind",
-            Source = "data",
-            Target = "/app/data",
-            ReadOnly = false,
-        });
 
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
         {

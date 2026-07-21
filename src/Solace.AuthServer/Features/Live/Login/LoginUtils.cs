@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using Solace.Common.Asp.Auth;
-using Solace.DB.Models;
+using Solace.DB.Earth.Models;
 
 namespace Solace.AuthServer.Features.Live.Login;
 

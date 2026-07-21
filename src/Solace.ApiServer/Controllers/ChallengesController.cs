@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using Solace.ApiServer.Types.Common;
 using Solace.ApiServer.Utils;
 using Solace.Common;
-using Solace.Common.Utils;
 using Rewards = Solace.ApiServer.Types.Common.Rewards;
 
 namespace Solace.ApiServer.Controllers;

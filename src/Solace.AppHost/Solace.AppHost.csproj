@@ -12,7 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Solace.AdminPanel/Solace.AdminPanel.csproj" />
     <ProjectReference Include="../Solace.ApiServer/Solace.ApiServer.csproj" />
     <ProjectReference Include="../Solace.AuthServer/Solace.AuthServer.csproj" />
     <ProjectReference Include="../Solace.Buildplate/Solace.Buildplate.csproj" />
@@ -22,6 +21,7 @@
     <ProjectReference Include="../Solace.ObjectStore.Server/Solace.ObjectStore.Server.csproj" />
     <ProjectReference Include="../Solace.TappablesGenerator/Solace.TappablesGenerator.csproj" />
     <ProjectReference Include="../Solace.TileRenderer/Solace.TileRenderer.csproj" />
+    <ProjectReference Include="../Solace.WebPortal/Solace.WebPortal.csproj" />
   </ItemGroup>
 
 </Project>

@@ -6,8 +6,8 @@ using Solace.ApiServer.Types.Common;
 using Solace.ApiServer.Types.Tappables;
 using Solace.ApiServer.Utils;
 using Solace.Common.Utils;
-using Solace.DB;
-using Solace.DB.Models.Player;
+using Solace.DB.Earth;
+using Solace.DB.Earth.Models.Player;
 using Solace.StaticData;
 using Microsoft.EntityFrameworkCore;
 

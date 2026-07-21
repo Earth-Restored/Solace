@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Solace.Common.Asp.Auth;
-using Solace.DB;
+using Solace.DB.Earth;
 
 namespace Solace.AuthServer.Features.Live.Login;
 

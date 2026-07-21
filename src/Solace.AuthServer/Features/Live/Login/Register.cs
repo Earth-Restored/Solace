@@ -8,8 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Solace.Common.Asp.Auth;
 using Solace.Common.Asp.Captcha;
-using Solace.DB;
-using Solace.DB.Utils;
+using Solace.DB.Earth;
+using Solace.DB.Earth.Utils;
 using static Solace.Common.Constants.AccountConstants;
 
 namespace Solace.AuthServer.Features.Live.Login;

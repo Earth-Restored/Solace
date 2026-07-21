@@ -3,7 +3,7 @@ using System.Diagnostics;
 using Solace.ApiServer.Utils;
 using Solace.BuildplateImporter;
 using Solace.Common;
-using Solace.DB;
+using Solace.DB.Earth;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 using Solace.StaticData;

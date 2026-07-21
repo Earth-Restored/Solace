@@ -16,7 +16,7 @@
 @using Solace.Buildplate.Model
 @using Solace.BuildplateImporter
 @using Solace.BuildplateRenderer
-@using Solace.DB
+@using Solace.DB.Earth
 @using Solace.EventBus.Client
 @using Solace.AdminPanel.Data
 @using Solace.AdminPanel.Utils
@@ -345,7 +345,7 @@
             string? searchFilter = string.IsNullOrWhiteSpace(_searchTerm) ? null : _searchTerm;
 
             await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
-            var query = (IQueryable<DB.Models.Global.TemplateBuildplateEF>)earthDb.TemplateBuildplates;
+            var query = (IQueryable<DB.Earth.Models.Global.TemplateBuildplateEF>)earthDb.TemplateBuildplates;
 
             if (!string.IsNullOrWhiteSpace(searchFilter))
             {

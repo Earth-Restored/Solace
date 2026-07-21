@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 using Solace.AuthServer.Features.Common;
 using Solace.Common.Asp.Auth;
 using Solace.Common.Asp.Json;
-using Solace.DB;
+using Solace.DB.Earth;
 
 namespace Solace.AuthServer.Features.PlayfabApi.Login;
 

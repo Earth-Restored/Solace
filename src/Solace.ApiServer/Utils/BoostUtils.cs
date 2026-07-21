@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using Solace.ApiServer.Types.Common;
-using Solace.DB.Models.Player;
+using Solace.DB.Earth.Models.Player;
 using Solace.StaticData;
 
 using CICIBIEActivation = Solace.StaticData.Catalog.ItemsCatalogR.Item.BoostEffectActivation;
