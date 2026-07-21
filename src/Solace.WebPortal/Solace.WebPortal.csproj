@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Net.Codecrete.QrCodeGenerator" />
     <ProjectReference Include="../Solace.WebPortal.Client/Solace.WebPortal.Client.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" VersionOverride="11.0.0-preview.6.26359.118" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" VersionOverride="11.0.0-preview.6.26359.118" />

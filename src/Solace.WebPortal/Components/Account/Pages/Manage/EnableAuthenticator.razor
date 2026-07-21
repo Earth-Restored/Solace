@@ -5,6 +5,7 @@
 @using System.Text
 @using System.Text.Encodings.Web
 @using Microsoft.AspNetCore.Identity
+@using Net.Codecrete.QrCodeGenerator
 @using Solace.WebPortal.Data
 
 @inject UserManager<ApplicationUser> UserManager
@@ -36,10 +37,12 @@ else
                 </p>
             </li>
             <li>
-                <p>Scan the QR Code or enter this key <kbd>@sharedKey</kbd> into your two factor authenticator app. Spaces and casing do not matter.</p>
-                <div class="alert alert-info">Learn how to <a href="https://go.microsoft.com/fwlink/?Linkid=852423">enable QR code generation</a>.</div>
-                <div></div>
-                <div data-url="@authenticatorUri"></div>
+                <div>
+                    <svg xmlns="http://www.w3.org/2000/svg" height="300" width="300" stroke="none" version="1.1" viewBox="0 0 50 50">
+                        <rect width="300" height="300" fill="#ffffff" />
+                        <path d="@svgGraphicsPath" fill="#000000" />
+                    </svg>
+                </div>
             </li>
             <li>
                 <p>
@@ -71,7 +74,7 @@ else
     private string? message;
     private ApplicationUser? user;
     private string? sharedKey;
-    private string? authenticatorUri;
+    private string? svgGraphicsPath;
     private IEnumerable<string>? recoveryCodes;
 
     [CascadingParameter]
@@ -149,7 +152,10 @@ else
         sharedKey = FormatKey(unformattedKey!);
 
         var email = await UserManager.GetEmailAsync(user);
-        authenticatorUri = GenerateQrCodeUri(email!, unformattedKey!);
+        var authenticatorUri = GenerateQrCodeUri(email!, unformattedKey!);
+
+        var qr = QrCode.EncodeText(authenticatorUri, QrCode.Ecc.Medium);
+        svgGraphicsPath = qr.ToGraphicsPath();
     }
 
     private string FormatKey(string unformattedKey)
@@ -174,7 +180,7 @@ else
         return string.Format(
             CultureInfo.InvariantCulture,
             AuthenticatorUriFormat,
-            UrlEncoder.Encode("Microsoft.AspNetCore.Identity.UI"),
+            UrlEncoder.Encode("Solace"),
             UrlEncoder.Encode(email),
             unformattedKey);
     }
