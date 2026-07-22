@@ -1,4 +1,3 @@
-using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -7,7 +6,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Solace.WebPortal.Data.Migrations;
 
 /// <inheritdoc />
+#pragma warning disable CA1707 // Identifiers should not contain underscores
+#pragma warning disable MA0048 // File name must match type name
 public partial class _20260721154030_CreateIdentitySchema : Migration
+#pragma warning restore MA0048 // File name must match type name
+#pragma warning restore CA1707 // Identifiers should not contain underscores
 {
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
