@@ -41,6 +41,34 @@
                     document.documentElement.classList.add('dark');
             }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
         })();
+
+        window.copyTextDirect = function (text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).catch(function(err) {
+                    console.warn("Modern clipboard failed: ", err);
+                });
+                return;
+            }
+
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            textArea.style.left = "-9999px";
+
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                console.error('Fallback copy failed', err);
+            }
+
+            document.body.removeChild(textArea);
+        };
     </script>
 </body>
 

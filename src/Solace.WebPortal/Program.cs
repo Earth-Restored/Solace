@@ -117,6 +117,8 @@ internal sealed partial class Program2
         builder.Services.AddSolaceWebPortalHandlers();
         builder.Services.AddSolaceWebPortalBehaviors();
 
+        builder.Services.Configure<PublicEndpointInfo>(builder.Configuration.GetSection("PublicEndpoints"));
+
         await using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
