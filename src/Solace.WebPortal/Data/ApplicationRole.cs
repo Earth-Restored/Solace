@@ -5,9 +5,6 @@ namespace Solace.WebPortal.Data;
 
 public sealed class ApplicationRole : IdentityRole<long>
 {
-    public const string Owner = "owner";
-    public const string Default = "everyone";
-
     /// <summary>
     /// Initializes a new instance of <see cref="ApplicationRole"/>.
     /// </summary>

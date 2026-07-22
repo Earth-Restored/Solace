@@ -110,7 +110,7 @@ $projectList = @(
     [pscustomobject]@{ProjectName = 'Solace.Locator'; PackageName = 'locator'; AOT = $true }
     [pscustomobject]@{ProjectName = 'Solace.TappablesGenerator'; PackageName = 'tappable-generator'; AOT = $true }
     [pscustomobject]@{ProjectName = 'Solace.TileRenderer'; PackageName = 'tile-renderer'; AOT = $true }
-    [pscustomobject]@{ProjectName = 'Solace.AdminPanel'; PackageName = 'admin-panel'; AOT = $false }
+    [pscustomobject]@{ProjectName = 'Solace.WebPortal'; PackageName = 'web-portal'; AOT = $false }
 )
 
 $selectedProjects = $projectList | Where-Object {

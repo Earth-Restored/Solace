@@ -38,8 +38,7 @@ else
             </li>
             <li>
                 <div>
-                    <svg xmlns="http://www.w3.org/2000/svg" height="300" width="300" stroke="none" version="1.1" viewBox="0 0 50 50">
-                        <rect width="300" height="300" fill="#ffffff" />
+                    <svg xmlns="http://www.w3.org/2000/svg" height="300" width="300" stroke="none" version="1.1" viewBox="0 0 @qrSize @qrSize" style="background-color: #ffffff; padding: 8px; border: 4px solid #ffffff; border-radius: 4px;">
                         <path d="@svgGraphicsPath" fill="#000000" />
                     </svg>
                 </div>
@@ -75,6 +74,7 @@ else
     private ApplicationUser? user;
     private string? sharedKey;
     private string? svgGraphicsPath;
+    private int? qrSize;
     private IEnumerable<string>? recoveryCodes;
 
     [CascadingParameter]
@@ -156,6 +156,7 @@ else
 
         var qr = QrCode.EncodeText(authenticatorUri, QrCode.Ecc.Medium);
         svgGraphicsPath = qr.ToGraphicsPath();
+        qrSize = qr.Size;
     }
 
     private string FormatKey(string unformattedKey)

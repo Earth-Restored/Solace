@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Solace.Common;
 using Solace.WebPortal.Common;
+using Solace.WebPortal.Common.Features.Roles;
 using Solace.WebPortal.Components;
 using Solace.WebPortal.Components.Account;
 using Solace.WebPortal.Data;
@@ -38,7 +39,7 @@ internal static class Program
 }
 
 #pragma warning disable MA0048 // File name must match type name
-internal partial class Program2
+internal sealed partial class Program2
 #pragma warning restore MA0048 // File name must match type name
 {
     public static async Task RunAsync(string[] args)
@@ -108,6 +109,14 @@ internal partial class Program2
 
         builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
+        builder.Services.AddAuthorization(options =>
+        {
+            options.AddPermissionPolicies();
+        });
+
+        builder.Services.AddSolaceWebPortalHandlers();
+        builder.Services.AddSolaceWebPortalBehaviors();
+
         await using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
@@ -138,6 +147,8 @@ internal partial class Program2
             .AddInteractiveWebAssemblyRenderMode()
             .AddAdditionalAssemblies(typeof(Client._Imports).Assembly);
 
+        app.MapSolaceWebPortalEndpoints();
+
         // Add additional endpoints required by the Identity /Account Razor components.
         app.MapAdditionalIdentityEndpoints();
 
@@ -159,13 +170,13 @@ internal partial class Program2
 
     private static async Task EnsureBuiltInRolesAsync(RoleManager<ApplicationRole> roleManager, UserManager<ApplicationUser> userManager)
     {
-        var everyoneRole = await roleManager.FindByNameAsync(ApplicationRole.Default);
+        var everyoneRole = await roleManager.FindByNameAsync(RoleConstants.Default);
 
         if (everyoneRole is null)
         {
             everyoneRole = new ApplicationRole
             {
-                Name = ApplicationRole.Default,
+                Name = RoleConstants.Default,
                 Position = int.MaxValue - 10,
                 Color = "#99AAB5",
                 IsBuiltIn = true
@@ -174,15 +185,15 @@ internal partial class Program2
             // await roleManager.AddClaimAsync(everyoneRole, new Claim("Permission", Permissions.LinkPlayers));
         }
 
-        await AssignRoleToAllUsersAsync(userManager, ApplicationRole.Default);
+        await AssignRoleToAllUsersAsync(userManager, RoleConstants.Default);
 
-        var ownerRole = await roleManager.FindByNameAsync(ApplicationRole.Owner);
+        var ownerRole = await roleManager.FindByNameAsync(RoleConstants.Owner);
 
         if (ownerRole is null)
         {
             ownerRole = new ApplicationRole
             {
-                Name = ApplicationRole.Owner,
+                Name = RoleConstants.Owner,
                 Position = 0,
                 Color = "#FF0000",
                 IsBuiltIn = true
@@ -218,16 +229,15 @@ internal partial class Program2
 
     private static async Task AssignRoleToAllUsersAsync(UserManager<ApplicationUser> userManager, string roleName)
     {
-        var usersInRole = await userManager.GetUsersInRoleAsync(roleName);
-        var usersInRoleIds = usersInRole.Select(u => u.Id).ToHashSet();
+        // todo: optimize
+        var users = await userManager.Users.ToListAsync();
 
-        var usersWithoutRole = await userManager.Users
-            .Where(u => !usersInRoleIds.Contains(u.Id))
-            .ToListAsync();
-
-        foreach (var user in usersWithoutRole)
+        foreach (var user in users)
         {
-            await userManager.AddToRoleAsync(user, roleName);
+            if (!await userManager.IsInRoleAsync(user, roleName))
+            {
+                await userManager.AddToRoleAsync(user, roleName);
+            }
         }
     }
 
@@ -251,7 +261,7 @@ internal partial class Program2
 
             if (createResult.Succeeded)
             {
-                await userManager.AddToRoleAsync(ownerUser, ApplicationRole.Owner);
+                await userManager.AddToRoleAsync(ownerUser, RoleConstants.Owner);
 
 #pragma warning disable CA1848 // Use the LoggerMessage delegates
                 logger.LogWarning("==================================================");
