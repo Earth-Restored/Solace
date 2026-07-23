@@ -119,12 +119,31 @@ internal sealed partial class Program2
 
         builder.Services.Configure<PublicEndpointInfo>(builder.Configuration.GetSection("PublicEndpoints"));
 
+        builder.Services.Configure<Solace.Common.Asp.Captcha.CaptchaConfiguration>(builder.Configuration.GetSection("Captcha"));
+
+        var captchaProvider = builder.Configuration.GetValue("Captcha:Provider", Solace.Common.Asp.Captcha.CaptchaProvider.NoOp);
+
+        switch (captchaProvider)
+        {
+            case Solace.Common.Asp.Captcha.CaptchaProvider.CloudflareTurnstile:
+                builder.Services.AddHttpClient<Solace.Common.Asp.Captcha.ICaptchaValidator, Solace.Common.Asp.Captcha.CloudflareTurnstileValidator>();
+                break;
+            default:
+                builder.Services.AddSingleton<Solace.Common.Asp.Captcha.ICaptchaValidator, Solace.Common.Asp.Captcha.NoOpCaptchaValidator>();
+                break;
+        }
+
         await using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
         GlobalLoggerFactory.Initialize(loggerFactory);
 
         var programLogger = loggerFactory.CreateLogger(nameof(App));
+
+        if (captchaProvider is Solace.Common.Asp.Captcha.CaptchaProvider.NoOp)
+        {
+            LogUsingNoOpCaptchaProvider(programLogger);
+        }
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
@@ -300,4 +319,7 @@ internal sealed partial class Program2
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "Unhandled exception")]
     private static partial void LogUnhandledException(ILogger logger, Exception? exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Using NoOp captcha provider")]
+    private static partial void LogUsingNoOpCaptchaProvider(ILogger logger);
 }

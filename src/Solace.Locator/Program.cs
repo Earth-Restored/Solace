@@ -71,7 +71,7 @@ internal sealed partial class App
 
         var forwardedHeadersOptions = new ForwardedHeadersOptions
         {
-            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+            ForwardedHeaders = ForwardedHeaders.All,
         };
 
         forwardedHeadersOptions.KnownIPNetworks.Clear();

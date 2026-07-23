@@ -2,11 +2,11 @@ namespace Solace.Common.Asp.Captcha;
 
 public interface ICaptchaValidator
 {
-    string Script { get; }
-
     string FormFieldName { get; }
 
-    string GetHtmlWidget(string size = "normal");
+    string Script { get; }
 
-    Task<bool> ValidateAsync(string? token, string? remoteip = null, CancellationToken cancellationToken = default);
+    string ManagerScript { get; }
+
+    Task<bool> ValidateAsync(string? token, string? remoteIp = null, CancellationToken cancellationToken = default);
 }

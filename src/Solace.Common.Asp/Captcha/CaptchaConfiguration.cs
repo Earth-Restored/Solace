@@ -1,6 +1,6 @@
 namespace Solace.Common.Asp.Captcha;
 
-public sealed class CaptchaOptions
+public sealed class CaptchaConfiguration
 {
     public CaptchaProvider Provider { get; init; } = CaptchaProvider.NoOp;
 

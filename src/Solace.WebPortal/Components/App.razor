@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@inject Solace.Common.Asp.Captcha.ICaptchaValidator CaptchaValidator
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -12,6 +14,10 @@
     <link rel="stylesheet" href="@Assets["Solace.WebPortal.styles.css"]" />
     <ImportMap />
     <link rel="icon" type="image/png" href="favicon.png" />
+    <script>
+        @((MarkupString)CaptchaValidator.ManagerScript)
+    </script>
+    @((MarkupString)CaptchaValidator.Script)
     <HeadOutlet @rendermode="PageRenderMode" />
 </head>
 

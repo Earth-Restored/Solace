@@ -4,12 +4,14 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using Solace.WebPortal.Data
+@using Solace.Common.Asp.Captcha
 
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject ICaptchaValidator CaptchaValidator
 
 <PageTitle>Log in</PageTitle>
 
@@ -31,17 +33,19 @@
                     <ValidationMessage For="() => Input.Email" class="text-danger" />
                 </div>
                 <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                <label for="Input.Password" class="form-label">
-                    <DisplayName For="() => Input.Password" />
-                </label>
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
+                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
+                    <label for="Input.Password" class="form-label">
+                        <DisplayName For="() => Input.Password" />
+                    </label>
+                    <ValidationMessage For="() => Input.Password" class="text-danger" />
                 </div>
                 <div class="checkbox mb-3">
                     <label class="form-label">
                         <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
                         Remember me
                     </label>
+                </div>
+                <div id="captcha-container" class="mb-3" data-captcha="true">
                 </div>
                 <div>
                     <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
@@ -125,6 +129,15 @@
             // If doing a password sign-in, validate the form.
             if (!editContext.Validate())
             {
+                return;
+            }
+
+            var captchaToken = HttpContext.Request.Form[CaptchaValidator.FormFieldName].ToString();
+            string? remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            if (!await CaptchaValidator.ValidateAsync(captchaToken, remoteIp))
+            {
+                errorMessage = "Error: Security check failed. Please try again.";
                 return;
             }
 

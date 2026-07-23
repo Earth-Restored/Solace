@@ -6,11 +6,13 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
 @using Solace.WebPortal.Data
+@using Solace.Common.Asp.Captcha
 
 @inject UserManager<ApplicationUser> UserManager
 @inject IEmailSender<ApplicationUser> EmailSender
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject ICaptchaValidator CaptchaValidator
 
 <PageTitle>Resend email confirmation</PageTitle>
 
@@ -28,6 +30,8 @@
                 <label for="Input.Email" class="form-label">Email</label>
                 <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
+            <div id="captcha-container" class="mb-3" data-captcha="true">
+            </div>
             <button type="submit" class="w-100 btn btn-lg btn-primary">Resend</button>
         </EditForm>
     </div>
@@ -35,6 +39,9 @@
 
 @code {
     private string? message;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
 
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = default!;
@@ -46,6 +53,15 @@
 
     private async Task OnValidSubmitAsync()
     {
+        var captchaToken = HttpContext.Request.Form[CaptchaValidator.FormFieldName].ToString();
+        string? remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+        if (!await CaptchaValidator.ValidateAsync(captchaToken, remoteIp))
+        {
+            message = "Error: Security check failed. Please try again.";
+            return;
+        }
+
         var user = await UserManager.FindByEmailAsync(Input.Email!);
         if (user is null)
         {

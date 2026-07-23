@@ -195,7 +195,7 @@ internal static partial class App
                 manager.FeatureProviders.Add(new InternalControllerFeatureProvider());
             });
 
-        builder.Services.Configure<Common.Asp.Captcha.CaptchaOptions>(builder.Configuration.GetSection("Captcha"));
+        builder.Services.Configure<Common.Asp.Captcha.CaptchaConfiguration>(builder.Configuration.GetSection("Captcha"));
         builder.Services.Configure<PublicEndpointInfo>(builder.Configuration.GetSection("PublicEndpoints"));
 
         var captchaProvider = builder.Configuration.GetValue("Captcha:Provider", Common.Asp.Captcha.CaptchaProvider.NoOp);
