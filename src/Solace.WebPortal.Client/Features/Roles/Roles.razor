@@ -249,10 +249,10 @@
                 _userMinPosition = response.UserMinPosition;
             }
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
             _errorMessage = "Failed to load roles.";
-            Console.WriteLine(ex);
+            Console.WriteLine(exception);
         }
     }
 
@@ -327,10 +327,10 @@
                 _errorMessage = await response.Content.ReadAsStringAsync();
             }
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
             _errorMessage = "An error occurred while saving the role.";
-            Console.WriteLine(ex);
+            Console.WriteLine(exception);
         }
     }
 

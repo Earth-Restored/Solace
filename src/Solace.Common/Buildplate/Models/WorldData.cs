@@ -71,9 +71,9 @@ public sealed partial record class WorldData(
                 }
             }
         }
-        catch (IOException ex)
+        catch (IOException exception)
         {
-            LogWorldFileReadError(logger, ex);
+            LogWorldFileReadError(logger, exception);
             return null;
         }
 
@@ -174,9 +174,9 @@ public sealed partial record class WorldData(
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            LogBuildplateMetadataReadError(logger, ex);
+            LogBuildplateMetadataReadError(logger, exception);
             return null;
         }
 

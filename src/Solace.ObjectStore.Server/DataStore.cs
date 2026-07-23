@@ -32,15 +32,15 @@ internal sealed class DataStore
             using var fileStream = File.OpenWrite(file.FullName);
             await data.CopyToAsync(fileStream, cancellationToken);
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException exception)
         {
             file.Delete();
-            throw new DataStoreException($"Permission denied writing object file '{file.FullName}'", ex);
+            throw new DataStoreException($"Permission denied writing object file '{file.FullName}'", exception);
         }
-        catch (IOException ex)
+        catch (IOException exception)
         {
             file.Delete();
-            throw new DataStoreException(ex);
+            throw new DataStoreException(exception);
         }
 
         return id;
@@ -62,9 +62,9 @@ internal sealed class DataStore
         {
             return (File.OpenRead(file.FullName), file.Length);
         }
-        catch (IOException ex)
+        catch (IOException exception)
         {
-            throw new DataStoreException(ex);
+            throw new DataStoreException(exception);
         }
     }
 

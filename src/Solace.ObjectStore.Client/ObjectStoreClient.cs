@@ -90,7 +90,7 @@ public sealed class ObjectStoreClient : IAsyncDisposable
 
             return new GetObjectStreamWrapper(call, call.ResponseStream.Current, cancellationToken);
         }
-        catch (RpcException ex) when (ex.StatusCode == StatusCode.NotFound)
+        catch (RpcException exception) when (exception.StatusCode == StatusCode.NotFound)
         {
             call.Dispose();
             return null;
@@ -123,7 +123,7 @@ public sealed class ObjectStoreClient : IAsyncDisposable
 
             return memoryStream.ToArray();
         }
-        catch (RpcException ex) when (ex.StatusCode == StatusCode.NotFound)
+        catch (RpcException exception) when (exception.StatusCode == StatusCode.NotFound)
         {
             return null;
         }
@@ -152,7 +152,7 @@ public sealed class ObjectStoreClient : IAsyncDisposable
 
             return buffer.AsMemory();
         }
-        catch (RpcException ex) when (ex.StatusCode == StatusCode.NotFound)
+        catch (RpcException exception) when (exception.StatusCode == StatusCode.NotFound)
         {
             return null;
         }

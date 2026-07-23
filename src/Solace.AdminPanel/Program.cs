@@ -138,7 +138,7 @@ internal static partial class App
         //                 File.SetAttributes(dbFile.FullName, FileAttributes.Normal);
         //             }
         //         }
-        //         catch (Exception ex)
+        //         catch (Exception exception)
         //         {
         //             Log.Warning(ex, "Failed to normalize database file permissions");
         //         }
@@ -480,7 +480,7 @@ internal static partial class App
 
     //             Log.Information("Database migrated");
     //         }
-    //         catch (Exception ex)
+    //         catch (Exception exception)
     //         {
     //             Log.Error(ex, $"Failed to migrate database. To retry, delete earth.db and rename (earth/live).db.old to (earth/live).db. Error: {ex.Message}");
     //             throw;

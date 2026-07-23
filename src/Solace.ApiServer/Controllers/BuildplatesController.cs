@@ -191,9 +191,9 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             _earthDb.SharedBuildplates.Add(sharedBuildplate);
             await _earthDb.SaveChangesAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            LogSharedBuildplateDBStoreError(ex, buildplateId);
+            LogSharedBuildplateDBStoreError(exception, buildplateId);
             await _objectStore.DeleteAsync(sharedBuildplateServerDataObjectId.Value, cancellationToken);
             return TypedResults.InternalServerError();
         }

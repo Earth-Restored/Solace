@@ -300,7 +300,7 @@
                 await Task.Delay(100, token);
             }
         }
-        catch (Exception ex) when (ex is TaskCanceledException || ex is ObjectDisposedException)
+        catch (Exception exception) when (ex is TaskCanceledException || ex is ObjectDisposedException)
         {
         }
     }

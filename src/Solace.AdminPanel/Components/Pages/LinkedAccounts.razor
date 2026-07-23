@@ -624,7 +624,7 @@
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(account => account.Username, username));
         }
-        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation)
+        catch (DbUpdateException exception) when (ex.IsUniqueConstraintViolation)
         {
             Logger.LogDebug("Concurrency conflict hit for username '{Username}'", username);
             UpdateErrorMessage = "Username must be unique.";

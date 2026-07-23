@@ -129,7 +129,7 @@ public sealed partial class Register(
         {
             await earthDb.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation)
+        catch (DbUpdateException exception) when (exception.IsUniqueConstraintViolation)
         {
             LogConcurrencyConflictHitForUsername(username);
             return TypedResults.BadRequest("Account with the specified username already exists");

@@ -134,5 +134,5 @@ internal sealed partial class OpenMapTilesDataSource : ITileDataSource
     public sealed record TilesResponse([property: JsonPropertyName("tiles")] ImmutableArray<string> TileUrls, [property: JsonPropertyName("maxzoom")] int? MaxZoom);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Error while converting map data")]
-    private static partial void LogErrorConvertingMapData(ILogger logger, Exception ex);
+    private static partial void LogErrorConvertingMapData(ILogger logger, Exception exception);
 }

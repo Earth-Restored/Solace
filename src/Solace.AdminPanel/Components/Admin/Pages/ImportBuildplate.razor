@@ -240,7 +240,7 @@
             fileState.HasError = true;
             fileState.ErrorMessage = "Upload cancelled.";
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
             fileState.HasError = true;
             fileState.ErrorMessage = $"Upload failed: {ex.Message}";

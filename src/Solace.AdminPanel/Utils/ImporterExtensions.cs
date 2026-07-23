@@ -190,7 +190,7 @@ internal static class ImporterExtensions
                 await appDbContext.SaveChangesAsync(cancellationToken);
                 return dbBuildplatePreview.PreviewData;
             }
-            catch (DbUpdateException ex) when (ex.InnerException is SqliteException sqliteEx && sqliteEx.SqliteErrorCode == 19)
+            catch (DbUpdateException exception) when (ex.InnerException is SqliteException sqliteEx && sqliteEx.SqliteErrorCode == 19)
             {
                 appDbContext.ChangeTracker.Clear();
 

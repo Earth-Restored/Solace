@@ -169,7 +169,7 @@ internal static class ImporterExtensions
                 await appDbContext.SaveChangesAsync(cancellationToken);
                 return dbBuildplatePreview.PreviewData;
             }
-            catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation)
+            catch (DbUpdateException exception) when (exception.IsUniqueConstraintViolation)
             {
                 appDbContext.ChangeTracker.Clear();
 

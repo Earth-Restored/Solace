@@ -493,9 +493,9 @@ public sealed partial class Importer : IAsyncDisposable
                    .UpdateBuildplate(templateId, template)
                    .ExecuteAsync(earthDB, cancellationToken);
             }
-            catch (EarthDb.DatabaseException ex)
+            catch (EarthDb.DatabaseException exception)
             {
-                _logger.Error($"Failed to update template buildplate: {ex}");
+                _logger.Error($"Failed to update template buildplate: {exception}");
                 return false;
             }
 

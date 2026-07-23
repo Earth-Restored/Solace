@@ -206,9 +206,9 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
                             }
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception exception)
                     {
-                        LogBadStartNotification(ex);
+                        LogBadStartNotification(exception);
                     }
                 }
 

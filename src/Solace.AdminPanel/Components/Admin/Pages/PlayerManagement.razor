@@ -263,7 +263,7 @@
                 .Include(account => account.Profile)
                 .ToListAsync();
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
             Logger.LogError(ex, "Failed to get accounts from db");
             _errorMessage = "Database connection failed.";

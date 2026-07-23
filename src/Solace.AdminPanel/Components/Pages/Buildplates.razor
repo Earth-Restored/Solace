@@ -455,9 +455,9 @@
 
             Logger.LogInformation("Successfully regenerated preview for buildplate '{Id}'", bp.Id);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            Logger.LogError(ex, "Failed to regenerate preview");
+            Logger.LogError(exception, "Failed to regenerate preview");
             bp.ErrorMessage = "Failed to regenerate preview. Try again?";
         }
         finally
@@ -558,10 +558,10 @@
                 await LoadBuildplates();
                 CancelDelete();
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Logger.LogError(ex, "Failed to delete buildplate");
-                _deleteErrorMessage = $"Failed to delete the buildplate: {ex.Message}";
+                Logger.LogError(exception, "Failed to delete buildplate");
+                _deleteErrorMessage = $"Failed to delete the buildplate: {exception.Message}";
             }
             finally
             {

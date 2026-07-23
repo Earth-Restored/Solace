@@ -77,9 +77,9 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
                 {
                     await kvp.Value.WriteAsync(message);
                 }
-                catch (Exception ex)
+                catch (Exception exception)
                 {
-                    LogSubscriberWriteFailed(logger, kvp.Key, ex);
+                    LogSubscriberWriteFailed(logger, kvp.Key, exception);
                     queue.TryRemove(kvp.Key, out _);
                 }
             }
@@ -221,9 +221,9 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
         {
             LogHandlerStreamCancelled(_logger);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            LogHandlerStreamError(_logger, ex);
+            LogHandlerStreamError(_logger, exception);
             throw;
         }
         finally

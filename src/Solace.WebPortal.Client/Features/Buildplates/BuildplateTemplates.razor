@@ -395,9 +395,9 @@
                 buildplate.ErrorMessage = "Failed to save. Try again?";
             }
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            Logger.LogError(ex, "Failed to save buildplate '{Id}'", buildplate.Id);
+            Logger.LogError(exception, "Failed to save buildplate '{Id}'", buildplate.Id);
             buildplate.ErrorMessage = "Failed to save. Try again?";
         }
         finally
@@ -429,10 +429,10 @@
                 await LoadBuildplates();
                 CancelDelete();
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Logger.LogError(ex, "Failed to delete buildplate");
-                _deleteErrorMessage = $"Failed to delete the buildplate: {ex.Message}";
+                Logger.LogError(exception, "Failed to delete buildplate");
+                _deleteErrorMessage = $"Failed to delete the buildplate: {exception.Message}";
             }
             finally
             {
@@ -462,9 +462,9 @@
             }
             Logger.LogInformation("Successfully regenerated preview for buildplate '{Id}'", buildplate.Id);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            Logger.LogError(ex, "Failed to regenerate preview");
+            Logger.LogError(exception, "Failed to regenerate preview");
             buildplate.ErrorMessage = "Failed to regenerate preview. Try again?";
         }
         finally
