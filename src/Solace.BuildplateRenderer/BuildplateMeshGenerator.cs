@@ -61,6 +61,7 @@ public sealed class BuildplateMeshGenerator
     {
         var cacheRegionsProgress = progress?.WrapRange(0.00, 0.90);
         cacheRegionsProgress?.Report(new ProgressReport(0.00, $"Caching regions"));
+        int lastReportedPercentage = 0;
 
         var mesh = new MeshData();
         var subChunkCache = new Dictionary<int3, CachedSubChunk>();
@@ -84,13 +85,21 @@ public sealed class BuildplateMeshGenerator
                     CacheRegion(regionData, RegionUtils.PathToPos(entry.FullName), subChunkCache);
 
                     regionIndex++;
-                    cacheRegionsProgress?.Report(new ProgressReport((double)regionIndex / regionCount, null));
+
+                    var currentPercentage = (int)((double)regionIndex / regionCount * 100);
+                    if (currentPercentage != lastReportedPercentage)
+                    {
+                        cacheRegionsProgress?.Report(new ProgressReport((double)regionIndex / regionCount, null));
+                    }
+
+                    lastReportedPercentage = currentPercentage;
                 }
             }
         }
 
         var processChunksProgress = progress?.WrapRange(0.90, 1.00);
         processChunksProgress?.Report(new ProgressReport(0.00, $"Processing chunks"));
+        lastReportedPercentage = 0;
 
         var worldOffset = new int3(0, -worldData.Offset / 2, 0);
 
@@ -99,7 +108,14 @@ public sealed class BuildplateMeshGenerator
         {
             ProcessCachedSubChunk(subChunk, subChunkCache, mesh, worldOffset);
             chunkIndex++;
-            processChunksProgress?.Report(new ProgressReport((double)chunkIndex / subChunkCache.Count, null));
+
+            var currentPercentage = (int)((double)chunkIndex / subChunkCache.Count * 100);
+            if (currentPercentage != lastReportedPercentage)
+            {
+                processChunksProgress?.Report(new ProgressReport((double)chunkIndex / subChunkCache.Count, null));
+            }
+
+            lastReportedPercentage = currentPercentage;
         }
 
         return mesh;

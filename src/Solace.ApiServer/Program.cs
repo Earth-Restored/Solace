@@ -161,8 +161,6 @@ internal static partial class App
             await next();
         });
 
-        app.UseStaticFiles();
-
         app.UseRouting();
 
         app.UseAuthentication();

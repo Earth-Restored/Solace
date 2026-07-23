@@ -1,0 +1,320 @@
+@using System.Diagnostics
+@using System.Net.Http.Json
+@using HomagGroup.Blazor3D.Enums
+@using HomagGroup.Blazor3D.Lights
+@using HomagGroup.Blazor3D.Maths
+@using HomagGroup.Blazor3D.Scenes
+@using HomagGroup.Blazor3D.Settings
+@using HomagGroup.Blazor3D.Viewers
+@using Microsoft.JSInterop
+@using Solace.WebPortal.Common.Features.Buildplates
+
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@inject ILogger<BuildplatePreview> Logger
+@implements IAsyncDisposable
+
+<div @ref="_previewContainer" class="bg-dark text-secondary d-flex align-items-center justify-content-center position-relative preview-container" style="height: 220px; overflow: hidden;">
+    @if (_isPreviewLoading)
+    {
+        <div class="d-flex flex-column align-items-center justify-content-center w-75">
+            <div class="text-info mb-2 fw-bold text-center small">
+                @(_progressStatus ?? "Loading 3D preview...")
+            </div>
+            <div class="progress w-100 bg-secondary bg-opacity-25" style="height: 4px;">
+                <div class="progress-bar bg-info" role="progressbar" style="width: @((int)(_currentProgress * 100))%; transition: width 0.2s ease;" aria-valuenow="@((int)(_currentProgress * 100))" aria-valuemin="0" aria-valuemax="100">
+                </div>
+            </div>
+
+            @if (_currentProgress > 0)
+            {
+                <div class="text-info small mt-1" style="font-size: 0.75rem;">
+                    @(double.Round(_currentProgress * 100, 1))%
+                </div>
+            }
+        </div>
+    }
+    else if (_isPreviewFailed)
+    {
+        <div class="text-danger d-flex flex-column align-items-center">
+            <i class="bi bi-x-circle fs-3 mb-1"></i>
+            <span class="small fw-bold">Preview unavailable</span>
+        </div>
+    }
+    else if (_previewDataUri is not null)
+    {
+        <div class="w-100 h-100">
+            <Viewer @ref="_viewer3D" ViewerSettings="@_settings" Scene="@_scene" />
+        </div>
+    }
+
+    <span class="position-absolute top-0 start-0 m-2 badge bg-info text-dark">
+        @DisplayScale
+    </span>
+    <span class="position-absolute top-0 end-0 m-2 badge @(IsNight ? "bg-secondary" : "bg-info text-dark")">
+        @(IsNight ? "Night" : "Day")
+    </span>
+
+    @if (!_isPreviewLoading)
+    {
+        <button class="btn btn-sm btn-light position-absolute bottom-0 start-0 m-2 opacity-75 hover-opacity-100" @onclick="RefreshPreviewAsync" title="Refresh Preview">
+            <i class="bi bi-arrow-clockwise"></i>
+        </button>
+
+        if (_previewDataUri is not null)
+        {
+            <button class="btn btn-sm btn-light position-absolute bottom-0 end-0 m-2 opacity-75 hover-opacity-100" @onclick="ToggleFullscreen" title="Toggle Fullscreen">
+                <i class="bi bi-arrows-fullscreen"></i>
+            </button>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public required Guid BuildplateId { get; set; }
+    [Parameter, EditorRequired] public required bool IsTemplate { get; set; }
+    [Parameter] public Guid? PlayerId { get; set; }
+    [Parameter] public int Size { get; set; }
+    [Parameter] public int BlocksPerMeter { get; set; }
+    [Parameter] public bool IsNight { get; set; }
+
+    private ElementReference _previewContainer;
+    private Viewer? _viewer3D;
+    private ViewerSettings _settings = new();
+    private Scene _scene = new();
+
+    private bool _isPreviewLoading = true;
+    private bool _isPreviewFailed = false;
+    private string? _previewDataUri;
+    private bool _isModelImported = false;
+    private bool _isCurrentlyLoadingTask = false;
+    private IJSObjectReference? _jsModule;
+
+    private double _currentProgress = 0;
+    private string? _progressStatus;
+    private CancellationTokenSource? _progressCts;
+
+    private string DisplayScale
+    {
+        get
+        {
+            float scaleVal = 1f / BlocksPerMeter;
+            return scaleVal >= 1 ? $"1:{scaleVal:0.##}" : $"{(1 / scaleVal):0.##}:1";
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _settings.ContainerId = $"viewer_{BuildplateId}";
+        _scene.Add(new AmbientLight() { Intensity = 2 });
+        _scene.Add(new DirectionalLight() { Intensity = 2 });
+        _scene.BackGroundColor = IsNight ? "#070066" : "#3B69F5";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Features/Buildplates/BuildplatePreview.razor.js");
+
+            if (_previewDataUri is null && !_isPreviewFailed && _isPreviewLoading && !_isCurrentlyLoadingTask)
+            {
+                ResetProgress();
+                _isCurrentlyLoadingTask = true;
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await LoadPreviewAsync();
+                    }
+                    finally
+                    {
+                        _isCurrentlyLoadingTask = false;
+                        await InvokeAsync(StateHasChanged);
+                    }
+                });
+            }
+        }
+
+        if (_viewer3D is not null && _previewDataUri is not null && !_isModelImported)
+        {
+            _ = ImportModelWithRetryAsync();
+        }
+    }
+
+    private async Task ImportModelWithRetryAsync()
+    {
+        int maxRetries = 15;
+        while (maxRetries > 0 && !_isModelImported && _viewer3D is not null)
+        {
+            try
+            {
+                var orbitTarget = new Vector3(0, 0f, 0);
+                var cameraDistance = Size * 1.25f;
+                _viewer3D.Camera.Position = new Vector3(-cameraDistance, cameraDistance, -cameraDistance);
+                _viewer3D.Camera.LookAt = orbitTarget;
+                _viewer3D.OrbitControls.TargetPosition = orbitTarget;
+
+                Debug.Assert(_previewDataUri is not null);
+                await _viewer3D.Import3DModelAsync(new ImportSettings
+                {
+                    Format = Import3DFormats.Gltf,
+                    FileURL = _previewDataUri,
+                });
+
+                _isModelImported = true;
+                break;
+            }
+            catch (Exception)
+            {
+                maxRetries--;
+                if (maxRetries == 0)
+                {
+                    Logger.LogError("Failed to import GLB model into Blazor3D Viewer for {Id} after multiple attempts.", BuildplateId);
+                    _isPreviewFailed = true;
+                    _isModelImported = true;
+                    await InvokeAsync(StateHasChanged);
+                }
+                else
+                {
+                    await Task.Delay(200);
+                }
+            }
+        }
+    }
+
+    private async Task RefreshPreviewAsync()
+    {
+        if (_isCurrentlyLoadingTask)
+        {
+            return;
+        }
+
+        ResetProgress();
+        _isCurrentlyLoadingTask = true;
+        _isPreviewLoading = true;
+        _isPreviewFailed = false;
+        _isModelImported = false;
+        _previewDataUri = null;
+
+        StateHasChanged();
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await LoadPreviewAsync(getFromCache: false);
+            }
+            finally
+            {
+                _isCurrentlyLoadingTask = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        });
+    }
+
+    private void ResetProgress()
+    {
+        _progressCts?.Cancel();
+        _progressCts?.Dispose();
+        _progressCts = new CancellationTokenSource();
+
+        _currentProgress = 0;
+        _progressStatus = "Initializing...";
+    }
+
+    private async Task LoadPreviewAsync(bool getFromCache = true)
+    {
+        try
+        {
+            var forceRefresh = !getFromCache;
+            var url = $"/api/admin/buildplates/{BuildplateId}/preview?isTemplate={IsTemplate}&forceRefresh={forceRefresh}";
+            if (PlayerId.HasValue)
+            {
+                url += $"&playerId={PlayerId.Value}";
+            }
+
+            var stream = Http.GetFromJsonAsAsyncEnumerable<BuildplatePreviewResponse>(url, _progressCts!.Token);
+
+            await foreach (var update in stream)
+            {
+                if (update is null)
+                {
+                    continue;
+                }
+
+                if (update.DataUri is not null)
+                {
+                    _currentProgress = 1.00;
+                    _progressStatus = "Preparing preview";
+                    await InvokeAsync(StateHasChanged);
+
+                    await Task.Delay(200);
+
+                    _previewDataUri = update.DataUri;
+                }
+                else
+                {
+                    _currentProgress = double.Clamp(update.Progress, 0.00, 1.00);
+                    if (update.StatusMessage is not null)
+                    {
+                        _progressStatus = update.StatusMessage;
+                    }
+
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+
+            if (_previewDataUri is null)
+            {
+                _isPreviewFailed = true;
+            }
+        }
+        catch (Exception exception) when (exception is not TaskCanceledException)
+        {
+            Logger.LogError(exception, "Preview fetch failed for Buildplate ID {Id}", BuildplateId);
+            _isPreviewFailed = true;
+        }
+        finally
+        {
+            _progressCts?.Cancel();
+            _isPreviewLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task ToggleFullscreen()
+    {
+        if (_jsModule is not null)
+        {
+            await _jsModule.InvokeVoidAsync("toggleFullscreen", _previewContainer);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            _progressCts?.Cancel();
+            _progressCts?.Dispose();
+
+            if (_viewer3D is not null)
+            {
+                await _viewer3D.DisposeAsync();
+            }
+
+            if (_jsModule is not null)
+            {
+                await _jsModule.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (Exception exception)
+        {
+            Logger.LogDebug(exception, "Error during disposal of {Id}", BuildplateId);
+        }
+    }
+}

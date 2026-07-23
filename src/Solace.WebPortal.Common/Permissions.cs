@@ -5,6 +5,9 @@ namespace Solace.WebPortal.Common;
 
 public static class Permissions
 {
+    [PermissionInfo("Profile", "Create in-game profile")]
+    public const string CreateProfile = "profile.create";
+
     [PermissionInfo("Users", "Manage roles - add, edit, delete")]
     public const string EditRoles = "user.role.edit";
     [PermissionInfo("Users", "View all users accounts")]

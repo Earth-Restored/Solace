@@ -2,8 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UserSecretsId>aspnet-Solace_WebPortal-1407b485-7261-4b0c-b807-1bef85e263e4</UserSecretsId>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
   </PropertyGroup>
@@ -13,14 +12,23 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Immediate.Apis" />
-    <PackageReference Include="Net.Codecrete.QrCodeGenerator" />
     <ProjectReference Include="../Solace.Analyzer/Solace.Analyzer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../Solace.BuildplateImporter/Solace.BuildplateImporter.csproj" />
+    <ProjectReference Include="../Solace.BuildplateRenderer/Solace.BuildplateRenderer.csproj" />
     <ProjectReference Include="../Solace.Common.Asp/Solace.Common.Asp.csproj" />
     <ProjectReference Include="../Solace.Common/Solace.Common.csproj" />
+    <ProjectReference Include="../Solace.EventBus.Client/Solace.EventBus.Client.csproj" />
+    <ProjectReference Include="../Solace.ObjectStore.Client/Solace.ObjectStore.Client.csproj" />
     <ProjectReference Include="../Solace.ServiceDefaults/Solace.ServiceDefaults.csproj" />
+    <ProjectReference Include="../Solace.StaticData/Solace.StaticData.csproj" />
     <ProjectReference Include="../Solace.WebPortal.Client/Solace.WebPortal.Client.csproj" />
     <ProjectReference Include="../Solace.WebPortal.Common/Solace.WebPortal.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Immediate.Apis" />
+    <PackageReference Include="Net.Codecrete.QrCodeGenerator" />
+    <PackageReference Include="MCeToJava" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" VersionOverride="11.0.0-preview.6.26359.118" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" VersionOverride="11.0.0-preview.6.26359.118" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" VersionOverride="11.0.0-preview.6.26359.118" />

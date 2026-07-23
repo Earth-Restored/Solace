@@ -4,4 +4,4 @@ param (
     [string]$MigrationName
 )
 
-dotnet ef migrations add $MigrationName --project ./../src/Solace.WebPortal --startup-project ./../src/Solace.WebPortal -o Data/Migrations
+dotnet ef migrations add $MigrationName --project ./../src/Solace.WebPortal --startup-project ./../src/Solace.WebPortal -o Data/Migrations --context ApplicationDbContext

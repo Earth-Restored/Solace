@@ -4,6 +4,9 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Solace.Common;
+using Solace.Db.Earth;
+using Solace.EventBus.Client;
+using Solace.ObjectStore.Client;
 using Solace.WebPortal.Common;
 using Solace.WebPortal.Common.Features.Roles;
 using Solace.WebPortal.Components;
@@ -90,10 +93,11 @@ internal sealed partial class Program2
             .AddIdentityCookies();
         builder.Services.AddAuthorization();
 
-        var connectionString = builder.Configuration.GetConnectionString("WebPortalDb") ?? (EF.IsDesignTime ? "Host=localhost;Database=dummy;" : throw new InvalidOperationException("Connection string 'WebPortalDb' not found."));
+        var appDbconnectionString = builder.Configuration.GetConnectionString("WebPortalDb") ?? (EF.IsDesignTime ? "Host=localhost;Database=dummy;" : throw new InvalidOperationException("Connection string 'WebPortalDb' not found."));
+        var earthDbConnectionString = builder.Configuration.GetConnectionString("EarthDb") ?? (EF.IsDesignTime ? "Host=localhost;Database=dummy;" : throw new InvalidOperationException("Connection string 'EarthDb' not found."));
 
-        builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
-            options.UseNpgsql(connectionString));
+        builder.Services.AddDbContextFactory<ApplicationDbContext>(options => options.UseNpgsql(appDbconnectionString));
+        builder.Services.AddDbContextFactory<EarthDbContext>(options => EarthDbContext.ConfigureBuilder(options, earthDbConnectionString));
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
         builder.Services.AddIdentityCore<ApplicationUser>(options =>
@@ -132,6 +136,13 @@ internal sealed partial class Program2
                 builder.Services.AddSingleton<Solace.Common.Asp.Captcha.ICaptchaValidator, Solace.Common.Asp.Captcha.NoOpCaptchaValidator>();
                 break;
         }
+
+        builder.Services.AddSingleton<StartupDependencies>();
+        builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
+        builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().ObjectStore);
+        builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().StaticData);
+
+        builder.Services.AddSingleton<Features.Buildplates.BuildplatePreviewGenerationSemaphore>();
 
         await using var app = builder.Build();
 
@@ -172,6 +183,64 @@ internal sealed partial class Program2
 
         // Add additional endpoints required by the Identity /Account Razor components.
         app.MapAdditionalIdentityEndpoints();
+
+        var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
+
+        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
+        Debug.Assert(eventBusConnectionString is not null);
+
+        LogConnectingToEventBus(programLogger);
+
+        EventBusClient eventBus;
+        try
+        {
+            eventBus = await EventBusClient.ConnectAsync(eventBusConnectionString, programLogger);
+        }
+        catch (Exception exception)
+        {
+            LogConnectToEventBusError(programLogger, exception);
+            loggerFactory.Dispose();
+            return;
+        }
+
+        LogConnectedToEventBus(programLogger);
+
+        var objectStoreConnectionString = builder.Configuration["services:object-store:http:0"];
+        Debug.Assert(objectStoreConnectionString is not null);
+
+        LogConnectingToObjectStore(programLogger);
+        ObjectStoreClient objectStore;
+        try
+        {
+            objectStore = await ObjectStoreClient.ConnectAsync(objectStoreConnectionString, programLogger);
+        }
+        catch (Exception exception)
+        {
+            LogConnectToObjectStoreError(programLogger, exception);
+            loggerFactory.Dispose();
+            return;
+        }
+
+        LogConnectedToObjectStore(programLogger);
+
+        LogLoadingStaticData(programLogger);
+        StaticData.StaticDataProvider staticData;
+        try
+        {
+            staticData = new StaticData.StaticDataProvider(builder.Configuration["StaticDataPath"]!);
+        }
+        catch (StaticData.StaticDataException exception)
+        {
+            LogLoadStaticDataError(programLogger, exception);
+            loggerFactory.Dispose();
+            return;
+        }
+
+        LogLoadedStaticData(programLogger);
+
+        startupDeps.EventBus = eventBus;
+        startupDeps.ObjectStore = objectStore;
+        startupDeps.StaticData = staticData;
 
         using (var scope = app.Services.CreateScope())
         {
@@ -317,9 +386,43 @@ internal sealed partial class Program2
         return new string(chars);
     }
 
+    internal sealed class StartupDependencies
+    {
+        public EventBusClient EventBus { get; set; } = null!;
+        public ObjectStoreClient ObjectStore { get; set; } = null!;
+        public StaticData.StaticDataProvider StaticData { get; set; } = null!;
+    }
+
     [LoggerMessage(Level = LogLevel.Critical, Message = "Unhandled exception")]
     private static partial void LogUnhandledException(ILogger logger, Exception? exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Using NoOp captcha provider")]
     private static partial void LogUsingNoOpCaptchaProvider(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Connecting to event bus")]
+    private static partial void LogConnectingToEventBus(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Could not connect to event bus")]
+    private static partial void LogConnectToEventBusError(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Connected to event bus")]
+    private static partial void LogConnectedToEventBus(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Connecting to object store")]
+    private static partial void LogConnectingToObjectStore(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Could not connect to object store")]
+    private static partial void LogConnectToObjectStoreError(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Connected to object store")]
+    private static partial void LogConnectedToObjectStore(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loading static data")]
+    private static partial void LogLoadingStaticData(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Failed to load static data")]
+    private static partial void LogLoadStaticDataError(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded static data")]
+    private static partial void LogLoadedStaticData(ILogger logger);
 }
