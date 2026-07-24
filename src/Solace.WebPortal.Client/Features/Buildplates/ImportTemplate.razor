@@ -1,0 +1,365 @@
+@page "/Admin/BuildplateTemplates/Import"
+@implements IDisposable
+@using System.Net.Http.Headers
+@using Microsoft.AspNetCore.Authorization
+@using Solace.WebPortal.Client.Utils
+@using Solace.WebPortal.Common
+@attribute [Authorize(Policy = Permissions.ManageBuildplates)]
+@inject NavigationManager NavManager
+@inject HttpClient Http
+@inject AntiforgeryStateProvider Antiforgery
+
+<PageTitle>Import Buildplate(s) - Solace</PageTitle>
+
+<div class="import-container">
+    <button class="btn-back-link" @onclick="GoBack" title="Back to Templates">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8" />
+        </svg>
+        <span>Back</span>
+    </button>
+
+    <h2>Import Buildplate</h2>
+    <p>Upload your buildplates here.</p>
+
+    <div class="drop-zone @(isHovering ? "hovering" : "") @(isImporting ? "disabled-zone" : "")" @ondragenter="@(() => { if (!isImporting) isHovering = true; })" @ondragleave="@(() => isHovering = false)" @ondrop="@(() => isHovering = false)">
+
+        @foreach (var batchId in batchIds)
+        {
+            <InputFile @key="batchId" OnChange="(e) => HandleFileSelection(e, batchId)" multiple accept=".zip,.json" class="file-input" style="@(batchId == activeBatchId ? "" : "display: none;")" />
+        }
+
+        <div class="drop-zone-content">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="upload-icon" viewBox="0 0 16 16">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
+                <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z" />
+            </svg>
+            <p><strong>Drag and drop</strong> your files here, or <strong>click to browse</strong></p>
+            <p class="file-hint">Accepts .zip (Solace/Vienna) or .json (Project Earth)</p>
+        </div>
+    </div>
+
+    @if (selectedFiles.Any())
+    {
+        <div class="file-list">
+            @foreach (var file in selectedFiles)
+            {
+                <div class="file-item">
+                    <div class="file-header">
+                        <span class="file-name">@file.File.Name</span>
+                        <div class="file-actions">
+                            @if (file.HasError && !isImporting)
+                            {
+                                <button class="btn-retry" @onclick="() => RetryFile(file)" title="Retry upload">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z" />
+                                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
+                                    </svg>
+                                    Retry
+                                </button>
+                            }
+                            <button class="btn-remove" @onclick="() => RemoveFile(file)" disabled="@(file.IsComplete || file.IsUploading || isImporting)" title="Remove file">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (file.HasError)
+                    {
+                        <span class="text-danger file-status">@file.ErrorMessage</span>
+                    }
+                    else if (file.IsComplete)
+                    {
+                        <span class="text-success file-status">Import Complete</span>
+                    }
+                    else if (file.IsProcessing)
+                    {
+                        <span class="text-primary file-status">Processing on server...</span>
+                    }
+                    else if (file.IsUploading)
+                    {
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: @(file.ProgressPercentage)%"></div>
+                        </div>
+                        <span class="file-status">Uploading: @(double.Round(file.ProgressPercentage))%</span>
+                    }
+                    else
+                    {
+                        <span class="text-info file-status">Ready to Import</span>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="button-group">
+            <button class="btn btn-primary import-btn" @onclick="ProcessImports" disabled="@(isImporting || !selectedFiles.Any(f => f.IsReady && !f.HasError && !f.IsComplete))">
+                @(isImporting ? "Importing..." : "Import Buildplates")
+            </button>
+
+            @if (!isImporting)
+            {
+                <button class="btn btn-link" @onclick="GoBack">Cancel</button>
+            }
+        </div>
+    }
+</div>
+
+@if (showDialog)
+{
+    <div class="dialog-overlay">
+        <div class="dialog-card">
+            <h3 class="@(isSuccess ? "text-success" : "text-danger")">
+                @(isSuccess ? "Success" : "Finished with Errors")
+            </h3>
+            <p>@dialogMessage</p>
+            <button class="btn @(isSuccess ? "btn-primary" : "btn-secondary")" @onclick="CloseDialog">
+                @(isSuccess ? "Back to Templates" : "Close")
+            </button>
+        </div>
+    </div>
+}
+
+<style>
+    .file-input {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+        z-index: 10;
+    }
+
+    .disabled-zone {
+        pointer-events: none;
+        opacity: 0.6;
+    }
+</style>
+
+@code {
+    private bool isHovering;
+    private bool isImporting;
+    private bool showDialog;
+    private bool isSuccess;
+    private string dialogMessage = string.Empty;
+
+    private const long MaxFileSize = 1024 * 1024 * 25; // 25MB
+    private List<FileUploadState> selectedFiles = new();
+
+    private List<Guid> batchIds = [Guid.NewGuid()];
+    private Guid activeBatchId => batchIds.Last();
+
+    private class FileUploadState
+    {
+        public IBrowserFile File { get; set; } = null!;
+        public long UploadedBytes { get; set; }
+        public double ProgressPercentage => File.Size == 0 ? 0 : ((double)UploadedBytes / File.Size) * 100;
+
+        public bool IsReady => !IsUploading && !IsComplete && !HasError;
+        public bool IsUploading { get; set; }
+        public bool IsProcessing { get; set; }
+        public bool IsComplete { get; set; }
+
+        public bool HasError { get; set; }
+        public string ErrorMessage { get; set; } = string.Empty;
+        public CancellationTokenSource Cts { get; set; } = new();
+
+        public void Reset()
+        {
+            HasError = false;
+            ErrorMessage = string.Empty;
+            UploadedBytes = 0;
+            IsUploading = false;
+            IsProcessing = false;
+            IsComplete = false;
+            Cts = new CancellationTokenSource();
+        }
+    }
+
+    private void GoBack()
+        => NavManager.NavigateTo("/Admin/BuildplateTemplates");
+
+    private void HandleFileSelection(InputFileChangeEventArgs e, Guid batchId)
+    {
+        if (isImporting)
+        {
+            return;
+        }
+
+        bool filesAdded = false;
+
+        foreach (var file in e.GetMultipleFiles(maximumFileCount: 50))
+        {
+            var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+            if (extension is not (".zip" or ".json"))
+            {
+                selectedFiles.Add(new FileUploadState
+                {
+                    File = file,
+                    HasError = true,
+                    ErrorMessage = "Invalid format. Requires .zip or .json"
+                });
+
+                filesAdded = true;
+                continue;
+            }
+
+            if (!selectedFiles.Any(f => f.File.Name == file.Name))
+            {
+                selectedFiles.Add(new FileUploadState { File = file });
+                filesAdded = true;
+            }
+        }
+
+        if (filesAdded && batchId == activeBatchId)
+        {
+            batchIds.Add(Guid.NewGuid());
+        }
+    }
+
+    private void RemoveFile(FileUploadState fileState)
+    {
+        if (!fileState.IsComplete && !fileState.HasError)
+        {
+            fileState.Cts.Cancel();
+        }
+
+        selectedFiles.Remove(fileState);
+    }
+
+    private void RetryFile(FileUploadState fileState)
+        => fileState.Reset();
+
+    private async Task ProcessImports()
+    {
+        if (isImporting)
+        {
+            return;
+        }
+
+        var filesToImport = selectedFiles.Where(f => f.IsReady).ToList();
+        if (filesToImport.Count is 0)
+        {
+            return;
+        }
+
+        isImporting = true;
+        StateHasChanged();
+
+        int successCount = 0;
+
+        foreach (var fileState in filesToImport)
+        {
+            fileState.IsUploading = true;
+            StateHasChanged();
+
+            try
+            {
+                using var content = new MultipartFormDataContent();
+
+                var antiforgeryToken = Antiforgery.GetAntiforgeryToken();
+                if (antiforgeryToken is not null)
+                {
+                    content.Headers.Add("RequestVerificationToken", antiforgeryToken.Value);
+                }
+
+                var progressStream = new ProgressReportingStream(
+                    fileState.File.OpenReadStream(MaxFileSize, fileState.Cts.Token),
+                    (bytesRead) =>
+                    {
+                        fileState.UploadedBytes = bytesRead;
+                        if (fileState.UploadedBytes >= fileState.File.Size)
+                        {
+                            fileState.IsUploading = false;
+                            fileState.IsProcessing = true;
+                        }
+
+                        InvokeAsync(StateHasChanged);
+                    }
+                );
+
+                using var streamContent = new StreamContent(progressStream);
+                streamContent.Headers.ContentType = new MediaTypeHeaderValue(fileState.File.ContentType ?? "application/octet-stream");
+
+                content.Add(streamContent, "File", fileState.File.Name);
+
+                var response = await Http.PostAsync("/api/admin/buildplates/templates/import", content, fileState.Cts.Token);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    fileState.IsComplete = true;
+                    successCount++;
+                }
+                else
+                {
+                    var errorString = await response.Content.ReadAsStringAsync(fileState.Cts.Token);
+                    fileState.HasError = true;
+                    if (string.IsNullOrWhiteSpace(errorString))
+                    {
+                        fileState.ErrorMessage = $"HTTP {response.StatusCode}.";
+                    }
+                    else
+                    {
+                        fileState.ErrorMessage = errorString;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                fileState.HasError = true;
+                fileState.ErrorMessage = "Upload cancelled.";
+            }
+            catch (Exception ex)
+            {
+                fileState.HasError = true;
+                fileState.ErrorMessage = $"Failed: {ex.Message}";
+            }
+            finally
+            {
+                fileState.IsUploading = false;
+                fileState.IsProcessing = false;
+                StateHasChanged();
+            }
+        }
+
+        int totalAttempted = filesToImport.Count;
+        isImporting = false;
+
+        StateHasChanged();
+
+        if (successCount == totalAttempted)
+        {
+            ShowDialog(true, $"Successfully imported {successCount} buildplate(s).");
+        }
+        else
+        {
+            ShowDialog(false, $"Finished. {successCount} succeeded, {totalAttempted - successCount} failed.");
+        }
+    }
+
+    private void ShowDialog(bool success, string message)
+    {
+        isSuccess = success;
+        dialogMessage = message;
+        showDialog = true;
+    }
+
+    private void CloseDialog()
+    {
+        showDialog = false;
+        if (isSuccess)
+        {
+            NavManager.NavigateTo("/Admin/BuildplateTemplates");
+        }
+    }
+
+    public void Dispose()
+    {
+        foreach (var file in selectedFiles)
+        {
+            file.Cts?.Cancel();
+            file.Cts?.Dispose();
+        }
+    }
+}
