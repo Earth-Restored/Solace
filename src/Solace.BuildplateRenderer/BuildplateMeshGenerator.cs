@@ -57,6 +57,8 @@ public sealed class BuildplateMeshGenerator
         _resourcePack = resourcePack;
     }
 
+    private delegate BlockState? GetBlockAtPos<TState>(int3 position, ref TState state);
+
     public async Task<MeshData> GenerateAsync(WorldData worldData, IProgress<ProgressReport>? progress = null, CancellationToken cancellationToken = default)
     {
         var cacheRegionsProgress = progress?.WrapRange(0.00, 0.90);
@@ -182,6 +184,8 @@ public sealed class BuildplateMeshGenerator
         var propertiesArray = ArrayPool<KeyValuePair<string, string>>.Shared.Rent(64);
         var modelVariants = ArrayPool<VariantModel>.Shared.Rent(64);
 
+        var state = new GetBlockAtPosState(cache, offset);
+
         foreach (var blockIndex in subChunk.Blocks)
         {
             var paletteEntry = (TagCompound)subChunk.Palette.Value[blockIndex];
@@ -215,9 +219,9 @@ public sealed class BuildplateMeshGenerator
 
                 foreach (var modelVariant in modelVariants.AsSpan(0, modelVariantsLength))
                 {
-                    GenerateBlockMesh(modelVariant, chunkBlockPosition + blockPosition + offset, mesh, queryWorldPos =>
+                    GenerateBlockMesh(modelVariant, chunkBlockPosition + blockPosition + offset, mesh, ref state, static (queryWorldPos, ref state) =>
                     {
-                        int3 rawBlockPos = queryWorldPos - offset;
+                        int3 rawBlockPos = queryWorldPos - state.Offset;
 
                         var targetSubChunkCoord = new int3(
                             (int)float.Floor((float)rawBlockPos.X / ChunkUtils.Width),
@@ -225,7 +229,7 @@ public sealed class BuildplateMeshGenerator
                             (int)float.Floor((float)rawBlockPos.Z / ChunkUtils.Width)
                         );
 
-                        if (!cache.TryGetValue(targetSubChunkCoord, out var targetSubChunk))
+                        if (!state.Cache.TryGetValue(targetSubChunkCoord, out var targetSubChunk))
                         {
                             return null;
                         }
@@ -261,7 +265,8 @@ public sealed class BuildplateMeshGenerator
         ArrayPool<VariantModel>.Shared.Return(modelVariants);
     }
 
-    private void GenerateBlockMesh(VariantModel modelVariant, int3 blockPosition, MeshData mesh, Func<int3, BlockState?> getBlockAtPos, Action<BlockState> disposeBlockState)
+    private void GenerateBlockMesh<TState>(VariantModel modelVariant, int3 blockPosition, MeshData mesh, ref TState state, GetBlockAtPos<TState> getBlockAtPos, Action<BlockState> disposeBlockState)
+        where TState : struct
     {
         var model = _resourcePack.GetBlockModel(modelVariant.Model);
 
@@ -295,7 +300,7 @@ public sealed class BuildplateMeshGenerator
 
                     int3 neighborPos = blockPosition + GetDirectionOffset(actualCullDir);
 
-                    var neighbor = getBlockAtPos(neighborPos);
+                    var neighbor = getBlockAtPos(neighborPos, ref state);
                     if (neighbor is not null)
                     {
                         // todo: compute faceGrid for this face too, cull if they are equal
@@ -715,4 +720,6 @@ public sealed class BuildplateMeshGenerator
         public int[] Blocks { get; init; } = null!;
         public int3 ChunkPosition { get; init; }
     }
+
+    private readonly record struct GetBlockAtPosState(Dictionary<int3, CachedSubChunk> Cache, int3 Offset);
 }
