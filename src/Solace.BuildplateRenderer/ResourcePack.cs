@@ -31,8 +31,6 @@ public sealed class ResourcePack
     private readonly FrozenDictionary<BlockState, (BSVBuffer Buffer, int TotalWeight)> _blockStatesVariant;
     private readonly FrozenDictionary<string, ImmutableArray<MultipartCase>> _blockStatesMultipart;
 
-    private readonly Dictionary<string, byte[]> _textures = [];
-
     public ResourcePack(string name, DirectoryInfo rootDir, FrozenDictionary<string, BlockModel> blockModels, FrozenDictionary<string, HashSet<string>> variantPropertySchema, FrozenDictionary<BlockState, (BSVBuffer Buffer, int TotalWeight)> blockStatesVariant, FrozenDictionary<string, ImmutableArray<MultipartCase>> blockStatesMultipart)
     {
         Name = name;
