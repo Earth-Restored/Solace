@@ -6,7 +6,6 @@ using Immediate.Validations.Shared;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 
-
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif

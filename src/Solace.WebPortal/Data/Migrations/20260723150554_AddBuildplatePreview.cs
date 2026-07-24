@@ -6,7 +6,9 @@ namespace Solace.WebPortal.Data.Migrations;
 
 /// <inheritdoc />
 #pragma warning disable MA0048 // File name must match type name
+#pragma warning disable CA1707
 public partial class _20260723150554_AddBuildplatePreview : Migration
+#pragma warning restore CA1707
 #pragma warning restore MA0048 // File name must match type name
 {
 #pragma warning disable IDE0022 // Use expression body for method
