@@ -1,6 +1,7 @@
 @page "/Admin/Users"
 @using Microsoft.AspNetCore.Authorization
 @using System.Security.Claims
+@using Solace.WebPortal.Client.Features.Common
 @using Solace.WebPortal.Common
 @using Solace.WebPortal.Common.Features.Common
 @using Solace.WebPortal.Common.Features.Users
@@ -10,22 +11,13 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 
-<PageTitle>User Management - Solace</PageTitle>
+<PageTitle>Users - Solace</PageTitle>
 
 <div class="container mt-4">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <h2>User Management</h2>
+        <h2>Users</h2>
 
-        <div class="input-group" style="max-width: 400px;">
-            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" placeholder="Search by username or email..." @bind="_searchTerm" @bind:after="SearchAsync" />
-            @if (!string.IsNullOrEmpty(_searchTerm))
-            {
-                <button class="btn btn-outline-secondary" type="button" @onclick="ClearSearch">
-                    <i class="bi bi-x-lg"></i>
-                </button>
-            }
-        </div>
+        <SearchBar @bind-Value="_searchTerm" Placeholder="username or email" Style="max-width: 400px;" OnSearch="SearchAsync" OnClear="ClearSearch" />
     </div>
 
     @if (_loading)
@@ -36,7 +28,7 @@
             </div>
         </div>
     }
-    else if (_users is null || !_users.Any())
+    else if (_users is null || _users.Count is 0)
     {
         <div class="alert alert-info text-center py-4">
             <i class="bi bi-info-circle fs-4 d-block mb-2"></i>

@@ -2,6 +2,7 @@
 @using HomagGroup.Blazor3D.Settings
 @using Microsoft.AspNetCore.Authorization
 @using System.Security.Claims
+@using Solace.WebPortal.Client.Features.Common
 @using Solace.WebPortal.Common
 @using Solace.WebPortal.Common.Features.Buildplates
 @attribute [Authorize(Policy = Permissions.ViewBuildplates)]
@@ -23,12 +24,7 @@
             </span>
         </div>
 
-        <div class="input-group" style="max-width: 400px;">
-            <input type="text" class="form-control" placeholder="Search by name..." @bind="_searchTerm" @bind:event="oninput" @onkeyup="HandleSearchKeyPress" />
-            <button class="btn btn-outline-secondary" type="button" @onclick="DoSearch">
-                <i class="bi bi-search"></i> Search
-            </button>
-        </div>
+        <SearchBar @bind-Value="_searchTerm" Placeholder="name" Style="max-width: 400px;" OnSearch="SearchAsync" OnClear="ClearSearch" />
 
         @if (HasPermission(Permissions.ManageBuildplates))
         {
@@ -335,7 +331,10 @@
             if (result is not null)
             {
                 _totalItems = result.TotalCount;
-                if (string.IsNullOrWhiteSpace(_searchTerm)) _totalBuildplateCount = _totalItems;
+                if (string.IsNullOrWhiteSpace(_searchTerm))
+                {
+                    _totalBuildplateCount = _totalItems;
+                }
 
                 _buildplates = result.Items
                     .Select(dto => new BuildplateViewModel
@@ -553,18 +552,16 @@
         }
     }
 
-    private async Task DoSearch()
+    private async Task SearchAsync()
     {
         _currentPage = 1;
         await LoadBuildplates();
     }
 
-    private async Task HandleSearchKeyPress(KeyboardEventArgs e)
+    private async Task ClearSearch()
     {
-        if (e.Key == "Enter")
-        {
-            await DoSearch();
-        }
+        _searchTerm = string.Empty;
+        await SearchAsync();
     }
 
     private async Task PreviousPage()

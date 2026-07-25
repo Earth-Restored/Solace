@@ -1,0 +1,41 @@
+<div class="input-group @Class" style="@Style">
+    <span class="input-group-text bg-white">
+        <i class="@SearchIconClass"></i>
+    </span>
+    <input type="text" class="form-control" placeholder="@Placeholder" value="@Value" @onchange="HandleChange" />
+
+    @if (!string.IsNullOrEmpty(Value))
+    {
+        <button class="btn btn-outline-secondary" type="button" @onclick="ClearAsync">
+            <i class="@ClearIconClass"></i>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public EventCallback<string> OnSearch { get; set; }
+    [Parameter] public EventCallback OnClear { get; set; }
+
+    [Parameter] public string Placeholder { get => $"Search by {field}..."; set => field = value; }
+    [Parameter] public string Style { get; set; } = "max-width: 400px;";
+    [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter] public string SearchIconClass { get; set; } = "bi bi-search";
+    [Parameter] public string ClearIconClass { get; set; } = "bi bi-x-lg";
+
+    private async Task HandleChange(ChangeEventArgs e)
+    {
+        Value = e.Value?.ToString() ?? string.Empty;
+        await ValueChanged.InvokeAsync(Value);
+        await OnSearch.InvokeAsync(Value);
+    }
+
+    private async Task ClearAsync()
+    {
+        Value = string.Empty;
+        await ValueChanged.InvokeAsync(Value);
+        await OnSearch.InvokeAsync(Value);
+        await OnClear.InvokeAsync();
+    }
+}

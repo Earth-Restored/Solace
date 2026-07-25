@@ -28,7 +28,8 @@ public static partial class GetTemplates
 
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))
         {
-            dbQuery = dbQuery.Where(b => EF.Functions.Like(b.Name, $"%{query.SearchTerm}%"));
+            var search = $"%{query.SearchTerm}%";
+            dbQuery = dbQuery.Where(buildplate => EF.Functions.ILike(buildplate.Name, search));
         }
 
         var total = await dbQuery.CountAsync(ct);

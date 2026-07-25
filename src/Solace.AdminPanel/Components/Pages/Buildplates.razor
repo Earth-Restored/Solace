@@ -349,7 +349,7 @@
 
             if (!string.IsNullOrWhiteSpace(searchFilter))
             {
-                query = query.Where(buildplate => EF.Functions.Like(buildplate.Name, $"%{searchFilter}%"));
+                query = query.Where(buildplate => EF.Functions.ILike(buildplate.Name, $"%{searchFilter}%"));
             }
 
             _totalItems = await query.CountAsync();
