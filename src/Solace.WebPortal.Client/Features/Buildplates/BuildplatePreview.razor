@@ -1,11 +1,5 @@
 @using System.Diagnostics
 @using System.Net.Http.Json
-@using HomagGroup.Blazor3D.Enums
-@using HomagGroup.Blazor3D.Lights
-@using HomagGroup.Blazor3D.Maths
-@using HomagGroup.Blazor3D.Scenes
-@using HomagGroup.Blazor3D.Settings
-@using HomagGroup.Blazor3D.Viewers
 @using Microsoft.JSInterop
 @using Solace.WebPortal.Common.Features.Buildplates
 
@@ -43,9 +37,7 @@
     }
     else if (_previewDataUri is not null)
     {
-        <div class="w-100 h-100">
-            <Viewer @ref="_viewer3D" ViewerSettings="@_settings" Scene="@_scene" />
-        </div>
+        <div @ref="_threeJsContainer" class="w-100 h-100"></div>
     }
 
     <span class="position-absolute top-0 start-0 m-2 badge bg-info">
@@ -79,10 +71,8 @@
     [Parameter] public bool IsNight { get; set; }
 
     private ElementReference _previewContainer;
-    private Viewer? _viewer3D;
-    private ViewerSettings _settings = new();
-    private Scene _scene = new();
-
+    private ElementReference _threeJsContainer;
+    
     private bool _isPreviewLoading = true;
     private bool _isPreviewFailed = false;
     private string? _previewDataUri;
@@ -101,14 +91,6 @@
             float scaleVal = 1f / BlocksPerMeter;
             return scaleVal >= 1 ? $"1:{scaleVal:0.##}" : $"{(1 / scaleVal):0.##}:1";
         }
-    }
-
-    protected override void OnInitialized()
-    {
-        _settings.ContainerId = $"viewer_{BuildplateId}";
-        _scene.Add(new AmbientLight() { Intensity = 2 });
-        _scene.Add(new DirectionalLight() { Intensity = 2 });
-        _scene.BackGroundColor = IsNight ? "#070066" : "#3B69F5";
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -137,49 +119,19 @@
             }
         }
 
-        if (_viewer3D is not null && _previewDataUri is not null && !_isModelImported)
+        // Initialize Three.js once the DataURI is ready and the canvas container has been rendered
+        if (_previewDataUri is not null && !_isModelImported && _jsModule is not null)
         {
-            _ = ImportModelWithRetryAsync();
-        }
-    }
-
-    private async Task ImportModelWithRetryAsync()
-    {
-        int maxRetries = 15;
-        while (maxRetries > 0 && !_isModelImported && _viewer3D is not null)
-        {
+            _isModelImported = true; // Set flag early to prevent re-entry
             try
             {
-                var orbitTarget = new Vector3(0, 0f, 0);
-                var cameraDistance = Size * 1.25f;
-                _viewer3D.Camera.Position = new Vector3(-cameraDistance, cameraDistance, -cameraDistance);
-                _viewer3D.Camera.LookAt = orbitTarget;
-                _viewer3D.OrbitControls.TargetPosition = orbitTarget;
-
-                Debug.Assert(_previewDataUri is not null);
-                await _viewer3D.Import3DModelAsync(new ImportSettings
-                {
-                    Format = Import3DFormats.Gltf,
-                    FileURL = _previewDataUri,
-                });
-
-                _isModelImported = true;
-                break;
+                await _jsModule.InvokeVoidAsync("initThreeJs", _threeJsContainer, _previewDataUri, Size, IsNight);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                maxRetries--;
-                if (maxRetries == 0)
-                {
-                    Logger.LogError("Failed to import GLB model into Blazor3D Viewer for {Id} after multiple attempts.", BuildplateId);
-                    _isPreviewFailed = true;
-                    _isModelImported = true;
-                    await InvokeAsync(StateHasChanged);
-                }
-                else
-                {
-                    await Task.Delay(200);
-                }
+                Logger.LogError(ex, "Failed to initialize Three.js viewer for {Id}.", BuildplateId);
+                _isPreviewFailed = true;
+                StateHasChanged();
             }
         }
     }
@@ -189,6 +141,12 @@
         if (_isCurrentlyLoadingTask)
         {
             return;
+        }
+
+        // Clean up current WebGL context before dropping the DOM element
+        if (_jsModule is not null && _previewDataUri is not null)
+        {
+            try { await _jsModule.InvokeVoidAsync("dispose", _threeJsContainer); } catch { /* Ignore JS errors on refresh */ }
         }
 
         ResetProgress();
@@ -239,19 +197,15 @@
 
             await foreach (var update in stream)
             {
-                if (update is null)
-                {
-                    continue;
-                }
+                if (update is null) continue;
 
                 if (update.DataUri is not null)
                 {
                     _currentProgress = 1.00;
                     _progressStatus = "Preparing preview";
                     await InvokeAsync(StateHasChanged);
-
+                    
                     await Task.Delay(200);
-
                     _previewDataUri = update.DataUri;
                 }
                 else
@@ -261,7 +215,6 @@
                     {
                         _progressStatus = update.StatusMessage;
                     }
-
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -299,19 +252,13 @@
             _progressCts?.Cancel();
             _progressCts?.Dispose();
 
-            if (_viewer3D is not null)
-            {
-                await _viewer3D.DisposeAsync();
-            }
-
             if (_jsModule is not null)
             {
+                await _jsModule.InvokeVoidAsync("dispose", _threeJsContainer);
                 await _jsModule.DisposeAsync();
             }
         }
-        catch (JSDisconnectedException)
-        {
-        }
+        catch (JSDisconnectedException) { }
         catch (Exception exception)
         {
             Logger.LogDebug(exception, "Error during disposal of {Id}", BuildplateId);

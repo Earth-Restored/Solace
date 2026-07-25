@@ -18,6 +18,14 @@
         @((MarkupString)CaptchaValidator.ManagerScript)
     </script>
     @((MarkupString)CaptchaValidator.Script)
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.164.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.0/examples/jsm/"
+            }
+        }
+    </script>
     <HeadOutlet @rendermode="PageRenderMode" />
 </head>
 
