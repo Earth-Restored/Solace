@@ -6,6 +6,7 @@ using Solace.Common.Utils;
 using Solace.Db.Earth;
 using Solace.StaticData;
 using Solace.WebPortal.Common;
+using Solace.WebPortal.Common.Features.Common;
 using Solace.WebPortal.Common.Features.Players;
 
 namespace Solace.WebPortal.Features.Players;
@@ -16,13 +17,8 @@ namespace Solace.WebPortal.Features.Players;
 [Authorize(Policy = Permissions.ViewPlayers)]
 public static partial class GetPlayers
 {
-    public sealed record Query(
-        string? SearchTerm = null,
-        int Page = 1,
-        int PageSize = 10
-    );
-    private static async ValueTask<GetPlayersResponse> HandleAsync(
-        Query query,
+    private static async ValueTask<PagedSearchResult<List<PlayerDto>>> HandleAsync(
+        PagedSearchQuery query,
         EarthDbContext earthDb,
         StaticDataProvider staticData,
         CancellationToken cancellationToken)
@@ -35,6 +31,9 @@ public static partial class GetPlayers
             .Include(account => account.Boosts)
             .Select(account => new { account.Id, account.Username, account.Profile!.Health, account.Profile.Level, account.Profile.Experience, PurchasedRubies = account.Profile.Rubies.Purchased, EarnedRubies = account.Profile.Rubies.Earned, account.Boosts, });
 
+        var totalCount = await dbQuery.CountAsync(cancellationToken);
+        int matchingCount;
+
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))
         {
             var search = $"%{query.SearchTerm}%";
@@ -42,15 +41,17 @@ public static partial class GetPlayers
             dbQuery = dbQuery.Where(account =>
                 (account.Username != null && EF.Functions.ILike(account.Username, search)) ||
                 EF.Functions.ILike(account.Id.ToString(), search));
-        }
 
-        var totalPlayers = await dbQuery.CountAsync(cancellationToken);
-        var totalPages = (int)double.Ceiling(totalPlayers / (double)query.PageSize);
-        var page = int.Max(1, int.Min(query.Page, int.Max(1, totalPages)));
+            matchingCount = await dbQuery.CountAsync(cancellationToken);
+        }
+        else
+        {
+            matchingCount = totalCount;
+        }
 
         var players = dbQuery
             .OrderBy(u => u.Username)
-            .Skip((page - 1) * query.PageSize)
+            .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize);
 
         var playerDtos = new List<PlayerDto>(query.PageSize);
@@ -69,11 +70,6 @@ public static partial class GetPlayers
                 player.EarnedRubies));
         }
 
-        return new GetPlayersResponse(
-            playerDtos,
-            totalPlayers,
-            totalPages,
-            page
-        );
+        return new(playerDtos, totalCount, matchingCount);
     }
 }

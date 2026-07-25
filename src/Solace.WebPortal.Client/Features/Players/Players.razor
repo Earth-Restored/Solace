@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Solace.WebPortal.Client.Features.Common
 @using Solace.WebPortal.Common
+@using Solace.WebPortal.Common.Features.Common
 @using Solace.WebPortal.Common.Features.Players
 @using System.Security.Claims
 @using System.Globalization
@@ -20,7 +21,7 @@
             <div class="d-flex align-items-center gap-2 mb-1">
                 <h2 class="h3 mb-0"><i class="bi bi-people-fill me-2 text-primary"></i>Players</h2>
                 <span class="badge bg-dark-subtle text-dark border p-2">
-                    Total: @(_totalPlayers?.ToString() ?? "?")
+                    @(_totalPlayerCount is null ? "?" : _totalItems)/@(_totalPlayerCount?.ToString() ?? "?")
                 </span>
             </div>
             <p class="text-muted small mb-0">Manage accounts and player statistics</p>
@@ -181,7 +182,7 @@
             }
         </div>
 
-        @if (_totalPages > 1)
+        @if (TotalPages > 1)
         {
             <nav aria-label="Player page navigation" class="mt-4">
                 <ul class="pagination justify-content-center">
@@ -196,15 +197,15 @@
                         </button>
                     </li>
                     <li class="page-item disabled d-none d-sm-block">
-                        <span class="page-link">Page @_currentPage of @_totalPages</span>
+                        <span class="page-link">Page @_currentPage of @TotalPages</span>
                     </li>
-                    <li class="page-item @(_currentPage == _totalPages ? "disabled" : "")">
+                    <li class="page-item @(_currentPage == TotalPages ? "disabled" : "")">
                         <button class="page-link" @onclick="() => ChangePageAsync(_currentPage + 1)" aria-label="Next">
                             <span aria-hidden="true">&rsaquo;</span>
                         </button>
                     </li>
-                    <li class="page-item @(_currentPage == _totalPages ? "disabled" : "")">
-                        <button class="page-link" @onclick="() => ChangePageAsync(_totalPages)" aria-label="Last">
+                    <li class="page-item @(_currentPage == TotalPages ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => ChangePageAsync(TotalPages)" aria-label="Last">
                             <span aria-hidden="true">&raquo;</span>
                         </button>
                     </li>
@@ -218,13 +219,14 @@
     private bool _loading;
     private ClaimsPrincipal? _user;
     private List<AccountViewModel>? _players;
+    private int? _totalPlayerCount;
     private string? _errorMessage;
 
     private string _searchTerm = string.Empty;
     private int _currentPage = 1;
     private int _pageSize = 10;
-    private int _totalPages = 1;
-    private int? _totalPlayers = null;
+    private int _totalItems = 0;
+    private int TotalPages => int.Max(1, (int)double.Ceiling((double)_totalItems / _pageSize));
 
     protected override async Task OnInitializedAsync()
     {
@@ -255,7 +257,7 @@
 
     private async Task ChangePageAsync(int newPage)
     {
-        if (newPage >= 1 && newPage <= _totalPages && newPage != _currentPage)
+        if (newPage >= 1 && newPage <= TotalPages && newPage != _currentPage)
         {
             _currentPage = newPage;
             await LoadDataAsync();
@@ -268,11 +270,14 @@
         try
         {
             var uri = $"api/admin/players?searchTerm={Uri.EscapeDataString(_searchTerm)}&page={_currentPage}&pageSize={_pageSize}";
-            var response = await Http.GetFromJsonAsync<GetPlayersResponse>(uri);
+            var response = await Http.GetFromJsonAsync<PagedSearchResult<List<PlayerDto>>>(uri);
 
             if (response is not null)
             {
-                _players = response.Players
+                _totalItems = response.MatchingCount;
+                _totalPlayerCount = response.TotalCount;
+
+                _players = response.Data
                     .Select(account => new AccountViewModel
                     {
                         Id = account.Id,
@@ -285,10 +290,6 @@
                         EarnedRubies = account.EarnedRubies,
                     })
                     .ToList();
-
-                _totalPlayers = response.TotalPlayers;
-                _totalPages = response.TotalPages;
-                _currentPage = response.CurrentPage;
             }
         }
         catch (Exception exception)

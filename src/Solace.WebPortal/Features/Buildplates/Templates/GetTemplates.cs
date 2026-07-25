@@ -6,6 +6,7 @@ using Solace.Db.Earth;
 using Solace.Db.Earth.Models.Global;
 using Solace.WebPortal.Common;
 using Solace.WebPortal.Common.Features.Buildplates;
+using Solace.WebPortal.Common.Features.Common;
 
 namespace Solace.WebPortal.Features.Buildplates.Templates;
 
@@ -15,30 +16,35 @@ namespace Solace.WebPortal.Features.Buildplates.Templates;
 [Authorize(Policy = Permissions.ViewBuildplates)]
 public static partial class GetTemplates
 {
-    public sealed record Query(string? SearchTerm, int Page, int PageSize);
-
-    private static async ValueTask<PagedResult<BuildplateTemplateDto>> HandleAsync(
-        Query query,
+    private static async ValueTask<PagedSearchResult<List<BuildplateTemplateDto>>> HandleAsync(
+        PagedSearchQuery query,
         EarthDbContext earthDb,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         var dbQuery = (IQueryable<TemplateBuildplateEF>)earthDb.TemplateBuildplates
             .AsNoTracking()
             .OrderBy(template => template.Name);
 
+        var totalCount = await dbQuery.CountAsync(cancellationToken);
+        int matchingCount;
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))
         {
             var search = $"%{query.SearchTerm}%";
             dbQuery = dbQuery.Where(buildplate => EF.Functions.ILike(buildplate.Name, search));
+
+            matchingCount = await dbQuery.CountAsync(cancellationToken);
+        }
+        else
+        {
+            matchingCount = totalCount;
         }
 
-        var total = await dbQuery.CountAsync(ct);
         var items = await dbQuery
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(b => new BuildplateTemplateDto(b.Id, b.Name, b.BlocksPerMeter, b.Size, b.Offset, b.Night, b.ServerDataObjectId, b.PreviewObjectId))
-            .ToListAsync(ct);
+            .ToListAsync(cancellationToken);
 
-        return new PagedResult<BuildplateTemplateDto>(items, total);
+        return new(items, totalCount, matchingCount);
     }
 }

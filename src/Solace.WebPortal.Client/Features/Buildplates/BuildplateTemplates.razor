@@ -5,6 +5,7 @@
 @using Solace.WebPortal.Client.Features.Common
 @using Solace.WebPortal.Common
 @using Solace.WebPortal.Common.Features.Buildplates
+@using Solace.WebPortal.Common.Features.Common
 @attribute [Authorize(Policy = Permissions.ViewBuildplates)]
 @rendermode InteractiveWebAssembly
 @inject AuthenticationStateProvider AuthStateProvider
@@ -20,7 +21,7 @@
         <div class="d-flex align-items-center">
             <h2 class="mb-0">Buildplate templates</h2>
             <span class="badge bg-secondary rounded-pill ms-2">
-                @(_totalBuildplateCount?.ToString() ?? "?")
+                @(_totalBuildplateCount is null ? "?" : _totalItems)/@(_totalBuildplateCount?.ToString() ?? "?")
             </span>
         </div>
 
@@ -326,17 +327,14 @@
                 url += $"&searchTerm={Uri.EscapeDataString(_searchTerm)}";
             }
 
-            var result = await Http.GetFromJsonAsync<PagedResult<BuildplateTemplateDto>>(url);
+            var response = await Http.GetFromJsonAsync<PagedSearchResult<List<BuildplateTemplateDto>>>(url);
 
-            if (result is not null)
+            if (response is not null)
             {
-                _totalItems = result.TotalCount;
-                if (string.IsNullOrWhiteSpace(_searchTerm))
-                {
-                    _totalBuildplateCount = _totalItems;
-                }
+                _totalItems = response.MatchingCount;
+                _totalBuildplateCount = response.TotalCount;
 
-                _buildplates = result.Items
+                _buildplates = response.Data
                     .Select(dto => new BuildplateViewModel
                     {
                         Id = dto.Id,

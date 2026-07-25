@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Security.Claims;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
@@ -19,14 +18,8 @@ namespace Solace.WebPortal.Features.Users;
 [Authorize(Policy = Permissions.ViewUsers)]
 public static partial class GetUsers
 {
-    public sealed record Query(
-        string? SearchTerm = null,
-        int Page = 1,
-        int PageSize = 10
-    );
-
-    private static async ValueTask<GetUsersResponse> HandleAsync(
-        Query query,
+    private static async ValueTask<PagedSearchResult<GetUsersResponse>> HandleAsync(
+        PagedSearchQuery query,
         UserManager<ApplicationUser> userManager,
         RoleManager<ApplicationRole> roleManager,
         IHttpContextAccessor httpContextAccessor,
@@ -46,6 +39,9 @@ public static partial class GetUsers
 
         var dbQuery = userManager.Users.AsNoTracking();
 
+        var totalCount = await dbQuery.CountAsync(cancellationToken);
+        int matchingCount;
+
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))
         {
             var search = $"%{query.SearchTerm}%";
@@ -56,15 +52,17 @@ public static partial class GetUsers
                 (u.Email != null && EF.Functions.ILike(u.Email, search)) ||
                 EF.Functions.ILike(u.Id.ToString(), search));
 #pragma warning restore MA0011 // IFormatProvider is missing
-        }
 
-        var totalUsers = await dbQuery.CountAsync(cancellationToken);
-        var totalPages = (int)double.Ceiling(totalUsers / (double)query.PageSize);
-        var page = int.Max(1, int.Min(query.Page, int.Max(1, totalPages)));
+            matchingCount = await dbQuery.CountAsync(cancellationToken);
+        }
+        else
+        {
+            matchingCount = totalCount;
+        }
 
         var users = await dbQuery
             .OrderBy(u => u.UserName)
-            .Skip((page - 1) * query.PageSize)
+            .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .ToListAsync(cancellationToken);
 
@@ -77,13 +75,14 @@ public static partial class GetUsers
 
         var roleDtos = allRoles.Select(role => new RoleDto(role.Id, role.Name!, role.Position, role.Color, role.IsBuiltIn, [])).ToList();
 
-        return new GetUsersResponse(
-            userDtos,
-            roleDtos,
-            totalUsers,
-            totalPages,
-            page,
-            currentUserMinPosition
+        return new(
+            new(
+                userDtos,
+                roleDtos,
+                currentUserMinPosition
+            ),
+            totalCount,
+            matchingCount
         );
     }
 }

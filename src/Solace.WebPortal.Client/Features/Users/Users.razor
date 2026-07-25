@@ -281,16 +281,16 @@
         try
         {
             var uri = Navigation.ToAbsoluteUri($"api/admin/users?searchTerm={Uri.EscapeDataString(_searchTerm)}&page={_currentPage}&pageSize={_pageSize}");
-            var response = await Http.GetFromJsonAsync<GetUsersResponse>(uri);
+            var response = await Http.GetFromJsonAsync<PagedSearchResult<GetUsersResponse>>(uri);
 
             if (response is not null)
             {
-                _users = response.Users;
-                _roles = response.Roles;
-                _totalUsers = response.TotalUsers;
-                _totalPages = response.TotalPages;
-                _currentPage = response.CurrentPage;
-                _userMinPosition = response.CurrentUserMinPosition;
+                _users = response.Data.Users;
+                _roles = response.Data.Roles;
+                _userMinPosition = response.Data.CurrentUserMinPosition;
+                _totalUsers = response.TotalCount;
+                _totalPages = int.Max(1, (int)double.Ceiling((double)_totalUsers / _pageSize));
+                _currentPage = int.Max(1, int.Min(_currentPage, int.Max(1, _totalPages)));
             }
         }
         finally
