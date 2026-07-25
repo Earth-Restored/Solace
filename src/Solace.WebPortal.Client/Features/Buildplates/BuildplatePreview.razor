@@ -49,9 +49,29 @@
 
     @if (!_isPreviewLoading)
     {
-        <button class="btn btn-sm btn-light position-absolute bottom-0 start-0 m-2 opacity-75 hover-opacity-100" @onclick="RefreshPreviewAsync" title="Refresh Preview">
-            <i class="bi bi-arrow-clockwise"></i>
-        </button>
+        <div class="position-absolute bottom-0 start-0 m-2 d-flex gap-1">
+            <button class="btn btn-sm btn-light opacity-75 hover-opacity-100" @onclick="RefreshPreviewAsync" title="Refresh Preview">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+
+            @if (_previewDataUri is not null)
+            {
+                <button class="btn btn-sm @(_isFirstPerson ? "btn-info" : "btn-light") opacity-75 hover-opacity-100" @onclick="ToggleControlModeAsync" title="Toggle Free Fly Mode">
+                    <i class="bi @(_isFirstPerson ? "bi-controller" : "bi-box")"></i>
+                </button>
+            }
+        </div>
+
+        @if (_isFirstPerson && _previewDataUri is not null)
+        {
+            <div class="position-absolute bottom-0 start-50 translate-middle-x mb-2" style="pointer-events: none; z-index: 10;">
+                <div class="bg-black text-white border border-secondary px-3 py-1 rounded shadow text-center" style="font-size: 0.8rem; white-space: nowrap;">
+                    <span class="fw-bold text-info">WASD</span> Move &bull;
+                    <span class="fw-bold text-info">Space/Shift</span> Up/Down &bull;
+                    <span class="fw-bold text-info">Tab</span> Exit
+                </div>
+            </div>
+        }
 
         if (_previewDataUri is not null)
         {
@@ -72,13 +92,16 @@
 
     private ElementReference _previewContainer;
     private ElementReference _threeJsContainer;
-    
+
     private bool _isPreviewLoading = true;
     private bool _isPreviewFailed = false;
     private string? _previewDataUri;
     private bool _isModelImported = false;
     private bool _isCurrentlyLoadingTask = false;
+    private bool _isFirstPerson = false;
+
     private IJSObjectReference? _jsModule;
+    private DotNetObjectReference<BuildplatePreview>? _dotNetRef;
 
     private double _currentProgress = 0;
     private string? _progressStatus;
@@ -91,6 +114,11 @@
             float scaleVal = 1f / BlocksPerMeter;
             return scaleVal >= 1 ? $"1:{scaleVal:0.##}" : $"{(1 / scaleVal):0.##}:1";
         }
+    }
+
+    protected override void OnInitialized()
+    {
+        _dotNetRef = DotNetObjectReference.Create(this);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -119,19 +147,43 @@
             }
         }
 
-        // Initialize Three.js once the DataURI is ready and the canvas container has been rendered
         if (_previewDataUri is not null && !_isModelImported && _jsModule is not null)
         {
-            _isModelImported = true; // Set flag early to prevent re-entry
+            _isModelImported = true;
+
             try
             {
-                await _jsModule.InvokeVoidAsync("initThreeJs", _threeJsContainer, _previewDataUri, Size, IsNight);
+                await _jsModule.InvokeVoidAsync("initThreeJs", _threeJsContainer, _previewDataUri, Size, IsNight, _dotNetRef);
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Failed to initialize Three.js viewer for {Id}.", BuildplateId);
                 _isPreviewFailed = true;
                 StateHasChanged();
+            }
+        }
+    }
+
+    private async Task ToggleControlModeAsync()
+    {
+        if (_jsModule is not null && _previewDataUri is not null)
+        {
+            _isFirstPerson = !_isFirstPerson;
+            await _jsModule.InvokeVoidAsync("setControlMode", _threeJsContainer, _isFirstPerson);
+        }
+    }
+
+    [JSInvokable]
+    public async Task ExitFirstPersonMode()
+    {
+        if (_isFirstPerson)
+        {
+            _isFirstPerson = false;
+            StateHasChanged();
+
+            if (_jsModule is not null)
+            {
+                await _jsModule.InvokeVoidAsync("setControlMode", _threeJsContainer, false);
             }
         }
     }
@@ -143,12 +195,18 @@
             return;
         }
 
-        // Clean up current WebGL context before dropping the DOM element
         if (_jsModule is not null && _previewDataUri is not null)
         {
-            try { await _jsModule.InvokeVoidAsync("dispose", _threeJsContainer); } catch { /* Ignore JS errors on refresh */ }
+            try
+            {
+                await _jsModule.InvokeVoidAsync("dispose", _threeJsContainer);
+            }
+            catch
+            {
+            }
         }
 
+        _isFirstPerson = false;
         ResetProgress();
         _isCurrentlyLoadingTask = true;
         _isPreviewLoading = true;
@@ -197,14 +255,17 @@
 
             await foreach (var update in stream)
             {
-                if (update is null) continue;
+                if (update is null)
+                {
+                    continue;
+                }
 
                 if (update.DataUri is not null)
                 {
                     _currentProgress = 1.00;
                     _progressStatus = "Preparing preview";
                     await InvokeAsync(StateHasChanged);
-                    
+
                     await Task.Delay(200);
                     _previewDataUri = update.DataUri;
                 }
@@ -215,6 +276,7 @@
                     {
                         _progressStatus = update.StatusMessage;
                     }
+
                     await InvokeAsync(StateHasChanged);
                 }
             }
@@ -249,6 +311,7 @@
     {
         try
         {
+            _dotNetRef?.Dispose();
             _progressCts?.Cancel();
             _progressCts?.Dispose();
 
@@ -258,7 +321,9 @@
                 await _jsModule.DisposeAsync();
             }
         }
-        catch (JSDisconnectedException) { }
+        catch (JSDisconnectedException)
+        {
+        }
         catch (Exception exception)
         {
             Logger.LogDebug(exception, "Error during disposal of {Id}", BuildplateId);
