@@ -19,9 +19,9 @@
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
-                <h2 class="h3 mb-0"><i class="bi bi-people-fill me-2 text-primary"></i>Players</h2>
+                <h2 class="h3 mb-0">Players</h2>
                 <span class="badge bg-dark-subtle text-dark border p-2">
-                    @(_totalPlayerCount is null ? "?" : _totalItems)/@(_totalPlayerCount?.ToString() ?? "?")
+                    @(_pagedView?.MatchingItems?.ToString() ?? "?")/@(_pagedView?.TotalItems?.ToString() ?? "?")
                 </span>
             </div>
             <p class="text-muted small mb-0">Manage accounts and player statistics</p>
@@ -30,10 +30,9 @@
         <SearchBar @bind-Value="_searchTerm" Placeholder="username or ID" Style="max-width: 400px;" OnSearch="SearchAsync" OnClear="ClearSearch" />
     </div>
 
-    <PagedDataView @ref="_pagedView" TData="List<AccountViewModel>" Provider="FetchPlayersAsync" OnDataLoaded="HandleDataLoaded">
+    <PagedDataView @ref="_pagedView" TData="List<AccountViewModel>" Provider="FetchDataAsync" OnDataLoaded="HandleDataLoaded">
         <ChildContent Context="players">
-
-            <div class="d-none d-md-block card shadow-sm border-0">
+            <div class="d-none d-md-block">
                 <div class="table-responsive">
                     <table class="table align-middle mb-0">
                         <thead class="table-light">
@@ -171,11 +170,9 @@
 </div>
 
 @code {
-    private PagedDataView<List<AccountViewModel>> _pagedView = default!;
+    private PagedDataView<List<AccountViewModel>>? _pagedView;
 
     private ClaimsPrincipal? _user;
-    private int? _totalPlayerCount;
-    private int _totalItems = 0;
     private string _searchTerm = string.Empty;
 
     protected override async Task OnInitializedAsync()
@@ -185,15 +182,20 @@
     }
 
     private async Task SearchAsync()
-        => await _pagedView.SearchAsync(_searchTerm);
+    {
+        if (_pagedView is not null)
+        {
+            await _pagedView.SearchAsync(_searchTerm);
+        }
+    }
 
     private async Task ClearSearch()
     {
         _searchTerm = string.Empty;
-        await _pagedView.SearchAsync(null);
+        await SearchAsync();
     }
 
-    private async Task<PagedResult<List<AccountViewModel>>?> FetchPlayersAsync(PagedSearchQuery query)
+    private async Task<PagedResult<List<AccountViewModel>>?> FetchDataAsync(PagedSearchQuery query)
     {
         try
         {
@@ -222,23 +224,13 @@
         catch (Exception exception)
         {
             Logger.LogError(exception, "Failed to get accounts");
-            _pagedView.ErrorMessage = "Failed to load players.";
+            _pagedView?.ErrorMessage = "Failed to load players.";
             return null;
         }
     }
 
     private void HandleDataLoaded(PagedResult<List<AccountViewModel>> result)
     {
-        if (result is PagedSearchResult<List<AccountViewModel>> searchResult)
-        {
-            _totalItems = searchResult.MatchingCount;
-            _totalPlayerCount = searchResult.TotalCount;
-        }
-        else
-        {
-            _totalItems = result.TotalCount;
-            _totalPlayerCount = result.TotalCount;
-        }
     }
 
     private async Task DeletePlayerAsync(Guid id, string? username)
@@ -263,12 +255,16 @@
 
             if (response is { IsSuccessStatusCode: true } or { StatusCode: System.Net.HttpStatusCode.NotFound })
             {
-                await _pagedView.ReloadCurrentPageAsync();
+                if (_pagedView is not null)
+                {
+                    await _pagedView.ReloadCurrentPageAsync();
+                }
+
                 Logger.LogInformation("Deleted player {PlayerId}", id);
             }
             else
             {
-                _pagedView.ErrorMessage = $"Failed to delete player ({response.StatusCode}).";
+                _pagedView?.ErrorMessage = $"Failed to delete player ({response.StatusCode}).";
             }
         }
         catch (Exception exception)

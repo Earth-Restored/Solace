@@ -29,7 +29,7 @@
         <div class="d-none d-md-block">
             <div class="table-responsive">
                 <table class="table align-middle">
-                    <thead>
+                    <thead class="table-light">
                         <tr>
                             <th>Position</th>
                             <th>Color</th>
@@ -51,7 +51,7 @@
                                     <strong>@role.Name</strong>
                                     @if (role.Name == RoleConstants.Default)
                                     {
-                                        <span class="badge bg-info text-dark ms-2">Default</span>
+                                        <span class="badge bg-info ms-2">Default</span>
                                     }
                                     else if (role.IsBuiltIn)
                                     {
@@ -82,7 +82,11 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <strong>@role.Name</strong>
-                                @if (role.IsBuiltIn)
+                                @if (role.Name == RoleConstants.Default)
+                                {
+                                    <span class="badge bg-info ms-2">Default</span>
+                                }
+                                else if (role.IsBuiltIn)
                                 {
                                     <span class="badge bg-secondary ms-2">System</span>
                                 }

@@ -15,16 +15,21 @@
 
 <div class="container mt-4">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <h2>Users</h2>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h2 class="h3 mb-0">Users</h2>
+            <span class="badge bg-dark-subtle text-dark border p-2">
+                @(_pagedView?.MatchingItems?.ToString() ?? "?")/@(_pagedView?.TotalItems?.ToString() ?? "?")
+            </span>
+        </div>
 
         <SearchBar @bind-Value="_searchTerm" Placeholder="username or email" Style="max-width: 400px;" OnSearch="SearchAsync" OnClear="ClearSearch" />
     </div>
 
-    <PagedDataView @ref="_pagedView" TData="GetUsersResponse" Provider="FetchUsersAsync" OnDataLoaded="OnUsersLoaded" Context="data">
+    <PagedDataView @ref="_pagedView" TData="GetUsersResponse" Provider="FetchDataAsync" OnDataLoaded="HandleDataLoaded" Context="data">
         <div class="d-none d-md-block">
             <div class="table-responsive">
                 <table class="table align-middle">
-                    <thead>
+                    <thead class="table-light">
                         <tr>
                             <th>User</th>
                             <th>Email</th>
@@ -219,13 +224,21 @@
         _canEditAccountInfo = user.HasPermission(Permissions.EditAcountInfo);
     }
 
-    private async Task<PagedResult<GetUsersResponse>?> FetchUsersAsync(PagedSearchQuery query)
+    private async Task<PagedResult<GetUsersResponse>?> FetchDataAsync(PagedSearchQuery query)
     {
-        var uri = $"api/admin/users?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? string.Empty)}&page={query.Page}&pageSize={query.PageSize}";
-        return await Http.GetFromJsonAsync<PagedSearchResult<GetUsersResponse>>(uri);
+        try
+        {
+            var uri = $"api/admin/users?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? string.Empty)}&page={query.Page}&pageSize={query.PageSize}";
+            return await Http.GetFromJsonAsync<PagedSearchResult<GetUsersResponse>>(uri);
+        }
+        catch
+        {
+            _pagedView?.ErrorMessage = "Failed to load users.";
+            return null;
+        }
     }
 
-    private void OnUsersLoaded(PagedResult<GetUsersResponse> result)
+    private void HandleDataLoaded(PagedResult<GetUsersResponse> result)
     {
         if (result.Data is not null)
         {

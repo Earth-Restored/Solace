@@ -23,7 +23,7 @@ else if (Data is not null && !IsLoading)
     {
         <div class="alert alert-info text-center py-4">
             <i class="bi bi-info-circle fs-4 mb-2"></i>
-            <span>No items found matching your criteria.</span>
+            <span>No items found.</span>
         </div>
     }
     else
@@ -81,8 +81,9 @@ else if (Data is not null && !IsLoading)
     public string? ErrorMessage { get; set; }
     public TData? Data { get; private set; }
 
-    public int TotalItems { get; private set; }
-    public int MatchingItems { get; private set; }
+    public int? TotalItems { get; private set; }
+
+    public int? MatchingItems { get; private set; }
 
     public int TotalPages { get; private set; } = 1;
 
