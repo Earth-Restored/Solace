@@ -20,7 +20,6 @@ public static partial class DeleteRole
 
     private static async ValueTask<Results<NotFound, BadRequest<string>, Ok>> HandleAsync(
         Command command,
-        UserManager<ApplicationUser> userManager,
         RoleManager<ApplicationRole> roleManager,
         IHttpContextAccessor httpContextAccessor,
         CancellationToken token)
@@ -36,7 +35,7 @@ public static partial class DeleteRole
             return TypedResults.BadRequest("Built-in roles cannot be deleted.");
         }
 
-        var currentUserMinPosition = await UserUtils.GetMinimumRolePosition(userManager, roleManager, httpContextAccessor);
+        var currentUserMinPosition = await UserUtils.GetMinimumRolePosition(roleManager, httpContextAccessor);
 
         if (role.Position <= currentUserMinPosition)
         {

@@ -21,7 +21,6 @@ public static partial class SwapRoles
 {
     private static async ValueTask<Results<NotFound, BadRequest<string>, Ok>> HandleAsync(
         SwapRolesCommand command,
-        UserManager<ApplicationUser> userManager,
         RoleManager<ApplicationRole> roleManager,
         IHttpContextAccessor httpContextAccessor,
         CancellationToken cancellationToken)
@@ -44,7 +43,7 @@ public static partial class SwapRoles
             return TypedResults.BadRequest("Can only swap adjacent roles.");
         }
 
-        var currentUserMinPosition = await UserUtils.GetMinimumRolePosition(userManager, roleManager, httpContextAccessor);
+        var currentUserMinPosition = await UserUtils.GetMinimumRolePosition(roleManager, httpContextAccessor);
 
         if (roleA.Position <= currentUserMinPosition || roleB.Position <= currentUserMinPosition)
         {

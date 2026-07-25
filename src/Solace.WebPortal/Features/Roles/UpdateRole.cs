@@ -19,7 +19,6 @@ public static partial class UpdateRole
 {
     private static async ValueTask<IResult> HandleAsync(
         UpdateRoleCommand command,
-        UserManager<ApplicationUser> userManager,
         RoleManager<ApplicationRole> roleManager,
         IHttpContextAccessor httpContextAccessor,
         CancellationToken cancellationToken)
@@ -30,7 +29,7 @@ public static partial class UpdateRole
             return Results.NotFound($"Role with ID {command.Id} not found.");
         }
 
-        var currentUserMinPosition = await UserUtils.GetMinimumRolePosition(userManager, roleManager, httpContextAccessor);
+        var currentUserMinPosition = await UserUtils.GetMinimumRolePosition(roleManager, httpContextAccessor);
 
         if (role.Position <= currentUserMinPosition)
         {

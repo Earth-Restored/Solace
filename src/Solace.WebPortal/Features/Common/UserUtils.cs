@@ -8,18 +8,22 @@ namespace Solace.WebPortal.Features.Common;
 
 public static class UserUtils
 {
-    public static async Task<int> GetMinimumRolePosition(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager, IHttpContextAccessor httpContextAccessor)
+    public static async Task<int> GetMinimumRolePosition(RoleManager<ApplicationRole> roleManager, IHttpContextAccessor httpContextAccessor)
     {
         var httpUser = httpContextAccessor.HttpContext?.User;
-        var currentUserId = userManager.GetUserId(httpUser!) ?? string.Empty;
-
         var currentUserRoles = httpUser?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList() ?? [];
-        var allRoles = roleManager.Roles.AsNoTracking();
 
-        return await allRoles
+        if (currentUserRoles.Count == 0)
+        {
+            return 9999;
+        }
+
+        var minPosition = await roleManager.Roles
+            .AsNoTracking()
             .Where(r => currentUserRoles.Contains(r.Name!) && r.Name != RoleConstants.Default)
-            .Select(r => r.Position)
-            .DefaultIfEmpty(9999)
+            .Select(r => (int?)r.Position)
             .MinAsync();
+
+        return minPosition ?? 9999;
     }
 }

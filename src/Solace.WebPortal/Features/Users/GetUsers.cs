@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
@@ -49,9 +50,12 @@ public static partial class GetUsers
         {
             var search = $"%{query.SearchTerm}%";
 
+#pragma warning disable MA0011 // IFormatProvider is missing - ef does not support it
             dbQuery = dbQuery.Where(u =>
                 (u.UserName != null && EF.Functions.ILike(u.UserName, search)) ||
-                (u.Email != null && EF.Functions.ILike(u.Email, search)));
+                (u.Email != null && EF.Functions.ILike(u.Email, search)) ||
+                EF.Functions.ILike(u.Id.ToString(), search));
+#pragma warning restore MA0011 // IFormatProvider is missing
         }
 
         var totalUsers = await dbQuery.CountAsync(cancellationToken);

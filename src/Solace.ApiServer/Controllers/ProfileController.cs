@@ -47,7 +47,7 @@ internal sealed class ProfileController : SolaceControllerBase
         var currentLevelExperience = profile.Experience - (profile.Level > 1 ? profile.Level - 2 < levels.Length ? levels[profile.Level - 2].ExperienceRequired : levels[^1].ExperienceRequired : 0);
         var experienceRemaining = profile.Level - 1 < levels.Length ? levels[profile.Level - 1].ExperienceRequired - profile.Experience : 0;
 
-        var maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _staticData.Catalog.ItemsCatalog);
+        var maxPlayerHealth = Common.Utils.BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _staticData.Catalog.ItemsCatalog);
         if (profile.Health > maxPlayerHealth)
         {
             profile.Health = maxPlayerHealth;

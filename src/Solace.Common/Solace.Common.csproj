@@ -11,4 +11,8 @@
     <PackageReference Include="Microsoft.Extensions.ObjectPool" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Utils/BoostUtils.cs" />
+  </ItemGroup>
+
 </Project>

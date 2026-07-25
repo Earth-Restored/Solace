@@ -6,7 +6,7 @@ namespace Solace.StaticData;
 
 public sealed class PlayerLevels
 {
-    public readonly ImmutableArray<Level> Levels;
+    public readonly ImmutableArray<Level> Levels; // starts at level 2
 
     internal PlayerLevels(string dir)
     {

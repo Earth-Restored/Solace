@@ -132,7 +132,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             scenarioBoosts["death"] = [.. triggeredOnDeathBoosts];
         }
 
-        BoostUtils.StatModiferValues statModiferValues = BoostUtils.GetActiveStatModifiers(boosts, requestStartedOn, _catalog.ItemsCatalog);
+        var statModiferValues = Common.Utils.BoostUtils.GetActiveStatModifiers(boosts, requestStartedOn, _catalog.ItemsCatalog);
 
         var boostsResponse = new Types.Boost.Boosts(
             potions,
@@ -306,7 +306,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
         if (item.BoostInfo.Effects.Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostEffectType.HEALTH))
         {
             profileChanged = true;
-            var maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _catalog.ItemsCatalog);
+            var maxPlayerHealth = Common.Utils.BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _catalog.ItemsCatalog);
             if (profile.Health > maxPlayerHealth)
             {
                 profile.Health = maxPlayerHealth;
@@ -331,7 +331,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             profileChanged = true;
         }
 
-        var maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, currentTime, itemsCatalog);
+        var maxPlayerHealth = Common.Utils.BoostUtils.GetMaxPlayerHealth(boosts, currentTime, itemsCatalog);
         if (profile.Health > maxPlayerHealth)
         {
             profile.Health = maxPlayerHealth;

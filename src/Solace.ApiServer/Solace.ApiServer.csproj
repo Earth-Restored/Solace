@@ -50,6 +50,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../Solace.Common/Utils/BoostUtils.cs" Link="BoostUtils.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="public_suffix_list.dat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
