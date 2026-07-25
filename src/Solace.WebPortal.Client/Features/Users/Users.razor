@@ -22,10 +22,10 @@
             </span>
         </div>
 
-        <SearchBar @bind-Value="_searchTerm" Placeholder="username or email" Style="max-width: 400px;" OnSearch="SearchAsync" OnClear="ClearSearch" />
+        <SearchBar @bind-Value="_searchTerm" Placeholder="username or email" Style="max-width: 400px;" QueryStringKey="q" OnSearch="SearchAsync" OnClear="ClearSearch" />
     </div>
 
-    <PagedDataView @ref="_pagedView" TData="GetUsersResponse" Provider="FetchDataAsync" OnDataLoaded="HandleDataLoaded" Context="data">
+    <PagedDataView @ref="_pagedView" TData="GetUsersResponse" SearchQueryStringKey="q" PageQueryStringKey="p" Provider="FetchDataAsync" OnDataLoaded="HandleDataLoaded" Context="data">
         <div class="d-none d-md-block">
             <div class="table-responsive">
                 <table class="table align-middle">

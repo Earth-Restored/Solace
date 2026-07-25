@@ -25,7 +25,7 @@
             </span>
         </div>
 
-        <SearchBar @bind-Value="_searchTerm" Placeholder="name" Style="max-width: 400px;" OnSearch="SearchAsync" OnClear="ClearSearch" />
+        <SearchBar @bind-Value="_searchTerm" Placeholder="name" Style="max-width: 400px;" QueryStringKey="q" OnSearch="SearchAsync" OnClear="ClearSearch" />
 
         @if (HasPermission(Permissions.ManageBuildplates))
         {

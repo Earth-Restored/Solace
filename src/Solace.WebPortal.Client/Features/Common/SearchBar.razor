@@ -1,3 +1,7 @@
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@using System.Web
+
 <div class="input-group @Class" style="@Style">
     <span class="input-group-text bg-white">
         <i class="@SearchIconClass"></i>
@@ -13,6 +17,8 @@
 </div>
 
 @code {
+    [Parameter] public string? QueryStringKey { get; set; }
+
     [Parameter] public string Value { get; set; } = string.Empty;
     [Parameter] public EventCallback<string> ValueChanged { get; set; }
     [Parameter] public EventCallback<string> OnSearch { get; set; }
@@ -24,9 +30,62 @@
     [Parameter] public string SearchIconClass { get; set; } = "bi bi-search";
     [Parameter] public string ClearIconClass { get; set; } = "bi bi-x-lg";
 
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(QueryStringKey))
+        {
+            var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+            var query = HttpUtility.ParseQueryString(uri.Query);
+            var urlValue = query.Get(QueryStringKey);
+            
+            if (urlValue != null)
+            {
+                Value = urlValue;
+            }
+
+            NavigationManager.LocationChanged += OnLocationChanged;
+        }
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (!string.IsNullOrEmpty(QueryStringKey))
+        {
+            var uri = NavigationManager.ToAbsoluteUri(e.Location);
+            var query = HttpUtility.ParseQueryString(uri.Query);
+            var urlValue = query.Get(QueryStringKey) ?? string.Empty;
+
+            if (Value != urlValue)
+            {
+                Value = urlValue;
+                StateHasChanged();
+                
+                // Notify parent components so they stay synced if wired up manually
+                InvokeAsync(() => ValueChanged.InvokeAsync(Value));
+                InvokeAsync(() => OnSearch.InvokeAsync(Value));
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+
     private async Task HandleChange(ChangeEventArgs e)
     {
         Value = e.Value?.ToString() ?? string.Empty;
+
+        if (!string.IsNullOrEmpty(QueryStringKey))
+        {
+            // Passing 'null' removes the parameter from the URL entirely
+            var uri = NavigationManager.GetUriWithQueryParameter(QueryStringKey, string.IsNullOrEmpty(Value) ? null : Value);
+            if (NavigationManager.Uri != uri)
+            {
+                NavigationManager.NavigateTo(uri);
+            }
+        }
+
         await ValueChanged.InvokeAsync(Value);
         await OnSearch.InvokeAsync(Value);
     }
@@ -34,6 +93,16 @@
     private async Task ClearAsync()
     {
         Value = string.Empty;
+
+        if (!string.IsNullOrEmpty(QueryStringKey))
+        {
+            var uri = NavigationManager.GetUriWithQueryParameter(QueryStringKey, (string?)null);
+            if (NavigationManager.Uri != uri)
+            {
+                NavigationManager.NavigateTo(uri);
+            }
+        }
+
         await ValueChanged.InvokeAsync(Value);
         await OnSearch.InvokeAsync(Value);
         await OnClear.InvokeAsync();

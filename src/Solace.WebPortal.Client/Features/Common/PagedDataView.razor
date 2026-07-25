@@ -1,5 +1,8 @@
 @using Solace.WebPortal.Common.Features.Common
 @typeparam TData
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@using System.Web
 
 @if (ErrorMessage is not null)
 {
@@ -64,6 +67,9 @@ else if (Data is not null && !IsLoading)
 }
 
 @code {
+    [Parameter] public string? PageQueryStringKey { get; set; }
+    [Parameter] public string? SearchQueryStringKey { get; set; }
+
     [Parameter, EditorRequired]
     public Func<PagedSearchQuery, Task<PagedResult<TData>?>> Provider { get; set; } = default!;
 
@@ -82,14 +88,80 @@ else if (Data is not null && !IsLoading)
     public TData? Data { get; private set; }
 
     public int? TotalItems { get; private set; }
-
     public int? MatchingItems { get; private set; }
-
     public int TotalPages { get; private set; } = 1;
 
     protected override void OnInitialized()
     {
-        Query = new PagedSearchQuery(null, 1, DefaultPageSize);
+        int initialPage = 1;
+        string? initialSearch = null;
+
+        // Hydrate state from URL on initial load
+        if (!string.IsNullOrEmpty(PageQueryStringKey) || !string.IsNullOrEmpty(SearchQueryStringKey))
+        {
+            var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+            var query = HttpUtility.ParseQueryString(uri.Query);
+
+            if (!string.IsNullOrEmpty(PageQueryStringKey) && int.TryParse(query.Get(PageQueryStringKey), out var p))
+            {
+                initialPage = int.Max(1, p);
+            }
+            if (!string.IsNullOrEmpty(SearchQueryStringKey))
+            {
+                initialSearch = query.Get(SearchQueryStringKey);
+            }
+
+            NavigationManager.LocationChanged += OnLocationChanged;
+        }
+
+        Query = new PagedSearchQuery(initialSearch, initialPage, DefaultPageSize);
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (string.IsNullOrEmpty(PageQueryStringKey) && string.IsNullOrEmpty(SearchQueryStringKey)) return;
+
+        var uri = NavigationManager.ToAbsoluteUri(e.Location);
+        var query = HttpUtility.ParseQueryString(uri.Query);
+
+        bool changed = false;
+        int newPage = Query.Page;
+        string? newSearch = Query.SearchTerm;
+
+        if (!string.IsNullOrEmpty(PageQueryStringKey))
+        {
+            var pStr = query.Get(PageQueryStringKey);
+            int p = int.TryParse(pStr, out var parsed) ? parsed : 1;
+            p = int.Max(1, p);
+            
+            if (p != Query.Page)
+            {
+                newPage = p;
+                changed = true;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(SearchQueryStringKey))
+        {
+            var s = query.Get(SearchQueryStringKey);
+            if (s != Query.SearchTerm)
+            {
+                newSearch = s;
+                changed = true;
+            }
+        }
+
+        // Only reload if URL changes actually affected our state
+        if (changed)
+        {
+            Query = Query with { Page = newPage, SearchTerm = newSearch };
+            InvokeAsync(LoadDataAsync); // Invoke async context safely
+        }
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -103,6 +175,30 @@ else if (Data is not null && !IsLoading)
 
     public async Task SearchAsync(string? searchTerm)
     {
+        if (!string.IsNullOrEmpty(SearchQueryStringKey))
+        {
+            var dict = new Dictionary<string, object?>
+            {
+                [SearchQueryStringKey] = string.IsNullOrEmpty(searchTerm) ? null : searchTerm
+            };
+
+            // Searching typically resets you to page 1. Removing the key accomplishes this cleanly.
+            if (!string.IsNullOrEmpty(PageQueryStringKey))
+            {
+                dict[PageQueryStringKey] = null; 
+            }
+
+            var uri = NavigationManager.GetUriWithQueryParameters(dict);
+
+            // Navigate to trigger LocationChanged and bypass double-loading
+            if (NavigationManager.Uri != uri)
+            {
+                NavigationManager.NavigateTo(uri);
+                return;
+            }
+        }
+
+        // Fallback for internal state management if URL syncing is off or URLs match
         Query = Query with { SearchTerm = searchTerm, Page = 1 };
         await LoadDataAsync();
     }
@@ -117,6 +213,16 @@ else if (Data is not null && !IsLoading)
         var clampedPage = int.Clamp(newPage, 1, int.Max(1, TotalPages));
         if (clampedPage != Query.Page)
         {
+            if (!string.IsNullOrEmpty(PageQueryStringKey))
+            {
+                var uri = NavigationManager.GetUriWithQueryParameter(PageQueryStringKey, clampedPage <= 1 ? null : (int?)clampedPage);
+                if (NavigationManager.Uri != uri)
+                {
+                    NavigationManager.NavigateTo(uri);
+                    return;
+                }
+            }
+
             Query = Query with { Page = clampedPage };
             await LoadDataAsync();
         }
@@ -152,7 +258,6 @@ else if (Data is not null && !IsLoading)
                 if (Query.Page > TotalPages)
                 {
                     Query = Query with { Page = TotalPages };
-
                     var clampedResult = await Provider(Query);
                     if (clampedResult is not null)
                     {
