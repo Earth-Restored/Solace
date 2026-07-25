@@ -18,14 +18,14 @@
 
 <div class="container-fluid mt-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <div class="d-flex align-items-center">
-            <h2 class="h3 mb-0"><i class="bi bi-people-fill me-2 text-primary"></i>Buildplate Templates</h2>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h2 class="h3 mb-0">Buildplate Templates</h2>
             <span class="badge bg-dark-subtle text-dark border p-2">
-                @(_totalBuildplateCount is null ? "?" : _totalItems)/@(_totalBuildplateCount?.ToString() ?? "?")
+                @(_pagedView?.MatchingItems?.ToString() ?? "?")/@(_pagedView?.TotalItems?.ToString() ?? "?")
             </span>
         </div>
 
-        <SearchBar @bind-Value="_searchTerm" Placeholder="name" Style="max-width: 400px;" QueryStringKey="q" OnSearch="SearchAsync" OnClear="ClearSearch" />
+        <SearchBar @bind-Value="_searchTerm" Placeholder="name or ID" Style="max-width: 400px;" QueryStringKey="q" OnSearch="SearchAsync" OnClear="ClearSearch" />
 
         @if (HasPermission(Permissions.ManageBuildplates))
         {
@@ -36,25 +36,8 @@
     </div>
 
     <div class="row g-4">
-        @if (_buildplates is null)
-        {
-            <div class="d-flex justify-content-center my-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        }
-        else if (_buildplates.Count is 0)
-        {
-            <div class="col-12">
-                <div class="alert alert-info">
-                    @(string.IsNullOrWhiteSpace(_searchTerm) ? "No buildplates found. Try importing one!" : "No buildplates match your search.")
-                </div>
-            </div>
-        }
-        else
-        {
-            @foreach (var buildplate in _buildplates)
+        <PagedDataView @ref="_pagedView" TData="List<BuildplateViewModel>" DefaultPageSize="8" SearchQueryStringKey="q" PageQueryStringKey="p" Provider="FetchDataAsync" OnDataLoaded="HandleDataLoaded" Context="data">
+            @foreach (var buildplate in data)
             {
                 <div class="col-12 col-md-6 col-lg-4 col-xl-3" @key="buildplate.Id">
                     <div class="card h-100 shadow-sm @(buildplate.IsBusy ? "opacity-50" : "")">
@@ -137,27 +120,8 @@
                     </div>
                 </div>
             }
-        }
+        </PagedDataView>
     </div>
-
-    @if (TotalPages > 1)
-    {
-        <div class="d-flex justify-content-center mt-5 mb-3">
-            <nav aria-label="Buildplate pagination">
-                <ul class="pagination">
-                    <li class="page-item @(_currentPage == 1 ? "disabled" : "")">
-                        <button class="page-link" @onclick="PreviousPage" tabindex="-1">Previous</button>
-                    </li>
-                    <li class="page-item disabled">
-                        <span class="page-link text-dark">Page @_currentPage of @TotalPages</span>
-                    </li>
-                    <li class="page-item @(_currentPage == TotalPages ? "disabled" : "")">
-                        <button class="page-link" @onclick="NextPage">Next</button>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-    }
 </div>
 
 @if (_showDeleteModal)
@@ -279,15 +243,11 @@
 }
 
 @code {
-    private ClaimsPrincipal? _user;
-    private List<BuildplateViewModel>? _buildplates;
+    private PagedDataView<List<BuildplateViewModel>>? _pagedView;
 
-    private int? _totalBuildplateCount;
+    private ClaimsPrincipal? _user;
+
     private string _searchTerm = string.Empty;
-    private int _currentPage = 1;
-    private int _pageSize = 8;
-    private int _totalItems = 0;
-    private int TotalPages => int.Max(1, (int)double.Ceiling((double)_totalItems / _pageSize));
 
     private bool _showDeleteModal = false;
     private bool _isDeleting = false;
@@ -308,56 +268,62 @@
         _user = authState.User;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await LoadBuildplates();
-            StateHasChanged();
-        }
-    }
-
-    private async Task LoadBuildplates()
+    private async Task<PagedResult<List<BuildplateViewModel>>?> FetchDataAsync(PagedSearchQuery query)
     {
         try
         {
-            var url = $"/api/admin/buildplates/templates?page={_currentPage}&pageSize={_pageSize}";
-            if (!string.IsNullOrWhiteSpace(_searchTerm))
+            var uri = $"/api/admin/buildplates/templates?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? string.Empty)}&page={query.Page}&pageSize={query.PageSize}";
+            var response = await Http.GetFromJsonAsync<PagedSearchResult<List<BuildplateTemplateDto>>>(uri);
+
+            if (response is null)
             {
-                url += $"&searchTerm={Uri.EscapeDataString(_searchTerm)}";
+                return null;
             }
 
-            var response = await Http.GetFromJsonAsync<PagedSearchResult<List<BuildplateTemplateDto>>>(url);
-
-            if (response is not null)
-            {
-                _totalItems = response.MatchingCount;
-                _totalBuildplateCount = response.TotalCount;
-
-                _buildplates = response.Data
-                    .Select(dto => new BuildplateViewModel
-                    {
-                        Id = dto.Id,
-                        Name = dto.Name,
-                        Size = dto.Size,
-                        Offset = dto.Offset,
-                        BlocksPerMeter = dto.BlocksPerMeter,
-                        IsNight = dto.IsNight,
-                        ServerDataObjectId = dto.ServerDataObjectId,
-                        PreviewObjectId = dto.PreviewObjectId
-                    })
-                    .ToList();
-
-                foreach (var buildplate in _buildplates)
+            var buildplates = response.Data
+                .Select(dto => new BuildplateViewModel
                 {
-                    buildplate.AcceptChanges();
-                }
+                    Id = dto.Id,
+                    Name = dto.Name,
+                    Size = dto.Size,
+                    Offset = dto.Offset,
+                    BlocksPerMeter = dto.BlocksPerMeter,
+                    IsNight = dto.IsNight,
+                    ServerDataObjectId = dto.ServerDataObjectId,
+                    PreviewObjectId = dto.PreviewObjectId
+                })
+                .ToList();
+
+            foreach (var buildplate in buildplates)
+            {
+                buildplate.AcceptChanges();
             }
+
+            return new PagedSearchResult<List<BuildplateViewModel>>(buildplates, response.TotalCount, response.MatchingCount);
         }
-        catch (Exception exception)
+        catch
         {
-            Logger.LogError(exception, "Could not fetch buildplates from API");
+            _pagedView?.ErrorMessage = "Failed to load templates.";
+            return null;
         }
+    }
+
+    private void HandleDataLoaded(PagedResult<List<BuildplateViewModel>> result)
+    {
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_pagedView is not null)
+        {
+            await _pagedView.SearchAsync(_searchTerm);
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        _searchTerm = string.Empty;
+        await SearchAsync();
     }
 
     private async Task SaveBuildplate(BuildplateViewModel buildplate)
@@ -423,7 +389,11 @@
                     return;
                 }
 
-                await LoadBuildplates();
+                if (_pagedView is not null)
+                {
+                    await _pagedView.ReloadCurrentPageAsync();
+                }
+
                 CancelDelete();
             }
             catch (Exception exception)
@@ -547,36 +517,6 @@
         {
             _showExportModal = false;
             _exportBuildplate = null;
-        }
-    }
-
-    private async Task SearchAsync()
-    {
-        _currentPage = 1;
-        await LoadBuildplates();
-    }
-
-    private async Task ClearSearch()
-    {
-        _searchTerm = string.Empty;
-        await SearchAsync();
-    }
-
-    private async Task PreviousPage()
-    {
-        if (_currentPage > 1)
-        {
-            _currentPage--;
-            await LoadBuildplates();
-        }
-    }
-
-    private async Task NextPage()
-    {
-        if (_currentPage < TotalPages)
-        {
-            _currentPage++;
-            await LoadBuildplates();
         }
     }
 

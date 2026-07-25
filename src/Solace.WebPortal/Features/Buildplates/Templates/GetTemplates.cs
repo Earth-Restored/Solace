@@ -30,7 +30,9 @@ public static partial class GetTemplates
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))
         {
             var search = $"%{query.SearchTerm}%";
-            dbQuery = dbQuery.Where(buildplate => EF.Functions.ILike(buildplate.Name, search));
+            dbQuery = dbQuery.Where(buildplate =>
+                EF.Functions.ILike(buildplate.Name, search) ||
+                EF.Functions.ILike(buildplate.Id.ToString(), search));
 
             matchingCount = await dbQuery.CountAsync(cancellationToken);
         }

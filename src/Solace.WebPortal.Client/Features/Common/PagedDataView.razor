@@ -96,7 +96,6 @@ else if (Data is not null && !IsLoading)
         int initialPage = 1;
         string? initialSearch = null;
 
-        // Hydrate state from URL on initial load
         if (!string.IsNullOrEmpty(PageQueryStringKey) || !string.IsNullOrEmpty(SearchQueryStringKey))
         {
             var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
@@ -133,7 +132,7 @@ else if (Data is not null && !IsLoading)
             var pStr = query.Get(PageQueryStringKey);
             int p = int.TryParse(pStr, out var parsed) ? parsed : 1;
             p = int.Max(1, p);
-            
+
             if (p != Query.Page)
             {
                 newPage = p;
@@ -151,11 +150,10 @@ else if (Data is not null && !IsLoading)
             }
         }
 
-        // Only reload if URL changes actually affected our state
         if (changed)
         {
             Query = Query with { Page = newPage, SearchTerm = newSearch };
-            InvokeAsync(LoadDataAsync); // Invoke async context safely
+            InvokeAsync(LoadDataAsync);
         }
     }
 
@@ -182,15 +180,13 @@ else if (Data is not null && !IsLoading)
                 [SearchQueryStringKey] = string.IsNullOrEmpty(searchTerm) ? null : searchTerm
             };
 
-            // Searching typically resets you to page 1. Removing the key accomplishes this cleanly.
             if (!string.IsNullOrEmpty(PageQueryStringKey))
             {
-                dict[PageQueryStringKey] = null; 
+                dict[PageQueryStringKey] = null;
             }
 
             var uri = NavigationManager.GetUriWithQueryParameters(dict);
 
-            // Navigate to trigger LocationChanged and bypass double-loading
             if (NavigationManager.Uri != uri)
             {
                 NavigationManager.NavigateTo(uri);
@@ -198,7 +194,6 @@ else if (Data is not null && !IsLoading)
             }
         }
 
-        // Fallback for internal state management if URL syncing is off or URLs match
         Query = Query with { SearchTerm = searchTerm, Page = 1 };
         await LoadDataAsync();
     }
@@ -252,6 +247,9 @@ else if (Data is not null && !IsLoading)
                     TotalItems = result.TotalCount;
                     MatchingItems = result.TotalCount;
                 }
+
+                Console.WriteLine(TotalItems);
+                Console.WriteLine(MatchingItems); StateHasChanged();
 
                 TotalPages = int.Max(1, (int)double.Ceiling((double)MatchingItems / Query.PageSize));
 

@@ -30,7 +30,7 @@
         <SearchBar @bind-Value="_searchTerm" Placeholder="username or ID" Style="max-width: 400px;" QueryStringKey="q" OnSearch="SearchAsync" OnClear="ClearSearch" />
     </div>
 
-    <PagedDataView @ref="_pagedView" TData="List<AccountViewModel>" SearchQueryStringKey="q" PageQueryStringKey="p" Provider="FetchDataAsync" OnDataLoaded="HandleDataLoaded">
+    <PagedDataView @ref="_pagedView" TData="List<AccountViewModel>" SearchQueryStringKey="q" PageQueryStringKey="p" Provider="FetchDataAsync" OnDataLoaded="HandleDataLoaded" Context="data">
         <ChildContent Context="players">
             <div class="d-none d-md-block">
                 <div class="table-responsive">
