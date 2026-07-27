@@ -144,6 +144,10 @@ internal sealed partial class Program2
 
         builder.Services.AddSingleton<Features.Buildplates.BuildplatePreviewGenerationSemaphore>();
 
+        builder.Services.AddMemoryCache();
+
+        builder.Services.AddSingleton<Features.Catalog.CatalogResponseCacheService>();
+
         await using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();

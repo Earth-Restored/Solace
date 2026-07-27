@@ -364,7 +364,12 @@ public sealed class EarthDbContext : DbContext
 
         // shared buildplates
         modelBuilder.Entity<SharedBuildplateEF>()
-            .OwnsMany(x => x.Hotbar, config => config.ToJson());
+            .Property(x => x.Hotbar)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, DbJsonContext.Default.HotbarItemArray),
+                v => JsonSerializer.Deserialize<SharedBuildplateEF.HotbarItem?[]>(v, DbJsonContext.Default.HotbarItemArray) ?? new SharedBuildplateEF.HotbarItem?[7]
+            )
+            .Metadata.SetValueComparer(new ArrayValueComparer<SharedBuildplateEF.HotbarItem>(SharedBuildplateEF.HotbarItem.Comparer.Instance));
 #pragma warning restore CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
 #pragma warning restore CS8621 // Nullability of reference types in return type doesn't match the target delegate (possibly because of nullability attributes).
 #pragma warning restore IDE0058 // Expression value is never used

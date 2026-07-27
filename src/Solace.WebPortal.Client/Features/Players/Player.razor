@@ -1,0 +1,565 @@
+@page "/Admin/Players/{AccountId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
+@using System.Diagnostics
+@using System.Net.Http.Headers
+@using Solace.Common.Constants
+@using Solace.WebPortal.Common
+@using Solace.WebPortal.Common.Features.Players
+@attribute [Authorize(Policy = Permissions.ViewPlayers)]
+@rendermode InteractiveWebAssembly
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavManager
+
+<div class="container mt-3 mb-5" style="max-width: 900px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+
+    @if (PlayerAccount is null)
+    {
+        <div class="d-flex justify-content-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="m-0 text-dark font-weight-bold">Profile: @PlayerAccount.Username</h3>
+            <a class="btn btn-secondary btn-sm" href="/Admin/Players">
+                <i class="bi bi-arrow-left"></i> Back to Players
+            </a>
+        </div>
+
+        @if (!string.IsNullOrEmpty(UpdateErrorMessage))
+        {
+            <div class="alert alert-danger py-2 px-3 mb-3 small shadow-sm" role="alert">@UpdateErrorMessage</div>
+        }
+        @if (!string.IsNullOrEmpty(UpdateSuccessMessage))
+        {
+            <div class="alert alert-success py-2 px-3 mb-3 small shadow-sm" role="alert">@UpdateSuccessMessage</div>
+        }
+
+        <div class="row g-3">
+            <div class="col-md-7 d-flex flex-column gap-3">
+
+                <div class="card shadow-sm">
+                    <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">General Information</h6>
+                    </div>
+                    <div class="card-body p-3">
+                        @if (!IsChangingUsername)
+                        {
+                            <div class="d-flex justify-content-between align-items-center bg-light p-2 rounded border">
+                                <div>
+                                    <span class="text-muted small me-2">Username:</span>
+                                    <strong class="text-dark">@PlayerAccount.Username</strong>
+                                </div>
+                                @if (CanEdit)
+                                {
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="EnableChangeUsername">
+                                        <i class="bi bi-pencil me-1"></i> Edit
+                                    </button>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <EditForm Model="@UsernameModel" OnValidSubmit="UpdateUsername" class="d-flex flex-column gap-1">
+                                <DataAnnotationsValidator />
+                                <div class="d-flex gap-2">
+                                    <InputText class="form-control form-control-sm" @bind-Value="UsernameModel.Username" placeholder="New Username" />
+                                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelActions">Cancel</button>
+                                </div>
+                                <ValidationMessage For="@(() => UsernameModel.Username)" class="text-danger small" style="font-size: 0.75rem;" />
+                            </EditForm>
+                        }
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-left-primary">
+                    <div class="card-header bg-secondary text-white py-2 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Statistics</h6>
+                        @if (CanEdit && !IsEditingStats)
+                        {
+                            <button class="btn btn-light btn-sm py-0 px-2 text-dark" @onclick="EnableEditStats">
+                                <i class="bi bi-pencil"></i> Edit Stats
+                            </button>
+                        }
+                    </div>
+                    <div class="card-body p-3">
+                        @if (!IsEditingStats)
+                        {
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="position-relative d-inline-flex align-items-center justify-content-center" style="width: 55px; height: 55px; flex-shrink: 0;">
+                                    <svg width="55" height="55" viewBox="0 0 50 50" style="transform: rotate(-90deg); position: absolute; top: 0; left: 0;">
+                                        <circle cx="25" cy="25" r="20" stroke="#e6e6e6" stroke-width="4" fill="transparent" />
+                                        <circle cx="25" cy="25" r="20" stroke="#28a745" stroke-width="4" fill="transparent" stroke-dasharray="125.66" stroke-dashoffset="@(125.66 - (125.66 * (PlayerAccount.LevelProgressPercentage ?? 1f) / 100))" stroke-linecap="round" style="transition: stroke-dashoffset 0.3s ease;" />
+                                    </svg>
+                                    <div class="text-center d-flex flex-column align-items-center justify-content-center" style="z-index: 2;">
+                                        <span class="m-0 font-weight-bold text-dark">@PlayerAccount.Level</span>
+                                    </div>
+                                </div>
+
+                                <div class="row flex-grow-1 g-3">
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-between mb-1 small">
+                                            <span class="text-muted">XP (@(PlayerAccount.LevelProgressPercentage?.ToString("F0") ?? "100")%)</span>
+                                            <span class="font-weight-bold">@PlayerAccount.TotalExperience</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: @PlayerAccount.LevelProgressPercentage%;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-between mb-1 small">
+                                            <span class="text-danger"><i class="bi bi-heart-fill"></i> HP</span>
+                                            <span class="font-weight-bold">@PlayerAccount.Health / @PlayerAccount.MaxHealth</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-danger" role="progressbar" style="width: @(((double)PlayerAccount.Health / PlayerAccount.MaxHealth) * 100)%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 bg-light p-2 px-3 rounded border d-flex justify-content-between align-items-center">
+                                <span class="text-muted font-weight-bold"><i class="bi bi-gem text-warning"></i> Rubies</span>
+                                <div class="d-flex gap-4">
+                                    <span>Purchased: <strong class="text-primary">@PlayerAccount.PurchasedRubies</strong></span>
+                                    <span>Earned: <strong class="text-success">@PlayerAccount.EarnedRubies</strong></span>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <EditForm Model="@StatsModel" OnValidSubmit="UpdateStats" class="d-flex flex-column gap-2">
+                                <DataAnnotationsValidator />
+
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-4 text-end"><label class="small text-danger fw-bold"><i class="bi bi-heart-fill"></i> HP:</label></div>
+                                    <div class="col-8">
+                                        <InputNumber class="form-control form-control-sm" @bind-Value="StatsModel.Health" />
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 align-items-center mt-1">
+                                    <div class="col-4 text-end"><label class="small text-primary fw-bold">Purchased Rubies:</label></div>
+                                    <div class="col-8">
+                                        <InputNumber class="form-control form-control-sm" @bind-Value="StatsModel.PurchasedRubies" />
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-4 text-end"><label class="small text-success fw-bold">Earned Rubies:</label></div>
+                                    <div class="col-8">
+                                        <InputNumber class="form-control form-control-sm" @bind-Value="StatsModel.EarnedRubies" />
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end gap-2 mt-2">
+                                    <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelActions">Cancel</button>
+                                    <button type="submit" class="btn btn-success btn-sm">Save Stats</button>
+                                </div>
+                            </EditForm>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-5">
+                <div class="card shadow-sm h-100 text-center">
+                    <div class="card-header bg-secondary text-white py-2">
+                        <h6 class="mb-0">Character Skin</h6>
+                    </div>
+                    <div class="card-body p-3 d-flex flex-column align-items-center justify-content-between">
+                        <div class="border rounded bg-light d-flex align-items-center justify-content-center flex-grow-1 w-100 mb-3" style="min-height: 220px; position: relative; overflow: hidden;">
+                            <div id="skin-3d-container" style="width: 100%; height: 100%;" class="d-flex flex-column align-items-center justify-content-center">
+                                <span class="text-muted" style="font-size: 0.8rem;">3D Preview</span>
+                            </div>
+                        </div>
+                        @if (CanEdit)
+                        {
+                            <button type="button" class="btn btn-outline-secondary btn-sm w-100" @onclick="OpenSkinModal">
+                                <i class="bi bi-upload me-1"></i> Upload Skin
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 mt-3">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white py-2 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-box me-1"></i> Buildplates</h6>
+                    </div>
+                    <div class="card-body p-3 d-flex justify-content-between align-items-center bg-light">
+                        <div>
+                            <span class="text-muted">Total Buildplates Owned:</span>
+                            <strong class="fs-5 ms-2 text-dark">@(BuildplateCount?.ToString() ?? "?")</strong>
+                        </div>
+                        <a class="btn btn-primary btn-sm" href="/Admin/Players/@PlayerAccount.Id/Buildplates">
+                            <i class="bi bi-gear-fill me-1"></i> Manage Buildplates
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 mt-3">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white py-2">
+                        <h6 class="mb-0">Inventory</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <PlayerInventoryViewer AccountId="PlayerAccount.Id" PageSize="16" IsEditable="@CanEdit" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (IsSkinModalVisible && CanEdit)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content shadow-lg">
+                    <div class="modal-header py-2 bg-light">
+                        <h6 class="modal-title font-weight-bold text-dark" style="font-size: 0.9rem;">Upload Custom Skin</h6>
+                        <button type="button" class="btn-close" @onclick="CloseSkinModal" disabled="@IsUploadingSkin"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <p class="text-muted mb-2" style="font-size: 0.75rem;">Select a standard Minecraft texture sheet <strong>.png</strong> file (64x64 or 64x32 pixels max 512KB).</p>
+
+                        @if (!string.IsNullOrEmpty(SkinUploadErrorMessage))
+                        {
+                            <div class="alert alert-danger py-1 px-2 mb-2 small" role="alert" style="font-size: 0.75rem;">@SkinUploadErrorMessage</div>
+                        }
+                        @if (!string.IsNullOrEmpty(SkinUploadSuccessMessage))
+                        {
+                            <div class="alert alert-success py-1 px-2 mb-2 small" role="alert" style="font-size: 0.75rem;">@SkinUploadSuccessMessage</div>
+                        }
+
+                        <div class="d-flex flex-column gap-3 mt-1">
+                            <div>
+                                <label class="text-muted d-block mb-1" style="font-size: 0.75rem;">Model Type</label>
+                                <div class="btn-group w-100" role="group" aria-label="Skin model type">
+                                    <input type="radio" class="btn-check" name="skinType" id="typeAuto" checked="@(SelectedSkinType == SkinType.Auto)" @onclick='() => SelectedSkinType = SkinType.Auto' disabled="@IsUploadingSkin">
+                                    <label class="btn btn-outline-secondary btn-sm shadow-none" for="typeAuto" style="font-size: 0.75rem;">Auto</label>
+
+                                    <input type="radio" class="btn-check" name="skinType" id="typeWide" checked="@(SelectedSkinType == SkinType.Wide)" @onclick='() => SelectedSkinType = SkinType.Wide' disabled="@IsUploadingSkin">
+                                    <label class="btn btn-outline-secondary btn-sm shadow-none" for="typeWide" style="font-size: 0.75rem;">Wide</label>
+
+                                    <input type="radio" class="btn-check" name="skinType" id="typeSlim" checked="@(SelectedSkinType == SkinType.Slim)" @onclick='() => SelectedSkinType = SkinType.Slim' disabled="@IsUploadingSkin">
+                                    <label class="btn btn-outline-secondary btn-sm shadow-none" for="typeSlim" style="font-size: 0.75rem;">Slim</label>
+                                </div>
+                            </div>
+
+                            <InputFile OnChange="HandleSkinFileSelection" accept=".png" class="form-control form-control-sm" disabled="@IsUploadingSkin" />
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseSkinModal" disabled="@IsUploadingSkin">Cancel</button>
+                                <button type="button" class="btn btn-primary btn-sm px-3" @onclick="UploadSkinAsync" disabled="@(SelectedSkinFile == null || IsUploadingSkin)">
+                                    @if (IsUploadingSkin)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    }
+                                    else
+                                    {
+                                        <span>Apply</span>
+                                    }
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid AccountId { get; set; }
+
+    private bool CanEdit { get; set; }
+
+    public sealed class ChangeUsernameForm
+    {
+        [Required(ErrorMessage = "Username cannot be empty.")]
+        [StringLength(AccountConstants.UsernameLengthMax, MinimumLength = AccountConstants.UsernameLengthMin, ErrorMessage = $"Username must be between {AccountConstants.UsernameLengthMinStr} and {AccountConstants.UsernameLengthMaxStr} characters.")]
+        public string Username { get; set; } = string.Empty;
+    }
+
+    public sealed class EditStatsForm
+    {
+        [Required]
+        [Range(0, 1000, ErrorMessage = "Health must be a positive number.")]
+        public int Health { get; set; }
+
+        [Required]
+        [Range(0, 9999999, ErrorMessage = "Purchased Rubies cannot be negative.")]
+        public int PurchasedRubies { get; set; }
+
+        [Required]
+        [Range(0, 9999999, ErrorMessage = "Earned Rubies cannot be negative.")]
+        public int EarnedRubies { get; set; }
+    }
+
+    private AccountViewModel? PlayerAccount { get; set; }
+    private int? BuildplateCount { get; set; }
+
+    private ChangeUsernameForm UsernameModel { get; set; } = new();
+    private EditStatsForm StatsModel { get; set; } = new();
+
+    private bool IsChangingUsername { get; set; } = false;
+    private bool IsEditingStats { get; set; } = false;
+
+    private bool IsSkinModalVisible { get; set; } = false;
+    private SkinType SelectedSkinType { get; set; } = SkinType.Auto;
+    private IBrowserFile? SelectedSkinFile { get; set; }
+    private bool IsUploadingSkin { get; set; } = false;
+    private string? SkinUploadErrorMessage { get; set; }
+    private string? SkinUploadSuccessMessage { get; set; }
+    private const long MaxSkinFileSize = 512 * 1024; // 512 KB
+
+    private string? UpdateErrorMessage { get; set; }
+    private string? UpdateSuccessMessage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        CanEdit = authState.User.HasPermission(Permissions.ManagePlayers);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadProfileData();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadProfileData()
+    {
+        var uri = $"api/admin/players/{AccountId}";
+        var response = await Http.GetFromJsonAsync<PlayerDto>(uri);
+
+        if (response is null)
+        {
+            return;
+        }
+
+        PlayerAccount = AccountViewModel.FromDto(response);
+        BuildplateCount = response.BuildplateCount;
+    }
+
+    private void EnableChangeUsername()
+    {
+        ClearMessages();
+        IsEditingStats = false;
+        IsChangingUsername = true;
+
+        if (PlayerAccount is not (null or { Username: null }))
+        {
+            UsernameModel.Username = PlayerAccount.Username;
+        }
+    }
+
+    private void EnableEditStats()
+    {
+        ClearMessages();
+        IsChangingUsername = false;
+        IsEditingStats = true;
+
+        if (PlayerAccount is not null)
+        {
+            StatsModel.Health = PlayerAccount.Health;
+            StatsModel.PurchasedRubies = PlayerAccount.PurchasedRubies;
+            StatsModel.EarnedRubies = PlayerAccount.EarnedRubies;
+        }
+    }
+
+    private void CancelActions()
+    {
+        IsChangingUsername = false;
+        IsEditingStats = false;
+        ClearMessages();
+    }
+
+    private void ClearMessages()
+    {
+        UpdateErrorMessage = null;
+        UpdateSuccessMessage = null;
+        SkinUploadErrorMessage = null;
+        SkinUploadSuccessMessage = null;
+    }
+
+    private async Task UpdateUsername()
+    {
+        ClearMessages();
+        if (PlayerAccount is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var uri = $"api/admin/players/{AccountId}";
+            using var response = await Http.PutAsJsonAsync(uri, new UpdatePlayerCommand(
+                Username: UsernameModel.Username
+            ));
+
+            if (response.IsSuccessStatusCode)
+            {
+                PlayerAccount.Username = UsernameModel.Username;
+
+                IsChangingUsername = false;
+                UpdateSuccessMessage = "Player username updated successfully.";
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                UpdateErrorMessage = string.IsNullOrEmpty(error) ? "Failed to update username." : error;
+            }
+        }
+        catch
+        {
+            UpdateErrorMessage = "Failed to update username.";
+        }
+    }
+
+    private async Task UpdateStats()
+    {
+        ClearMessages();
+        if (PlayerAccount is null)
+        {
+            return;
+        }
+
+        if (StatsModel.Health > PlayerAccount.MaxHealth)
+        {
+            UpdateErrorMessage = $"Health cannot be larger than {PlayerAccount.MaxHealth}.";
+            return;
+        }
+
+        try
+        {
+            var uri = $"api/admin/players/{AccountId}";
+            using var response = await Http.PutAsJsonAsync(uri, new UpdatePlayerCommand(
+                Health: StatsModel.Health,
+                PurchasedRubies: StatsModel.PurchasedRubies,
+                EarnedRubies: StatsModel.EarnedRubies
+            ));
+
+            if (response.IsSuccessStatusCode)
+            {
+                PlayerAccount.Health = StatsModel.Health;
+                PlayerAccount.PurchasedRubies = StatsModel.PurchasedRubies;
+                PlayerAccount.EarnedRubies = StatsModel.EarnedRubies;
+
+                IsEditingStats = false;
+                UpdateSuccessMessage = "Player statistics updated successfully.";
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                UpdateErrorMessage = string.IsNullOrEmpty(error) ? "Failed to update statistics." : error;
+            }
+        }
+        catch
+        {
+            UpdateErrorMessage = "Failed to update statistics.";
+        }
+    }
+
+    private void OpenSkinModal()
+    {
+        ClearMessages();
+        SelectedSkinFile = null;
+        IsSkinModalVisible = true;
+    }
+
+    private void CloseSkinModal()
+    {
+        IsSkinModalVisible = false;
+        SelectedSkinFile = null;
+    }
+
+    private void HandleSkinFileSelection(InputFileChangeEventArgs e)
+    {
+        SkinUploadErrorMessage = null;
+        SkinUploadSuccessMessage = null;
+
+        var file = e.File;
+        if (file is null)
+        {
+            return;
+        }
+
+        if (!file.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) && file.ContentType is not "image/png")
+        {
+            SkinUploadErrorMessage = "Invalid format target. Only raw .png files are accepted.";
+            SelectedSkinFile = null;
+            return;
+        }
+
+        if (file.Size > MaxSkinFileSize)
+        {
+            SkinUploadErrorMessage = "File size limit exceeded. Max scale: 512 KB.";
+            SelectedSkinFile = null;
+            return;
+        }
+
+        SelectedSkinFile = file;
+    }
+
+    private async Task UploadSkinAsync()
+    {
+        if (SelectedSkinFile is null || PlayerAccount is null)
+        {
+            return;
+        }
+
+        IsUploadingSkin = true;
+        SkinUploadErrorMessage = null;
+        SkinUploadSuccessMessage = null;
+
+        try
+        {
+            await using var imageStream = SelectedSkinFile.OpenReadStream(MaxSkinFileSize);
+            using var content = new StreamContent(imageStream);
+
+            content.Headers.ContentType = new MediaTypeHeaderValue(string.IsNullOrWhiteSpace(SelectedSkinFile.ContentType) ? "application/octet-stream" : SelectedSkinFile.ContentType);
+
+            var uri = $"api/admin/players/{AccountId}/skin?skinType={SelectedSkinType}";
+            using var response = await Http.PutAsync(uri, content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                SkinUploadSuccessMessage = "Skin updated.";
+                SelectedSkinFile = null;
+
+                // todo: Trigger JSInterop canvas redraw
+
+                IsSkinModalVisible = false;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                SkinUploadErrorMessage = string.IsNullOrEmpty(error) ? "Failed to update skin." : error;
+            }
+        }
+        catch
+        {
+            SkinUploadErrorMessage = "An error occured while updating the skin.";
+        }
+        finally
+        {
+            IsUploadingSkin = false;
+        }
+    }
+}

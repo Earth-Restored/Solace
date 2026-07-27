@@ -207,17 +207,7 @@
                 return null;
             }
 
-            var viewModels = response.Data.Select(account => new AccountViewModel
-            {
-                Id = account.Id,
-                Username = account.Username,
-                Health = account.Health,
-                MaxHealth = account.MaxHealth,
-                Level = account.Level,
-                LevelProgressPercentage = account.LevelProgressPercentage,
-                PurchasedRubies = account.PurchasedRubies,
-                EarnedRubies = account.EarnedRubies,
-            }).ToList();
+            var viewModels = response.Data.Select(AccountViewModel.FromDto).ToList();
 
             return new PagedSearchResult<List<AccountViewModel>>(viewModels, response.TotalCount, response.MatchingCount);
         }
@@ -251,7 +241,7 @@
 
         try
         {
-            var response = await Http.DeleteAsync($"api/admin/players/{id}");
+            using var response = await Http.DeleteAsync($"api/admin/players/{id}");
 
             if (response is { IsSuccessStatusCode: true } or { StatusCode: System.Net.HttpStatusCode.NotFound })
             {
@@ -273,28 +263,9 @@
         }
     }
 
-    private async Task CopyIdAsync(Guid id) => await JS.InvokeVoidAsync("copyTextDirect", id.ToString());
+    private async Task CopyIdAsync(Guid id)
+        => await JS.InvokeVoidAsync("copyTextDirect", id.ToString());
 
-    private bool HasPermission(string permission) => _user?.HasPermission(permission) ?? false;
-
-    public sealed class AccountViewModel
-    {
-        public Guid Id { get; set; }
-
-        public string? Username { get; set; }
-
-        public int Health { get; set; }
-
-        public int MaxHealth { get; set; }
-
-        public int Level { get; set; }
-
-        public float? LevelProgressPercentage { get; set; } // 0 to 1; null - max level already
-
-        public int EarnedRubies { get; set; }
-
-        public int PurchasedRubies { get; set; }
-
-        public int TotalRubies => EarnedRubies + PurchasedRubies;
-    }
+    private bool HasPermission(string permission)
+        => _user?.HasPermission(permission) ?? false;
 }

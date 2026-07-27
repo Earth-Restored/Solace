@@ -15,4 +15,8 @@ builder.Services.AddScoped(sp => new HttpClient
     BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
 });
 
+builder.Services.AddMemoryCache();
+
+builder.Services.AddScoped<Solace.WebPortal.Client.Features.Catalog.CatalogCacheService>();
+
 await builder.Build().RunAsync();

@@ -298,7 +298,7 @@
             _editModelAssignedRoles.ToList()
         );
 
-        var response = await Http.PutAsJsonAsync($"api/admin/users/{_editModel.Id}", request);
+        using var response = await Http.PutAsJsonAsync($"api/admin/users/{_editModel.Id}", request);
 
         if (response.IsSuccessStatusCode)
         {
@@ -342,7 +342,7 @@
     {
         if (_userToDelete is not null && _canDeleteUsers)
         {
-            var response = await Http.DeleteAsync($"api/admin/users/{_userToDelete.Id}");
+            using var response = await Http.DeleteAsync($"api/admin/users/{_userToDelete.Id}");
             if (response.IsSuccessStatusCode)
             {
                 CloseDeleteConfirm();

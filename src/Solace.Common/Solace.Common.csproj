@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <Compile Remove="Utils/BoostUtils.cs" />
+    <Compile Remove="Constants/AccountConstants.cs" />
   </ItemGroup>
 
 </Project>

@@ -65,9 +65,11 @@ public static partial class GetPlayers
                 player.Health,
                 maxHealth,
                 player.Level,
+                player.Experience,
                 PlayerUtils.GetLevelProgressPercentage(player.Level, player.Experience, staticData.Levels),
                 player.PurchasedRubies,
-                player.EarnedRubies));
+                player.EarnedRubies,
+                null));
         }
 
         return new(playerDtos, totalCount, matchingCount);

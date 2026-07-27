@@ -345,7 +345,7 @@
 
         try
         {
-            var response = await Http.PutAsJsonAsync($"/api/admin/buildplates/templates/{buildplate.Id}", new UpdateTemplateCommand(buildplate.Id, buildplate.Name, buildplate.BlocksPerMeter));
+            using var response = await Http.PutAsJsonAsync($"/api/admin/buildplates/templates/{buildplate.Id}", new UpdateTemplateCommand(buildplate.Id, buildplate.Name, buildplate.BlocksPerMeter));
 
             if (response.IsSuccessStatusCode)
             {
@@ -380,7 +380,7 @@
                 StateHasChanged();
 
                 var url = $"/api/admin/buildplates/templates/{_buildplateToDelete.Id}?removeTemplateFromPlayers={_removeTemplateFromPlayers}";
-                var response = await Http.DeleteAsync(url);
+                using var response = await Http.DeleteAsync(url);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -419,7 +419,7 @@
 
         try
         {
-            var response = await Http.PostAsync($"/api/admin/buildplates/templates/{buildplate.Id}/regenerate-in-game-preview", null);
+            using var response = await Http.PostAsync($"/api/admin/buildplates/templates/{buildplate.Id}/regenerate-in-game-preview", null);
 
             if (!response.IsSuccessStatusCode)
             {

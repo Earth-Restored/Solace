@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UserSecretsId>aspnet-Solace_WebPortal-1407b485-7261-4b0c-b807-1bef85e263e4</UserSecretsId>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
@@ -39,6 +40,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" VersionOverride="11.0.0-preview.6.26359.118" PrivateAssets="all" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" VersionOverride="11.0.0-preview.6.26359.118" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" VersionOverride="11.0.0-preview.6" />
+    <PackageReference Include="SixLabors.ImageSharp" />
   </ItemGroup>
 
 </Project>

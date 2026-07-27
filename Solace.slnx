@@ -2,12 +2,6 @@
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
   </Folder>
-  <Folder Name="/src/">
-    <Project Path="src/Solace.WebPortal.Client/Solace.WebPortal.Client.csproj" />
-    <Project Path="src/Solace.WebPortal.Common/Solace.WebPortal.Common.csproj" />
-    <Project Path="src/Solace.WebPortal/Solace.WebPortal.csproj" />
-  </Folder>
-  <Project Path="src/Solace.AdminPanel/Solace.AdminPanel.csproj" />
   <Project Path="src/Solace.Analyzer/Solace.Analyzer.csproj" />
   <Project Path="src/Solace.ApiServer/Solace.ApiServer.csproj" />
   <Project Path="src/Solace.AppHost/Solace.AppHost.csproj" />
@@ -32,4 +26,7 @@
   <Project Path="src/Solace.StaticData/Solace.StaticData.csproj" />
   <Project Path="src/Solace.TappablesGenerator/Solace.TappablesGenerator.csproj" />
   <Project Path="src/Solace.TileRenderer/Solace.TileRenderer.csproj" />
+  <Project Path="src/Solace.WebPortal/Solace.WebPortal.csproj" />
+  <Project Path="src/Solace.WebPortal.Client/Solace.WebPortal.Client.csproj" />
+  <Project Path="src/Solace.WebPortal.Common/Solace.WebPortal.Common.csproj" />
 </Solution>

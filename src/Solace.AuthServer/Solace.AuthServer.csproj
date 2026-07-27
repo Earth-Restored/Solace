@@ -16,6 +16,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../Solace.Common/Constants/AccountConstants.cs" Link="AccountConstants.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Immediate.Apis" />
     <PackageReference Include="Immediate.Validations" />
     <PackageReference Include="Nager.PublicSuffix" />

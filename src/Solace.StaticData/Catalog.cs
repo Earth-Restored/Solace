@@ -9,11 +9,11 @@ namespace Solace.StaticData;
 
 public sealed class Catalog
 {
-    public readonly ItemsCatalogR ItemsCatalog;
-    public readonly ItemEfficiencyCategoriesCatalogR ItemEfficiencyCategoriesCatalog;
-    public readonly ItemJournalGroupsCatalogR ItemJournalGroupsCatalog;
-    public readonly RecipesCatalogR RecipesCatalog;
-    public readonly NFCBoostsCatalogR NfcBoostsCatalog;
+    public ItemsCatalogR ItemsCatalog { get; }
+    public ItemEfficiencyCategoriesCatalogR ItemEfficiencyCategoriesCatalog { get; }
+    public ItemJournalGroupsCatalogR ItemJournalGroupsCatalog { get; }
+    public RecipesCatalogR RecipesCatalog { get; }
+    public NFCBoostsCatalogR NfcBoostsCatalog { get; }
 
     internal Catalog(string dir)
     {
@@ -207,11 +207,11 @@ public sealed class Catalog
             );
 
             public sealed record BoostEffect(
-                   BoostEffectType Type,
-                   int Value,
-                   Guid[] ApplicableItemIds,
-                   BoostEffectActivation Activation
-               );
+                BoostEffectType Type,
+                int Value,
+                Guid[] ApplicableItemIds,
+                BoostEffectActivation Activation
+            );
 
             [JsonConverter(typeof(JsonStringEnumConverter<BoostEffectType>))]
             public enum BoostEffectType

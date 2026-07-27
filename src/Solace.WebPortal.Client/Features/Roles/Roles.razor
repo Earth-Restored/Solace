@@ -297,7 +297,7 @@
     private async Task SaveRole()
     {
         _errorMessage = null;
-        HttpResponseMessage response;
+        HttpResponseMessage? response = null;
 
         try
         {
@@ -336,6 +336,10 @@
             _errorMessage = "An error occurred while saving the role.";
             Console.WriteLine(exception);
         }
+        finally
+        {
+            response?.Dispose();
+        }
     }
 
     private async Task MoveUp(RoleDto role)
@@ -363,7 +367,7 @@
     private async Task SwapPositions(RoleDto roleA, RoleDto roleB)
     {
         var command = new SwapRolesCommand(roleA.Id, roleB.Id);
-        var response = await Http.PostAsJsonAsync("/api/admin/roles/swap", command);
+        using var response = await Http.PostAsJsonAsync("/api/admin/roles/swap", command);
 
         if (response.IsSuccessStatusCode)
         {
@@ -395,9 +399,12 @@
 
     private async Task DeleteRole(RoleDto role)
     {
-        if (role.Position <= _userMinPosition || role.IsBuiltIn) return;
+        if (role.Position <= _userMinPosition || role.IsBuiltIn)
+        {
+            return;
+        }
 
-        var response = await Http.DeleteAsync($"/api/admin/roles/{role.Id}");
+        using var response = await Http.DeleteAsync($"/api/admin/roles/{role.Id}");
         if (response.IsSuccessStatusCode)
         {
             await LoadData();
@@ -406,14 +413,26 @@
 
     private void TogglePermission(string perm, object? checkedValue)
     {
-        if (_editModel.IsReadOnly) return;
-        if (checkedValue is bool b && b) _modelPermissions.Add(perm);
-        else _modelPermissions.Remove(perm);
+        if (_editModel.IsReadOnly)
+        {
+            return;
+        }
+        if (checkedValue is bool b && b)
+        {
+            _modelPermissions.Add(perm);
+        }
+        else
+        {
+            _modelPermissions.Remove(perm);
+        }
     }
 
     private void ToggleDescription(string permName)
     {
-        if (!_expandedPermissions.Add(permName)) _expandedPermissions.Remove(permName);
+        if (!_expandedPermissions.Add(permName))
+        {
+            _expandedPermissions.Remove(permName);
+        }
     }
 
     RenderFragment<RoleDto> RenderPermissions => role => __builder =>

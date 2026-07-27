@@ -6,7 +6,9 @@ public sealed record PlayerDto(
     int Health,
     int MaxHealth,
     int Level,
+    int TotalExperience,
     float? LevelProgressPercentage, // 0 to 1; null - max level already
     int PurchasedRubies,
-    int EarnedRubies
+    int EarnedRubies,
+    int? BuildplateCount
 );

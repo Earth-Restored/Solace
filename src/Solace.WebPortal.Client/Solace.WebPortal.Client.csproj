@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
@@ -10,12 +11,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" VersionOverride="11.0.0-preview.6.26359.118" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" VersionOverride="11.0.0-preview.6.26359.118" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../Solace.WebPortal.Common/Solace.WebPortal.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Solace.Common/Constants/AccountConstants.cs" Link="AccountConstants.cs" />
   </ItemGroup>
 
 </Project>

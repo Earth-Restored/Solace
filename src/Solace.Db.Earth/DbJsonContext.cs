@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Solace.Db.Earth.Models.Common;
+using Solace.Db.Earth.Models.Global;
 using Solace.Db.Earth.Models.Player;
 using Solace.Db.Earth.Models.Player.Workshop;
 
@@ -11,6 +12,7 @@ namespace Solace.Db.Earth;
 [JsonSerializable(typeof(Dictionary<Guid, int>))]
 [JsonSerializable(typeof(HotbarEF.Item?[]))]
 [JsonSerializable(typeof(Rewards))]
+[JsonSerializable(typeof(SharedBuildplateEF.HotbarItem?[]))]
 [JsonSerializable(typeof(SmeltingSlotEF[]))]
 internal sealed partial class DbJsonContext : JsonSerializerContext
 {

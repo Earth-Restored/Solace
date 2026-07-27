@@ -1,4 +1,7 @@
-﻿namespace Solace.Db.Earth.Models.Global;
+﻿using System.Diagnostics.CodeAnalysis;
+using Solace.Common;
+
+namespace Solace.Db.Earth.Models.Global;
 
 public sealed class SharedBuildplateEF : IEntityWithId<Guid>
 {
@@ -33,5 +36,24 @@ public sealed class SharedBuildplateEF : IEntityWithId<Guid>
         int Count,
         Guid? InstanceId,
         int Wear
-    );
+    ) : ICloneable<HotbarItem>
+    {
+        public HotbarItem DeepCopy()
+            => new HotbarItem(this);
+
+        public sealed class Comparer : IEqualityComparer<HotbarItem>
+        {
+            public static Comparer Instance { get; } = new Comparer();
+
+            private Comparer()
+            {
+            }
+
+            public bool Equals(HotbarItem? x, HotbarItem? y)
+                => x == y || (x?.Equals(y) ?? false);
+
+            public int GetHashCode([DisallowNull] HotbarItem obj)
+                => obj.GetHashCode();
+        }
+    }
 }
