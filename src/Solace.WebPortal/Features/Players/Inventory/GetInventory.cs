@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Solace.Db.Earth;
 using Solace.WebPortal.Common;
-using Solace.WebPortal.Common.Features.Players;
 using Solace.WebPortal.Common.Features.Players.Inventory;
 
 namespace Solace.WebPortal.Features.Players.Inventory;

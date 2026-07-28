@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Authorization;

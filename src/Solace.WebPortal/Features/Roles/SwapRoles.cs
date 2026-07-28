@@ -1,11 +1,9 @@
 using System.Globalization;
-using System.Security.Claims;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Solace.WebPortal.Common;
 using Solace.WebPortal.Common.Features.Roles;
 using Solace.WebPortal.Data;

@@ -3,7 +3,6 @@ using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Solace.BuildplateImporter;
 using Solace.Db.Earth;
 using Solace.EventBus.Client;

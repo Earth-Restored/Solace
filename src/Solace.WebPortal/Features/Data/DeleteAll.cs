@@ -2,11 +2,9 @@ using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.EntityFrameworkCore;
 using Solace.Db.Earth;
 using Solace.ObjectStore.Client;
 using Solace.WebPortal.Common;
-using Solace.WebPortal.Common.Features.Data;
 using Solace.WebPortal.Data;
 
 namespace Solace.WebPortal.Features.Data;
