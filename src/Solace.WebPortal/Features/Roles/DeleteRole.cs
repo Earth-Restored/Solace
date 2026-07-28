@@ -12,7 +12,7 @@ using Solace.WebPortal.Features.Common;
 namespace Solace.WebPortal.Features.Roles;
 
 [Handler]
-[MapDelete("/api/admin/roles/{id}")]
+[MapDelete("/api/roles/{id}")]
 [Authorize(Policy = Permissions.EditRoles)]
 public static partial class DeleteRole
 {

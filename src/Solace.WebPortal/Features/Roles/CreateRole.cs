@@ -12,7 +12,7 @@ using Solace.WebPortal.Data;
 namespace Solace.WebPortal.Features.Roles;
 
 [Handler]
-[MapPost("/api/admin/roles")]
+[MapPost("/api/roles")]
 [Authorize(Policy = Permissions.EditRoles)]
 public static partial class CreateRole
 {

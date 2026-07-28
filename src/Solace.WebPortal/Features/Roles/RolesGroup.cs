@@ -2,5 +2,5 @@ using Immediate.Apis.Shared;
 
 namespace Solace.WebPortal.Features.Roles;
 
-[RouteGroup("api/admin/roles")]
+[RouteGroup("api/roles")]
 public sealed partial class RolesGroup;

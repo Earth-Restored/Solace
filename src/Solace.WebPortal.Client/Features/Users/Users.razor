@@ -228,7 +228,7 @@
     {
         try
         {
-            var uri = $"api/admin/users?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? string.Empty)}&page={query.Page}&pageSize={query.PageSize}";
+            var uri = $"api/users?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? string.Empty)}&page={query.Page}&pageSize={query.PageSize}";
             return await Http.GetFromJsonAsync<PagedSearchResult<GetUsersResponse>>(uri);
         }
         catch
@@ -298,7 +298,7 @@
             _editModelAssignedRoles.ToList()
         );
 
-        using var response = await Http.PutAsJsonAsync($"api/admin/users/{_editModel.Id}", request);
+        using var response = await Http.PutAsJsonAsync($"api/users/{_editModel.Id}", request);
 
         if (response.IsSuccessStatusCode)
         {
@@ -342,7 +342,7 @@
     {
         if (_userToDelete is not null && _canDeleteUsers)
         {
-            using var response = await Http.DeleteAsync($"api/admin/users/{_userToDelete.Id}");
+            using var response = await Http.DeleteAsync($"api/users/{_userToDelete.Id}");
             if (response.IsSuccessStatusCode)
             {
                 CloseDeleteConfirm();

@@ -46,7 +46,7 @@ public sealed class CatalogCacheService
                 // todo: make this configurable
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
 
-                var items = await _httpClient.GetFromJsonAsync<IEnumerable<ItemDto>>("api/admin/catalog/items");
+                var items = await _httpClient.GetFromJsonAsync<IEnumerable<ItemDto>>("api/catalog/items");
 
                 var itemsById = items!.ToFrozenDictionary(item => item.Id);
 

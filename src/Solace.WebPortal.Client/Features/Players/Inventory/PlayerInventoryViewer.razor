@@ -423,7 +423,7 @@
     {
         try
         {
-            var uri = $"api/admin/players/{AccountId}/inventory";
+            var uri = $"api/players/{AccountId}/inventory";
             var response = await Http.GetFromJsonAsync<GetInventoryResponse>(uri);
 
             if (response is null)
@@ -524,7 +524,7 @@
             return;
         }
 
-        var uri = $"api/admin/players/{AccountId}/inventory";
+        var uri = $"api/players/{AccountId}/inventory";
         using var response = await Http.PostAsJsonAsync(uri, new AddItemCommand(SelectedItemToAdd.Id, AddItemCount));
 
         if (response.IsSuccessStatusCode)
@@ -551,7 +551,7 @@
             return;
         }
 
-        var uri = $"api/admin/players/{AccountId}/inventory";
+        var uri = $"api/players/{AccountId}/inventory";
         using var response = await Http.PutAsJsonAsync(uri, new UpdateItemCommand(SelectedItemSlot.BaseItem.Id, null, EditCount, null));
 
         if (response.IsSuccessStatusCode)
@@ -567,7 +567,7 @@
 
     private async Task RemoveItem(InventorySlot slot)
     {
-        var uri = $"api/admin/players/{AccountId}/inventory/{slot.BaseItem.Id}";
+        var uri = $"api/players/{AccountId}/inventory/{slot.BaseItem.Id}";
         if (slot.InstanceId is { } instanceId)
         {
             uri += $"?instanceId={instanceId}";

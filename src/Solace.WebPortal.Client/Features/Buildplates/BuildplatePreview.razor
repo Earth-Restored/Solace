@@ -245,7 +245,7 @@
         try
         {
             var forceRefresh = !getFromCache;
-            var url = $"/api/admin/buildplates/{BuildplateId}/preview?isTemplate={IsTemplate}&forceRefresh={forceRefresh}";
+            var url = $"/api/buildplates/{BuildplateId}/preview?isTemplate={IsTemplate}&forceRefresh={forceRefresh}";
             if (PlayerId.HasValue)
             {
                 url += $"&playerId={PlayerId.Value}";

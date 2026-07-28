@@ -284,7 +284,7 @@
 
                 content.Add(streamContent, "File", fileState.File.Name);
 
-                using var response = await Http.PostAsync("/api/admin/buildplates/templates/import", content, fileState.Cts.Token);
+                using var response = await Http.PostAsync("/api/buildplates/templates/import", content, fileState.Cts.Token);
 
                 if (response.IsSuccessStatusCode)
                 {

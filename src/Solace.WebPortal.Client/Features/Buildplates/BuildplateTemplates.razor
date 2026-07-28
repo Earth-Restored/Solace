@@ -271,7 +271,7 @@
     {
         try
         {
-            var uri = $"/api/admin/buildplates/templates?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? string.Empty)}&page={query.Page}&pageSize={query.PageSize}";
+            var uri = $"/api/buildplates/templates?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? string.Empty)}&page={query.Page}&pageSize={query.PageSize}";
             var response = await Http.GetFromJsonAsync<PagedSearchResult<List<BuildplateTemplateDto>>>(uri);
 
             if (response is null)
@@ -343,7 +343,7 @@
 
         try
         {
-            using var response = await Http.PutAsJsonAsync($"/api/admin/buildplates/templates/{buildplate.Id}", new UpdateTemplateCommand(buildplate.Id, buildplate.Name, buildplate.BlocksPerMeter));
+            using var response = await Http.PutAsJsonAsync($"/api/buildplates/templates/{buildplate.Id}", new UpdateTemplateCommand(buildplate.Id, buildplate.Name, buildplate.BlocksPerMeter));
 
             if (response.IsSuccessStatusCode)
             {
@@ -377,7 +377,7 @@
                 _isDeleting = true;
                 StateHasChanged();
 
-                var url = $"/api/admin/buildplates/templates/{_buildplateToDelete.Id}?removeTemplateFromPlayers={_removeTemplateFromPlayers}";
+                var url = $"/api/buildplates/templates/{_buildplateToDelete.Id}?removeTemplateFromPlayers={_removeTemplateFromPlayers}";
                 using var response = await Http.DeleteAsync(url);
 
                 if (!response.IsSuccessStatusCode)
@@ -417,7 +417,7 @@
 
         try
         {
-            using var response = await Http.PostAsync($"/api/admin/buildplates/templates/{buildplate.Id}/regenerate-in-game-preview", null);
+            using var response = await Http.PostAsync($"/api/buildplates/templates/{buildplate.Id}/regenerate-in-game-preview", null);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -457,7 +457,7 @@
 
         try
         {
-            var url = $"/api/admin/buildplates/templates/{_exportBuildplate.Id}/export?format={_exportFormat}";
+            var url = $"/api/buildplates/templates/{_exportBuildplate.Id}/export?format={_exportFormat}";
 
             string extension = _exportFormat is "Solace" ? "zip" : "json";
             string fileName = $"{_exportBuildplate.Name.Replace(" ", "_")}_export.{extension}";

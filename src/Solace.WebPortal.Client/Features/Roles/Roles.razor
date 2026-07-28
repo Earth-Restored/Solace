@@ -246,7 +246,7 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<GetRolesResponse>("/api/admin/roles");
+            var response = await Http.GetFromJsonAsync<GetRolesResponse>("/api/roles");
             if (response is not null)
             {
                 _roles = response.Roles;
@@ -308,7 +308,7 @@
                     _editModel.Color,
                     _modelPermissions.ToList()
                 );
-                response = await Http.PostAsJsonAsync("/api/admin/roles", command);
+                response = await Http.PostAsJsonAsync("/api/roles", command);
             }
             else
             {
@@ -318,7 +318,7 @@
                     _editModel.Color,
                     _modelPermissions.ToList()
                 );
-                response = await Http.PutAsJsonAsync("/api/admin/roles", command);
+                response = await Http.PutAsJsonAsync("/api/roles", command);
             }
 
             if (response.IsSuccessStatusCode)
@@ -367,7 +367,7 @@
     private async Task SwapPositions(RoleDto roleA, RoleDto roleB)
     {
         var command = new SwapRolesCommand(roleA.Id, roleB.Id);
-        using var response = await Http.PostAsJsonAsync("/api/admin/roles/swap", command);
+        using var response = await Http.PostAsJsonAsync("/api/roles/swap", command);
 
         if (response.IsSuccessStatusCode)
         {
@@ -404,7 +404,7 @@
             return;
         }
 
-        using var response = await Http.DeleteAsync($"/api/admin/roles/{role.Id}");
+        using var response = await Http.DeleteAsync($"/api/roles/{role.Id}");
         if (response.IsSuccessStatusCode)
         {
             await LoadData();

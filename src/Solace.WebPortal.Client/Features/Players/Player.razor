@@ -348,7 +348,7 @@
 
     private async Task LoadProfileData()
     {
-        var uri = $"api/admin/players/{AccountId}";
+        var uri = $"api/players/{AccountId}";
         var response = await Http.GetFromJsonAsync<PlayerDto>(uri);
 
         if (response is null)
@@ -411,7 +411,7 @@
 
         try
         {
-            var uri = $"api/admin/players/{AccountId}";
+            var uri = $"api/players/{AccountId}";
             using var response = await Http.PutAsJsonAsync(uri, new UpdatePlayerCommand(
                 Username: UsernameModel.Username
             ));
@@ -451,7 +451,7 @@
 
         try
         {
-            var uri = $"api/admin/players/{AccountId}";
+            var uri = $"api/players/{AccountId}";
             using var response = await Http.PutAsJsonAsync(uri, new UpdatePlayerCommand(
                 Health: StatsModel.Health,
                 PurchasedRubies: StatsModel.PurchasedRubies,
@@ -538,7 +538,7 @@
 
             content.Headers.ContentType = new MediaTypeHeaderValue(string.IsNullOrWhiteSpace(SelectedSkinFile.ContentType) ? "application/octet-stream" : SelectedSkinFile.ContentType);
 
-            var uri = $"api/admin/players/{AccountId}/skin?skinType={SelectedSkinType}";
+            var uri = $"api/players/{AccountId}/skin?skinType={SelectedSkinType}";
             using var response = await Http.PutAsync(uri, content);
 
             if (response.IsSuccessStatusCode)

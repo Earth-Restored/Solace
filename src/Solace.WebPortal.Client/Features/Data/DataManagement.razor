@@ -217,7 +217,7 @@
     private async Task LoadSizesAsync()
     {
         _errorMessage = null;
-        var uri = "api/admin/data/size";
+        var uri = "api/data/size";
 
         try
         {
@@ -328,7 +328,7 @@
 
         try
         {
-            var uri = "api/admin/data/delete-all";
+            var uri = "api/data/delete-all";
             var response = await Http.PostAsync(uri, null);
 
             if (response.IsSuccessStatusCode)

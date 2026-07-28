@@ -199,7 +199,7 @@
     {
         try
         {
-            var uri = $"api/admin/players?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? "")}&page={query.Page}&pageSize={query.PageSize}";
+            var uri = $"api/players?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? "")}&page={query.Page}&pageSize={query.PageSize}";
             var response = await Http.GetFromJsonAsync<PagedSearchResult<List<PlayerDto>>>(uri);
 
             if (response is null)
@@ -241,7 +241,7 @@
 
         try
         {
-            using var response = await Http.DeleteAsync($"api/admin/players/{id}");
+            using var response = await Http.DeleteAsync($"api/players/{id}");
 
             if (response is { IsSuccessStatusCode: true } or { StatusCode: System.Net.HttpStatusCode.NotFound })
             {

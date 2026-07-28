@@ -353,7 +353,7 @@
     {
         if (firstRender)
         {
-            var uri = $"api/admin/players/{AccountId}";
+            var uri = $"api/players/{AccountId}";
             var response = await Http.GetFromJsonAsync<PlayerDto>(uri);
 
             if (response is not null)
@@ -368,7 +368,7 @@
     {
         try
         {
-            var uri = $"/api/admin/players/{AccountId}/buildplates?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? string.Empty)}&page={query.Page}&pageSize={query.PageSize}";
+            var uri = $"/api/players/{AccountId}/buildplates?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? string.Empty)}&page={query.Page}&pageSize={query.PageSize}";
             var response = await Http.GetFromJsonAsync<PagedSearchResult<List<BuildplateDto>>>(uri);
 
             if (response is null)
@@ -410,7 +410,7 @@
     {
         try
         {
-            var uri = $"/api/admin/buildplates/templates?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? string.Empty)}&page={query.Page}&pageSize={query.PageSize}";
+            var uri = $"/api/buildplates/templates?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? string.Empty)}&page={query.Page}&pageSize={query.PageSize}";
             var response = await Http.GetFromJsonAsync<PagedSearchResult<List<WebPortal.Common.Features.Buildplates.BuildplateTemplateDto>>>(uri);
 
             if (response is null)
@@ -497,7 +497,7 @@
 
         try
         {
-            var uri = $"/api/admin/players/{AccountId}/buildplates";
+            var uri = $"/api/players/{AccountId}/buildplates";
             var response = await Http.PostAsJsonAsync(uri, new AddBuildplateCommand(template.Id));
 
             if (!response.IsSuccessStatusCode)
@@ -588,7 +588,7 @@
 
     private async Task<(bool IsSuccess, string? ErrorMessage)> RemoveBuildplate(Guid id)
     {
-        var uri = $"/api/admin/players/{AccountId}/buildplates/{id}";
+        var uri = $"/api/players/{AccountId}/buildplates/{id}";
         var response = await Http.DeleteAsync(uri);
 
         if (response.IsSuccessStatusCode)
@@ -633,7 +633,7 @@
 
         try
         {
-            var uri = $"/api/admin/players/{AccountId}/buildplates/{bp.Id}";
+            var uri = $"/api/players/{AccountId}/buildplates/{bp.Id}";
             var response = await Http.PutAsJsonAsync(uri, new UpdateBuildplateCommand(bp.Name, bp.BlocksPerMeter));
 
             if (response.IsSuccessStatusCode)
@@ -670,7 +670,7 @@
 
         try
         {
-            var uri = $"/api/admin/players/{AccountId}/buildplates/{bp.Id}/regenerate-in-game-preview";
+            var uri = $"/api/players/{AccountId}/buildplates/{bp.Id}/regenerate-in-game-preview";
             var response = await Http.PostAsync(uri, null);
 
             if (response.IsSuccessStatusCode)
@@ -731,7 +731,7 @@
 
         try
         {
-            var url = $"/api/admin/players/{AccountId}/buildplates/{_exportBuildplate.Id}/export?format={_exportFormat}";
+            var url = $"/api/players/{AccountId}/buildplates/{_exportBuildplate.Id}/export?format={_exportFormat}";
 
             string extension = _exportFormat is "Solace" ? "zip" : "json";
             string fileName = $"{_exportBuildplate.Name.Replace(" ", "_")}_export.{extension}";
