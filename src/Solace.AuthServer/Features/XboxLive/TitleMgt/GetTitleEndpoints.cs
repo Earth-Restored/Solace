@@ -6,6 +6,7 @@ using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Nager.PublicSuffix;
 using Nager.PublicSuffix.RuleProviders;
 
@@ -13,7 +14,10 @@ namespace Solace.AuthServer.Features.XboxLive.TitleMgt;
 
 [Handler]
 [MapGet("title.mgt.xboxlive.com/titles/{Title}/endpoints")]
-public static partial class GetTitleEndpoints
+public sealed partial class GetTitleEndpoints(
+    IHttpContextAccessor httpContextAccessor,
+    ILogger<GetTitleEndpoints> logger
+)
 {
     private static readonly JsonSerializerOptions jsonOptions = new()
     {
@@ -32,9 +36,8 @@ public static partial class GetTitleEndpoints
 
     public sealed record Endpoint(string Protocol, string Host, int? Port, string HostType, string? RelyingParty, string? TokenType);
 
-    private static async ValueTask<Results<ContentHttpResult, BadRequest>> HandleAsync(
+    private async ValueTask<Results<ContentHttpResult, BadRequest>> HandleAsync(
         Query query,
-        IHttpContextAccessor httpContextAccessor,
         CancellationToken cancellationToken)
     {
         var httpContext = httpContextAccessor.HttpContext;
@@ -46,37 +49,46 @@ public static partial class GetTitleEndpoints
         {
             case "default":
                 {
-                    var protocol = httpContext.Request.IsHttps ? "https" : "http";
+                    var singleDomainMode = !httpContext.Request.Path.StartsWithSegments(new PathString("/titles"), StringComparison.OrdinalIgnoreCase);
+
                     var host = httpContext.Request.Host;
                     Debug.Assert(host.HasValue);
 
                     var isHostIp = IPAddress.TryParse(host.Host, out _);
 
-                    var singleDomainMode = !httpContext.Request.Path.StartsWithSegments(new PathString("/titles"), StringComparison.Ordinal);
+                    var protocol = httpContext.Request.IsHttps ? "https" : "http";
 
-                    var hostString = isHostIp
-                        ? host.Host
-                        : (await GetDomainParserAsync(cancellationToken)).Parse(host.Host)?.RegistrableDomain ?? host.Host;
+                    var hostString = !isHostIp && !singleDomainMode
+                        ? (await GetDomainParserAsync(cancellationToken)).Parse(host.Host)?.RegistrableDomain ?? host.Host
+                        : host.Host;
+
+                    var port = host.Port ?? (httpContext.Request.IsHttps ? 443 : 80);
+
+                    if (!singleDomainMode && isHostIp)
+                    {
+                        logger.LogWarning("Title request from a client connecting using IP, but not using singleDomainMode");
+                        return TypedResults.BadRequest();
+                    }
 
                     endpoints =
                     [
                         singleDomainMode
-                        ? new Endpoint(
-                            protocol,
-                            hostString,
-                            host.Port ?? (httpContext.Request.IsHttps ? 443 : 80),
-                            isHostIp ? "ip" : "fqdn",
-                            "http://xboxlive.com",
-                            "JWT"
-                        )
-                        : new Endpoint(
-                            protocol,
-                            $"*.{hostString}",
-                            host.Port ?? (httpContext.Request.IsHttps ? 443 : 80),
-                            "wildcard",
-                            "http://xboxlive.com",
-                            "JWT"
-                        ),
+                            ? new Endpoint(
+                                protocol,
+                                hostString,
+                                port,
+                                isHostIp ? "ip" : "fqdn",
+                                "http://xboxlive.com",
+                                "JWT"
+                            )
+                            : new Endpoint(
+                                protocol,
+                                $"*.{hostString}",
+                                port,
+                                "wildcard",
+                                "http://xboxlive.com",
+                                "JWT"
+                            ),
                         new Endpoint(
                             "https",
                             "xboxlive.com",

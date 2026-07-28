@@ -65,6 +65,13 @@ public sealed partial class GetPreview(
             // return TypedResults.Forbid();
         }
 
+        var httpContext = httpContextAccessor.HttpContext;
+        if (httpContext is not null)
+        {
+            httpContext.Response.Headers["X-Accel-Buffering"] = "no";
+            httpContext.Response.Headers["Cache-Control"] = "no-cache";
+        }
+
         var channel = Channel.CreateUnbounded<BuildplatePreviewResponse>();
 
         _ = Task.Run(async () =>
