@@ -23,6 +23,8 @@ export function initThreeJs(container, dataUri, bounds, isNight, dotNetRef) {
         (minZ + maxZ) / 2
     );
 
+    const initialCenter = center.clone();
+
     const sizeVector = new THREE.Vector3(
         maxX - minX,
         maxY - minY,
@@ -74,7 +76,47 @@ export function initThreeJs(container, dataUri, bounds, isNight, dotNetRef) {
 
     const orbitControls = new OrbitControls(camera, renderer.domElement);
     orbitControls.target.copy(center);
+    orbitControls.autoRotate = true;
+    orbitControls.autoRotateSpeed = 2.0;
     orbitControls.update();
+
+    let autoRotateTimeout = null;
+    let isPointerDown = false;
+    const RESUME_DELAY_MS = 1000;
+
+    const checkHasCenterMoved = () => {
+        return orbitControls.target.distanceToSquared(initialCenter) > 0.0001;
+    };
+
+    const checkCanAutoRotate = () => {
+        return !checkHasCenterMoved() && !isPointerDown && !state.isFirstPerson;
+    };
+
+    const onPointerDown = () => {
+        isPointerDown = true;
+        orbitControls.autoRotate = false;
+        if (autoRotateTimeout) {
+            clearTimeout(autoRotateTimeout);
+            autoRotateTimeout = null;
+        }
+    };
+
+    const onPointerUp = () => {
+        if (!isPointerDown) return;
+        isPointerDown = false;
+
+        if (autoRotateTimeout) clearTimeout(autoRotateTimeout);
+
+        autoRotateTimeout = setTimeout(() => {
+            if (checkCanAutoRotate()) {
+                orbitControls.autoRotate = true;
+            }
+        }, RESUME_DELAY_MS);
+    };
+
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
 
     const flyControls = new PointerLockControls(camera, renderer.domElement);
 
@@ -161,6 +203,11 @@ export function initThreeJs(container, dataUri, bounds, isNight, dotNetRef) {
         onKeyDown,
         onKeyUp,
         onUnlock,
+        onPointerDown,
+        onPointerUp,
+        autoRotateTimeout,
+        checkCanAutoRotate,
+        checkHasCenterMoved,
         dotNetRef
     };
 
@@ -181,6 +228,9 @@ export function initThreeJs(container, dataUri, bounds, isNight, dotNetRef) {
                 if (moveState.down) camera.position.y -= actualSpeed;
             }
         } else {
+            if (checkHasCenterMoved() || isPointerDown) {
+                orbitControls.autoRotate = false;
+            }
             orbitControls.update();
         }
 
@@ -214,6 +264,11 @@ export function setControlMode(container, isFirstPerson) {
 
     if (isFirstPerson) {
         state.orbitControls.enabled = false;
+        state.orbitControls.autoRotate = false;
+        if (state.autoRotateTimeout) {
+            clearTimeout(state.autoRotateTimeout);
+            state.autoRotateTimeout = null;
+        }
         state.flyControls.lock();
     } else {
         state.flyControls.unlock();
@@ -223,6 +278,12 @@ export function setControlMode(container, isFirstPerson) {
         state.orbitControls.object.getWorldDirection(dir);
         state.orbitControls.target.copy(state.orbitControls.object.position).add(dir.multiplyScalar(10));
         state.orbitControls.update();
+
+        if (state.checkCanAutoRotate && state.checkCanAutoRotate()) {
+            state.orbitControls.autoRotate = true;
+        } else {
+            state.orbitControls.autoRotate = false;
+        }
     }
 }
 
@@ -233,10 +294,19 @@ export function dispose(container) {
 
     const state = container.__threeJsState;
 
+    if (state.autoRotateTimeout) clearTimeout(state.autoRotateTimeout);
     if (state.animationId) cancelAnimationFrame(state.animationId);
     if (state.resizeObserver) state.resizeObserver.disconnect();
     if (state.onKeyDown) window.removeEventListener('keydown', state.onKeyDown);
     if (state.onKeyUp) window.removeEventListener('keyup', state.onKeyUp);
+    if (state.onPointerUp) {
+        window.removeEventListener('pointerup', state.onPointerUp);
+        window.removeEventListener('pointercancel', state.onPointerUp);
+    }
+
+    if (state.renderer && state.renderer.domElement && state.onPointerDown) {
+        state.renderer.domElement.removeEventListener('pointerdown', state.onPointerDown);
+    }
 
     if (state.flyControls) {
         if (state.onUnlock) {
