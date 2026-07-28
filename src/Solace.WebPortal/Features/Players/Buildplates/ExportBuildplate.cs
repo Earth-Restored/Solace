@@ -18,7 +18,7 @@ namespace Solace.WebPortal.Features.Players.Buildplates;
 [Handler]
 [MapGet("{buildplateId}/export")]
 [MapGroup<BuildplatesGroup>]
-[Authorize(Policy = Permissions.ViewBuildplates)]
+[Authorize(Policy = Permissions.ViewPlayers)]
 public sealed partial class ExportBuildplate(
     EventBusClient eventBusClient,
     ObjectStoreClient objectStoreClient,

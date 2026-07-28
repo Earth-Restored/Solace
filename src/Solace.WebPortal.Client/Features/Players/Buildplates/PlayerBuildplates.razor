@@ -6,7 +6,7 @@
 @using Solace.WebPortal.Common.Features.Players
 @using Solace.WebPortal.Common.Features.Players.Buildplates
 @using Solace.WebPortal.Client.Features.Common
-@attribute [Authorize(Policy = Permissions.ManagePlayers)]
+@attribute [Authorize(Policy = Permissions.ViewPlayers)]
 @rendermode InteractiveWebAssembly
 @inject AuthenticationStateProvider AuthStateProvider
 @inject HttpClient Http
@@ -85,13 +85,15 @@
                         </div>
 
                         <div class="card-footer bg-transparent border-top-0 pb-3 d-flex flex-column gap-2">
-                            @* Row 1: Delete (Left) | View Template (Middle) | Save (Right) *@
                             <div class="d-flex gap-2 align-items-center justify-content-between">
-                                <button class="btn btn-outline-danger btn-sm" @onclick="() => OpenRemoveBuildplateModal(bp.Id)" disabled="@bp.IsBusy">
-                                    <i class="bi bi-trash me-1"></i> Delete
-                                </button>
+                                @if (_user.HasPermission(Permissions.ManagePlayers))
+                                {
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => OpenRemoveBuildplateModal(bp.Id)" disabled="@bp.IsBusy">
+                                        <i class="bi bi-trash me-1"></i> Delete
+                                    </button>
+                                }
 
-                                @if (bp.TemplateId.HasValue)
+                                @if (bp.TemplateId.HasValue && _user.HasPermission(Permissions.ViewBuildplates))
                                 {
                                     <a href="/Admin/BuildplateTemplates?q=@bp.TemplateId.Value" class="btn btn-outline-secondary btn-sm flex-grow-1 fw-bold text-truncate">
                                         <i class="bi bi-box-arrow-up-right me-1"></i> View Template
@@ -110,20 +112,22 @@
                                 }
                             </div>
 
-                            @* Row 2: Regenerate Preview (Left) | Export (Right) *@
                             <div class="d-flex gap-2 align-items-center justify-content-between">
-                                <button class="btn btn-outline-primary btn-sm flex-grow-1 fw-bold text-truncate" @onclick="() => RegeneratePreview(bp)" disabled="@bp.IsBusy">
-                                    @if (bp.IsRegeneratingPreview)
-                                    {
-                                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                        <span>Regenerating...</span>
-                                    }
-                                    else
-                                    {
-                                        <i class="bi bi-gear-fill me-1"></i>
-                                        <span>Regenerate Preview</span>
-                                    }
-                                </button>
+                                @if (_user.HasPermission(Permissions.ManagePlayers))
+                                {
+                                    <button class="btn btn-outline-primary btn-sm flex-grow-1 fw-bold text-truncate" @onclick="() => RegeneratePreview(bp)" disabled="@bp.IsBusy">
+                                        @if (bp.IsRegeneratingPreview)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                            <span>Regenerating...</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-gear-fill me-1"></i>
+                                            <span>Regenerate Preview</span>
+                                        }
+                                    </button>
+                                }
 
                                 <button class="btn btn-outline-secondary btn-sm fw-bold" @onclick="() => RequestExport(bp)" disabled="@bp.IsBusy">
                                     <i class="bi bi-download me-1"></i> Export
