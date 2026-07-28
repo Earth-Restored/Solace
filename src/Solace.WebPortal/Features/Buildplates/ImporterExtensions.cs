@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Numerics;
 using Microsoft.EntityFrameworkCore;
 using Solace.Buildplate.Model;
 using Solace.BuildplateImporter;
@@ -14,7 +15,7 @@ internal static class ImporterExtensions
 {
     extension(Importer importer)
     {
-        public async Task<ArraySegment<byte>?> GenerateTemplateWebPortalPreviewAsync(Guid templateId, ApplicationDbContext appDbContext, ResourcePackManager resourcePackManager, IProgress<ProgressReport>? progress = null, CancellationToken cancellationToken = default)
+        public async Task<(byte[] Data, Vector3 BoundsMin, Vector3 BoundsMax)?> GenerateTemplateWebPortalPreviewAsync(Guid templateId, ApplicationDbContext appDbContext, ResourcePackManager resourcePackManager, IProgress<ProgressReport>? progress = null, CancellationToken cancellationToken = default)
         {
             progress?.Report(new ProgressReport(0.005, "Fetching template"));
 
@@ -73,31 +74,15 @@ internal static class ImporterExtensions
                 PlayerId = Guid.Empty,
                 BuildplateId = templateId,
                 PreviewData = [.. buffer],
+                BoundsMin = meshData.BoundsMin,
+                BoundsMax = meshData.BoundsMax,
             };
 
             return await SaveBuildplatePreviewAsync(appDbContext, dbBuildplatePreview, cancellationToken);
         }
 
-        public async Task<ArraySegment<byte>?> GetPlayerBuildplateWebPortalPreviewAsync(Guid accountId, Guid buildplateId, ApplicationDbContext appDbContext, ResourcePackManager resourcePackManager, IProgress<ProgressReport>? progress = null, bool getFromCache = true, CancellationToken cancellationToken = default)
+        public async Task<(byte[] Data, Vector3 BoundsMin, Vector3 BoundsMax)?> GetPlayerBuildplateWebPortalPreviewAsync(Guid accountId, Guid buildplateId, ApplicationDbContext appDbContext, ResourcePackManager resourcePackManager, IProgress<ProgressReport>? progress = null, CancellationToken cancellationToken = default)
         {
-            var dbBuildplatePreview = await appDbContext.BuildplatePreviews
-                .AsNoTracking()
-                .FirstOrDefaultAsync(preview => preview.PlayerId == accountId && preview.BuildplateId == buildplateId, cancellationToken: cancellationToken);
-
-            if (dbBuildplatePreview is not null)
-            {
-                if (getFromCache)
-                {
-                    progress?.Complete();
-                    return dbBuildplatePreview.PreviewData;
-                }
-                else
-                {
-                    appDbContext.BuildplatePreviews.Remove(dbBuildplatePreview);
-                    await appDbContext.SaveChangesAsync(cancellationToken);
-                }
-            }
-
             progress?.Report(new ProgressReport(0.005, "Fetching buildplate"));
 
             var buildplate = await importer.EarthDb.PlayerBuildplates
@@ -150,24 +135,26 @@ internal static class ImporterExtensions
 
             progress?.Complete();
 
-            dbBuildplatePreview = new BuildplatePreviewEF()
+            var dbBuildplatePreview = new BuildplatePreviewEF()
             {
                 PlayerId = accountId,
                 BuildplateId = buildplateId,
                 PreviewData = [.. buffer],
+                BoundsMin = meshData.BoundsMin,
+                BoundsMax = meshData.BoundsMax,
             };
 
             return await SaveBuildplatePreviewAsync(appDbContext, dbBuildplatePreview, cancellationToken);
         }
 
-        private static async Task<ArraySegment<byte>?> SaveBuildplatePreviewAsync(ApplicationDbContext appDbContext, BuildplatePreviewEF dbBuildplatePreview, CancellationToken cancellationToken)
+        private static async Task<(byte[] Data, Vector3 BoundsMin, Vector3 BoundsMax)> SaveBuildplatePreviewAsync(ApplicationDbContext appDbContext, BuildplatePreviewEF dbBuildplatePreview, CancellationToken cancellationToken)
         {
             appDbContext.BuildplatePreviews.Add(dbBuildplatePreview);
 
             try
             {
                 await appDbContext.SaveChangesAsync(cancellationToken);
-                return dbBuildplatePreview.PreviewData;
+                return (dbBuildplatePreview.PreviewData, dbBuildplatePreview.BoundsMin, dbBuildplatePreview.BoundsMax);
             }
             catch (DbUpdateException exception) when (exception.IsUniqueConstraintViolation)
             {
@@ -179,7 +166,7 @@ internal static class ImporterExtensions
 
                 if (existingPreview is not null)
                 {
-                    return existingPreview.PreviewData;
+                    return (existingPreview.PreviewData, existingPreview.BoundsMin, existingPreview.BoundsMax);
                 }
 
                 throw;

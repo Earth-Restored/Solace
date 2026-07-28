@@ -1,5 +1,6 @@
 @using System.Diagnostics
 @using System.Net.Http.Json
+@using System.Numerics
 @using Microsoft.JSInterop
 @using Solace.WebPortal.Common.Features.Buildplates
 
@@ -96,6 +97,7 @@
     private bool _isPreviewLoading = true;
     private bool _isPreviewFailed = false;
     private string? _previewDataUri;
+    private Bounds _previewBounds;
     private bool _isModelImported = false;
     private bool _isCurrentlyLoadingTask = false;
     private bool _isFirstPerson = false;
@@ -153,11 +155,12 @@
 
             try
             {
-                await _jsModule.InvokeVoidAsync("initThreeJs", _threeJsContainer, _previewDataUri, Size, IsNight, _dotNetRef);
+                await _jsModule.InvokeVoidAsync("initThreeJs", _threeJsContainer, _previewDataUri, _previewBounds, IsNight, _dotNetRef);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Logger.LogError(ex, "Failed to initialize Three.js viewer for {Id}.", BuildplateId);
+                Console.WriteLine(exception);
+                Logger.LogError(exception, "Failed to initialize Three.js viewer for {Id}.", BuildplateId);
                 _isPreviewFailed = true;
                 StateHasChanged();
             }
@@ -260,14 +263,15 @@
                     continue;
                 }
 
-                if (update.DataUri is not null)
+                if (update.Data is { } data)
                 {
                     _currentProgress = 1.00;
                     _progressStatus = "Preparing preview";
                     await InvokeAsync(StateHasChanged);
 
                     await Task.Delay(200);
-                    _previewDataUri = update.DataUri;
+                    _previewDataUri = data.DataUri;
+                    _previewBounds = data.Bounds;
                 }
                 else
                 {
@@ -283,11 +287,13 @@
 
             if (_previewDataUri is null)
             {
+                Console.WriteLine("No preview data received");
                 _isPreviewFailed = true;
             }
         }
         catch (Exception exception) when (exception is not TaskCanceledException)
         {
+            Console.WriteLine(exception);
             Logger.LogError(exception, "Preview fetch failed for Buildplate ID {Id}", BuildplateId);
             _isPreviewFailed = true;
         }

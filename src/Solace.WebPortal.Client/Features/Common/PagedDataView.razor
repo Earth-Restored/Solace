@@ -247,9 +247,8 @@ else if (Data is not null && !IsLoading)
                     TotalItems = result.TotalCount;
                     MatchingItems = result.TotalCount;
                 }
-
-                Console.WriteLine(TotalItems);
-                Console.WriteLine(MatchingItems); StateHasChanged();
+                
+                StateHasChanged();
 
                 TotalPages = int.Max(1, (int)double.Ceiling((double)MatchingItems / Query.PageSize));
 

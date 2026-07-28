@@ -242,10 +242,10 @@
 
             Logger.LogError("Failed to fetch storage sizes: {Content}", content);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
             _errorMessage = "An unexpected error occurred while retrieving storage sizes.";
-            Logger.LogError(ex, "Error occurred in LoadSizesAsync.");
+            Logger.LogError(exception, "Error occurred in LoadSizesAsync.");
         }
     }
 
@@ -353,10 +353,10 @@
                 Logger.LogError("Delete operation failed: {Content}", content);
             }
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
             _errorMessage = "An unexpected error occurred during data deletion.";
-            Logger.LogError(ex, "Error occurred in ExecuteDelete.");
+            Logger.LogError(exception, "Error occurred in ExecuteDelete.");
         }
         finally
         {

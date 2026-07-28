@@ -3,12 +3,32 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-export function initThreeJs(container, dataUri, size, isNight, dotNetRef) {
+export function initThreeJs(container, dataUri, bounds, isNight, dotNetRef) {
     if (!container) {
         return;
     }
 
     dispose(container);
+
+    const minX = bounds.minX ?? bounds.MinX ?? 0;
+    const minY = bounds.minY ?? bounds.MinY ?? 0;
+    const minZ = bounds.minZ ?? bounds.MinZ ?? 0;
+    const maxX = bounds.maxX ?? bounds.MaxX ?? 0;
+    const maxY = bounds.maxY ?? bounds.MaxY ?? 0;
+    const maxZ = bounds.maxZ ?? bounds.MaxZ ?? 0;
+
+    const center = new THREE.Vector3(
+        (minX + maxX) / 2,
+        (minY + maxY) / 2,
+        (minZ + maxZ) / 2
+    );
+
+    const sizeVector = new THREE.Vector3(
+        maxX - minX,
+        maxY - minY,
+        maxZ - minZ
+    );
+    const size = sizeVector.length();
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(isNight ? "#070066" : "#3B69F5");
@@ -24,10 +44,28 @@ export function initThreeJs(container, dataUri, size, isNight, dotNetRef) {
     fillLight.position.set(-50, 50, -50);
     scene.add(fillLight);
 
-    const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 10000);
-    const cameraDistance = size * 1.25;
-    camera.position.set(-cameraDistance, cameraDistance, -cameraDistance);
-    camera.lookAt(0, 0, 0);
+    const aspect = container.clientWidth / container.clientHeight;
+    const camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 10000);
+
+    const viewMargin = 1.05; 
+    const radius = (size / 2) * viewMargin;
+
+    const fovRad = (camera.fov * Math.PI) / 180;
+    const effectiveFov = 2 * Math.atan(Math.tan(fovRad / 2) * Math.min(1, aspect));
+    const distance = radius / Math.sin(effectiveFov / 2);
+
+    const angleRad = (30 * Math.PI) / 180;
+    const cosAngle = Math.cos(angleRad);
+    const sinAngle = Math.sin(angleRad);
+
+    const dir = new THREE.Vector3(
+        Math.SQRT1_2 * cosAngle,
+        sinAngle,
+        Math.SQRT1_2 * cosAngle
+    );
+
+    camera.position.copy(center).addScaledVector(dir, distance);
+    camera.lookAt(center);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(container.clientWidth, container.clientHeight);
@@ -35,7 +73,7 @@ export function initThreeJs(container, dataUri, size, isNight, dotNetRef) {
     container.appendChild(renderer.domElement);
 
     const orbitControls = new OrbitControls(camera, renderer.domElement);
-    orbitControls.target.set(0, 0, 0);
+    orbitControls.target.copy(center);
     orbitControls.update();
 
     const flyControls = new PointerLockControls(camera, renderer.domElement);
@@ -61,7 +99,6 @@ export function initThreeJs(container, dataUri, size, isNight, dotNetRef) {
             if (state.dotNetRef) {
                 state.dotNetRef.invokeMethodAsync('ExitFirstPersonMode');
             }
-
             return;
         }
 
