@@ -104,7 +104,7 @@ public sealed partial class GetPreview(
 
                             var resourcePackManager = await ResourcePackManagerSingleton.GetResourcePackManagerAsync(configuration["StaticDataPath"]!);
 
-                            previewData = await importer.GenerateTemplateAdminPanelPreviewAsync(query.BuildplateId, appDb, resourcePackManager, progress: progress, cancellationToken);
+                            previewData = await importer.GenerateTemplateWebPortalPreviewAsync(query.BuildplateId, appDb, resourcePackManager, progress: progress, cancellationToken);
                         }
                         finally
                         {
@@ -145,7 +145,7 @@ public sealed partial class GetPreview(
 
                             var resourcePackManager = await ResourcePackManagerSingleton.GetResourcePackManagerAsync(configuration["StaticDataPath"]!);
 
-                            previewData = await importer.GetPlayerBuildplateAdminPanelPreviewAsync(query.PlayerId!.Value, query.BuildplateId, appDb, resourcePackManager, progress: progress, getFromCache: !query.ForceRefresh, cancellationToken);
+                            previewData = await importer.GetPlayerBuildplateWebPortalPreviewAsync(query.PlayerId!.Value, query.BuildplateId, appDb, resourcePackManager, progress: progress, getFromCache: !query.ForceRefresh, cancellationToken);
                         }
                         finally
                         {

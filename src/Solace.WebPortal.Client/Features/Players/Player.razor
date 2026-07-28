@@ -1,4 +1,4 @@
-@page "/Admin/Players/{AccountId:guid}"
+@page "/Players/{AccountId:guid}"
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
@@ -31,7 +31,7 @@
     {
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3 class="m-0 text-dark font-weight-bold">Profile: @PlayerAccount.Username</h3>
-            <a class="btn btn-secondary btn-sm" href="/Admin/Players">
+            <a class="btn btn-secondary btn-sm" href="/Players">
                 <i class="bi bi-arrow-left"></i> Back to Players
             </a>
         </div>
@@ -204,7 +204,7 @@
                             <span class="text-muted">Total Buildplates Owned:</span>
                             <strong class="fs-5 ms-2 text-dark">@(BuildplateCount?.ToString() ?? "?")</strong>
                         </div>
-                        <a class="btn btn-primary btn-sm" href="/Admin/Players/@PlayerAccount.Id/Buildplates">
+                        <a class="btn btn-primary btn-sm" href="/Players/@PlayerAccount.Id/Buildplates">
                             <i class="bi bi-gear-fill me-1"></i> Manage Buildplates
                         </a>
                     </div>

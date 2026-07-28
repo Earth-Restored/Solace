@@ -1,4 +1,4 @@
-@page "/Admin/Players/{AccountId:guid}/Buildplates"
+@page "/Players/{AccountId:guid}/Buildplates"
 @using Microsoft.AspNetCore.Authorization
 @using System.Security.Claims
 @using Solace.WebPortal.Common
@@ -19,7 +19,7 @@
 <div class="container-fluid py-3 px-md-4">
     <div class="mb-4">
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <a href="/Admin/Players/@(AccountId)" class="btn btn-link text-decoration-none p-0 text-muted">
+            <a href="/Players/@(AccountId)" class="btn btn-link text-decoration-none p-0 text-muted">
                 <i class="bi bi-arrow-left"></i> Back
             </a>
 
@@ -95,7 +95,7 @@
 
                                 @if (bp.TemplateId.HasValue && _user.HasPermission(Permissions.ViewBuildplates))
                                 {
-                                    <a href="/Admin/BuildplateTemplates?q=@bp.TemplateId.Value" class="btn btn-outline-secondary btn-sm flex-grow-1 fw-bold text-truncate">
+                                    <a href="/BuildplateTemplates?q=@bp.TemplateId.Value" class="btn btn-outline-secondary btn-sm flex-grow-1 fw-bold text-truncate">
                                         <i class="bi bi-box-arrow-up-right me-1"></i> View Template
                                     </a>
                                 }

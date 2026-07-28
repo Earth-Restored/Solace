@@ -1,4 +1,4 @@
-@page "/Admin/BuildplateTemplates"
+@page "/BuildplateTemplates"
 @using Microsoft.AspNetCore.Authorization
 @using System.Security.Claims
 @using Solace.WebPortal.Client.Features.Common
@@ -28,7 +28,7 @@
 
         @if (HasPermission(Permissions.ManageBuildplates))
         {
-            <a href="/Admin/BuildplateTemplates/Import" class="btn btn-primary fw-bold">
+            <a href="/BuildplateTemplates/Import" class="btn btn-primary fw-bold">
                 <i class="bi bi-plus-lg"></i> Import Buildplate(s)
             </a>
         }

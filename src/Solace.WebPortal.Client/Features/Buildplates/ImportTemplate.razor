@@ -1,4 +1,4 @@
-@page "/Admin/BuildplateTemplates/Import"
+@page "/BuildplateTemplates/Import"
 @implements IDisposable
 @using System.Net.Http.Headers
 @using Microsoft.AspNetCore.Authorization
@@ -178,7 +178,7 @@
     }
 
     private void GoBack()
-        => NavManager.NavigateTo("/Admin/BuildplateTemplates");
+        => NavManager.NavigateTo("/BuildplateTemplates");
 
     private void HandleFileSelection(InputFileChangeEventArgs e, Guid batchId)
     {
@@ -350,7 +350,7 @@
         showDialog = false;
         if (isSuccess)
         {
-            NavManager.NavigateTo("/Admin/BuildplateTemplates");
+            NavManager.NavigateTo("/BuildplateTemplates");
         }
     }
 

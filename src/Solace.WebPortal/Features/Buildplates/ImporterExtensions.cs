@@ -14,7 +14,7 @@ internal static class ImporterExtensions
 {
     extension(Importer importer)
     {
-        public async Task<ArraySegment<byte>?> GenerateTemplateAdminPanelPreviewAsync(Guid templateId, ApplicationDbContext appDbContext, ResourcePackManager resourcePackManager, IProgress<ProgressReport>? progress = null, CancellationToken cancellationToken = default)
+        public async Task<ArraySegment<byte>?> GenerateTemplateWebPortalPreviewAsync(Guid templateId, ApplicationDbContext appDbContext, ResourcePackManager resourcePackManager, IProgress<ProgressReport>? progress = null, CancellationToken cancellationToken = default)
         {
             progress?.Report(new ProgressReport(0.005, "Fetching template"));
 
@@ -78,7 +78,7 @@ internal static class ImporterExtensions
             return await SaveBuildplatePreviewAsync(appDbContext, dbBuildplatePreview, cancellationToken);
         }
 
-        public async Task<ArraySegment<byte>?> GetPlayerBuildplateAdminPanelPreviewAsync(Guid accountId, Guid buildplateId, ApplicationDbContext appDbContext, ResourcePackManager resourcePackManager, IProgress<ProgressReport>? progress = null, bool getFromCache = true, CancellationToken cancellationToken = default)
+        public async Task<ArraySegment<byte>?> GetPlayerBuildplateWebPortalPreviewAsync(Guid accountId, Guid buildplateId, ApplicationDbContext appDbContext, ResourcePackManager resourcePackManager, IProgress<ProgressReport>? progress = null, bool getFromCache = true, CancellationToken cancellationToken = default)
         {
             var dbBuildplatePreview = await appDbContext.BuildplatePreviews
                 .AsNoTracking()
