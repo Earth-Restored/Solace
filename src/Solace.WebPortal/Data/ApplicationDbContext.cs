@@ -21,4 +21,26 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .HasColumnType("bytea");
         });
     }
+
+    [Obsolete("Make sure to only call from the DeleteAll endpoint", false)]
+    public async Task DeleteAllAsync(CancellationToken cancellationToken = default)
+    {
+        var ctx = this;  // todo: bug - needed for compiled queries - https://github.com/dotnet/efcore/issues/35887
+        var cancellationTokenL = cancellationToken;
+
+        await ctx.BuildplatePreviews.ExecuteDeleteAsync(cancellationTokenL);
+
+        // identity
+        await ctx.UserClaims.ExecuteDeleteAsync(cancellationTokenL);
+        await ctx.UserLogins.ExecuteDeleteAsync(cancellationTokenL);
+        await ctx.UserTokens.ExecuteDeleteAsync(cancellationTokenL);
+        await ctx.UserPasskeys.ExecuteDeleteAsync(cancellationTokenL);
+
+        await ctx.RoleClaims.ExecuteDeleteAsync(cancellationTokenL);
+
+        await ctx.UserRoles.ExecuteDeleteAsync(cancellationTokenL);
+
+        await ctx.Users.ExecuteDeleteAsync(cancellationTokenL);
+        await ctx.Roles.ExecuteDeleteAsync(cancellationTokenL);
+    }
 }

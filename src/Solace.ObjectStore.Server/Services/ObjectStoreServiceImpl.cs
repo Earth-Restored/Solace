@@ -18,6 +18,20 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
         _logger = logger;
     }
 
+    public override async Task<GetTotalSizeResponse> GetTotalSize(GetTotalSizeRequest request, ServerCallContext context)
+    {
+        var size = _dataStore.GetTotalSize(context.CancellationToken);
+        
+        return new GetTotalSizeResponse() { TotalSize = size, };
+    }
+
+    public override async Task<DeleteAllResponse> DeleteAll(DeleteAllRequest request, ServerCallContext context)
+    {
+        _dataStore.DeleteAll();
+
+        return new DeleteAllResponse();
+    }
+
     public override async Task<StoreObjectResponse> StoreObject(IAsyncStreamReader<StoreObjectRequest> requestStream, ServerCallContext context)
     {
         var pipe = new Pipe();

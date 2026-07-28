@@ -1,4 +1,6 @@
-﻿namespace Solace.ObjectStore.Server;
+﻿using Solace.Common.Utils;
+
+namespace Solace.ObjectStore.Server;
 
 internal sealed class DataStore
 {
@@ -13,6 +15,25 @@ internal sealed class DataStore
             _rootDirectory.Create();
         }
     }
+
+    public long GetTotalSize(CancellationToken cancellationToken = default)
+    {
+        long result = 0;
+
+        foreach (var subDir in _rootDirectory.EnumerateDirectories())
+        {
+            foreach (var file in subDir.EnumerateFiles())
+            {
+                result += file.Length;
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+        }
+
+        return result;
+    }
+
+    public void DeleteAll()
+        => _rootDirectory.SafeDelete(recursive: true);
 
     public async Task<Guid> StoreAsync(Stream data, CancellationToken cancellationToken = default)
     {

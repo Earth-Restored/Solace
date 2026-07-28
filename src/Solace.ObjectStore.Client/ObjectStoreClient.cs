@@ -30,6 +30,17 @@ public sealed class ObjectStoreClient : IAsyncDisposable
         _logger = logger;
     }
 
+    public async Task<long> GetTotalSizeAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _client.GetTotalSizeAsync(new GetTotalSizeRequest(), cancellationToken: cancellationToken);
+
+        return response.TotalSize;
+    }
+
+    [Obsolete("Make sure to only call from the DeleteAll endpoint", false)]
+    public async Task DeleteAllAsync(CancellationToken cancellationToken = default)
+        => await _client.DeleteAllAsync(new DeleteAllRequest(), cancellationToken: cancellationToken);
+
     public async Task<Guid?> StoreAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
     {
         using var call = _client.StoreObject(cancellationToken: cancellationToken);

@@ -376,7 +376,8 @@ public sealed class EarthDbContext : DbContext
 #pragma warning restore CS8634 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'class' constraint.
     }
 
-    public async Task ClearAsync(CancellationToken cancellationToken = default)
+    [Obsolete("Make sure to only call from the DeleteAll endpoint", false)]
+    public async Task DeleteAllAsync(CancellationToken cancellationToken = default)
     {
         var ctx = this;  // todo: bug - needed for compiled queries - https://github.com/dotnet/efcore/issues/35887
         var cancellationTokenL = cancellationToken;
