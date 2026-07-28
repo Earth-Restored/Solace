@@ -571,7 +571,7 @@
                 }
                 catch (Exception exception)
                 {
-                    Logger.LogError(exception, "Failed to remove buildplate '{IdToDelete}' from player '{AccountId}'", _idToDelete, AccountId); 
+                    Logger.LogError(exception, "Failed to remove buildplate '{IdToDelete}' from player '{AccountId}'", _idToDelete, AccountId);
                     _deleteErrorMessage = $"An error occurred while deleting: {exception.Message}";
                 }
                 finally
