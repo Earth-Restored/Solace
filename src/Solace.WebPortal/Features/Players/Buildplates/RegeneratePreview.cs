@@ -9,12 +9,12 @@ using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 using Solace.WebPortal.Common;
 
-namespace Solace.WebPortal.Features.Buildplates.Templates;
+namespace Solace.WebPortal.Features.Players.Buildplates;
 
 [Handler]
-[MapPost("{id}/regenerate-in-game-preview")]
-[MapGroup<TemplatesGroup>]
-[Authorize(Policy = Permissions.ManageBuildplates)]
+[MapPost("{buildplateId}/regenerate-in-game-preview")]
+[MapGroup<BuildplatesGroup>]
+[Authorize(Policy = Permissions.ManagePlayers)]
 public sealed partial class RegeneratePreview(
     EarthDbContext earthDb,
     EventBusClient eventBus,
@@ -22,7 +22,7 @@ public sealed partial class RegeneratePreview(
     ILogger<RegeneratePreview> logger
 )
 {
-    public sealed record Command([property: FromRoute] Guid Id);
+    public sealed record Command([property: FromRoute] Guid PlayerId, [property: FromRoute] Guid BuildplateId);
 
     private async ValueTask<Results<Ok, BadRequest<string>>> HandleAsync(
         Command command,
@@ -35,7 +35,7 @@ public sealed partial class RegeneratePreview(
             OwnsObjectStoreClient = false,
         };
 
-        var result = await importer.RegenerateTemplatePreviewAsync(command.Id, cancellationToken);
-        return result is not null ? TypedResults.Ok() : TypedResults.BadRequest("Failed to regenerate preview.");
+        var result = await importer.RegeneratePlayerBuildplatePreviewAsync(command.PlayerId, command.BuildplateId, cancellationToken);
+        return result ? TypedResults.Ok() : TypedResults.BadRequest("Failed to regenerate preview.");
     }
 }

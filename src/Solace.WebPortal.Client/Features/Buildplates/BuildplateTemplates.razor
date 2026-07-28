@@ -288,8 +288,6 @@
                     Offset = dto.Offset,
                     BlocksPerMeter = dto.BlocksPerMeter,
                     IsNight = dto.IsNight,
-                    ServerDataObjectId = dto.ServerDataObjectId,
-                    PreviewObjectId = dto.PreviewObjectId
                 })
                 .ToList();
 
@@ -530,8 +528,6 @@
         public int Size { get; set; }
         public int Offset { get; set; }
         public bool IsNight { get; set; }
-        public required Guid ServerDataObjectId { get; set; }
-        public required Guid PreviewObjectId { get; set; }
 
         private string? _originalName;
         private int _originalBlocksPerMeter = -1;

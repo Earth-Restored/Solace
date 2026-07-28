@@ -18,9 +18,9 @@ public static partial class UpdateTemplate
     private static async ValueTask<Results<NotFound, BadRequest<string>, NoContent>> HandleAsync(
         UpdateTemplateCommand command,
         EarthDbContext earthDb,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var template = await earthDb.TemplateBuildplates.FirstOrDefaultAsync(x => x.Id == command.Id, ct);
+        var template = await earthDb.TemplateBuildplates.FirstOrDefaultAsync(x => x.Id == command.Id, cancellationToken);
 
         if (template is null)
         {
@@ -37,7 +37,7 @@ public static partial class UpdateTemplate
         template.Name = name;
         template.BlocksPerMeter = command.BlocksPerMeter;
 
-        await earthDb.SaveChangesAsync(ct);
+        await earthDb.SaveChangesAsync(cancellationToken);
         return TypedResults.NoContent();
     }
 }

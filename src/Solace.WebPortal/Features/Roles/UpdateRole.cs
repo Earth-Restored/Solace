@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Solace.WebPortal.Common;
 using Solace.WebPortal.Common.Features.Roles;
@@ -17,7 +18,7 @@ namespace Solace.WebPortal.Features.Roles;
 [Authorize(Policy = Permissions.EditRoles)]
 public static partial class UpdateRole
 {
-    private static async ValueTask<IResult> HandleAsync(
+    private static async ValueTask<Results<Ok, NotFound<string>, BadRequest<string>, BadRequest<IEnumerable<IdentityError>>>> HandleAsync(
         UpdateRoleCommand command,
         RoleManager<ApplicationRole> roleManager,
         IHttpContextAccessor httpContextAccessor,
@@ -26,14 +27,14 @@ public static partial class UpdateRole
         var role = await roleManager.FindByIdAsync(command.Id.ToString(CultureInfo.InvariantCulture));
         if (role is null)
         {
-            return Results.NotFound($"Role with ID {command.Id} not found.");
+            return TypedResults.NotFound($"Role with ID {command.Id} not found.");
         }
 
         var currentUserMinPosition = await UserUtils.GetMinimumRolePosition(roleManager, httpContextAccessor);
 
         if (role.Position <= currentUserMinPosition)
         {
-            return Results.NotFound("Cannot update role.");
+            return TypedResults.BadRequest("Cannot update role.");
         }
 
         if (role.Name != command.Name)
@@ -41,7 +42,7 @@ public static partial class UpdateRole
             var existingRole = await roleManager.FindByNameAsync(command.Name);
             if (existingRole is not null && existingRole.Id != role.Id)
             {
-                return Results.BadRequest($"A role with the name '{command.Name}' already exists.");
+                return TypedResults.BadRequest($"A role with the name '{command.Name}' already exists.");
             }
         }
 
@@ -53,7 +54,7 @@ public static partial class UpdateRole
             var updateResult = await roleManager.UpdateAsync(role);
             if (!updateResult.Succeeded)
             {
-                return Results.BadRequest(updateResult.Errors);
+                return TypedResults.BadRequest(updateResult.Errors);
             }
         }
 
@@ -68,6 +69,6 @@ public static partial class UpdateRole
             await roleManager.AddClaimAsync(role, new Claim("Permission", perm));
         }
 
-        return Results.Ok();
+        return TypedResults.Ok();
     }
 }
