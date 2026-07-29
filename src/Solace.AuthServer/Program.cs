@@ -94,6 +94,7 @@ internal sealed partial class Program2
         builder.Services.Configure<Features.XboxLive.AuthSettings>(builder.Configuration.GetSection("Authentication:XboxLive"));
         builder.Services.Configure<Features.PlayfabApi.AuthSettings>(builder.Configuration.GetSection("Authentication:PlayfabApi"));
         builder.Services.Configure<Common.Asp.Captcha.CaptchaConfiguration>(builder.Configuration.GetSection("Captcha"));
+        builder.Services.Configure<Common.Asp.Oidc.OidcClientConfiguration>(builder.Configuration.GetSection("Oidc"));
 
         var captchaProvider = builder.Configuration.GetValue("Captcha:Provider", Common.Asp.Captcha.CaptchaProvider.NoOp);
 
@@ -119,10 +120,21 @@ internal sealed partial class Program2
             })
             .AddOpenIdConnect(options =>
             {
-                options.Authority = "http://localhost:5000";
+                var oidcConfig = builder.Configuration.GetSection("Oidc").Get<Common.Asp.Oidc.OidcClientConfiguration>();
+                Debug.Assert(oidcConfig is not null);
 
-                options.ClientId = "client_app";
-                options.ClientSecret = "development_secret_change_in_prod";
+                var webPortalEndpoint = builder.Configuration["PublicEndpoints:WebPortal"];
+                if (string.IsNullOrEmpty(webPortalEndpoint))
+                {
+                    options.Authority = builder.Configuration["services:web-portal:http:0"]!;
+                }
+                else
+                {
+                    options.Authority = webPortalEndpoint;
+                }
+
+                options.ClientId = oidcConfig.ClientId;
+                options.ClientSecret = oidcConfig.ClientSecret;
                 options.ResponseType = OpenIdConnectResponseType.Code;
 
                 options.Scope.Add("openid");

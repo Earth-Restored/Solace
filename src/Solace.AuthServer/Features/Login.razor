@@ -89,7 +89,7 @@
 
         // 3. We have what we need. Kill the web cookie session so the user
         // doesn't remain logged into the web app in the background.
-        if (HttpContextAccessor.HttpContext != null)
+        if (HttpContextAccessor.HttpContext is not null)
         {
             await HttpContextAccessor.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         }

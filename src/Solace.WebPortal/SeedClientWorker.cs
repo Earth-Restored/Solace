@@ -1,10 +1,11 @@
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using Solace.WebPortal.Data;
 
 namespace Solace.WebPortal;
 
-public sealed class SeedClientWorker(IServiceProvider serviceProvider) : IHostedService
+public sealed class SeedClientWorker(IServiceProvider serviceProvider, IConfiguration configuration) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -16,15 +17,24 @@ public sealed class SeedClientWorker(IServiceProvider serviceProvider) : IHosted
 
         var application = await manager.FindByClientIdAsync("client_app", cancellationToken);
 
+        var authServerEndpoint = configuration["PublicEndpoints:AuthServer"];
+        if (string.IsNullOrEmpty(authServerEndpoint))
+        {
+            authServerEndpoint = configuration["services:auth-server:http:0"]!;
+        }
+
+        var authServerOidcConfig = configuration.GetSection("Oidc:AuthServer").Get<Solace.Common.Asp.Oidc.OidcClientConfiguration>();
+        Debug.Assert(authServerOidcConfig is not null);
+
         var descriptor = new OpenIddictApplicationDescriptor
         {
-            ClientId = "client_app",
-            ClientSecret = "development_secret_change_in_prod",
+            ClientId = authServerOidcConfig.ClientId,
+            ClientSecret = authServerOidcConfig.ClientSecret,
             ClientType = OpenIddictConstants.ClientTypes.Confidential,
             ConsentType = OpenIddictConstants.ConsentTypes.Explicit,
-            DisplayName = "Game Client App",
-            RedirectUris = { new Uri("http://localhost:8088/signin-oidc") },
-            PostLogoutRedirectUris = { new Uri("http://localhost:8088/signout-callback-oidc") },
+            DisplayName = authServerOidcConfig.DisplayName,
+            RedirectUris = { new Uri(new Uri(authServerEndpoint), "signin-oidc") },
+            PostLogoutRedirectUris = { new Uri(new Uri(authServerEndpoint), "signout-callback-oidc") },
             Permissions =
             {
                 OpenIddictConstants.Permissions.Endpoints.Authorization,

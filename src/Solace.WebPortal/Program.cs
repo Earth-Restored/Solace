@@ -158,7 +158,15 @@ internal sealed partial class Program2
             })
             .AddServer(options =>
             {
-                options.SetIssuer(new Uri("http://localhost:5000/"));
+                var webPortalEndpoint = builder.Configuration["PublicEndpoints:WebPortal"];
+                if (string.IsNullOrEmpty(webPortalEndpoint))
+                {
+                    options.SetIssuer(new Uri($"http://localhost:{builder.Configuration["PORT_SELF"]!}"));
+                }
+                else
+                {
+                    options.SetIssuer(new Uri(webPortalEndpoint));
+                }
 
                 options.SetAuthorizationEndpointUris("connect/authorize")
                     .SetEndSessionEndpointUris("connect/logout")
@@ -174,16 +182,24 @@ internal sealed partial class Program2
                     OpenIddictConstants.Scopes.Profile,
                     OpenIddictConstants.Scopes.Roles);
 
-                // todo
-                options.AddEphemeralEncryptionKey()
-                    .AddEphemeralSigningKey();
-
-                options.UseAspNetCore()
+                var aspNetCoreOptions = options.UseAspNetCore()
                     .EnableAuthorizationEndpointPassthrough()
                     .EnableEndSessionEndpointPassthrough()
                     .EnableTokenEndpointPassthrough()
-                    .EnableUserInfoEndpointPassthrough()
-                    .DisableTransportSecurityRequirement();
+                    .EnableUserInfoEndpointPassthrough();
+
+                if (builder.Environment.IsDevelopment())
+                {
+                    aspNetCoreOptions.DisableTransportSecurityRequirement();
+
+                    options.AddEphemeralEncryptionKey()
+                        .AddEphemeralSigningKey();
+                }
+                else
+                {
+                    // todo: allow specifying certs
+                    options.UseDataProtection();
+                }
             })
             .AddValidation(options =>
             {

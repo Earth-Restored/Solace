@@ -10,7 +10,8 @@ internal static class AspireExtension
         public IResourceBuilder<T> WithEnvironmentFromSection(
             IConfiguration config,
             string sectionPath,
-            string? prefixToRemove = null)
+            string? prefixToRemove = null,
+            string? prefixToAdd = null)
         {
             var section = config.GetSection(sectionPath);
 
@@ -27,6 +28,16 @@ internal static class AspireExtension
                     envName = envName[prefixToRemove.Length..];
                 }
 
+                if (!string.IsNullOrEmpty(prefixToAdd))
+                {
+                    if (!prefixToAdd.EndsWith(':') && !envName.StartsWith(':'))
+                    {
+                        prefixToAdd = prefixToAdd + ":";
+                    }
+
+                    envName = prefixToAdd + envName;
+                }
+
                 envName = envName.TrimStart(':');
 
                 envName = envName.Replace(":", "__", StringComparison.Ordinal);
@@ -34,33 +45,6 @@ internal static class AspireExtension
             }
 
             return builder;
-        }
-
-        public IResourceBuilder<T> WithEnvironmentFromConfig(
-            string configPath,
-            string defaultValue = "",
-            string? prefixToRemove = null,
-            bool isSecret = false)
-        {
-            var parameterName = configPath.Replace(':', '-');
-
-            var envName = configPath;
-            if (!string.IsNullOrEmpty(prefixToRemove) && envName.StartsWith(prefixToRemove, StringComparison.Ordinal))
-            {
-                envName = envName[prefixToRemove.Length..];
-            }
-
-            envName = envName.TrimStart(':');
-
-            envName = envName.Replace(":", "__", StringComparison.Ordinal);
-
-            var parameter = builder.ApplicationBuilder.AddParameter(
-                parameterName,
-                () => builder.ApplicationBuilder.Configuration[configPath] ?? defaultValue,
-                secret: isSecret
-            );
-
-            return builder.WithEnvironment(envName, parameter);
         }
 
         public IResourceBuilder<T> WithEnvironmentFromConfig(ParamterForEnvironment paramter)
@@ -72,12 +56,23 @@ internal static class AspireExtension
         public ParamterForEnvironment AddParameterForEnvironment(string configPath,
             string defaultValue = "",
             string? prefixToRemove = null,
+            string? prefixToAdd = null,
             bool isSecret = false)
         {
             var envName = configPath;
             if (!string.IsNullOrEmpty(prefixToRemove) && envName.StartsWith(prefixToRemove, StringComparison.Ordinal))
             {
                 envName = envName[prefixToRemove.Length..];
+            }
+
+            if (!string.IsNullOrEmpty(prefixToAdd))
+            {
+                if (!prefixToAdd.EndsWith(':') && !envName.StartsWith(':'))
+                {
+                    prefixToAdd = prefixToAdd + ":";
+                }
+
+                envName = prefixToAdd + envName;
             }
 
             envName = envName.TrimStart(':');

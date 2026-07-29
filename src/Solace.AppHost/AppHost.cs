@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Configuration;
 using Solace.AppHost;
 
@@ -166,7 +167,10 @@ var cdn = builder.AddProject<Projects.Solace_Cdn>("cdn")
     });
 
 var authServerPort = builder.Configuration.GetValue<int>("AuthServer:Port", 8088);
+var webPortalPort = builder.Configuration.GetValue<int>("WebPortal:Port", 5000);
+var webPortalPublicEndPoint = builder.AddParameterForEnvironment("Shared:PublicEndpoints:WebPortal", prefixToRemove: "Shared:");
 
+var authServerOidcClientSecret = builder.AddParameterForEnvironment("Shared:Oidc:WebPortal:AuthServer:ClientSecret", prefixToRemove: "Shared:Oidc:WebPortal:AuthServer:", prefixToAdd: "Oidc:");
 var captchaProvider = builder.AddParameterForEnvironment("Shared:Captcha:Provider", defaultValue: "NoOp", prefixToRemove: "Shared:");
 var captchaCloudflareTurnstileSiteKey = builder.AddParameterForEnvironment("Shared:Captcha:CloudflareTurnstileSiteKey", prefixToRemove: "Shared:");
 var captchaCloudflareTurnstileSecretKey = builder.AddParameterForEnvironment("Shared:Captcha:CloudflareTurnstileSecretKey", prefixToRemove: "Shared:", isSecret: true);
@@ -180,10 +184,14 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
     .WithReference(earthDb)
     .WaitFor(earthDb)
     .WithEnvironmentFromSection(builder.Configuration, "AuthServer:Authentication", "AuthServer:")
+    .WithEnvironmentFromSection(builder.Configuration, "Shared:Oidc:WebPortal:AuthServer", "Shared:Oidc:WebPortal:AuthServer:", "Oidc:")
+    .WithEnvironmentFromConfig(webPortalPublicEndPoint)
+    .WithEnvironmentFromConfig(authServerOidcClientSecret)
     .WithEnvironmentFromConfig(captchaProvider)
     .WithEnvironmentFromConfig(captchaCloudflareTurnstileSiteKey)
     .WithEnvironmentFromConfig(captchaCloudflareTurnstileSecretKey)
     .WithEnvironment("StaticDataPath", staticDataPath)
+    .WithEnvironment("services__web-portal__http__0", (string)$"http://localhost:{webPortalPort}/")
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
@@ -266,8 +274,6 @@ var tileRenderer = builder.AddProject<Projects.Solace_TileRenderer>("tile-render
         service.Environment["StaticDataPath"] = "/app/static-data";
     });
 
-var webPortalPort = builder.Configuration.GetValue<int>("WebPortal:Port", 5000);
-
 var locatorPublicEndPoint = builder.AddParameterForEnvironment("Shared:PublicEndpoints:Locator", prefixToRemove: "Shared:");
 var authServerPublicEndPoint = builder.AddParameterForEnvironment("Shared:PublicEndpoints:AuthServer", prefixToRemove: "Shared:");
 
@@ -280,6 +286,8 @@ var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
     {
         endpoint.TargetHost = "*";
     })
+    .WithReference(authServer)
+    .WaitFor(authServer)
     .WithReference(earthDb)
     .WaitFor(earthDb)
     .WithReference(webPortalDb)
@@ -288,7 +296,12 @@ var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
     .WaitFor(eventBus)
     .WithReference(objectStore)
     .WaitFor(objectStore)
+    .WithEnvironment("PORT_SELF", webPortalPort.ToString(CultureInfo.InvariantCulture))
     .WithEnvironment("StaticDataPath", staticDataPath)
+    .WithEnvironmentFromSection(builder.Configuration, "Shared:Oidc:WebPortal", "Shared:Oidc:WebPortal:", "Oidc:")
+    .WithEnvironmentFromConfig(authServerPublicEndPoint)
+    .WithEnvironmentFromConfig(webPortalPublicEndPoint)
+    .WithEnvironment("Oidc__AuthServer__ClientSecret", authServerOidcClientSecret.Parameter)
     .WithEnvironmentFromConfig(captchaProvider)
     .WithEnvironmentFromConfig(captchaCloudflareTurnstileSiteKey)
     .WithEnvironmentFromConfig(captchaCloudflareTurnstileSecretKey)
