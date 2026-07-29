@@ -135,6 +135,9 @@ public sealed class EarthDbContext : DbContext
             .HasIndex(a => a.Username)
             .IsUnique();
 
+        modelBuilder.Entity<Account>()
+            .HasIndex(a => a.WebPortalAccountId);
+
         modelBuilder.Entity<Account>(entity =>
         {
             entity.Property(e => e.PasswordSalt).HasMaxLength(16);
@@ -422,6 +425,7 @@ public sealed class EarthDbContext : DbContext
         var account = new Account()
         {
             Id = id,
+            WebPortalAccountId = null,
             CreatedDate = DateTimeOffset.UtcNow,
             Username = null,
             ProfilePictureUrl = null,

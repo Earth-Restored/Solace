@@ -3,13 +3,16 @@ using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization.Metadata;
 using Immediate.Handlers.Shared;
 using Immediate.Validations.Shared;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.HttpOverrides;
 
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.Net.Http.Headers;
 using Solace.Common;
 using Solace.Common.Asp;
@@ -76,10 +79,6 @@ internal sealed partial class Program2
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddAntiforgery();
 
-        // needed for TypedResults.Forbid
-        builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-            .AddCookie();
-
         builder.Services.AddRazorComponents();
 
         builder.Services.AddSolaceAuthServerHandlers();
@@ -107,6 +106,49 @@ internal sealed partial class Program2
                 builder.Services.AddSingleton<Common.Asp.Captcha.ICaptchaValidator, Common.Asp.Captcha.NoOpCaptchaValidator>();
                 break;
         }
+
+        builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+            })
+            .AddCookie(options =>
+            {
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+                options.SlidingExpiration = false;
+            })
+            .AddOpenIdConnect(options =>
+            {
+                options.Authority = "http://localhost:5000";
+
+                options.ClientId = "client_app";
+                options.ClientSecret = "development_secret_change_in_prod";
+                options.ResponseType = OpenIdConnectResponseType.Code;
+
+                options.Scope.Add("openid");
+                options.Scope.Add("email");
+                options.Scope.Add("profile");
+
+                options.MapInboundClaims = false;
+                options.SaveTokens = false;
+                options.GetClaimsFromUserInfoEndpoint = true;
+
+                if (builder.Environment.IsDevelopment())
+                {
+                    options.RequireHttpsMetadata = false; // Disable strict HTTPS check in dev
+
+#pragma warning disable MA0039 // Do not write your own certificate validation method
+                    options.BackchannelHttpHandler = new HttpClientHandler
+                    {
+                        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                    };
+#pragma warning restore MA0039 // Do not write your own certificate validation method
+                }
+            });
+
+        builder.Services.AddAuthorization();
+
+        builder.Services.AddCascadingAuthenticationState();
 
         using var app = builder.Build();
 
@@ -201,6 +243,13 @@ internal sealed partial class Program2
         app.MapSolaceAuthServerEndpoints();
 
         app.MapRazorComponents<App>();
+
+        app.MapGet("/login", (string? returnUrl) =>
+            Results.Challenge(new AuthenticationProperties { RedirectUri = returnUrl ?? "/" }, [OpenIdConnectDefaults.AuthenticationScheme]));
+
+        app.MapGet("/logout", () =>
+            Results.SignOut(new AuthenticationProperties { RedirectUri = "/" },
+                [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
 
         app.Run();
 

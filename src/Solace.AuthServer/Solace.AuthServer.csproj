@@ -5,9 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Solace.Analyzer/Solace.Analyzer.csproj" 
-      OutputItemType="Analyzer" 
-      ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="../Solace.Analyzer/Solace.Analyzer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../Solace.Common.Asp/Solace.Common.Asp.csproj" />
     <ProjectReference Include="../Solace.Common/Solace.Common.csproj" />
     <ProjectReference Include="../Solace.Db.Earth/Solace.Db.Earth.csproj" />
@@ -22,6 +20,8 @@
   <ItemGroup>
     <PackageReference Include="Immediate.Apis" />
     <PackageReference Include="Immediate.Validations" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
+    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" />
     <PackageReference Include="Nager.PublicSuffix" />
     <PackageReference Include="OData2Linq" />
   </ItemGroup>

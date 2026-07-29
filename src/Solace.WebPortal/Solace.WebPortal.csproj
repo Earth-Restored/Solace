@@ -40,6 +40,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" VersionOverride="11.0.0-preview.6.26359.118" PrivateAssets="all" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" VersionOverride="11.0.0-preview.6.26359.118" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" VersionOverride="11.0.0-preview.6" />
+    <PackageReference Include="OpenIddict.AspNetCore" />
+    <PackageReference Include="OpenIddict.EntityFrameworkCore" />
     <PackageReference Include="SixLabors.ImageSharp" />
   </ItemGroup>
 

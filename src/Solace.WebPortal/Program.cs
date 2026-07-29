@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using OpenIddict.Abstractions;
 using Solace.Common;
 using Solace.Db.Earth;
 using Solace.EventBus.Client;
@@ -12,6 +13,7 @@ using Solace.WebPortal.Common.Features.Roles;
 using Solace.WebPortal.Components;
 using Solace.WebPortal.Components.Account;
 using Solace.WebPortal.Data;
+using Solace.WebPortal.Features.Oidc;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
@@ -148,6 +150,49 @@ internal sealed partial class Program2
 
         builder.Services.AddSingleton<Features.Catalog.CatalogResponseCacheService>();
 
+        builder.Services.AddOpenIddict()
+            .AddCore(options =>
+            {
+                options.UseEntityFrameworkCore()
+                    .UseDbContext<ApplicationDbContext>();
+            })
+            .AddServer(options =>
+            {
+                options.SetIssuer(new Uri("http://localhost:5000/"));
+
+                options.SetAuthorizationEndpointUris("connect/authorize")
+                    .SetEndSessionEndpointUris("connect/logout")
+                    .SetTokenEndpointUris("connect/token")
+                    .SetUserInfoEndpointUris("connect/userinfo");
+
+                options.AllowAuthorizationCodeFlow()
+                    .AllowRefreshTokenFlow();
+
+                options.RegisterScopes(
+                    OpenIddictConstants.Scopes.OpenId,
+                    OpenIddictConstants.Scopes.Email,
+                    OpenIddictConstants.Scopes.Profile,
+                    OpenIddictConstants.Scopes.Roles);
+
+                // todo
+                options.AddEphemeralEncryptionKey()
+                    .AddEphemeralSigningKey();
+
+                options.UseAspNetCore()
+                    .EnableAuthorizationEndpointPassthrough()
+                    .EnableEndSessionEndpointPassthrough()
+                    .EnableTokenEndpointPassthrough()
+                    .EnableUserInfoEndpointPassthrough()
+                    .DisableTransportSecurityRequirement();
+            })
+            .AddValidation(options =>
+            {
+                options.UseLocalServer();
+                options.UseAspNetCore();
+            });
+
+        builder.Services.AddHostedService<SeedClientWorker>();
+
         await using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
@@ -174,7 +219,6 @@ internal sealed partial class Program2
         }
 
         app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-        app.UseHttpsRedirection();
 
         app.UseAntiforgery();
 
@@ -187,6 +231,8 @@ internal sealed partial class Program2
 
         // Add additional endpoints required by the Identity /Account Razor components.
         app.MapAdditionalIdentityEndpoints();
+
+        app.MapOidcEndpoints();
 
         var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
 
