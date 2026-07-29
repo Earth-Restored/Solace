@@ -108,14 +108,14 @@ public sealed class ResultsEF
             var accountIdL = accountId;
             var cancellationTokenL = cancellationToken;
 
-            var versions = await earthDbL.AccountVersions
+            var versions = await earthDbL.ProfileVersions
                 .AsNoTracking()
                 .FirstAsync(versions => versions.Id == accountIdL, cancellationTokenL);
 
             return Build(versions);
         }
 
-        public ResultsEF Build(AccountVersions versions)
+        public ResultsEF Build(ProfileVersions versions)
             => new ResultsEF
             {
                 Profile = _profile ? versions.Profile : null,

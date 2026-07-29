@@ -106,7 +106,7 @@ internal sealed class DailyGoodiesController : SolaceControllerBase
     private static async Task<DailyLoginTokenEF?> FindDailyLoginTokenAsync(EarthDbContext earthDb, Guid accountId, DateOnly today, CancellationToken cancellationToken = default)
         => await earthDb.Tokens
             .OfType<DailyLoginTokenEF>()
-            .FirstOrDefaultAsync(token => token.AccountId == accountId && token.Date == today, cancellationToken);
+            .FirstOrDefaultAsync(token => token.ProfileId == accountId && token.Date == today, cancellationToken);
 
     public sealed record DailyGoodiesResponse(
         Guid? Id,

@@ -7,7 +7,7 @@ public sealed class BoostsEF : IEntityWithId<Guid>
 {
     public required Guid Id { get; set; }
 
-    public Account Account { get; set; } = null!;
+    public ProfileEF Profile { get; set; } = null!;
 
     public ActiveBoost?[] ActiveBoosts { get; set; } = new ActiveBoost[5];
 

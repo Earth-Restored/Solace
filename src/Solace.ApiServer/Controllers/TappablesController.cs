@@ -46,7 +46,7 @@ internal sealed class TappablesController : SolaceControllerBase
 
         var redeemedTappables = await _earthDb.RedeemedTappables
             .AsNoTracking()
-            .Where (rt => rt.AccountId == accountId)
+            .Where (rt => rt.ProfileId == accountId)
             .Select(rt => rt.TappableId)
             .ToHashSetAsync(cancellationToken);
 
@@ -129,7 +129,7 @@ internal sealed class TappablesController : SolaceControllerBase
             .AsNoTracking()
             .FirstAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
 
-        if (await _earthDb.RedeemedTappables.AnyAsync(rd => rd.AccountId == accountId && rd.TappableId == tappable.Id, cancellationToken))
+        if (await _earthDb.RedeemedTappables.AnyAsync(rd => rd.ProfileId == accountId && rd.TappableId == tappable.Id, cancellationToken))
         {
             return TypedResults.BadRequest();
         }
@@ -172,7 +172,7 @@ internal sealed class TappablesController : SolaceControllerBase
 
         rewards.AddRubies(1); // TODO
 
-        _earthDb.RedeemedTappables.Add(new RedeemedTappableEF {AccountId = accountId, TappableId = tappable.Id, ExpiresAt =tappable.SpawnTime + tappable.ValidFor, });
+        _earthDb.RedeemedTappables.Add(new RedeemedTappableEF {ProfileId = accountId, TappableId = tappable.Id, ExpiresAt =tappable.SpawnTime + tappable.ValidFor, });
         await _earthDb.SaveChangesAsync(cancellationToken);
         
         await RedeemedTappableUtils.PruneAsync(_earthDb, requestStartedOn, cancellationToken);

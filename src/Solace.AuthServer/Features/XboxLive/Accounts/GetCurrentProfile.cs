@@ -63,30 +63,30 @@ public sealed partial class GetCurrentProfile(
 
         var token = authUnion.A;
 
-        var account = await earthDb.Accounts
+        var profile = await earthDb.Profiles
             .AsNoTracking()
-            .Select(account => new { account.Id, account.Username, account.FirstName, account.LastName, account.CreatedDate, })
-            .FirstOrDefaultAsync(account => account.Id == token.UserId, cancellationToken);
+            .Select(profile => new { profile.Id, profile.Username, profile.CreatedDate, })
+            .FirstOrDefaultAsync(profile => profile.Id == token.UserId, cancellationToken);
 
-        if (account is null)
+        if (profile is null)
         {
             return TypedResults.NotFound();
         }
 
         return TypedResults.Ok(new Response(
-            GamerTag: account.Username,
+            GamerTag: profile.Username,
             MidasConsole: null,
             TouAcceptanceDate: new DateTime(1, 1, 1),
             GamerTagChangeReason: null,
             DateOfBirth: new DateTime(1, 1, 1),
-            DateCreated: account.CreatedDate.UtcDateTime,
+            DateCreated: profile.CreatedDate.UtcDateTime,
             Email: null,
-            FirstName: account.FirstName,
+            FirstName: null,
             HomeAddressInfo: null,
             HomeConsole: null,
             ImageUrl: null,
             IsAdult: true,
-            LastName: account.LastName,
+            LastName: null,
             LegalCountry: null,
             Locale: null,
             MsftOptin: null,

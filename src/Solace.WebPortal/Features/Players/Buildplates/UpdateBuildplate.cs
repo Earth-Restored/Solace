@@ -30,7 +30,7 @@ public static partial class UpdateBuildplate
     {
         var dbBuildplate = await earthDb.PlayerBuildplates
             .AsTracking()
-            .FirstOrDefaultAsync(buildplate => buildplate.Id == command.BuildplateId && buildplate.AccountId == command.PlayerId, cancellationToken);
+            .FirstOrDefaultAsync(buildplate => buildplate.Id == command.BuildplateId && buildplate.ProfileId == command.PlayerId, cancellationToken);
 
         if (dbBuildplate is null)
         {

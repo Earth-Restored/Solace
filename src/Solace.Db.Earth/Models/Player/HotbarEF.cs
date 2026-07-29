@@ -7,7 +7,7 @@ public sealed class HotbarEF : IEntityWithId<Guid>
 {
     public required Guid Id { get; set; }
 
-    public Account Account { get; set; } = null!;
+    public ProfileEF Profile { get; set; } = null!;
 
     public Item?[] Items { get; set; } = new Item[7];
 

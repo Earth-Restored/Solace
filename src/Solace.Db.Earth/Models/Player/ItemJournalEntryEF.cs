@@ -2,7 +2,7 @@
 
 public sealed class ItemJournalEntryEF
 {
-    public required Guid AccountId { get; set; }
+    public required Guid ProfileId { get; set; }
 
     public required Guid ItemId { get; set; }
 
@@ -12,5 +12,5 @@ public sealed class ItemJournalEntryEF
 
     public required int AmountCollected { get; set; }
 
-    public Account Account { get; set; } = null!;
+    public ProfileEF Profile { get; set; } = null!;
 }

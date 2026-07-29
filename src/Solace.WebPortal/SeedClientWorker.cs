@@ -1,6 +1,6 @@
 using System.Diagnostics;
-using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
+using Solace.Db;
 using Solace.WebPortal.Data;
 
 namespace Solace.WebPortal;
@@ -11,11 +11,9 @@ public sealed class SeedClientWorker(IServiceProvider serviceProvider, IConfigur
     {
         using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        await context.Database.MigrateAsync(cancellationToken);
+        await context.Database.MigrateAsyncWithLock(cancellationToken);
 
         var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
-
-        var application = await manager.FindByClientIdAsync("client_app", cancellationToken);
 
         var authServerEndpoint = configuration["PublicEndpoints:AuthServer"];
         if (string.IsNullOrEmpty(authServerEndpoint))
@@ -25,6 +23,8 @@ public sealed class SeedClientWorker(IServiceProvider serviceProvider, IConfigur
 
         var authServerOidcConfig = configuration.GetSection("Oidc:AuthServer").Get<Solace.Common.Asp.Oidc.OidcClientConfiguration>();
         Debug.Assert(authServerOidcConfig is not null);
+
+        var application = await manager.FindByClientIdAsync(authServerOidcConfig.ClientId, cancellationToken);
 
         var descriptor = new OpenIddictApplicationDescriptor
         {

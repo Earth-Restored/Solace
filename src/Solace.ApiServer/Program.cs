@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.HttpOverrides;
 using System.Reflection;
 using Solace.Common.Asp;
+using Solace.Db;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
@@ -235,7 +236,7 @@ internal static partial class App
         {
             var db = scope.ServiceProvider.GetRequiredService<EarthDbContext>();
 
-            await db.Database.MigrateAsync();
+            await db.Database.MigrateAsyncWithLock();
 
             startupDeps.Secrets = await db.GetOrInitializeSecretsAsync();
 

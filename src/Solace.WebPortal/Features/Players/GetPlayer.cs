@@ -13,12 +13,12 @@ using Solace.WebPortal.Common.Features.Players;
 namespace Solace.WebPortal.Features.Players;
 
 [Handler]
-[MapGet("{id}")]
+[MapGet("{profileId}")]
 [MapGroup<PlayersGroup>]
 [Authorize(Policy = Permissions.ViewPlayers)]
 public static partial class GetPlayer
 {
-    public sealed record Query([property: FromRoute] Guid Id);
+    public sealed record Query([property: FromRoute] Guid ProfileId);
 
     private static async ValueTask<Results<Ok<PlayerDto>, NotFound>> HandleAsync(
         Query query,
@@ -28,33 +28,32 @@ public static partial class GetPlayer
     {
         var utcNow = DateTimeOffset.UtcNow;
 
-        var player = await earthDb.Accounts
+        var profile = await earthDb.Profiles
             .AsNoTracking()
-            .Include(account => account.Profile)
-            .Include(account => account.Boosts)
-            .Select(account => new { account.Id, account.Username, account.Profile!.Health, account.Profile.Level, account.Profile.Experience, PurchasedRubies = account.Profile.Rubies.Purchased, EarnedRubies = account.Profile.Rubies.Earned, account.Boosts, })
-            .FirstOrDefaultAsync(account => account.Id == query.Id, cancellationToken);
+            .Include(profile => profile.Boosts)
+            .Select(profile => new { profile.Id, profile.Username, profile.Health, profile.Level, profile.Experience, PurchasedRubies = profile.Rubies.Purchased, EarnedRubies = profile.Rubies.Earned, profile.Boosts, })
+            .FirstOrDefaultAsync(profile => profile.Id == query.ProfileId, cancellationToken);
 
-        if (player is null)
+        if (profile is null)
         {
             return TypedResults.NotFound();
         }
 
-        var maxHealth = BoostUtils.GetMaxPlayerHealth(player.Boosts!, utcNow, staticData.Catalog.ItemsCatalog);
+        var maxHealth = BoostUtils.GetMaxPlayerHealth(profile.Boosts!, utcNow, staticData.Catalog.ItemsCatalog);
 
         var buildplateCount = await earthDb.PlayerBuildplates
-            .CountAsync(buildplate => buildplate.AccountId == query.Id, cancellationToken);
+            .CountAsync(buildplate => buildplate.ProfileId == query.ProfileId, cancellationToken);
 
         return TypedResults.Ok(new PlayerDto(
-            player.Id,
-            player.Username,
-            player.Health,
+            profile.Id,
+            profile.Username,
+            profile.Health,
             maxHealth,
-            player.Level,
-            player.Experience,
-            PlayerUtils.GetLevelProgressPercentage(player.Level, player.Experience, staticData.Levels),
-            player.PurchasedRubies,
-            player.EarnedRubies,
+            profile.Level,
+            profile.Experience,
+            PlayerUtils.GetLevelProgressPercentage(profile.Level, profile.Experience, staticData.Levels),
+            profile.PurchasedRubies,
+            profile.EarnedRubies,
             buildplateCount));
     }
 }

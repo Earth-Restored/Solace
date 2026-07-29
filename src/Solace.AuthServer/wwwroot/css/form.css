@@ -223,6 +223,10 @@ h1 {
     filter: drop-shadow(0 6px 12px rgba(107, 142, 35, 0.4));
 }
 
+#formTitle {
+    line-height: 32px;
+}
+
 .subtitle {
     text-align: center;
     color: #5a4a3a;
@@ -332,8 +336,8 @@ h1 {
 }
 
 .bp-submit-btn {
+display: block;
     width: 100%;
-    padding: 14px 8px;
     background: linear-gradient(180deg, #6b8e23 0%, #556b2f 100%);
     color: white;
     border: 2px solid #4a5d23;
@@ -344,8 +348,12 @@ h1 {
     box-shadow: 0 4px 0 #3d4f1c;
     text-transform: uppercase;
     font-family: "Press Start 2P", system-ui;
-    margin-top: 10px;
+    margin-top: 20px;
     box-sizing: border-box;
+    text-align: center;
+    text-decoration: none;
+    padding: 12px 10px;
+    line-height: 1.3;
 }
 
 .bp-submit-btn:hover {
@@ -416,6 +424,16 @@ h1 {
 .password-toggle:active {
     box-shadow: inset 2px 2px 0px rgba(0, 0, 0, 0.3);
     transform: translateY(1px);
+}
+
+.logout-wrapper {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.logout-link {
+    color: #0a123f;
+    text-decoration: underline;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -563,6 +581,12 @@ h1 {
         background: rgba(244, 67, 54, 0.15);
         border-color: #d32f2f;
         color: #ff8a80;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .logout-link {
+            color: #fff;
+        }
     }
 }
 

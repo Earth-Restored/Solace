@@ -178,7 +178,7 @@ public sealed partial class Importer : IAsyncDisposable
 
             foreach (var buildplate in instances)
             {
-                await RemoveBuildplateFromPlayer(buildplate.Id, buildplate.AccountId, cancellationToken);
+                await RemoveBuildplateFromPlayer(buildplate.Id, buildplate.ProfileId, cancellationToken);
             }
         }
 
@@ -279,7 +279,7 @@ public sealed partial class Importer : IAsyncDisposable
         {
             buildplate = await EarthDb.PlayerBuildplates
                 .AsTracking()
-                .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.AccountId == accountId, cancellationToken);
+                .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.ProfileId == accountId, cancellationToken);
         }
         catch (Exception exception)
         {
@@ -362,7 +362,7 @@ public sealed partial class Importer : IAsyncDisposable
         {
             var buildplate = await EarthDb.PlayerBuildplates
                 .AsTracking()
-                .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.AccountId == accountId, cancellationToken);
+                .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.ProfileId == accountId, cancellationToken);
 
             if (buildplate is null)
             {
@@ -596,7 +596,7 @@ public sealed partial class Importer : IAsyncDisposable
             EarthDb.PlayerBuildplates.Add(new PlayerBuildplateEF()
             {
                 Id = buildplateId,
-                AccountId = accountId,
+                ProfileId = accountId,
                 TemplateId = templateId,
                 Name = template.Name,
                 Size = template.Size,

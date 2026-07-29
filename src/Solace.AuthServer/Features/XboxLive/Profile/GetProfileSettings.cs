@@ -62,7 +62,7 @@ public sealed partial class GetProfileSettings(
             return TypedResults.BadRequest();
         }
 
-        var account = await earthDb.Accounts
+        var account = await earthDb.Profiles
             .AsNoTracking()
             .FirstOrDefaultAsync(account => account.Id == token.UserId, cancellationToken);
 

@@ -22,12 +22,12 @@ internal static class HotbarUtils
 
         var inventoryStackableCounts = await earthDb.StackableItems
             .AsNoTracking()
-            .Where(x => x.AccountId == accountId && hotbarItemIds.Contains(x.ItemId))
+            .Where(x => x.ProfileId == accountId && hotbarItemIds.Contains(x.ItemId))
             .ToDictionaryAsync(x => x.ItemId, x => x.Count, cancellationToken);
 
         var inventoryInstances = await earthDb.NonStackableItems
             .AsNoTracking()
-            .Where(x => x.AccountId == accountId && hotbarItemIds.Contains(x.ItemId))
+            .Where(x => x.ProfileId == accountId && hotbarItemIds.Contains(x.ItemId))
             .GroupBy(x => x.ItemId)
             .ToDictionaryAsync(group => group.Key, group => group.Select(x => x.InstanceId).ToHashSet(), cancellationToken);
 

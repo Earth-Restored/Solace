@@ -26,11 +26,11 @@ public static partial class DeletePlayer
     {
         var buildplateObjects = await earthDb.PlayerBuildplates
            .AsNoTracking()
-           .Where(bp => bp.AccountId == command.Id)
+           .Where(bp => bp.ProfileId == command.Id)
            .Select(bp => new { bp.ServerDataObjectId, bp.PreviewObjectId })
            .ToListAsync(cancellationToken);
 
-        var rowsDeleted = await earthDb.Accounts
+        var rowsDeleted = await earthDb.Profiles
             .Where(account => account.Id == command.Id)
             .ExecuteDeleteAsync(cancellationToken);
 

@@ -34,7 +34,7 @@ public static partial class RemoveItem
         if (item.Stackable)
         {
             removed = await earthDb.StackableItems
-                .Where(item => item.AccountId == command.Id && item.ItemId == command.ItemId)
+                .Where(item => item.ProfileId == command.Id && item.ItemId == command.ItemId)
                 .ExecuteDeleteAsync(cancellationToken) > 0;
         }
         else
@@ -45,7 +45,7 @@ public static partial class RemoveItem
             }
 
             removed = await earthDb.NonStackableItems
-                .Where(item => item.AccountId == command.Id && item.ItemId == command.ItemId && item.InstanceId == instanceId)
+                .Where(item => item.ProfileId == command.Id && item.ItemId == command.ItemId && item.InstanceId == instanceId)
                 .ExecuteDeleteAsync(cancellationToken) > 0;
         }
 

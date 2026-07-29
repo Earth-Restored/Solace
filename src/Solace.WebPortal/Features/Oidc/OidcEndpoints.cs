@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
+using Solace.WebPortal.Common;
 using Solace.WebPortal.Data;
 
 namespace Solace.WebPortal.Features.Oidc;
@@ -72,7 +73,7 @@ public static class OidcEndpoints
             return Results.Forbid();
         });
 
-        app.MapMethods("/connect/userinfo", ["GET", "POST"], async (HttpContext context) =>
+        app.MapMethods("/connect/userinfo", ["GET", "POST"], async (HttpContext context, UserManager<ApplicationUser> userManager, IUserClaimsPrincipalFactory<ApplicationUser> principalFactory) =>
         {
             var result = await context.AuthenticateAsync(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
 
@@ -81,22 +82,38 @@ public static class OidcEndpoints
                 return Results.Challenge(properties: null, [OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme]);
             }
 
-            var principal = result.Principal;
+            var userId = result.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? result.Principal.FindFirst(OpenIddictConstants.Claims.Subject)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Results.Challenge(properties: null, [OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme]);
+            }
+
+            var user = await userManager.FindByIdAsync(userId);
+            if (user is null)
+            {
+                return Results.Challenge(properties: null, [OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme]);
+            }
+
             var claims = new Dictionary<string, object>(StringComparer.Ordinal)
             {
-                [OpenIddictConstants.Claims.Subject] = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                    ?? principal.FindFirst(OpenIddictConstants.Claims.Subject)?.Value!
+                [OpenIddictConstants.Claims.Subject] = userId
             };
 
-            if (principal.HasScope(OpenIddictConstants.Scopes.Email))
+            if (result.Principal.HasScope(OpenIddictConstants.Scopes.Email))
             {
-                var email = principal.FindFirst(ClaimTypes.Email)?.Value
-                    ?? principal.FindFirst(OpenIddictConstants.Claims.Email)?.Value;
-
+                var email = await userManager.GetEmailAsync(user);
                 if (!string.IsNullOrEmpty(email))
                 {
                     claims[OpenIddictConstants.Claims.Email] = email;
                 }
+            }
+
+            if (result.Principal.HasScope(OpenIddictConstants.Scopes.Profile))
+            {
+                var fullDbPrincipal = await principalFactory.CreateAsync(user);
+
+                claims["can_create_profile"] = fullDbPrincipal.HasPermission(Permissions.CreateProfile) ? "true" : "false";
             }
 
             return Results.Ok(claims);

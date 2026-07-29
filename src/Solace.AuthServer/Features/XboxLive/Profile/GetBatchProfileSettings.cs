@@ -47,7 +47,7 @@ public sealed partial class GetBatchProfileSettings(
             }
         }
 
-        var account = await earthDb.Accounts
+        var account = await earthDb.Profiles
             .AsNoTracking()
             .FirstOrDefaultAsync(account => account.Id == token.UserId, cancellationToken);
 

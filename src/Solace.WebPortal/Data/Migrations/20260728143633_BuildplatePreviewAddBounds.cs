@@ -5,9 +5,11 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Solace.WebPortal.Data.Migrations;
 
 /// <inheritdoc />
+#pragma warning disable CA1707 // Identifiers should not contain underscores
 #pragma warning disable MA0048 // File name must match type name
 public partial class _20260728143633_BuildplatePreviewAddBounds : Migration
 #pragma warning restore MA0048 // File name must match type name
+#pragma warning restore CA1707 // Identifiers should not contain underscores
 {
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)

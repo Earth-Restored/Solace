@@ -40,6 +40,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Solace.Common.Asp/Solace.Common.Asp.csproj" />
+    <ProjectReference Include="../Solace.Db/Solace.Db.csproj" />
     <ProjectReference Include="../Solace.ServiceDefaults/Solace.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Solace.BuildplateImporter\Solace.BuildplateImporter.csproj" />
     <ProjectReference Include="..\Solace.Common\Solace.Common.csproj" />

@@ -19,11 +19,9 @@ public sealed class EarthDbContext : DbContext
 #pragma warning restore IL3050
 #pragma warning restore IL2026
 
-    public DbSet<Account> Accounts { get; set; }
-
-    public DbSet<AccountVersions> AccountVersions { get; set; }
-
     public DbSet<ProfileEF> Profiles { get; set; }
+
+    public DbSet<ProfileVersions> ProfileVersions { get; set; }
 
     public DbSet<ActivityLogEntryEF> ActivityLogs { get; set; }
 
@@ -130,114 +128,108 @@ public sealed class EarthDbContext : DbContext
         //     entity.ToTable("Tokens", tb => tb.HasTrigger("trg_tokens_version"));
         // });
 
-        // account
-        modelBuilder.Entity<Account>()
+        // profile
+        modelBuilder.Entity<ProfileEF>()
             .HasIndex(a => a.Username)
             .IsUnique();
 
-        modelBuilder.Entity<Account>()
+        modelBuilder.Entity<ProfileEF>()
             .HasIndex(a => a.WebPortalAccountId);
 
-        modelBuilder.Entity<Account>(entity =>
+        modelBuilder.Entity<ProfileEF>(entity =>
         {
-            entity.Property(e => e.PasswordSalt).HasMaxLength(16);
-            entity.Property(e => e.PasswordHash).HasMaxLength(64);
             entity.Property(e => e.SkinImageData).HasMaxLength(16 * 1024);
         });
 
-        modelBuilder.Entity<Account>()
-            .HasOne(a => a.AccountVersions)
-            .WithOne(av => av.Account)
-            .HasForeignKey<AccountVersions>(av => av.Id)
+        modelBuilder.Entity<ProfileEF>()
+            .OwnsOne(x => x.Rubies, builder => builder.ToJson());
+
+        modelBuilder.Entity<ProfileEF>()
+            .HasOne(a => a.ProfileVersions)
+            .WithOne(av => av.ProfileRef)
+            .HasForeignKey<ProfileVersions>(av => av.Id)
             .OnDelete(DeleteBehavior.Cascade)
             .IsRequired();
 
-        modelBuilder.Entity<Account>()
-            .HasOne(a => a.Profile)
-            .WithOne(p => p.Account)
-            .HasForeignKey<ProfileEF>(p => p.Id)
-            .OnDelete(DeleteBehavior.Cascade)
-            .IsRequired();
-
-        modelBuilder.Entity<Account>()
+        modelBuilder.Entity<ProfileEF>()
             .HasMany(a => a.ActivityLogs)
-            .WithOne(b => b.Account)
-            .HasForeignKey(b => b.AccountId)
+            .WithOne(b => b.Profile)
+            .HasForeignKey(b => b.ProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Account>()
+        modelBuilder.Entity<ProfileEF>()
             .HasOne(a => a.Boosts)
-            .WithOne(b => b.Account)
+            .WithOne(b => b.Profile)
             .HasForeignKey<BoostsEF>(a => a.Id)
             .OnDelete(DeleteBehavior.Cascade)
             .IsRequired();
 
-        modelBuilder.Entity<Account>()
+        modelBuilder.Entity<ProfileEF>()
             .HasMany(a => a.Buildplates)
-            .WithOne(b => b.Account)
-            .HasForeignKey(b => b.AccountId)
+            .WithOne(b => b.Profile)
+            .HasForeignKey(b => b.ProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Account>()
+        modelBuilder.Entity<ProfileEF>()
             .HasOne(a => a.Hotbar)
-            .WithOne(h => h.Account)
+            .WithOne(h => h.Profile)
             .HasForeignKey<HotbarEF>(h => h.Id)
             .OnDelete(DeleteBehavior.Cascade)
             .IsRequired();
 
-        modelBuilder.Entity<Account>()
+        modelBuilder.Entity<ProfileEF>()
             .HasMany(a => a.StackableItems)
-            .WithOne(b => b.Account)
-            .HasForeignKey(b => b.AccountId)
+            .WithOne(b => b.Profile)
+            .HasForeignKey(b => b.ProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Account>()
+        modelBuilder.Entity<ProfileEF>()
             .HasMany(a => a.NonStackableItems)
-            .WithOne(b => b.Account)
-            .HasForeignKey(b => b.AccountId)
+            .WithOne(b => b.Profile)
+            .HasForeignKey(b => b.ProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Account>()
+        modelBuilder.Entity<ProfileEF>()
             .HasMany(a => a.JournalEntries)
-            .WithOne(b => b.Account)
-            .HasForeignKey(b => b.AccountId)
+            .WithOne(b => b.Profile)
+            .HasForeignKey(b => b.ProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Account>()
+        modelBuilder.Entity<ProfileEF>()
             .HasMany(a => a.RedeemedTappables)
-            .WithOne(b => b.Account)
-            .HasForeignKey(b => b.AccountId)
+            .WithOne(b => b.Profile)
+            .HasForeignKey(b => b.ProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Account>()
+        modelBuilder.Entity<ProfileEF>()
             .HasMany(a => a.Tokens)
-            .WithOne(b => b.Account)
-            .HasForeignKey(b => b.AccountId)
+            .WithOne(b => b.Profile)
+            .HasForeignKey(b => b.ProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Account>()
+        modelBuilder.Entity<ProfileEF>()
             .HasOne(a => a.CraftingSlots)
-            .WithOne(c => c.Account)
+            .WithOne(c => c.Profile)
             .HasForeignKey<CraftingSlotsEF>(c => c.Id)
             .OnDelete(DeleteBehavior.Cascade)
             .IsRequired();
 
-        modelBuilder.Entity<Account>()
+        modelBuilder.Entity<ProfileEF>()
             .HasOne(a => a.SmeltingSlots)
-            .WithOne(s => s.Account)
+            .WithOne(s => s.Profile)
             .HasForeignKey<SmeltingSlotsEF>(s => s.Id)
             .OnDelete(DeleteBehavior.Cascade)
             .IsRequired();
 
-        modelBuilder.Entity<Account>()
+        modelBuilder.Entity<ProfileEF>()
             .HasMany(a => a.SharedBuildplates)
-            .WithOne(s => s.Account)
-            .HasForeignKey(s => s.AccountId)
+            .WithOne(s => s.Profile)
+            .HasForeignKey(s => s.ProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // profile
-        modelBuilder.Entity<ProfileEF>()
-            .OwnsOne(x => x.Rubies, builder => builder.ToJson());
+        // profile versions
+        modelBuilder.Entity<ProfileVersions>()
+            .ToTable("AccountVersions"); // do not rename, used by db triggers
 
         // activity log
         modelBuilder.Entity<ActivityLogEntryEF>()
@@ -250,7 +242,7 @@ public sealed class EarthDbContext : DbContext
             .HasValue<BoostActivatedEntryEF>("boost_activated");
 
         modelBuilder.Entity<ActivityLogEntryEF>()
-            .HasKey(e => new { e.AccountId, e.EntryId, });
+            .HasKey(e => new { e.ProfileId, e.EntryId, });
 
         modelBuilder.Entity<ActivityLogEntryEF>()
             .Property(e => e.EntryId)
@@ -298,18 +290,18 @@ public sealed class EarthDbContext : DbContext
 
         // inventory
         modelBuilder.Entity<StackableItemEF>()
-            .HasKey(x => new { x.AccountId, x.ItemId, });
+            .HasKey(x => new { x.ProfileId, x.ItemId, });
 
         modelBuilder.Entity<NonStackableItemInstanceEF>()
-            .HasKey(x => new { x.AccountId, x.ItemId, x.InstanceId, });
+            .HasKey(x => new { x.ProfileId, x.ItemId, x.InstanceId, });
 
         // journal
         modelBuilder.Entity<ItemJournalEntryEF>()
-            .HasKey(x => new { x.AccountId, x.ItemId, });
+            .HasKey(x => new { x.ProfileId, x.ItemId, });
 
         // redeemed tappables
         modelBuilder.Entity<RedeemedTappableEF>()
-            .HasKey(x => new { x.AccountId, x.TappableId, });
+            .HasKey(x => new { x.ProfileId, x.TappableId, });
 
         // tokens
         modelBuilder.Entity<TokenEF>()
@@ -319,7 +311,7 @@ public sealed class EarthDbContext : DbContext
             .HasValue<DailyLoginTokenEF>("daily_login");
 
         modelBuilder.Entity<TokenEF>()
-            .HasKey(e => new { e.AccountId, e.TokenId, });
+            .HasKey(e => new { e.ProfileId, e.TokenId, });
 
         modelBuilder.Entity<TokenEF>()
             .Property(e => e.TokenId)
@@ -385,7 +377,7 @@ public sealed class EarthDbContext : DbContext
         var ctx = this;  // todo: bug - needed for compiled queries - https://github.com/dotnet/efcore/issues/35887
         var cancellationTokenL = cancellationToken;
 
-        await ctx.Accounts.ExecuteDeleteAsync(cancellationTokenL);
+        await ctx.Profiles.ExecuteDeleteAsync(cancellationTokenL);
 
         await ctx.EncounterBuildplates.ExecuteDeleteAsync(cancellationTokenL);
         await ctx.TemplateBuildplates.ExecuteDeleteAsync(cancellationTokenL);
@@ -397,54 +389,49 @@ public sealed class EarthDbContext : DbContext
         var ctx = this;  // todo: bug - needed for compiled queries - https://github.com/dotnet/efcore/issues/35887
         var idL = id;
 
-        if (await ctx.Accounts.AnyAsync(account => account.Id == idL))
+        if (await ctx.Profiles.AnyAsync(account => account.Id == idL))
         {
             return;
         }
 
-        await InitAccountAndAddToDb(id);
+        await InitAccountAndAddToDb(id, null);
     }
 
-    public async Task<Account> GetOrCreateAccount(Guid id)
+    public async Task<ProfileEF> GetOrCreateAccount(Guid id, long? webPortalAccountId)
     {
         var ctx = this;  // todo: bug - needed for compiled queries - https://github.com/dotnet/efcore/issues/35887
         var idL = id;
 
-        var account = await ctx.Accounts.FirstOrDefaultAsync(account => account.Id == idL);
+        var account = await ctx.Profiles.FirstOrDefaultAsync(account => account.Id == idL);
 
         if (account is not null)
         {
             return account;
         }
 
-        return await InitAccountAndAddToDb(id);
+        return await InitAccountAndAddToDb(id, webPortalAccountId);
     }
 
-    private async Task<Account> InitAccountAndAddToDb(Guid id)
+    private async Task<ProfileEF> InitAccountAndAddToDb(Guid id, long? webPortalAccountId)
     {
-        var account = new Account()
+        var account = new ProfileEF()
         {
             Id = id,
-            WebPortalAccountId = null,
+            WebPortalAccountId = webPortalAccountId,
             CreatedDate = DateTimeOffset.UtcNow,
             Username = null,
             ProfilePictureUrl = null,
-            FirstName = null,
-            LastName = null,
-            PasswordSalt = new byte[16],
-            PasswordHash = new byte[64],
         };
 
-        account.AccountVersions = new AccountVersions() { Id = id, Account = account, };
-        account.Profile = new ProfileEF() { Id = id, Account = account, };
-        account.Boosts = new BoostsEF() { Id = id, Account = account, };
-        account.Hotbar = new HotbarEF() { Id = id, Account = account, };
-        account.CraftingSlots = new CraftingSlotsEF() { Id = id, Account = account, };
-        account.SmeltingSlots = new SmeltingSlotsEF() { Id = id, Account = account, };
+        account.ProfileVersions = new ProfileVersions() { Id = id, ProfileRef = account, };
+        account.Boosts = new BoostsEF() { Id = id, Profile = account, };
+        account.Hotbar = new HotbarEF() { Id = id, Profile = account, };
+        account.CraftingSlots = new CraftingSlotsEF() { Id = id, Profile = account, };
+        account.SmeltingSlots = new SmeltingSlotsEF() { Id = id, Profile = account, };
 
         var ctx = this;  // todo: bug - needed for compiled queries - https://github.com/dotnet/efcore/issues/35887
 
-        ctx.Accounts.Add(account);
+        ctx.Profiles.Add(account);
 
         await SaveChangesAsync();
 

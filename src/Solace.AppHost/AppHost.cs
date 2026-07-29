@@ -280,6 +280,9 @@ var authServerPublicEndPoint = builder.AddParameterForEnvironment("Shared:Public
 var buildplatePreviewEnabled = builder.AddParameterForEnvironment("WebPortal:BuildplatePreview:Enabled", prefixToRemove: "WebPortal:");
 var buildplatePreviewGenerationMaxConcurrency = builder.AddParameterForEnvironment("WebPortal:BuildplatePreview:GenerationMaxConcurrency", prefixToRemove: "WebPortal:");
 
+var webportalOidcSigningCertPassword = builder.AddParameterForEnvironment("Shared:Oidc:WebPortal:SigningCertPassword", prefixToRemove: "Shared:Oidc:WebPortal:", prefixToAdd: "Oidc:");
+var webportalOidcEncryptionCertPassword = builder.AddParameterForEnvironment("Shared:Oidc:WebPortal:EncryptionCertPassword", prefixToRemove: "Shared:Oidc:WebPortal:", prefixToAdd: "Oidc:");
+
 var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
     .WithHttpEndpoint(port: webPortalPort, name: "http")
     .WithEndpoint("http", endpoint =>
@@ -299,16 +302,17 @@ var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
     .WithEnvironment("PORT_SELF", webPortalPort.ToString(CultureInfo.InvariantCulture))
     .WithEnvironment("StaticDataPath", staticDataPath)
     .WithEnvironmentFromSection(builder.Configuration, "Shared:Oidc:WebPortal", "Shared:Oidc:WebPortal:", "Oidc:")
-    .WithEnvironmentFromConfig(authServerPublicEndPoint)
-    .WithEnvironmentFromConfig(webPortalPublicEndPoint)
     .WithEnvironment("Oidc__AuthServer__ClientSecret", authServerOidcClientSecret.Parameter)
     .WithEnvironmentFromConfig(captchaProvider)
     .WithEnvironmentFromConfig(captchaCloudflareTurnstileSiteKey)
     .WithEnvironmentFromConfig(captchaCloudflareTurnstileSecretKey)
+    .WithEnvironmentFromConfig(webPortalPublicEndPoint)
     .WithEnvironmentFromConfig(locatorPublicEndPoint)
     .WithEnvironmentFromConfig(authServerPublicEndPoint)
     .WithEnvironmentFromConfig(buildplatePreviewEnabled)
     .WithEnvironmentFromConfig(buildplatePreviewGenerationMaxConcurrency)
+    .WithEnvironmentFromConfig(webportalOidcSigningCertPassword)
+    .WithEnvironmentFromConfig(webportalOidcEncryptionCertPassword)
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
@@ -321,6 +325,28 @@ var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
         });
 
         service.Environment["StaticDataPath"] = "/app/static-data";
+
+        service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
+        {
+            Name = "oidc-signing-cert-volume",
+            Type = "bind",
+            Source = builder.Configuration["Shared:Oidc:WebPortal:SigningCertPath"],
+            Target = "/app/certs/oidc-signing-cert.pfx",
+            ReadOnly = true,
+        });
+
+        service.Environment["Oidc:SigningCertPath"] = "/app/certs/oidc-signing-cert.pfx";
+
+        service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
+        {
+            Name = "oidc-encryption-cert-volume",
+            Type = "bind",
+            Source = builder.Configuration["Shared:Oidc:WebPortal:EncryptionCertPath"],
+            Target = "/app/certs/oidc-encryption-cert.pfx",
+            ReadOnly = true,
+        });
+
+        service.Environment["Oidc:EncryptionCertPath"] = "/app/certs/oidc-encryption-cert.pfx";
 
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
         {

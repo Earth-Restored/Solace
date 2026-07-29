@@ -44,7 +44,7 @@ public static partial class UpdateItem
             }
 
             var dbItem = await earthDb.StackableItems
-                .FirstOrDefaultAsync(item => item.AccountId == command.Id && item.ItemId == command.Body.ItemId, cancellationToken);
+                .FirstOrDefaultAsync(item => item.ProfileId == command.Id && item.ItemId == command.Body.ItemId, cancellationToken);
 
             if (dbItem is null)
             {
@@ -66,7 +66,7 @@ public static partial class UpdateItem
             }
 
             var dbItem = await earthDb.NonStackableItems
-                .FirstOrDefaultAsync(item => item.AccountId == command.Id && item.ItemId == command.Body.ItemId && item.InstanceId == command.Body.InstanceId, cancellationToken);
+                .FirstOrDefaultAsync(item => item.ProfileId == command.Id && item.ItemId == command.Body.ItemId && item.InstanceId == command.Body.InstanceId, cancellationToken);
 
             if (dbItem is null)
             {

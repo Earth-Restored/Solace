@@ -35,7 +35,7 @@ public static partial class AddItem
         if (item.Stackable)
         {
             var existingItem = await earthDb.StackableItems
-                .FirstOrDefaultAsync(item => item.AccountId == command.Id && item.ItemId == command.Body.ItemId, cancellationToken);
+                .FirstOrDefaultAsync(item => item.ProfileId == command.Id && item.ItemId == command.Body.ItemId, cancellationToken);
 
             if (existingItem is not null)
             {

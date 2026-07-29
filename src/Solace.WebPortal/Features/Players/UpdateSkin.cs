@@ -40,7 +40,7 @@ public static partial class UpdateSkin
 
         var (skinImageData, isSkinSlim) = ((byte[], bool))skinResult.Value!;
 
-        await earthDb.Accounts
+        await earthDb.Profiles
            .Where(account => account.Id == command.Id)
            .ExecuteUpdateAsync(s => s
                .SetProperty(account => account.SkinImageData, skinImageData)

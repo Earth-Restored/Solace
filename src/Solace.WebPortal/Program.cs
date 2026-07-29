@@ -1,10 +1,13 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using Solace.Common;
+using Solace.Common.Asp.Oidc;
+using Solace.Db;
 using Solace.Db.Earth;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
@@ -197,8 +200,40 @@ internal sealed partial class Program2
                 }
                 else
                 {
-                    // todo: allow specifying certs
-                    options.UseDataProtection();
+                    var oidcConfig = builder.Configuration.GetSection("Oidc").Get<OidcServerConfiguration>();
+                    Debug.Assert(oidcConfig is not null);
+
+                    if (!string.IsNullOrEmpty(oidcConfig.EncryptionCertPath) && File.Exists(oidcConfig.EncryptionCertPath))
+                    {
+                        var encryptionCert = X509CertificateLoader.LoadPkcs12FromFile(
+                            oidcConfig.EncryptionCertPath,
+                            password: oidcConfig.EncryptionCertPassword,
+                            keyStorageFlags: X509KeyStorageFlags.MachineKeySet
+                        );
+
+                        options.AddEncryptionCertificate(encryptionCert);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Warning: oidc encryption certificate not provided, using EphemeralEncryptionKey");
+                        options.AddEphemeralEncryptionKey();
+                    }
+
+                    if (!string.IsNullOrEmpty(oidcConfig.SigningCertPath) && File.Exists(oidcConfig.SigningCertPath))
+                    {
+                        var signingCert = X509CertificateLoader.LoadPkcs12FromFile(
+                            oidcConfig.SigningCertPath,
+                            password: oidcConfig.SigningCertPassword,
+                            keyStorageFlags: X509KeyStorageFlags.MachineKeySet
+                        );
+
+                        options.AddSigningCertificate(signingCert);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Warning: oidc signing certificate not provided, using EphemeralSigningKey");
+                        options.AddEphemeralSigningKey();
+                    }
                 }
             })
             .AddValidation(options =>
@@ -312,7 +347,7 @@ internal sealed partial class Program2
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            await db.Database.MigrateAsync();
+            await db.Database.MigrateAsyncWithLock();
 
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -338,7 +373,7 @@ internal sealed partial class Program2
                 IsBuiltIn = true
             };
             await roleManager.CreateAsync(everyoneRole);
-            // await roleManager.AddClaimAsync(everyoneRole, new Claim("Permission", Permissions.LinkPlayers));
+            await roleManager.AddClaimAsync(everyoneRole, new Claim("Permission", Permissions.CreateProfile));
         }
 
         await AssignRoleToAllUsersAsync(userManager, RoleConstants.Default);

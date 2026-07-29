@@ -1,10 +1,10 @@
 namespace Solace.Db.Earth.Models;
 
-public sealed class AccountVersions : IEntityWithId<Guid>
+public sealed class ProfileVersions : IEntityWithId<Guid>
 {
     public Guid Id { get; set; }
 
-    public Account Account { get; set; } = null!;
+    public ProfileEF ProfileRef { get; set; } = null!;
 
     public int Profile { get; set; }
 

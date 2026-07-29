@@ -18,6 +18,7 @@
     <ProjectReference Include="../Solace.BuildplateRenderer/Solace.BuildplateRenderer.csproj" />
     <ProjectReference Include="../Solace.Common.Asp/Solace.Common.Asp.csproj" />
     <ProjectReference Include="../Solace.Common/Solace.Common.csproj" />
+    <ProjectReference Include="../Solace.Db/Solace.Db.csproj" />
     <ProjectReference Include="../Solace.EventBus.Client/Solace.EventBus.Client.csproj" />
     <ProjectReference Include="../Solace.ObjectStore.Client/Solace.ObjectStore.Client.csproj" />
     <ProjectReference Include="../Solace.ServiceDefaults/Solace.ServiceDefaults.csproj" />
