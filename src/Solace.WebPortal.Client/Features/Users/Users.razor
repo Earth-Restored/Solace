@@ -1,0 +1,414 @@
+@page "/Users"
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@using Solace.WebPortal.Client.Features.Common
+@using Solace.WebPortal.Common
+@using Solace.WebPortal.Common.Features.Common
+@using Solace.WebPortal.Common.Features.Users
+@attribute [Authorize(Policy = Permissions.ViewUsers)]
+@rendermode InteractiveWebAssembly
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Users - Solace</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h2 class="h3 mb-0">Users</h2>
+            <span class="badge bg-dark-subtle text-dark border p-2">
+                @(_pagedView?.MatchingItems?.ToString() ?? "?")/@(_pagedView?.TotalItems?.ToString() ?? "?")
+            </span>
+        </div>
+
+        <SearchBar @bind-Value="_searchTerm" Placeholder="username or email" Style="max-width: 400px;" QueryStringKey="q" OnSearch="SearchAsync" OnClear="ClearSearch" />
+    </div>
+
+    <PagedDataView @ref="_pagedView" TData="GetUsersResponse" SearchQueryStringKey="q" PageQueryStringKey="p" Provider="FetchDataAsync" OnDataLoaded="HandleDataLoaded" Context="data">
+        <div class="d-none d-md-block">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Roles</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in data.Users)
+                        {
+                            var targetMinPos = GetMinPositionForRoles(user.Roles);
+                            var isProtected = targetMinPos <= _userMinPosition && user.Id != _currentUserId;
+
+                            <tr>
+                                <td><strong>@user.UserName</strong></td>
+                                <td>@user.Email</td>
+                                <td>@RenderUserRoles(user.Roles)</td>
+                                <td class="text-end">@RenderActions((user, isProtected))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="d-md-none">
+            @foreach (var user in data.Users)
+            {
+                var targetMinPos = GetMinPositionForRoles(user.Roles);
+                var isProtected = targetMinPos <= _userMinPosition && user.Id != _currentUserId;
+
+                <div class="card mb-3 shadow-sm border-0">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>@user.UserName</strong>
+                        </div>
+                        <div class="mt-2 text-muted small">@user.Email</div>
+                        <div class="mt-2">
+                            @RenderUserRoles(user.Roles)
+                        </div>
+                        <div class="mt-3 d-flex flex-wrap gap-2">
+                            @RenderActions((user, isProtected))
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </PagedDataView>
+</div>
+
+@if (_isEditing)
+{
+    <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @(_editModel.IsReadOnly ? "View User Details" : "Edit User")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="() => _isEditing = false"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <div>@_errorMessage</div>
+                        </div>
+                    }
+
+                    @if (_canEditAccountInfo)
+                    {
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Username</label>
+                                <input class="form-control" @bind="_editModel.UserName" disabled="@_editModel.IsReadOnly" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" @bind="_editModel.Email" disabled="@_editModel.IsReadOnly" />
+                            </div>
+                        </div>
+
+                        @if (!_editModel.IsReadOnly)
+                        {
+                            <div class="mb-4 p-3 border rounded bg-light">
+                                <label class="form-label fw-bold">Reset Password <span class="text-muted fw-normal">(Leave blank to keep current)</span></label>
+                                <input type="password" class="form-control" @bind="_editModel.NewPassword" placeholder="Enter new password..." autocomplete="new-password" />
+                            </div>
+                        }
+                    }
+
+                    @if (_canAssignRoles || _editModel.IsReadOnly)
+                    {
+                        <h6>Role Assignments</h6>
+                        <div class="row mt-2">
+                            @foreach (var role in _roles.OrderBy(r => r.Position))
+                            {
+                                var isAssigned = _editModelAssignedRoles.Contains(role.Name);
+                                var canTouchRole = role.Position > _userMinPosition && !role.IsBuiltIn;
+                                var isCheckboxDisabled = _editModel.IsReadOnly || !canTouchRole || !_canAssignRoles;
+
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check p-2 border rounded @(isAssigned ? "bg-light" : "")" style="border-left: 4px solid @role.Color !important; @(!isCheckboxDisabled ? "cursor: pointer;" : "opacity: 0.7;")">
+                                        <input class="form-check-input ms-1" type="checkbox" checked="@isAssigned" disabled="@isCheckboxDisabled" @onchange="@(e => ToggleRole(role.Name, e.Value))" />
+                                        <label class="form-check-label ms-2 @(isAssigned ? "fw-bold" : "text-muted")">
+                                            @role.Name
+                                            @if (role.IsBuiltIn)
+                                            {
+                                                <span class="badge bg-secondary ms-1" style="font-size: 0.65em;">System</span>
+                                            }
+                                        </label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer bg-light">
+                    <button class="btn btn-secondary" @onclick="() => _isEditing = false">Close</button>
+                    @if (!_editModel.IsReadOnly && (_canEditAccountInfo || _canAssignRoles))
+                    {
+                        <button class="btn btn-primary" @onclick="SaveUser">Save Changes</button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showDeleteConfirm && _userToDelete is not null)
+{
+    <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">Confirm Delete</h5>
+                    <button class="btn-close" @onclick="CloseDeleteConfirm"></button>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        Are you sure you want to delete user <strong>@_userToDelete.UserName</strong>?
+                    </p>
+                    <p class="text-muted small">This action cannot be undone and will remove all associated data.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseDeleteConfirm">Cancel</button>
+                    <button class="btn btn-danger" @onclick="DeleteConfirmed">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private PagedDataView<GetUsersResponse>? _pagedView;
+
+    private List<RoleDto> _roles = new();
+    private int _userMinPosition = 9999;
+    private long _currentUserId;
+
+    // Permissions
+    private bool _canAssignRoles;
+    private bool _canDeleteUsers;
+    private bool _canEditAccountInfo;
+
+    // Filtering
+    private string _searchTerm = string.Empty;
+
+    // Modals
+    private bool _isEditing = false;
+    private UserEditModel _editModel = new();
+    private HashSet<string> _editModelAssignedRoles = new();
+    private string? _errorMessage;
+
+    private bool _showDeleteConfirm = false;
+    private UserDto? _userToDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPermissions();
+    }
+
+    private async Task LoadPermissions()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        _currentUserId = long.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+        _canAssignRoles = user.HasPermission(Permissions.AssignRoles);
+        _canDeleteUsers = user.HasPermission(Permissions.DeleteUsers);
+        _canEditAccountInfo = user.HasPermission(Permissions.EditAcountInfo);
+    }
+
+    private async Task<PagedResult<GetUsersResponse>?> FetchDataAsync(PagedSearchQuery query)
+    {
+        try
+        {
+            var uri = $"api/users?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? string.Empty)}&page={query.Page}&pageSize={query.PageSize}";
+            return await Http.GetFromJsonAsync<PagedSearchResult<GetUsersResponse>>(uri);
+        }
+        catch
+        {
+            _pagedView?.ErrorMessage = "Failed to load users.";
+            return null;
+        }
+    }
+
+    private void HandleDataLoaded(PagedResult<GetUsersResponse> result)
+    {
+        if (result.Data is not null)
+        {
+            _roles = result.Data.Roles;
+            _userMinPosition = result.Data.CurrentUserMinPosition;
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_pagedView is not null)
+        {
+            await _pagedView.SearchAsync(_searchTerm);
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        _searchTerm = string.Empty;
+        await SearchAsync();
+    }
+
+    private int GetMinPositionForRoles(IEnumerable<string> roleNames)
+    {
+        return _roles
+            .Where(r => roleNames.Contains(r.Name))
+            .Select(r => r.Position)
+            .DefaultIfEmpty(9999)
+            .Min();
+    }
+
+    private void EditUser(UserDto user, bool forceReadOnly)
+    {
+        _errorMessage = null;
+        _editModelAssignedRoles = user.Roles.ToHashSet();
+
+        _editModel = new UserEditModel
+        {
+            Id = user.Id,
+            UserName = user.UserName,
+            Email = user.Email,
+            NewPassword = string.Empty,
+            IsReadOnly = forceReadOnly || (!_canEditAccountInfo && !_canAssignRoles)
+        };
+
+        _isEditing = true;
+    }
+
+    private async Task SaveUser()
+    {
+        _errorMessage = null;
+
+        var request = new UpdateUserRequest(
+            _editModel.UserName,
+            _editModel.Email,
+            _editModel.NewPassword,
+            _editModelAssignedRoles.ToList()
+        );
+
+        using var response = await Http.PutAsJsonAsync($"api/users/{_editModel.Id}", request);
+
+        if (response.IsSuccessStatusCode)
+        {
+            _isEditing = false;
+            if (_pagedView is not null)
+            {
+                await _pagedView.ReloadCurrentPageAsync();
+            }
+        }
+        else
+        {
+            _errorMessage = await response.Content.ReadAsStringAsync();
+        }
+    }
+
+    private void ToggleRole(string roleName, object? checkedValue)
+    {
+        if (checkedValue is bool checkedValueBool && checkedValueBool)
+        {
+            _editModelAssignedRoles.Add(roleName);
+        }
+        else
+        {
+            _editModelAssignedRoles.Remove(roleName);
+        }
+    }
+
+    private void ConfirmDelete(UserDto user)
+    {
+        _userToDelete = user;
+        _showDeleteConfirm = true;
+    }
+
+    private void CloseDeleteConfirm()
+    {
+        _showDeleteConfirm = false;
+        _userToDelete = null;
+    }
+
+    private async Task DeleteConfirmed()
+    {
+        if (_userToDelete is not null && _canDeleteUsers)
+        {
+            using var response = await Http.DeleteAsync($"api/users/{_userToDelete.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                CloseDeleteConfirm();
+                if (_pagedView is not null)
+                {
+                    await _pagedView.ReloadCurrentPageAsync();
+                }
+            }
+            else
+            {
+                _errorMessage = await response.Content.ReadAsStringAsync();
+            }
+        }
+    }
+
+    RenderFragment<IList<string>> RenderUserRoles => roles => __builder =>
+    {
+        if (roles.Any())
+        {
+            <div class="d-flex flex-wrap gap-1 align-items-center">
+                @foreach (var roleName in roles)
+                {
+                    var roleInfo = _roles.FirstOrDefault(r => r.Name == roleName);
+                    if (roleInfo is not null)
+                    {
+                        <span class="badge badge-subtle border text-dark fw-normal" style="border-left: 3px solid @roleInfo.Color !important;">
+                            @roleInfo.Name
+                        </span>
+                    }
+                }
+            </div>
+        }
+        else
+        {
+            <span class="text-muted small"><em>No roles</em></span>
+        }
+    };
+
+    RenderFragment<(UserDto, bool)> RenderActions => item => __builder =>
+    {
+        var (user, isProtected) = item;
+        var canManage = (_canEditAccountInfo || _canAssignRoles) && !isProtected;
+
+        <button class="btn btn-sm @(canManage ? "btn-outline-primary" : "btn-outline-secondary")" @onclick="() => EditUser(user, !canManage)">
+            <i class="bi @(canManage ? "bi-pencil" : "bi-eye")"></i>
+            @(canManage ? "Edit" : "View")
+        </button>
+
+        @if (_canDeleteUsers && !isProtected && user.Id != _currentUserId)
+        {
+            <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => ConfirmDelete(user)">
+                <i class="bi bi-trash"></i> Delete
+            </button>
+        }
+    };
+
+    public sealed class UserEditModel
+    {
+        public long Id { get; set; }
+
+        public string UserName { get; set; } = string.Empty;
+
+        public string Email { get; set; } = string.Empty;
+
+        public string NewPassword { get; set; } = string.Empty;
+
+        public bool IsReadOnly { get; set; }
+    }
+}

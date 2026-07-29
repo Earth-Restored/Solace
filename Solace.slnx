@@ -2,7 +2,6 @@
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
   </Folder>
-  <Project Path="src/Solace.AdminPanel/Solace.AdminPanel.csproj" />
   <Project Path="src/Solace.Analyzer/Solace.Analyzer.csproj" />
   <Project Path="src/Solace.ApiServer/Solace.ApiServer.csproj" />
   <Project Path="src/Solace.AppHost/Solace.AppHost.csproj" />
@@ -13,8 +12,8 @@
   <Project Path="src/Solace.Cdn/Solace.Cdn.csproj" />
   <Project Path="src/Solace.Common/Solace.Common.csproj" />
   <Project Path="src/Solace.Common.Asp/Solace.Common.Asp.csproj" />
-  <Project Path="src/Solace.DB/Solace.DB.csproj" />
   <Project Path="src/Solace.EventBus/Solace.EventBus.csproj" />
+  <Project Path="src/Solace.Db.Earth/Solace.Db.Earth.csproj" />
   <Project Path="src/Solace.EventBus.Client/Solace.EventBus.Client.csproj" />
   <Project Path="src/Solace.EventBus.Server/Solace.EventBus.Server.csproj" />
   <Project Path="src/Solace.KillHelper/Solace.KillHelper.csproj" />
@@ -27,4 +26,7 @@
   <Project Path="src/Solace.StaticData/Solace.StaticData.csproj" />
   <Project Path="src/Solace.TappablesGenerator/Solace.TappablesGenerator.csproj" />
   <Project Path="src/Solace.TileRenderer/Solace.TileRenderer.csproj" />
+  <Project Path="src/Solace.WebPortal/Solace.WebPortal.csproj" />
+  <Project Path="src/Solace.WebPortal.Client/Solace.WebPortal.Client.csproj" />
+  <Project Path="src/Solace.WebPortal.Common/Solace.WebPortal.Common.csproj" />
 </Solution>

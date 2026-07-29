@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Solace.ApiServer.Utils;
-using Solace.DB;
-using Solace.DB.Models.Player;
+using Solace.Db.Earth;
+using Solace.Db.Earth.Models.Player;
 using Microsoft.EntityFrameworkCore;
 using Solace.StaticData;
-using DBRewards = Solace.DB.Models.Common.Rewards;
+using DBRewards = Solace.Db.Earth.Models.Common.Rewards;
 using System.Text.Json.Serialization;
 
 namespace Solace.ApiServer.Controllers;

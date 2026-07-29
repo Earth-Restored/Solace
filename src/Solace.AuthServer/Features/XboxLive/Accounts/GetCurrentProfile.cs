@@ -5,7 +5,7 @@ using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Solace.Common.Asp.Auth;
-using Solace.DB;
+using Solace.Db.Earth;
 
 namespace Solace.AuthServer.Features.XboxLive.Accounts;
 

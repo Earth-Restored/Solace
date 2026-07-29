@@ -1,0 +1,141 @@
+﻿@using System.Security.Claims
+@using Solace.WebPortal.Common
+@implements IDisposable
+
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<script type="module" src="@Assets["Layout/NavMenu.razor.js"]"></script>
+
+<div class="top-row navbar navbar-dark">
+    <a href="/"><img class="navbar-brand" src="/banner.png" alt="Solace" /></a>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div id="nav-scrollable" class="nav-scrollable">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        <AuthorizeView>
+            <Authorized>
+                @if (HasPermission(Permissions.ViewPlayers))
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="Players">
+                            <span class="bi bi-person-lines-fill" aria-hidden="true"></span> Players
+                        </NavLink>
+                    </div>
+                }
+
+                @if (HasPermission(Permissions.ViewBuildplates))
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="BuildplateTemplates">
+                            <span class="bi bi-boxes" aria-hidden="true"></span> Buildplate Templates
+                        </NavLink>
+                    </div>
+                }
+
+                @if (HasPermission(Permissions.ViewData))
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="Data">
+                            <span class="bi bi-hdd" aria-hidden="true"></span> Manage Data
+                        </NavLink>
+                    </div>
+                }
+
+                @if (HasPermission(Permissions.ViewUsers))
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="Users">
+                            <span class="bi bi-people-fill" aria-hidden="true"></span> Users
+                        </NavLink>
+                    </div>
+                }
+
+                @if (HasPermission(Permissions.EditRoles))
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="Roles">
+                            <span class="bi bi-person-lock" aria-hidden="true"></span> Roles
+                        </NavLink>
+                    </div>
+                }
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Manage">
+                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <form action="Account/Logout" method="post">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                        <button type="submit" class="nav-link">
+                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                        </button>
+                    </form>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Register">
+                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Login">
+                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </nav>
+</div>
+
+@code {
+    private string? currentUrl;
+    private ClaimsPrincipal? _user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+
+        AuthStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _user = authState.User;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        var authState = await task;
+        _user = authState.User;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool HasPermission(string permission)
+    {
+        return _user?.HasPermission(permission) ?? false;
+    }
+
+    public void Dispose()
+    {
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}
+

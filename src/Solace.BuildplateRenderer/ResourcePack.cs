@@ -31,8 +31,6 @@ public sealed class ResourcePack
     private readonly FrozenDictionary<BlockState, (BSVBuffer Buffer, int TotalWeight)> _blockStatesVariant;
     private readonly FrozenDictionary<string, ImmutableArray<MultipartCase>> _blockStatesMultipart;
 
-    private readonly Dictionary<string, byte[]> _textures = [];
-
     public ResourcePack(string name, DirectoryInfo rootDir, FrozenDictionary<string, BlockModel> blockModels, FrozenDictionary<string, HashSet<string>> variantPropertySchema, FrozenDictionary<BlockState, (BSVBuffer Buffer, int TotalWeight)> blockStatesVariant, FrozenDictionary<string, ImmutableArray<MultipartCase>> blockStatesMultipart)
     {
         Name = name;
@@ -200,21 +198,18 @@ public sealed class ResourcePack
 
         BlockModel? ResolveBlockModel(string modelName)
         {
-            if (!modelName.Contains(':'))
-            {
-                modelName = $"{packName}:{modelName}";
-            }
+            var normalizedName = NormalizeModelName(packName, modelName);
 
-            if (blockModels.TryGetValue(modelName, out var existingModel))
+            if (blockModels.TryGetValue(normalizedName, out var existingModel))
             {
                 return existingModel;
             }
 
-            if (!blockModelsJson.TryGetValue(modelName, out var json))
+            if (!blockModelsJson.TryGetValue(normalizedName, out var json))
             {
                 if (fallbackResolver is not null)
                 {
-                    return fallbackResolver(modelName);
+                    return fallbackResolver(normalizedName);
                 }
 
                 return null;
@@ -298,7 +293,7 @@ public sealed class ResourcePack
                 Elements = elements,
             };
 
-            blockModels[modelName] = model;
+            blockModels[normalizedName] = model;
 
             return model;
         }
@@ -533,10 +528,24 @@ public sealed class ResourcePack
     }
 
     public BlockModel GetBlockModel(string modelName)
-        => _blockModels[modelName];
+    {
+        if (TryGetBlockModel(modelName, out var model))
+        {
+            return model;
+        }
+
+        throw new KeyNotFoundException($"BlockModel '{modelName}' not found in loaded resource pack '{Name}'.");
+    }
 
     public bool TryGetBlockModel(string modelName, [NotNullWhen(true)] out BlockModel? model)
-        => _blockModels.TryGetValue(modelName, out model);
+    {
+        if (_blockModels.TryGetValue(modelName, out model))
+        {
+            return true;
+        }
+
+        return _blockModels.TryGetValue(NormalizeModelName(Name, modelName), out model);
+    }
 
     public async Task<byte[]> GetTextureDataPNGAsync(string name, CancellationToken cancellationToken = default)
     {
@@ -669,5 +678,25 @@ public sealed class ResourcePack
         }
 
         return result;
+    }
+
+    private static string NormalizeModelName(string packName, string modelName)
+    {
+        string @namespace = packName;
+        string path = modelName;
+
+        int colonIdx = modelName.IndexOf(':');
+        if (colonIdx >= 0)
+        {
+            @namespace = modelName[..colonIdx];
+            path = modelName[(colonIdx + 1)..];
+        }
+
+        if (!path.Contains('/'))
+        {
+            path = $"block/{path}";
+        }
+
+        return $"{@namespace}:{path}";
     }
 }

@@ -4,6 +4,7 @@ using System.Text.Json.Serialization.Metadata;
 using Immediate.Handlers.Shared;
 using Immediate.Validations.Shared;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
 
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
@@ -12,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
 using Solace.Common;
 using Solace.Common.Asp;
-using Solace.DB;
+using Solace.Db.Earth;
 
 [assembly: Behaviors(
     typeof(ValidationBehavior<,>)
@@ -93,7 +94,7 @@ internal sealed partial class Program2
         builder.Services.Configure<Features.Live.Login.AuthSettings>(builder.Configuration.GetSection("Authentication:Login"));
         builder.Services.Configure<Features.XboxLive.AuthSettings>(builder.Configuration.GetSection("Authentication:XboxLive"));
         builder.Services.Configure<Features.PlayfabApi.AuthSettings>(builder.Configuration.GetSection("Authentication:PlayfabApi"));
-        builder.Services.Configure<Common.Asp.Captcha.CaptchaOptions>(builder.Configuration.GetSection("Captcha"));
+        builder.Services.Configure<Common.Asp.Captcha.CaptchaConfiguration>(builder.Configuration.GetSection("Captcha"));
 
         var captchaProvider = builder.Configuration.GetValue("Captcha:Provider", Common.Asp.Captcha.CaptchaProvider.NoOp);
 
@@ -125,6 +126,8 @@ internal sealed partial class Program2
         {
             var db = scope.ServiceProvider.GetRequiredService<EarthDbContext>();
 
+            await db.Database.MigrateAsync();
+
             startupDeps.Secrets = await db.GetOrInitializeSecretsAsync();
         }
 
@@ -144,6 +147,16 @@ internal sealed partial class Program2
         LogLoadedStaticData(programLogger);
 
         startupDeps.StaticData = staticData;
+
+        var forwardedHeadersOptions = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.All,
+        };
+
+        forwardedHeadersOptions.KnownIPNetworks.Clear();
+        forwardedHeadersOptions.KnownProxies.Clear();
+
+        app.UseForwardedHeaders(forwardedHeadersOptions);
 
         // app.UseHttpsRedirection();
 

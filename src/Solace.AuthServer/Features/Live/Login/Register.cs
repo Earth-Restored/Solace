@@ -8,8 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Solace.Common.Asp.Auth;
 using Solace.Common.Asp.Captcha;
-using Solace.DB;
-using Solace.DB.Utils;
+using Solace.Db.Earth;
+using Solace.Db.Earth.Utils;
 using static Solace.Common.Constants.AccountConstants;
 
 namespace Solace.AuthServer.Features.Live.Login;
@@ -129,7 +129,7 @@ public sealed partial class Register(
         {
             await earthDb.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation)
+        catch (DbUpdateException exception) when (exception.IsUniqueConstraintViolation)
         {
             LogConcurrencyConflictHitForUsername(username);
             return TypedResults.BadRequest("Account with the specified username already exists");

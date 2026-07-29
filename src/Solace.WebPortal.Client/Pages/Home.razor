@@ -1,0 +1,122 @@
+﻿@page "/"
+@using Solace.WebPortal.Common
+@inject PersistentComponentState ApplicationState
+@inject Microsoft.Extensions.Options.IOptions<PublicEndpointInfo> PublicEndpointInfo
+@implements IDisposable
+
+<PageTitle>Home</PageTitle>
+
+<div class="container py-4">
+    <div class="text-center mb-5">
+        <h1 class="fw-bold">Solace WebPortal</h1>
+        <p class="text-muted">Manage your account and in-game profiles.</p>
+
+        <AuthorizeView>
+            <div class="mt-3">
+                <a href="/Profiles" class="btn btn-primary px-4 fw-semibold">
+                    <i class="bi bi-person-badge me-2"></i>In-Game Profiles
+                </a>
+            </div>
+        </AuthorizeView>
+    </div>
+
+    @if (locatorInfo is not null && authServerInfo is not null)
+    {
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-10 col-lg-8">
+                <div class="card shadow-sm border bg-white">
+                    <div class="card-body p-4 text-center">
+                        <h5 class="fw-bold text-secondary mb-4">Patcher options</h5>
+                        
+                        <div class="d-flex flex-column align-items-center gap-3">
+                            <div class="d-flex flex-column flex-sm-row align-items-center gap-2 w-100 justify-content-center">
+                                <span class="fw-bold text-muted text-sm-end" style="width: 180px;">Locator Protocol:</span>
+                                <div class="form-control bg-light text-start d-flex align-items-center" style="max-width: 280px;">
+                                    <span>Http</span>@{if (locatorInfo.Value.Protocol.Equals("https", StringComparison.OrdinalIgnoreCase)) {<strong class="text-primary fs-5" style="line-height: 0.5;">s</strong>}}
+                                </div>
+                            </div>
+                            <div class="d-flex flex-column flex-sm-row align-items-center gap-2 w-100 justify-content-center">
+                                <span class="fw-bold text-muted text-sm-end" style="width: 180px;">Locator Address:</span>
+                                <div class="input-group" style="max-width: 280px;">
+                                    <input type="text" class="form-control bg-light text-start" value="@locatorInfo.Value.Address" readonly />
+                                    <button class="btn btn-outline-secondary" type="button" title="Copy to clipboard" onclick="copyTextDirect('@locatorInfo.Value.Address')">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <hr class="w-75 text-muted my-2" />
+
+                            <div class="d-flex flex-column flex-sm-row align-items-center gap-2 w-100 justify-content-center">
+                                <span class="fw-bold text-muted text-sm-end" style="width: 180px;">Auth Server Protocol:</span>
+                                <div class="form-control bg-light text-start d-flex align-items-center" style="max-width: 280px;">
+                                    <span>Http</span>@{if (authServerInfo.Value.Protocol.Equals("https", StringComparison.OrdinalIgnoreCase)) {<strong class="text-primary fs-5" style="line-height: 0.5;">s</strong>}}
+                                </div>
+                            </div>
+                            <div class="d-flex flex-column flex-sm-row align-items-center gap-2 w-100 justify-content-center">
+                                <span class="fw-bold text-muted text-sm-end" style="width: 180px;">Auth Server Address:</span>
+                                <div class="input-group" style="max-width: 280px;">
+                                    <input type="text" class="form-control bg-light text-start" value="@authServerInfo.Value.Address" readonly />
+                                    <button class="btn btn-outline-secondary" type="button" title="Copy to clipboard" onclick="copyTextDirect('@authServerInfo.Value.Address')">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private (string Protocol, string Address)? locatorInfo;
+    private (string Protocol, string Address)? authServerInfo;
+    private PersistingComponentStateSubscription _persistingSubscription;
+
+    protected override void OnInitialized()
+    {
+        _persistingSubscription = ApplicationState.RegisterOnPersisting(PersistData);
+
+        if (!ApplicationState.TryTakeFromJson<(string, string)?>(nameof(locatorInfo), out locatorInfo))
+        {
+            locatorInfo = ParseEndpoint(PublicEndpointInfo.Value.Locator);
+        }
+
+        if (!ApplicationState.TryTakeFromJson<(string, string)?>(nameof(authServerInfo), out authServerInfo))
+        {
+            authServerInfo = ParseEndpoint(PublicEndpointInfo.Value.AuthServer);
+        }
+    }
+
+    private Task PersistData()
+    {
+        ApplicationState.PersistAsJson(nameof(locatorInfo), locatorInfo);
+        ApplicationState.PersistAsJson(nameof(authServerInfo), authServerInfo);
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        _persistingSubscription.Dispose();
+    }
+
+    private (string Protocol, string Address)? ParseEndpoint(string? endpointUrl)
+    {
+        if (string.IsNullOrWhiteSpace(endpointUrl))
+        {
+            return null;
+        }
+
+        if (Uri.TryCreate(endpointUrl, UriKind.Absolute, out var uri))
+        {
+            var protocol = uri.Scheme;
+            var address = endpointUrl.Substring(protocol.Length + 3).TrimEnd('/');
+            
+            return (protocol, address);
+        }
+
+        return null;
+    }
+}

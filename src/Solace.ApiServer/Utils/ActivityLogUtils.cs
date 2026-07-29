@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Solace.DB;
-using Solace.DB.Models.Player;
+using Solace.Db.Earth;
+using Solace.Db.Earth.Models.Player;
 
 namespace Solace.ApiServer.Utils;
 

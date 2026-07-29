@@ -2,7 +2,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using BitcoderCZ.Maths.Vectors;
 using Cyotek.Data.Nbt;
 using Solace.Buildplate.Model;
@@ -13,37 +12,6 @@ using Solace.Common.Utils;
 using TagList = Cyotek.Data.Nbt.TagList;
 
 namespace Solace.BuildplateRenderer;
-
-[StructLayout(LayoutKind.Sequential)]
-#pragma warning disable MA0048 // File name must match type name
-public readonly struct MeshVertex
-{
-    public readonly Vector3 Position;
-    public readonly Vector3 Normal;
-    public readonly Vector2 UV;
-    public readonly int TintIndex;
-
-    public MeshVertex(Vector3 position, Vector3 normal, Vector2 uV, int tintIndex)
-    {
-        Position = position;
-        Normal = normal;
-        UV = uV;
-        TintIndex = tintIndex;
-    }
-}
-
-public sealed class MeshPrimitive
-{
-    public List<MeshVertex> Vertices { get; } = [];
-    public List<int> Indices { get; } = [];
-}
-
-public sealed class MeshData
-{
-    // Grouped by texture
-    public Dictionary<string, MeshPrimitive> Primitives { get; } = [];
-}
-#pragma warning restore MA0048 // File name must match type name
 
 public sealed class BuildplateMeshGenerator
 {
@@ -57,12 +25,15 @@ public sealed class BuildplateMeshGenerator
         _resourcePack = resourcePack;
     }
 
+    private delegate BlockState? GetBlockAtPos<TState>(int3 position, ref TState state);
+
     public async Task<MeshData> GenerateAsync(WorldData worldData, IProgress<ProgressReport>? progress = null, CancellationToken cancellationToken = default)
     {
         var cacheRegionsProgress = progress?.WrapRange(0.00, 0.90);
         cacheRegionsProgress?.Report(new ProgressReport(0.00, $"Caching regions"));
+        int lastReportedPercentage = 0;
 
-        var mesh = new MeshData();
+        var mesh = new MeshData.Builder();
         var subChunkCache = new Dictionary<int3, CachedSubChunk>();
 
         using (var serverDataStream = new MemoryStream(worldData.ServerData))
@@ -84,13 +55,21 @@ public sealed class BuildplateMeshGenerator
                     CacheRegion(regionData, RegionUtils.PathToPos(entry.FullName), subChunkCache);
 
                     regionIndex++;
-                    cacheRegionsProgress?.Report(new ProgressReport((double)regionIndex / regionCount, null));
+
+                    var currentPercentage = (int)((double)regionIndex / regionCount * 100);
+                    if (currentPercentage != lastReportedPercentage)
+                    {
+                        cacheRegionsProgress?.Report(new ProgressReport((double)regionIndex / regionCount, null));
+                    }
+
+                    lastReportedPercentage = currentPercentage;
                 }
             }
         }
 
         var processChunksProgress = progress?.WrapRange(0.90, 1.00);
         processChunksProgress?.Report(new ProgressReport(0.00, $"Processing chunks"));
+        lastReportedPercentage = 0;
 
         var worldOffset = new int3(0, -worldData.Offset / 2, 0);
 
@@ -99,10 +78,17 @@ public sealed class BuildplateMeshGenerator
         {
             ProcessCachedSubChunk(subChunk, subChunkCache, mesh, worldOffset);
             chunkIndex++;
-            processChunksProgress?.Report(new ProgressReport((double)chunkIndex / subChunkCache.Count, null));
+
+            var currentPercentage = (int)((double)chunkIndex / subChunkCache.Count * 100);
+            if (currentPercentage != lastReportedPercentage)
+            {
+                processChunksProgress?.Report(new ProgressReport((double)chunkIndex / subChunkCache.Count, null));
+            }
+
+            lastReportedPercentage = currentPercentage;
         }
 
-        return mesh;
+        return mesh.Drain();
     }
 
     private static void CacheRegion(byte[] regionData, int2 regionPosition, Dictionary<int3, CachedSubChunk> cache)
@@ -143,7 +129,7 @@ public sealed class BuildplateMeshGenerator
         }
     }
 
-    private void ProcessCachedSubChunk(CachedSubChunk subChunk, Dictionary<int3, CachedSubChunk> cache, MeshData mesh, int3 offset)
+    private void ProcessCachedSubChunk(CachedSubChunk subChunk, Dictionary<int3, CachedSubChunk> cache, MeshData.Builder mesh, int3 offset)
     {
         var foundVisibleBlock = false;
         foreach (var entry in subChunk.Palette.Value)
@@ -166,6 +152,8 @@ public sealed class BuildplateMeshGenerator
         var propertiesArray = ArrayPool<KeyValuePair<string, string>>.Shared.Rent(64);
         var modelVariants = ArrayPool<VariantModel>.Shared.Rent(64);
 
+        var state = new GetBlockAtPosState(cache, offset);
+
         foreach (var blockIndex in subChunk.Blocks)
         {
             var paletteEntry = (TagCompound)subChunk.Palette.Value[blockIndex];
@@ -178,6 +166,9 @@ public sealed class BuildplateMeshGenerator
                     // TODO:
                     goto incrementPos;
                 }
+
+                var currentWorldPos = chunkBlockPosition + blockPosition + offset;
+                mesh.RegisterBlock(currentWorldPos);
 
                 var propertiesArrayLength = 0;
                 if (paletteEntry.Value.TryGetValue("Properties", out var propertiesTag))
@@ -199,9 +190,9 @@ public sealed class BuildplateMeshGenerator
 
                 foreach (var modelVariant in modelVariants.AsSpan(0, modelVariantsLength))
                 {
-                    GenerateBlockMesh(modelVariant, chunkBlockPosition + blockPosition + offset, mesh, queryWorldPos =>
+                    GenerateBlockMesh(modelVariant, currentWorldPos, mesh, ref state, static (queryWorldPos, ref state) =>
                     {
-                        int3 rawBlockPos = queryWorldPos - offset;
+                        int3 rawBlockPos = queryWorldPos - state.Offset;
 
                         var targetSubChunkCoord = new int3(
                             (int)float.Floor((float)rawBlockPos.X / ChunkUtils.Width),
@@ -209,7 +200,7 @@ public sealed class BuildplateMeshGenerator
                             (int)float.Floor((float)rawBlockPos.Z / ChunkUtils.Width)
                         );
 
-                        if (!cache.TryGetValue(targetSubChunkCoord, out var targetSubChunk))
+                        if (!state.Cache.TryGetValue(targetSubChunkCoord, out var targetSubChunk))
                         {
                             return null;
                         }
@@ -245,7 +236,8 @@ public sealed class BuildplateMeshGenerator
         ArrayPool<VariantModel>.Shared.Return(modelVariants);
     }
 
-    private void GenerateBlockMesh(VariantModel modelVariant, int3 blockPosition, MeshData mesh, Func<int3, BlockState?> getBlockAtPos, Action<BlockState> disposeBlockState)
+    private void GenerateBlockMesh<TState>(VariantModel modelVariant, int3 blockPosition, MeshData.Builder mesh, ref TState state, GetBlockAtPos<TState> getBlockAtPos, Action<BlockState> disposeBlockState)
+        where TState : struct
     {
         var model = _resourcePack.GetBlockModel(modelVariant.Model);
 
@@ -279,7 +271,7 @@ public sealed class BuildplateMeshGenerator
 
                     int3 neighborPos = blockPosition + GetDirectionOffset(actualCullDir);
 
-                    var neighbor = getBlockAtPos(neighborPos);
+                    var neighbor = getBlockAtPos(neighborPos, ref state);
                     if (neighbor is not null)
                     {
                         // todo: compute faceGrid for this face too, cull if they are equal
@@ -299,20 +291,16 @@ public sealed class BuildplateMeshGenerator
                     model.Textures.TryGetValue(actualTexture[1..], out actualTexture!);
                 }
 
-                if (!mesh.Primitives.TryGetValue(actualTexture, out var primitive))
-                {
-                    primitive = new MeshPrimitive();
-                    mesh.Primitives[actualTexture] = primitive;
-                }
+                var primitive = mesh.GetPrimitive(actualTexture);
 
                 BuildFace(blockPosition, direction, from, to, face, finalTransform, modelVariant.UVLock, primitive);
             }
         }
     }
 
-    private static void BuildFace(Vector3 blockPosition, Direction dir, Vector3 from, Vector3 to, BlockFace face, Matrix4x4 transform, bool uvLock, MeshPrimitive primitive)
+    private static void BuildFace(Vector3 blockPosition, Direction dir, Vector3 from, Vector3 to, BlockFace face, Matrix4x4 transform, bool uvLock, MeshPrimitive.Builder primitive)
     {
-        var startIndex = primitive.Vertices.Count;
+        var startIndex = primitive.VertexCount;
 
         Span<Vector3> corners = stackalloc Vector3[4];
         GetFaceVertices(dir, from, to, corners, out Vector3 normal);
@@ -326,15 +314,15 @@ public sealed class BuildplateMeshGenerator
 
             var norm = Vector3.Normalize(Vector3.TransformNormal(normal, transform));
 
-            primitive.Vertices.Add(new MeshVertex(pos, norm, uvs[i], face.TintIndex));
+            primitive.AddVertex(new MeshVertex(pos, norm, uvs[i], face.TintIndex));
         }
 
-        primitive.Indices.Add(startIndex + 0);
-        primitive.Indices.Add(startIndex + 1);
-        primitive.Indices.Add(startIndex + 2);
-        primitive.Indices.Add(startIndex + 2);
-        primitive.Indices.Add(startIndex + 3);
-        primitive.Indices.Add(startIndex + 0);
+        primitive.AddIndex(startIndex + 0);
+        primitive.AddIndex(startIndex + 1);
+        primitive.AddIndex(startIndex + 2);
+        primitive.AddIndex(startIndex + 2);
+        primitive.AddIndex(startIndex + 3);
+        primitive.AddIndex(startIndex + 0);
     }
 
     private static Matrix4x4 CreateElementTransform(BlockElementRotation? rot)
@@ -699,4 +687,6 @@ public sealed class BuildplateMeshGenerator
         public int[] Blocks { get; init; } = null!;
         public int3 ChunkPosition { get; init; }
     }
+
+    private readonly record struct GetBlockAtPosState(Dictionary<int3, CachedSubChunk> Cache, int3 Offset);
 }

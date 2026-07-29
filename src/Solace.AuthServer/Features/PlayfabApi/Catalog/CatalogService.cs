@@ -234,6 +234,9 @@ public sealed class CatalogService
     private static IEdmModel CreateCatalogItemEdmModel()
     {
         var builder = new ODataConventionModelBuilder();
+
+        builder.EnableLowerCamelCase();
+
         builder.EntitySet<CatalogItem>("CatalogItem");
 
         builder.ComplexType<CatalogItem.Entity>();

@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Globalization;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.ObjectPool;
@@ -21,9 +20,11 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
 
         public ObjectPool<List<Task>> TaskListPool { get; } = ObjectPool.Create(new ListPooledObjectPolicy<Task>() { InitialCapacity = 4, });
 
-        private long _requestCounter;
+        public ObjectPool<HashSet<HandlerConnection>> HashSetHandlerConnectionPool { get; } = ObjectPool.Create(new HashSetPooledObjectPolicy<HandlerConnection>() { InitialCapacity = 4, });
 
-        public long GetAndIncrementRequestCounter()
+        private ulong _requestCounter;
+
+        public ulong GetAndIncrementRequestCounter()
             => Interlocked.Increment(ref _requestCounter);
     }
 
@@ -31,7 +32,7 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
     {
         public required SafeStreamWriter<ServerMessage> Writer { get; init; }
 
-        public ConcurrentDictionary<string, TaskCompletionSource<HandlerResponse>> PendingRequests { get; } = [];
+        public ConcurrentDictionary<ulong, TaskCompletionSource<HandlerResponse>> PendingRequests { get; } = [];
 
         public void Dispose()
             => Writer.Dispose();
@@ -77,9 +78,9 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
                 {
                     await kvp.Value.WriteAsync(message);
                 }
-                catch (Exception ex)
+                catch (Exception exception)
                 {
-                    LogSubscriberWriteFailed(logger, kvp.Key, ex);
+                    LogSubscriberWriteFailed(logger, kvp.Key, exception);
                     queue.TryRemove(kvp.Key, out _);
                 }
             }
@@ -114,64 +115,116 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
 
     public override async Task<ResponseMessage> Request(RequestMessage request, ServerCallContext context)
     {
-        HandlerConnection? targetHandler = null;
-        if (_state.Handlers.TryGetValue(request.QueueName, out var registered) && !registered.IsDefaultOrEmpty)
+        HashSet<HandlerConnection>? triedHandlers = null;
+
+        while (!context.CancellationToken.IsCancellationRequested)
         {
-            targetHandler = registered[Random.Shared.Next(registered.Length)];
-        }
+            HandlerConnection? targetHandler = null;
 
-        if (targetHandler is null)
-        {
-            LogNoActiveHandlers(_logger, request.QueueName);
-            return new ResponseMessage { Status = ResponseMessage.Types.Status.NoHandlers, ErrorMessage = "No active handlers.", };
-        }
-
-        var correlationId = _state.GetAndIncrementRequestCounter().ToString(CultureInfo.InvariantCulture);
-        var tcs = new TaskCompletionSource<HandlerResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        targetHandler.PendingRequests[correlationId] = tcs;
-
-        try
-        {
-            LogSendingRequestToHandler(_logger, request.QueueName, correlationId);
-
-            await targetHandler.Writer.WriteAsync(new ServerMessage
+            if (_state.Handlers.TryGetValue(request.QueueName, out var registeredHandlers) && !registeredHandlers.IsDefaultOrEmpty)
             {
-                CorrelationId = correlationId,
-                Type = request.Type,
-                Data = request.Data,
-                Timestamp = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
-            });
-
-            var response = await tcs.Task.WaitAsync(context.CancellationToken);
-            if (response.Status is HandlerResponse.Types.Status.NotHandled)
-            {
-                // todo: retry different handler
+                if (triedHandlers is null || triedHandlers.Count == 0)
+                {
+                    targetHandler = registeredHandlers[Random.Shared.Next(registeredHandlers.Length)];
+                }
+                else
+                {
+                    int startIndex = Random.Shared.Next(registeredHandlers.Length);
+                    for (int i = 0; i < registeredHandlers.Length; i++)
+                    {
+                        var handler = registeredHandlers[(startIndex + i) % registeredHandlers.Length];
+                        if (!triedHandlers.Contains(handler))
+                        {
+                            targetHandler = handler;
+                            break;
+                        }
+                    }
+                }
             }
 
-            return new ResponseMessage
+            if (targetHandler is null)
             {
-                Status = response.Status switch
+                if (triedHandlers is null or { Count: 0, })
                 {
-                    HandlerResponse.Types.Status.Success => ResponseMessage.Types.Status.Success,
-                    HandlerResponse.Types.Status.NotHandled => ResponseMessage.Types.Status.NoHandlers,
-                    HandlerResponse.Types.Status.Error => ResponseMessage.Types.Status.HandlerError,
-                    _ => throw new UnreachableException(),
-                },
-                Data = response.Data,
-            };
+                    LogNoActiveHandlers(_logger, request.QueueName);
+                }
+
+                if (triedHandlers is not null)
+                {
+                    _state.HashSetHandlerConnectionPool.Return(triedHandlers);
+                }
+
+                return new ResponseMessage { Status = ResponseMessage.Types.Status.NoHandlers, ErrorMessage = "No active handlers." };
+            }
+
+            var correlationId = _state.GetAndIncrementRequestCounter();
+
+            var tcs = new TaskCompletionSource<HandlerResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+            targetHandler.PendingRequests[correlationId] = tcs;
+
+            try
+            {
+                LogSendingRequestToHandler(_logger, request.QueueName, correlationId);
+
+                await targetHandler.Writer.WriteAsync(new ServerMessage
+                {
+                    CorrelationId = correlationId,
+                    Type = request.Type,
+                    Data = request.Data,
+                    Timestamp = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
+                });
+
+                var response = await tcs.Task.WaitAsync(context.CancellationToken);
+
+                if (response.Status is HandlerResponse.Types.Status.NotHandled)
+                {
+                    triedHandlers ??= _state.HashSetHandlerConnectionPool.Get();
+                    triedHandlers.Add(targetHandler);
+                    continue;
+                }
+
+                if (triedHandlers is not null)
+                {
+                    _state.HashSetHandlerConnectionPool.Return(triedHandlers);
+                }
+
+                return new ResponseMessage
+                {
+                    Status = response.Status switch
+                    {
+                        HandlerResponse.Types.Status.Success => ResponseMessage.Types.Status.Success,
+                        HandlerResponse.Types.Status.Error => ResponseMessage.Types.Status.HandlerError,
+                        _ => throw new UnreachableException(),
+                    },
+                    Data = response.Data,
+                };
+            }
+            catch (OperationCanceledException)
+            {
+                LogRequestCancelled(_logger, correlationId);
+
+                if (triedHandlers is not null)
+                {
+                    _state.HashSetHandlerConnectionPool.Return(triedHandlers);
+                }
+
+                throw new RpcException(Status.DefaultCancelled);
+            }
+            catch (Exception exception)
+            {
+                LogRequestFailed(_logger, correlationId, exception.Message, exception);
+
+                triedHandlers ??= _state.HashSetHandlerConnectionPool.Get();
+                triedHandlers.Add(targetHandler);
+                continue;
+            }
+            finally
+            {
+                targetHandler.PendingRequests.TryRemove(correlationId, out _);
+            }
         }
-        catch (OperationCanceledException)
-        {
-            LogRequestCancelled(_logger, correlationId);
-            targetHandler.PendingRequests.TryRemove(correlationId, out _);
-            throw new RpcException(Status.DefaultCancelled);
-        }
-        catch (Exception exception)
-        {
-            LogRequestFailed(_logger, correlationId, exception.Message, exception);
-            targetHandler.PendingRequests.TryRemove(correlationId, out _);
-            return new ResponseMessage { Status = ResponseMessage.Types.Status.ServerError, ErrorMessage = exception.Message, };
-        }
+
+        throw new RpcException(Status.DefaultCancelled);
     }
 
     public override async Task HandleRequests(IAsyncStreamReader<ClientMessage> requestStream, IServerStreamWriter<ServerMessage> responseStream, ServerCallContext context)
@@ -221,9 +274,9 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
         {
             LogHandlerStreamCancelled(_logger);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            LogHandlerStreamError(_logger, ex);
+            LogHandlerStreamError(_logger, exception);
             throw;
         }
         finally
@@ -273,19 +326,19 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
     private static partial void LogNoActiveHandlers(ILogger logger, string queueName);
 
     [LoggerMessage(EventId = 6, Level = LogLevel.Debug, Message = "Dispatching request to handler for queue '{QueueName}' (CorrelationId: {CorrelationId})")]
-    private static partial void LogSendingRequestToHandler(ILogger logger, string queueName, string correlationId);
+    private static partial void LogSendingRequestToHandler(ILogger logger, string queueName, ulong correlationId);
 
     [LoggerMessage(EventId = 7, Level = LogLevel.Information, Message = "Request with CorrelationId '{CorrelationId}' was cancelled")]
-    private static partial void LogRequestCancelled(ILogger logger, string correlationId);
+    private static partial void LogRequestCancelled(ILogger logger, ulong correlationId);
 
     [LoggerMessage(EventId = 8, Level = LogLevel.Error, Message = "Request failed for CorrelationId '{CorrelationId}': {ErrorMessage}")]
-    private static partial void LogRequestFailed(ILogger logger, string correlationId, string errorMessage, Exception exception);
+    private static partial void LogRequestFailed(ILogger logger, ulong correlationId, string errorMessage, Exception exception);
 
     [LoggerMessage(EventId = 9, Level = LogLevel.Information, Message = "Registering handler connection for queue '{QueueName}'")]
     private static partial void LogRegisteringHandlerQueue(ILogger logger, string queueName);
 
     [LoggerMessage(EventId = 10, Level = LogLevel.Warning, Message = "Received response with unknown or expired CorrelationId '{CorrelationId}'")]
-    private static partial void LogUnknownCorrelationId(ILogger logger, string correlationId);
+    private static partial void LogUnknownCorrelationId(ILogger logger, ulong correlationId);
 
     [LoggerMessage(EventId = 11, Level = LogLevel.Debug, Message = "Handler request stream was cancelled")]
     private static partial void LogHandlerStreamCancelled(ILogger logger);

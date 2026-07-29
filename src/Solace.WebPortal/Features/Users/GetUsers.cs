@@ -1,0 +1,88 @@
+using System.Security.Claims;
+using Immediate.Apis.Shared;
+using Immediate.Handlers.Shared;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Solace.WebPortal.Common;
+using Solace.WebPortal.Common.Features.Common;
+using Solace.WebPortal.Common.Features.Roles;
+using Solace.WebPortal.Common.Features.Users;
+using Solace.WebPortal.Data;
+
+namespace Solace.WebPortal.Features.Users;
+
+[Handler]
+[MapGet("")]
+[MapGroup<UsersGroup>]
+[Authorize(Policy = Permissions.ViewUsers)]
+public static partial class GetUsers
+{
+    private static async ValueTask<PagedSearchResult<GetUsersResponse>> HandleAsync(
+        PagedSearchQuery query,
+        UserManager<ApplicationUser> userManager,
+        RoleManager<ApplicationRole> roleManager,
+        IHttpContextAccessor httpContextAccessor,
+        CancellationToken cancellationToken)
+    {
+        var httpUser = httpContextAccessor.HttpContext?.User;
+        var currentUserId = userManager.GetUserId(httpUser!) ?? string.Empty;
+
+        var allRoles = await roleManager.Roles.AsNoTracking().ToListAsync(cancellationToken);
+        var currentUserRoles = httpUser?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList() ?? [];
+
+        var currentUserMinPosition = allRoles
+            .Where(r => currentUserRoles.Contains(r.Name!) && r.Name != RoleConstants.Default)
+            .Select(r => r.Position)
+            .DefaultIfEmpty(9999)
+            .Min();
+
+        var dbQuery = userManager.Users.AsNoTracking();
+
+        var totalCount = await dbQuery.CountAsync(cancellationToken);
+        int matchingCount;
+
+        if (!string.IsNullOrWhiteSpace(query.SearchTerm))
+        {
+            var search = $"%{query.SearchTerm}%";
+
+#pragma warning disable MA0011 // IFormatProvider is missing - ef does not support it
+            dbQuery = dbQuery.Where(u =>
+                (u.UserName != null && EF.Functions.ILike(u.UserName, search)) ||
+                (u.Email != null && EF.Functions.ILike(u.Email, search)) ||
+                EF.Functions.ILike(u.Id.ToString(), search));
+#pragma warning restore MA0011 // IFormatProvider is missing
+
+            matchingCount = await dbQuery.CountAsync(cancellationToken);
+        }
+        else
+        {
+            matchingCount = totalCount;
+        }
+
+        var users = await dbQuery
+            .OrderBy(u => u.UserName)
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var userDtos = new List<UserDto>(query.PageSize);
+        foreach (var user in users)
+        {
+            var roles = await userManager.GetRolesAsync(user);
+            userDtos.Add(new UserDto(user.Id, user.UserName ?? "", user.Email ?? "", roles));
+        }
+
+        var roleDtos = allRoles.Select(role => new RoleDto(role.Id, role.Name!, role.Position, role.Color, role.IsBuiltIn, [])).ToList();
+
+        return new(
+            new(
+                userDtos,
+                roleDtos,
+                currentUserMinPosition
+            ),
+            totalCount,
+            matchingCount
+        );
+    }
+}

@@ -8,24 +8,137 @@ namespace Solace.Common.Asp.Captcha;
 
 public sealed partial class CloudflareTurnstileValidator(
     HttpClient httpClient,
-    IOptions<CaptchaOptions> captchaOptions,
+    IOptions<CaptchaConfiguration> captchaOptions,
     ILogger<CloudflareTurnstileValidator> logger) : ICaptchaValidator
 {
     private const string VerifyUrl = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
-    public string Script { get; } = """
-        <link rel="preconnect" href="https://challenges.cloudflare.com" />
-        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-        """;
-
     public string FormFieldName => "cf-turnstile-response";
 
-    public string GetHtmlWidget(string size = "normal")
-        => $"""
-        <div class="cf-turnstile" data-sitekey="{captchaOptions.Value.CloudflareTurnstileSiteKey}" data-size="{size}"></div>
+    public string Script => """
+        <link rel="preconnect" href="https://challenges.cloudflare.com" />
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onloadTurnstileCallback" defer></script>
         """;
 
-    public async Task<bool> ValidateAsync(string? token, string? remoteip = null, CancellationToken cancellationToken = default)
+    public string ManagerScript { get; } = $$"""
+        class CaptchaManager {
+            constructor() {
+                this.widgets = new Map();
+                this.pending = [];
+                this._blazorHooked = false;
+
+                this._ensureBlazorHook();
+            }
+
+            _ensureBlazorHook() {
+                if (window.Blazor && !this._blazorHooked) {
+                    this._blazorHooked = true;
+                    Blazor.addEventListener('enhancedload', () => this.renderAll());
+                }
+            }
+
+            renderAll() {
+                this._ensureBlazorHook();
+
+                for (const [containerId, widgetId] of this.widgets.entries()) {
+                    const el = document.querySelector(containerId);
+                    if (!el || el.childElementCount === 0) {
+                        try { window.turnstile && window.turnstile.remove(widgetId); } catch (e) {}
+                        this.widgets.delete(containerId);
+                    }
+                }
+
+                if (!window.turnstile) {
+                    return;
+                }
+
+                const autoContainers = document.querySelectorAll('[data-captcha="true"]');
+                autoContainers.forEach(container => {
+                    if (container.id) {
+                        this.createWidget('#' + container.id);
+                    }
+                });
+
+                const currentPending = [...this.pending];
+                this.pending = [];
+
+                for (const item of currentPending) {
+                    this.createWidget(item.containerId, item.config);
+                }
+            }
+
+            createWidget(containerId, config = {}) {
+                const container = document.querySelector(containerId);
+                if (!container) {
+                    return;
+                }
+
+                if (!window.turnstile) {
+                    this.pending.push({ containerId, config });
+                    return;
+                }
+
+                if (this.widgets.has(containerId) && container.childElementCount > 0) {
+                    return;
+                }
+
+                if (this.widgets.has(containerId)) {
+                    try {
+                        window.turnstile.remove(this.widgets.get(containerId));
+                    } catch (e) {
+                    }
+
+                    this.widgets.delete(containerId);
+                }
+
+                const widgetId = window.turnstile.render(containerId, {
+                    sitekey: "{{captchaOptions.Value.CloudflareTurnstileSiteKey}}",
+                    theme: config.theme || "auto",
+                    size: config.size || "normal",
+                    callback: (token) => {
+                        if (config.onSuccess) {
+                            config.onSuccess(token, widgetId);
+                        }
+                    },
+                    "error-callback": (error) => {
+                        if (config.onError) {
+                            config.onError(error, widgetId);
+                        }
+                    }
+                });
+
+                this.widgets.set(containerId, widgetId);
+                return widgetId;
+            }
+
+            removeWidget(containerId) {
+                const widgetId = this.widgets.get(containerId);
+                if (widgetId && window.turnstile) {
+                    try {
+                        window.turnstile.remove(widgetId);
+                    } catch (e) {
+                    }
+
+                    this.widgets.delete(containerId);
+                }
+            }
+
+            resetWidget(containerId) {
+                const widgetId = this.widgets.get(containerId);
+                if (widgetId && window.turnstile) {
+                    try {
+                    window.turnstile.reset(widgetId);
+                    } catch (e) {
+                    }
+                }
+            }
+        }
+
+        window.captchaManager = window.captchaManager || new CaptchaManager();
+        window.onloadTurnstileCallback = () => window.captchaManager.renderAll();
+        """;
+
+    public async Task<bool> ValidateAsync(string? token, string? remoteIp = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(token))
         {
@@ -48,9 +161,9 @@ public sealed partial class CloudflareTurnstileValidator(
                 { "response", token }
             };
 
-            if (!string.IsNullOrEmpty(remoteip))
+            if (!string.IsNullOrEmpty(remoteIp))
             {
-                parameters.Add("remoteip", remoteip);
+                parameters.Add("remoteip", remoteIp);
             }
 
             var postContent = new FormUrlEncodedContent(parameters);

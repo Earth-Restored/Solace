@@ -2,8 +2,8 @@ using System.Buffers;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Solace.Common.Asp.Auth;
-using Solace.DB;
-using Solace.DB.Models.Global;
+using Solace.Db.Earth;
+using Solace.Db.Earth.Models.Global;
 
 namespace Solace.Common.Asp;
 

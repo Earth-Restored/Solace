@@ -1,0 +1,271 @@
+@page "/Players"
+@using Microsoft.AspNetCore.Authorization
+@using Solace.WebPortal.Client.Features.Common
+@using Solace.WebPortal.Common
+@using Solace.WebPortal.Common.Features.Common
+@using Solace.WebPortal.Common.Features.Players
+@using System.Security.Claims
+@using System.Globalization
+@attribute [Authorize(Policy = Permissions.ViewPlayers)]
+@rendermode InteractiveWebAssembly
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<Players> Logger
+
+<PageTitle>Players - Solace</PageTitle>
+
+<div class="container-fluid py-3 px-md-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h2 class="h3 mb-0">Players</h2>
+                <span class="badge bg-dark-subtle text-dark border p-2">
+                    @(_pagedView?.MatchingItems?.ToString() ?? "?")/@(_pagedView?.TotalItems?.ToString() ?? "?")
+                </span>
+            </div>
+            <p class="text-muted small mb-0">Manage accounts and player statistics</p>
+        </div>
+
+        <SearchBar @bind-Value="_searchTerm" Placeholder="username or ID" Style="max-width: 400px;" QueryStringKey="q" OnSearch="SearchAsync" OnClear="ClearSearch" />
+    </div>
+
+    <PagedDataView @ref="_pagedView" TData="List<AccountViewModel>" SearchQueryStringKey="q" PageQueryStringKey="p" Provider="FetchDataAsync" OnDataLoaded="HandleDataLoaded" Context="data">
+        <ChildContent Context="players">
+            <div class="d-none d-md-block">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>User ID</th>
+                                <th>Username</th>
+                                <th class="text-center">Level</th>
+                                <th class="text-center">Health</th>
+                                <th class="text-center">Rubies</th>
+                                <th class="text-end pe-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var player in players)
+                            {
+                                <tr>
+                                    <td>
+                                        <span role="button" class="text-primary small text-decoration-none user-select-all" @onclick="() => CopyIdAsync(player.Id)" title="Click to copy ID">
+                                            <code>@player.Id</code>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (string.IsNullOrEmpty(player.Username))
+                                        {
+                                            <span class="text-muted fst-italic">No Username</span>
+                                            <span class="badge rounded-pill bg-info text-dark ms-1" style="font-size: 0.75rem;">
+                                                Microsoft Account
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            @player.Username
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="position-relative d-inline-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                                            <svg viewBox="0 0 36 36" class="position-absolute top-0 start-0 w-100 h-100">
+                                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e9ecef" stroke-width="3" />
+                                                @{
+                                                    var progress = player.LevelProgressPercentage.HasValue ? (player.LevelProgressPercentage.Value * 100).ToString("0.0", CultureInfo.InvariantCulture) : "100";
+                                                    var strokeColor = player.LevelProgressPercentage.HasValue ? "#0d6efd" : "#198754";
+                                                }
+                                                <path stroke-dasharray="@progress, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="@strokeColor" stroke-width="3" />
+                                            </svg>
+                                            <span class="fw-bold" style="font-size: 0.85rem;">@player.Level</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="text-success fw-medium text-nowrap"><i class="bi bi-heart-fill me-1"></i>@player.Health / @player.MaxHealth</span>
+                                    </td>
+                                    <td class="text-center text-danger fw-bold" title="Purchased: @player.PurchasedRubies | Earned: @player.EarnedRubies">
+                                        <i class="bi bi-gem me-1"></i>@player.TotalRubies
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <a href="/Players/@(player.Id)" class="btn btn-sm btn-outline-primary me-1" title="Profile">
+                                            <i class="bi bi-person-fill me-1"></i>Profile
+                                        </a>
+                                        @if (HasPermission(Permissions.ManagePlayers))
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePlayerAsync(player.Id, player.Username)" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="d-md-none">
+                @foreach (var player in players)
+                {
+                    <div class="card mb-3 shadow-sm border-start border-primary border-4">
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <small class="text-muted d-block" role="button" @onclick="() => CopyIdAsync(player.Id)" title="Click to copy ID">
+                                    ID: <span class="text-primary">@player.Id</span>
+                                </small>
+                                <div class="fw-bold">
+                                    @if (string.IsNullOrEmpty(player.Username))
+                                    {
+                                        <span class="text-muted fst-italic fw-normal">No Username</span>
+                                        <span class="badge rounded-pill bg-info text-dark ms-1" style="font-size: 0.75rem;">
+                                            Microsoft Account
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        @player.Username
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="position-relative d-inline-flex align-items-center justify-content-center me-2" style="width: 38px; height: 38px;">
+                                        <svg viewBox="0 0 36 36" class="position-absolute top-0 start-0 w-100 h-100">
+                                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#dee2e6" stroke-width="3.5" />
+                                            @{
+                                                var progressMobile = player.LevelProgressPercentage.HasValue ? (player.LevelProgressPercentage.Value * 100).ToString("0.0", CultureInfo.InvariantCulture) : "100";
+                                                var strokeColorMobile = player.LevelProgressPercentage.HasValue ? "#0d6efd" : "#198754";
+                                            }
+                                            <path stroke-dasharray="@progressMobile, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="@strokeColorMobile" stroke-width="3.5" />
+                                        </svg>
+                                        <span class="fw-bold" style="font-size: 0.8rem;">@player.Level</span>
+                                    </div>
+                                    <span class="text-success small fw-medium text-nowrap"><i class="bi bi-heart-fill me-1"></i>@player.Health / @player.MaxHealth</span>
+                                </div>
+                                <div>
+                                    <span class="text-danger fw-bold small text-nowrap" title="Purchased: @player.PurchasedRubies | Earned: @player.EarnedRubies">
+                                        <i class="bi bi-gem me-1"></i>@player.TotalRubies
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2 mt-2">
+                                <a href="/Players/@(player.Id)" class="btn btn-sm btn-outline-primary flex-fill">
+                                    <i class="bi bi-person-fill me-1"></i>Profile
+                                </a>
+                                @if (HasPermission(Permissions.ManagePlayers))
+                                {
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePlayerAsync(player.Id, player.Username)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </ChildContent>
+    </PagedDataView>
+</div>
+
+@code {
+    private PagedDataView<List<AccountViewModel>>? _pagedView;
+
+    private ClaimsPrincipal? _user;
+    private string _searchTerm = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _user = authState.User;
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_pagedView is not null)
+        {
+            await _pagedView.SearchAsync(_searchTerm);
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        _searchTerm = string.Empty;
+        await SearchAsync();
+    }
+
+    private async Task<PagedResult<List<AccountViewModel>>?> FetchDataAsync(PagedSearchQuery query)
+    {
+        try
+        {
+            var uri = $"api/players?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? "")}&page={query.Page}&pageSize={query.PageSize}";
+            var response = await Http.GetFromJsonAsync<PagedSearchResult<List<PlayerDto>>>(uri);
+
+            if (response is null)
+            {
+                return null;
+            }
+
+            var viewModels = response.Data.Select(AccountViewModel.FromDto).ToList();
+
+            return new PagedSearchResult<List<AccountViewModel>>(viewModels, response.TotalCount, response.MatchingCount);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to get accounts");
+            _pagedView?.ErrorMessage = "Failed to load players.";
+            return null;
+        }
+    }
+
+    private void HandleDataLoaded(PagedResult<List<AccountViewModel>> result)
+    {
+    }
+
+    private async Task DeletePlayerAsync(Guid id, string? username)
+    {
+        if (!HasPermission(Permissions.ManagePlayers))
+        {
+            return;
+        }
+
+        string confirmText = string.IsNullOrEmpty(username)
+            ? $"Are you sure you want to permanently delete player with id '{id}'?"
+            : $"Are you sure you want to permanently delete player '{username}', id: {id}?";
+
+        if (!await JS.InvokeAsync<bool>("confirm", confirmText))
+        {
+            return;
+        }
+
+        try
+        {
+            using var response = await Http.DeleteAsync($"api/players/{id}");
+
+            if (response is { IsSuccessStatusCode: true } or { StatusCode: System.Net.HttpStatusCode.NotFound })
+            {
+                if (_pagedView is not null)
+                {
+                    await _pagedView.ReloadCurrentPageAsync();
+                }
+
+                Logger.LogInformation("Deleted player {PlayerId}", id);
+            }
+            else
+            {
+                _pagedView?.ErrorMessage = $"Failed to delete player ({response.StatusCode}).";
+            }
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to delete player {PlayerId}", id);
+        }
+    }
+
+    private async Task CopyIdAsync(Guid id)
+        => await JS.InvokeVoidAsync("copyTextDirect", id.ToString());
+
+    private bool HasPermission(string permission)
+        => _user?.HasPermission(permission) ?? false;
+}

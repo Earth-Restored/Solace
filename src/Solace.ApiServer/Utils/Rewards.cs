@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
-using Solace.DB;
-using Solace.DB.Models.Player;
+using Solace.Db.Earth;
+using Solace.Db.Earth.Models.Player;
 using Solace.StaticData;
 
 namespace Solace.ApiServer.Utils;
@@ -160,7 +160,7 @@ internal sealed class Rewards
             []
         );
 
-    public static Rewards FromDBRewardsModel(DB.Models.Common.Rewards rewardsModel)
+    public static Rewards FromDBRewardsModel(Db.Earth.Models.Common.Rewards rewardsModel)
     {
         var rewards = new Rewards();
         rewards.AddRubies(rewardsModel.Rubies);
@@ -188,8 +188,8 @@ internal sealed class Rewards
         return rewards;
     }
 
-    public DB.Models.Common.Rewards ToDBRewardsModel()
-        => new DB.Models.Common.Rewards(
+    public Db.Earth.Models.Common.Rewards ToDBRewardsModel()
+        => new Db.Earth.Models.Common.Rewards(
             _rubies,
             _experiencePoints,
             _level,

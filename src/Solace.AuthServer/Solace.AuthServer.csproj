@@ -10,9 +10,13 @@
       ReferenceOutputAssembly="false"/>
     <ProjectReference Include="../Solace.Common.Asp/Solace.Common.Asp.csproj" />
     <ProjectReference Include="../Solace.Common/Solace.Common.csproj" />
-    <ProjectReference Include="../Solace.DB/Solace.DB.csproj" />
+    <ProjectReference Include="../Solace.Db.Earth/Solace.Db.Earth.csproj" />
     <ProjectReference Include="../Solace.ServiceDefaults/Solace.ServiceDefaults.csproj" />
     <ProjectReference Include="../Solace.StaticData/Solace.StaticData.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Solace.Common/Constants/AccountConstants.cs" Link="AccountConstants.cs" />
   </ItemGroup>
 
   <ItemGroup>

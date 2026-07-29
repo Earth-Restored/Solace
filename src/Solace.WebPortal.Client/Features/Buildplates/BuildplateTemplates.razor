@@ -1,0 +1,547 @@
+@page "/BuildplateTemplates"
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@using Solace.WebPortal.Client.Features.Common
+@using Solace.WebPortal.Common
+@using Solace.WebPortal.Common.Features.Buildplates
+@using Solace.WebPortal.Common.Features.Common
+@attribute [Authorize(Policy = Permissions.ViewBuildplates)]
+@rendermode InteractiveWebAssembly
+@inject AuthenticationStateProvider AuthStateProvider
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject IConfiguration Configuration
+@inject ILogger<BuildplateTemplates> Logger
+
+<PageTitle>Buildplate templates - Solace</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h2 class="h3 mb-0">Buildplate Templates</h2>
+            <span class="badge bg-dark-subtle text-dark border p-2">
+                @(_pagedView?.MatchingItems?.ToString() ?? "?")/@(_pagedView?.TotalItems?.ToString() ?? "?")
+            </span>
+        </div>
+
+        <SearchBar @bind-Value="_searchTerm" Placeholder="name or ID" Style="max-width: 400px;" QueryStringKey="q" OnSearch="SearchAsync" OnClear="ClearSearch" />
+
+        @if (HasPermission(Permissions.ManageBuildplates))
+        {
+            <a href="/BuildplateTemplates/Import" class="btn btn-primary fw-bold">
+                <i class="bi bi-plus-lg"></i> Import Buildplate(s)
+            </a>
+        }
+    </div>
+
+    <div class="row g-4">
+        <PagedDataView @ref="_pagedView" TData="List<BuildplateViewModel>" DefaultPageSize="8" SearchQueryStringKey="q" PageQueryStringKey="p" Provider="FetchDataAsync" OnDataLoaded="HandleDataLoaded" Context="data">
+            @foreach (var buildplate in data)
+            {
+                <div class="col-12 col-md-6 col-lg-4 col-xl-3" @key="buildplate.Id">
+                    <div class="card h-100 shadow-sm @(buildplate.IsBusy ? "opacity-50" : "")">
+                        <BuildplatePreview BuildplateId="@buildplate.Id" IsTemplate=true Size="@buildplate.Size" BlocksPerMeter="@buildplate.BlocksPerMeter" IsNight="@buildplate.IsNight" />
+
+                        <div class="card-body">
+                            @if (!string.IsNullOrEmpty(buildplate.ErrorMessage))
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show small py-2" role="alert">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i> @buildplate.ErrorMessage
+                                    <button type="button" class="btn-close small" style="padding: 0.75rem" @onclick="() => buildplate.ErrorMessage = null"></button>
+                                </div>
+                            }
+                            <div class="mb-3">
+                                <label class="form-label visually-hidden">Buildplate Name</label>
+                                <input type="text" minlength="1" maxlength="100" class="form-control fw-bold border-0 bg-light" @bind="buildplate.Name" @bind:event="oninput" disabled="@(!HasPermission(Permissions.ManageBuildplates) || buildplate.IsBusy)" />
+                            </div>
+
+                            <div class="row text-muted small">
+                                <div class="col-6 mb-2">
+                                    <span class="d-block fw-bold text-uppercase">Size</span>
+                                    <span>@(buildplate.Size)x@(buildplate.Size)</span>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <span class="d-block fw-bold text-uppercase">Blocks per meter</span>
+                                    <input type="number" min="1" max="100" class="form-control form-control-sm border-0 bg-light" @bind="buildplate.BlocksPerMeter" @bind:event="oninput" disabled="@(!HasPermission(Permissions.ManageBuildplates) || buildplate.IsBusy)" />
+                                </div>
+                                <div class="col-12">
+                                    <span class="d-block fw-bold text-uppercase">Offset</span>
+                                    <span>@buildplate.Offset</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (HasPermission(Permissions.ManageBuildplates))
+                        {
+                            <div class="card-footer bg-transparent border-top-0 pb-3 d-flex flex-column gap-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => RequestDelete(buildplate)" disabled="@buildplate.IsBusy">Delete</button>
+
+                                    @if (buildplate.IsDirty || buildplate.IsSaving)
+                                    {
+                                        <button class="btn btn-success btn-sm fw-bold" @onclick="() => SaveBuildplate(buildplate)" disabled="@buildplate.IsBusy">
+                                            @if (buildplate.IsSaving)
+                                            {
+                                                <span class="spinner-border spinner-border-sm me-1"></span>
+                                            }
+                                            Save
+                                        </button>
+                                    }
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm w-100 fw-bold" @onclick="() => RegeneratePreview(buildplate)" disabled="@buildplate.IsBusy">
+                                        @if (buildplate.IsRegeneratingPreview)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                            <span>Regenerating...</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Regenerate</span>
+                                        }
+                                    </button>
+
+                                    <button class="btn btn-outline-secondary btn-sm w-100 fw-bold" @onclick="() => RequestExport(buildplate)" disabled="@buildplate.IsBusy">
+                                        <i class="bi bi-download me-1"></i><span>Export</span>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex">
+                                <button class="btn btn-outline-secondary btn-sm w-100 fw-bold" @onclick="() => RequestExport(buildplate)" disabled="@buildplate.IsBusy">
+                                    <i class="bi bi-download me-1"></i><span>Export</span>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </PagedDataView>
+    </div>
+</div>
+
+@if (_showDeleteModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" @onclick="CancelDelete"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete <strong>@_buildplateToDelete?.Name</strong>?</p>
+
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" id="removeTemplateCheckbox" @bind="_removeTemplateFromPlayers" />
+                        <label class="form-check-label text-danger" for="removeTemplateToggle">
+                            Also remove this template from all players inventories
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelDelete" disabled="@_isDeleting">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@_isDeleting" style="min-width: 100px;">
+                        @if (_isDeleting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>Deleting...</span>
+                        }
+                        else
+                        {
+                            <span>Delete</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(_deleteErrorMessage))
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6); z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-danger shadow-lg">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-exclamation-octagon-fill me-2"></i>Deletion Failed</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseErrorModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>An error occurred while trying to delete <strong>@_buildplateToDelete?.Name</strong>:</p>
+                    <div class="alert alert-light border small text-break">
+                        @_deleteErrorMessage
+                    </div>
+                    <p class="mb-0">Please try again or report the issue if it persists.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseErrorModal">Close</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Retry
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showExportModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Export Buildplate</h5>
+                    <button type="button" class="btn-close" @onclick="CancelExport" disabled="@_isExporting"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Select export format for <strong>@_exportBuildplate?.Name</strong>:</p>
+
+                    <select class="form-select mb-4" @bind="_exportFormat" disabled="@_isExporting">
+                        <option value="Solace">Solace/Vienna</option>
+                        <option value="Earth">Project Earth</option>
+                    </select>
+
+                    @if (_isExporting)
+                    {
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: @_exportProgress%;" aria-valuenow="@_exportProgress" aria-valuemin="0" aria-valuemax="100">@_exportProgress%</div>
+                        </div>
+                        <p class="text-center text-muted small mb-0">Generating file...</p>
+                    }
+
+                    @if (!string.IsNullOrEmpty(_exportErrorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show small py-2 mt-2 mb-0" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            @_exportErrorMessage
+                            <button type="button" class="btn-close small" style="padding: 0.75rem" @onclick="() => _exportErrorMessage = null"></button>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelExport" disabled="@_isExporting">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="ConfirmExport" disabled="@_isExporting" style="min-width: 100px;">
+                        @if (_isExporting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>Exporting...</span>
+                        }
+                        else
+                        {
+                            <span>Export</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private PagedDataView<List<BuildplateViewModel>>? _pagedView;
+
+    private ClaimsPrincipal? _user;
+
+    private string _searchTerm = string.Empty;
+
+    private bool _showDeleteModal = false;
+    private bool _isDeleting = false;
+    private BuildplateViewModel? _buildplateToDelete;
+    private bool _removeTemplateFromPlayers = false;
+    private string? _deleteErrorMessage;
+
+    private bool _showExportModal = false;
+    private bool _isExporting = false;
+    private BuildplateViewModel? _exportBuildplate;
+    private string _exportFormat = "Solace";
+    private int _exportProgress = 0;
+    private string? _exportErrorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _user = authState.User;
+    }
+
+    private async Task<PagedResult<List<BuildplateViewModel>>?> FetchDataAsync(PagedSearchQuery query)
+    {
+        try
+        {
+            var uri = $"/api/buildplates/templates?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? string.Empty)}&page={query.Page}&pageSize={query.PageSize}";
+            var response = await Http.GetFromJsonAsync<PagedSearchResult<List<BuildplateTemplateDto>>>(uri);
+
+            if (response is null)
+            {
+                return null;
+            }
+
+            var buildplates = response.Data
+                .Select(dto => new BuildplateViewModel
+                {
+                    Id = dto.Id,
+                    Name = dto.Name,
+                    Size = dto.Size,
+                    Offset = dto.Offset,
+                    BlocksPerMeter = dto.BlocksPerMeter,
+                    IsNight = dto.IsNight,
+                })
+                .ToList();
+
+            foreach (var buildplate in buildplates)
+            {
+                buildplate.AcceptChanges();
+            }
+
+            return new PagedSearchResult<List<BuildplateViewModel>>(buildplates, response.TotalCount, response.MatchingCount);
+        }
+        catch
+        {
+            _pagedView?.ErrorMessage = "Failed to load templates.";
+            return null;
+        }
+    }
+
+    private void HandleDataLoaded(PagedResult<List<BuildplateViewModel>> result)
+    {
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_pagedView is not null)
+        {
+            await _pagedView.SearchAsync(_searchTerm);
+        }
+    }
+
+    private async Task ClearSearch()
+    {
+        _searchTerm = string.Empty;
+        await SearchAsync();
+    }
+
+    private async Task SaveBuildplate(BuildplateViewModel buildplate)
+    {
+        if (!HasPermission(Permissions.ManageBuildplates))
+        {
+            return;
+        }
+
+        buildplate.IsSaving = true;
+        buildplate.ErrorMessage = null;
+        buildplate.Name = buildplate.Name.Trim();
+
+        if (string.IsNullOrEmpty(buildplate.Name))
+        {
+            buildplate.ErrorMessage = "Name cannot be empty.";
+            buildplate.IsSaving = false;
+            return;
+        }
+
+        try
+        {
+            using var response = await Http.PutAsJsonAsync($"/api/buildplates/templates/{buildplate.Id}", new UpdateTemplateCommand(buildplate.Id, buildplate.Name, buildplate.BlocksPerMeter));
+
+            if (response.IsSuccessStatusCode)
+            {
+                buildplate.AcceptChanges();
+                Logger.LogInformation("Successfully updated buildplate '{Id}'", buildplate.Id);
+            }
+            else
+            {
+                buildplate.ErrorMessage = "Failed to save. Try again?";
+            }
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to save buildplate '{Id}'", buildplate.Id);
+            buildplate.ErrorMessage = "Failed to save. Try again?";
+        }
+        finally
+        {
+            buildplate.IsSaving = false;
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        _deleteErrorMessage = null;
+
+        if (_buildplateToDelete is not null && HasPermission(Permissions.ManageBuildplates))
+        {
+            try
+            {
+                _isDeleting = true;
+                StateHasChanged();
+
+                var url = $"/api/buildplates/templates/{_buildplateToDelete.Id}?removeTemplateFromPlayers={_removeTemplateFromPlayers}";
+                using var response = await Http.DeleteAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _deleteErrorMessage = "Failed to delete buildplate, check API logs for details.";
+                    return;
+                }
+
+                if (_pagedView is not null)
+                {
+                    await _pagedView.ReloadCurrentPageAsync();
+                }
+
+                CancelDelete();
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, "Failed to delete buildplate");
+                _deleteErrorMessage = $"Failed to delete the buildplate: {exception.Message}";
+            }
+            finally
+            {
+                _isDeleting = false;
+            }
+        }
+    }
+
+    private async Task RegeneratePreview(BuildplateViewModel buildplate)
+    {
+        if (!HasPermission(Permissions.ManageBuildplates))
+        {
+            return;
+        }
+
+        buildplate.IsRegeneratingPreview = true;
+        buildplate.ErrorMessage = null;
+
+        try
+        {
+            using var response = await Http.PostAsync($"/api/buildplates/templates/{buildplate.Id}/regenerate-in-game-preview", null);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                buildplate.ErrorMessage = "Failed to regenerate preview. Try again?";
+                return;
+            }
+            Logger.LogInformation("Successfully regenerated preview for buildplate '{Id}'", buildplate.Id);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to regenerate preview");
+            buildplate.ErrorMessage = "Failed to regenerate preview. Try again?";
+        }
+        finally
+        {
+            buildplate.IsRegeneratingPreview = false;
+        }
+    }
+
+    private async Task ConfirmExport()
+    {
+        if (_exportBuildplate is null)
+        {
+            return;
+        }
+
+        _isExporting = true;
+        _exportProgress = 0;
+        _exportErrorMessage = null;
+
+        for (int i = 0; i <= 100; i += 20)
+        {
+            _exportProgress = i;
+            StateHasChanged();
+            await Task.Delay(400);
+        }
+
+        try
+        {
+            var url = $"/api/buildplates/templates/{_exportBuildplate.Id}/export?format={_exportFormat}";
+
+            string extension = _exportFormat is "Solace" ? "zip" : "json";
+            string fileName = $"{_exportBuildplate.Name.Replace(" ", "_")}_export.{extension}";
+
+            await JSRuntime.InvokeVoidAsync("triggerFileDownload", fileName, url);
+
+            _showExportModal = false;
+            _exportBuildplate = null;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to download buildplate file");
+            _exportErrorMessage = $"Export failed: {exception.Message}";
+        }
+        finally
+        {
+            _isExporting = false;
+        }
+    }
+
+    private void RequestDelete(BuildplateViewModel buildplate)
+    {
+        _buildplateToDelete = buildplate;
+        _removeTemplateFromPlayers = false;
+        _deleteErrorMessage = null;
+        _showDeleteModal = true;
+    }
+
+    private void CancelDelete()
+    {
+        _buildplateToDelete = null;
+        _removeTemplateFromPlayers = false;
+        _deleteErrorMessage = null;
+        _showDeleteModal = false;
+    }
+
+    private void CloseErrorModal()
+    {
+        _deleteErrorMessage = null;
+    }
+
+    private void RequestExport(BuildplateViewModel buildplate)
+    {
+        _exportBuildplate = buildplate;
+        _exportFormat = "Solace";
+        _exportProgress = 0;
+        _exportErrorMessage = null;
+        _showExportModal = true;
+    }
+
+    private void CancelExport()
+    {
+        if (!_isExporting)
+        {
+            _showExportModal = false;
+            _exportBuildplate = null;
+        }
+    }
+
+    private bool HasPermission(string permission)
+        => _user?.HasPermission(permission) ?? false;
+
+    public sealed class BuildplateViewModel
+    {
+        public required Guid Id { get; set; }
+        public required string Name { get; set; }
+        public int BlocksPerMeter { get; set; }
+        public int Size { get; set; }
+        public int Offset { get; set; }
+        public bool IsNight { get; set; }
+
+        private string? _originalName;
+        private int _originalBlocksPerMeter = -1;
+
+        public bool IsDirty => Name != _originalName || BlocksPerMeter != _originalBlocksPerMeter;
+        public bool IsSaving { get; set; }
+        public bool IsRegeneratingPreview { get; set; }
+        public bool IsBusy => IsSaving || IsRegeneratingPreview;
+        public string? ErrorMessage { get; set; }
+
+        public void AcceptChanges()
+        {
+            _originalName = Name;
+            _originalBlocksPerMeter = BlocksPerMeter;
+        }
+    }
+}

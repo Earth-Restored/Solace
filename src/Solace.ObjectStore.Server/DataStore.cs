@@ -1,4 +1,6 @@
-﻿namespace Solace.ObjectStore.Server;
+﻿using Solace.Common.Utils;
+
+namespace Solace.ObjectStore.Server;
 
 internal sealed class DataStore
 {
@@ -13,6 +15,25 @@ internal sealed class DataStore
             _rootDirectory.Create();
         }
     }
+
+    public long GetTotalSize(CancellationToken cancellationToken = default)
+    {
+        long result = 0;
+
+        foreach (var subDir in _rootDirectory.EnumerateDirectories())
+        {
+            foreach (var file in subDir.EnumerateFiles())
+            {
+                result += file.Length;
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+        }
+
+        return result;
+    }
+
+    public void DeleteAll()
+        => _rootDirectory.SafeDelete(recursive: true);
 
     public async Task<Guid> StoreAsync(Stream data, CancellationToken cancellationToken = default)
     {
@@ -32,15 +53,15 @@ internal sealed class DataStore
             using var fileStream = File.OpenWrite(file.FullName);
             await data.CopyToAsync(fileStream, cancellationToken);
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException exception)
         {
             file.Delete();
-            throw new DataStoreException($"Permission denied writing object file '{file.FullName}'", ex);
+            throw new DataStoreException($"Permission denied writing object file '{file.FullName}'", exception);
         }
-        catch (IOException ex)
+        catch (IOException exception)
         {
             file.Delete();
-            throw new DataStoreException(ex);
+            throw new DataStoreException(exception);
         }
 
         return id;
@@ -62,9 +83,9 @@ internal sealed class DataStore
         {
             return (File.OpenRead(file.FullName), file.Length);
         }
-        catch (IOException ex)
+        catch (IOException exception)
         {
-            throw new DataStoreException(ex);
+            throw new DataStoreException(exception);
         }
     }
 

@@ -43,16 +43,14 @@
     <ProjectReference Include="../Solace.ServiceDefaults/Solace.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Solace.BuildplateImporter\Solace.BuildplateImporter.csproj" />
     <ProjectReference Include="..\Solace.Common\Solace.Common.csproj" />
-    <ProjectReference Include="..\Solace.DB\Solace.DB.csproj" />
+    <ProjectReference Include="..\Solace.Db.Earth\Solace.Db.Earth.csproj" />
     <ProjectReference Include="..\Solace.EventBus.Client\Solace.EventBus.Client.csproj" />
     <ProjectReference Include="..\Solace.ObjectStore.Client\Solace.ObjectStore.Client.csproj" />
     <ProjectReference Include="..\Solace.StaticData\Solace.StaticData.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="public_suffix_list.dat">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <Compile Include="../Solace.Common/Utils/BoostUtils.cs" Link="BoostUtils.cs" />
   </ItemGroup>
 
 </Project>

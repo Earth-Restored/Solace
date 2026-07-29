@@ -3,8 +3,8 @@ using System.Text;
 using Solace.Buildplate.Connector.Model;
 using Solace.Common;
 using Solace.Common.Utils;
-using Solace.DB;
-using Solace.DB.Models.Player;
+using Solace.Db.Earth;
+using Solace.Db.Earth.Models.Player;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 using Solace.StaticData;
@@ -697,7 +697,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                 .AsNoTracking()
                 .FirstAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
 
-            float maxHealth = BoostUtils.GetMaxPlayerHealth(boosts, currentTime, _catalog.ItemsCatalog);
+            var maxHealth = (float)Common.Utils.BoostUtils.GetMaxPlayerHealth(boosts, currentTime, _catalog.ItemsCatalog);
 
             return new InitialPlayerStateResponse(
                 useHealth ? float.Min(profile.Health, maxHealth) : maxHealth,

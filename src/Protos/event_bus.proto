@@ -62,7 +62,7 @@ message ClientMessage {
 }
 
 message HandlerResponse {
-    string correlation_id = 1;
+    uint64 correlation_id = 1;
     string data = 2;
     Status status = 3;
 
@@ -74,7 +74,7 @@ message HandlerResponse {
 }
 
 message ServerMessage {
-    string correlation_id = 1;
+    uint64 correlation_id = 1;
     string type = 2;
     string data = 3;
     google.protobuf.Timestamp timestamp = 4;

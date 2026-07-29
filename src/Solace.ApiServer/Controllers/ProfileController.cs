@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Solace.ApiServer.Utils;
 using Solace.Common;
-using Solace.DB;
+using Solace.Db.Earth;
 using Microsoft.EntityFrameworkCore;
 
 namespace Solace.ApiServer.Controllers;
@@ -14,12 +14,12 @@ namespace Solace.ApiServer.Controllers;
 [Route("1/api/v{version:apiVersion}/player")]
 internal sealed class ProfileController : SolaceControllerBase
 {
-    private readonly EarthDbContext _earthDB;
+    private readonly EarthDbContext _earthDb;
     private readonly StaticData.StaticDataProvider _staticData;
 
     public ProfileController(EarthDbContext earthDB, StaticData.StaticDataProvider staticData)
     {
-        _earthDB = earthDB;
+        _earthDb = earthDB;
         _staticData = staticData;
     }
 
@@ -35,11 +35,11 @@ internal sealed class ProfileController : SolaceControllerBase
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        var profile = await _earthDB.Profiles
+        var profile = await _earthDb.Profiles
             .AsNoTracking()
             .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
-        var boosts = await _earthDB.Boosts
+        var boosts = await _earthDb.Boosts
             .AsNoTracking()
             .FirstAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
 
@@ -47,7 +47,7 @@ internal sealed class ProfileController : SolaceControllerBase
         var currentLevelExperience = profile.Experience - (profile.Level > 1 ? profile.Level - 2 < levels.Length ? levels[profile.Level - 2].ExperienceRequired : levels[^1].ExperienceRequired : 0);
         var experienceRemaining = profile.Level - 1 < levels.Length ? levels[profile.Level - 1].ExperienceRequired - profile.Experience : 0;
 
-        var maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _staticData.Catalog.ItemsCatalog);
+        var maxPlayerHealth = Common.Utils.BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _staticData.Catalog.ItemsCatalog);
         if (profile.Health > maxPlayerHealth)
         {
             profile.Health = maxPlayerHealth;
@@ -78,7 +78,7 @@ internal sealed class ProfileController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var profile = await _earthDB.Profiles
+        var profile = await _earthDb.Profiles
             .AsNoTracking()
             .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
@@ -95,7 +95,7 @@ internal sealed class ProfileController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var profile = await _earthDB.Profiles
+        var profile = await _earthDb.Profiles
             .AsNoTracking()
             .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 

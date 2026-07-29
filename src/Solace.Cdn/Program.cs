@@ -5,11 +5,12 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 #endif
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Solace.Cdn.Utils;
 using Solace.Common;
-using Solace.DB;
+using Solace.Db.Earth;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 
@@ -84,6 +85,16 @@ internal sealed partial class App
 
         var programLogger = loggerFactory.CreateLogger(nameof(Program));
 
+        var forwardedHeadersOptions = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.All,
+        };
+
+        forwardedHeadersOptions.KnownIPNetworks.Clear();
+        forwardedHeadersOptions.KnownProxies.Clear();
+
+        app.UseForwardedHeaders(forwardedHeadersOptions);
+        
         // app.UseHttpsRedirection();
 
         app.MapMethods("/availableresourcepack/resourcepacks/dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35", ["GET", "HEAD"], GetResourcePackHandler);

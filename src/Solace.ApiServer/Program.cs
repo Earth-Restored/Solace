@@ -3,7 +3,7 @@ using System.Diagnostics;
 using Solace.ApiServer.Utils;
 using Solace.BuildplateImporter;
 using Solace.Common;
-using Solace.DB;
+using Solace.Db.Earth;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 using Solace.StaticData;
@@ -160,8 +160,6 @@ internal static partial class App
             context.Items.Add(RequestExtensions.TimestampKey, DateTimeOffset.UtcNow);
             await next();
         });
-
-        app.UseStaticFiles();
 
         app.UseRouting();
 

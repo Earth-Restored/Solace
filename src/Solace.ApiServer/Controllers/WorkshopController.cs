@@ -10,23 +10,23 @@ using Solace.Common.Utils;
 using Solace.StaticData;
 using BurnRate = Solace.ApiServer.Types.Common.BurnRate;
 using CraftingCalculator = Solace.ApiServer.Utils.CraftingCalculator;
-using CraftingSlot = Solace.DB.Models.Player.Workshop.CraftingSlotEF;
+using CraftingSlot = Solace.Db.Earth.Models.Player.Workshop.CraftingSlotEF;
 using EarthApiResponse = Solace.ApiServer.Utils.EarthApiResponse;
 using ExpectedPurchasePriceR = Solace.ApiServer.Types.Common.ExpectedPurchasePriceR;
 using FinishPrice = Solace.ApiServer.Types.Workshop.FinishPrice;
-using InputItem = Solace.DB.Models.Player.Workshop.InputItem;
+using InputItem = Solace.Db.Earth.Models.Player.Workshop.InputItem;
 using OutputItem = Solace.ApiServer.Types.Workshop.OutputItem;
 using Rewards = Solace.ApiServer.Utils.Rewards;
 using SmeltingCalculator = Solace.ApiServer.Utils.SmeltingCalculator;
-using SmeltingSlotEF = Solace.DB.Models.Player.Workshop.SmeltingSlotEF;
+using SmeltingSlotEF = Solace.Db.Earth.Models.Player.Workshop.SmeltingSlotEF;
 using SplitRubies = Solace.ApiServer.Types.Profile.SplitRubies;
 using State = Solace.ApiServer.Types.Workshop.State;
 using TimeFormatter = Solace.ApiServer.Utils.TimeFormatter;
 using UnlockPrice = Solace.ApiServer.Types.Workshop.UnlockPrice;
-using Solace.DB;
+using Solace.Db.Earth;
 using Microsoft.EntityFrameworkCore;
-using Solace.DB.Models.Player;
-using Solace.DB.Models.Common;
+using Solace.Db.Earth.Models.Player;
+using Solace.Db.Earth.Models.Common;
 
 namespace Solace.ApiServer.Controllers;
 
@@ -503,7 +503,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         var results = new ResultsEF.Builder()
             .Crafting();
 
-        await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new DB.Models.Player.CraftingCompletedEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
+        await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new Db.Earth.Models.Player.CraftingCompletedEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
         await rewards.ToRedeemQueryAsync(_earthDb, results, accountId, requestStartedOn, _staticData, cancellationToken);
 
         return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal)

@@ -5,11 +5,28 @@ option csharp_namespace = "Solace.ObjectStore";
 package objectstore;
 
 service ObjectStoreService {
+    rpc GetTotalSize (GetTotalSizeRequest) returns (GetTotalSizeResponse);
+
+    rpc DeleteAll (DeleteAllRequest) returns (DeleteAllResponse);
+
     rpc StoreObject (stream StoreObjectRequest) returns (StoreObjectResponse);
 
     rpc GetObject (GetObjectRequest) returns (stream GetObjectResponse);
 
     rpc DeleteObject (DeleteObjectRequest) returns (DeleteObjectResponse);
+}
+
+message GetTotalSizeRequest {
+}
+
+message GetTotalSizeResponse {
+    int64 total_size = 1;
+}
+
+message DeleteAllRequest {
+}
+
+message DeleteAllResponse {
 }
 
 message StoreObjectRequest {

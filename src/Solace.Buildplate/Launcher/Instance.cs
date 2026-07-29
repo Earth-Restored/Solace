@@ -556,9 +556,9 @@ internal sealed partial class Instance
         {
             return Json.Deserialize<T>(str);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            LogEventBusDecodeError(ex);
+            LogEventBusDecodeError(exception);
             BeginShutdown();
             return default;
         }

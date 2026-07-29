@@ -64,7 +64,7 @@
             </div>
         </div>
 
-        @((MarkupString)CaptchaValidator.GetHtmlWidget(size: "compact"))
+        <div id="captcha-container"></div>
 
         <input type="hidden" id="afToken" value="@afToken" />
 
@@ -75,6 +75,10 @@
 </div>
 
 <script>
+    @((MarkupString)CaptchaValidator.ManagerScript)
+
+    const captchaManager = new CaptchaManager();
+
     document.addEventListener('DOMContentLoaded', () => {
         let isRegister = false;
 
@@ -126,10 +130,22 @@
             }
         });
 
+        let captchaToken = null;
+        let captchaFailed = false;
+        captchaManager.createWidget("#captcha-container", {
+            size: "compact",
+            onSuccess: (token) => {
+                captchaToken = token;
+            },
+            onError: (error) => {
+                console.log(`Captcha error: ${error}`);
+                captchaFailed = true;
+            }
+        });
+
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const captchaInput = loginForm.querySelector('input[name*="-response"]');
             const antiForgeryToken = document.getElementById('afToken')?.value;
 
             if (!antiForgeryToken) {
@@ -138,13 +154,25 @@
                 return;
             }
 
+            if (captchaToken === null) {
+                if (captchaFailed) {
+                    errorMsg.textContent = "Captcha failed. Please refresh the page.";
+                    errorMsg.style.display = 'block';
+                    return;
+                } else {
+                    errorMsg.textContent = "Complete the captcha first.";
+                    errorMsg.style.display = 'block';
+                    return;
+                }
+            }
+
             const userData = {
                 username: usernameInput.value,
                 password: passwordInput.value,
-                captchaToken: captchaInput?.value ?? '',
+                captchaToken: captchaToken,
                 __RequestVerificationToken: antiForgeryToken
             };
-            
+
             const basePath = '@currentContextPath';
             const endpoint = isRegister ? `${basePath}/register` : `${basePath}/login`;
 
@@ -166,6 +194,10 @@
                 });
 
                 if (!response.ok) {
+                    captchaToken = null;
+                    captchaFailed = false;
+                    captchaManager.resetWidget("#captcha-container");
+
                     const errorText = await response.text();
                     throw new Error(errorText || "An unknown error occurred.");
                 }
@@ -191,6 +223,10 @@
             } catch (error) {
                 errorMsg.textContent = error.message;
                 errorMsg.style.display = 'block';
+
+                captchaToken = null;
+                captchaFailed = false;
+                captchaManager.resetWidget("#captcha-container");
             }
         });
     });

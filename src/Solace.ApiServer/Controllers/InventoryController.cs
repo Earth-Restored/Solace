@@ -7,8 +7,8 @@ using Solace.ApiServer.Types.Inventory;
 using Solace.ApiServer.Utils;
 using Solace.Common;
 using Solace.Common.Utils;
-using Solace.DB;
-using Solace.DB.Models.Player;
+using Solace.Db.Earth;
+using Solace.Db.Earth.Models.Player;
 using Solace.StaticData;
 using Microsoft.EntityFrameworkCore;
 
@@ -219,13 +219,13 @@ internal sealed class InventoryController : SolaceControllerBase
 
         var healing = item.ConsumeInfo.Heal;
 
-        var healingMultiplier = BoostUtils.GetActiveStatModifiers(boosts, requestStartedOn, _catalog.ItemsCatalog).FoodMultiplier;
+        var healingMultiplier = Common.Utils.BoostUtils.GetActiveStatModifiers(boosts, requestStartedOn, _catalog.ItemsCatalog).FoodMultiplier;
         if (healingMultiplier > 0)
         {
             healing = healing * (healingMultiplier + 100) / 100;
         }
 
-        var maxPlayerHealth = BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _catalog.ItemsCatalog);
+        var maxPlayerHealth = Common.Utils.BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _catalog.ItemsCatalog);
         profile.Health += healing;
         if (profile.Health > maxPlayerHealth)
         {

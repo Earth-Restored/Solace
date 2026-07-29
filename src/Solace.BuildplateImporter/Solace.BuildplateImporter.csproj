@@ -5,7 +5,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Solace.Common\Solace.Common.csproj" />
-    <ProjectReference Include="..\Solace.DB\Solace.DB.csproj" />
+    <ProjectReference Include="..\Solace.Db.Earth\Solace.Db.Earth.csproj" />
     <ProjectReference Include="..\Solace.EventBus.Client\Solace.EventBus.Client.csproj" />
     <ProjectReference Include="..\Solace.ObjectStore.Client\Solace.ObjectStore.Client.csproj" />
   </ItemGroup>
