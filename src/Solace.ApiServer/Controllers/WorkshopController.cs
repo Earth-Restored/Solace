@@ -63,7 +63,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             .AsNoTracking()
             .FirstAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
 
-        var versions = await _earthDb.AccountVersions
+        var versions = await _earthDb.ProfileVersions
             .AsNoTracking()
             .Select(versions => new { versions.Id, versions.Crafting, versions.Smelting, })
             .FirstAsync(versions => versions.Id == accountId, cancellationToken: cancellationToken);
@@ -102,7 +102,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             .AsNoTracking()
             .FirstAsync(craftingSlots => craftingSlots.Id == accountId, cancellationToken: cancellationToken);
 
-        var versions = await _earthDb.AccountVersions
+        var versions = await _earthDb.ProfileVersions
             .AsNoTracking()
             .Select(versions => new { versions.Id, versions.Crafting, })
             .FirstAsync(versions => versions.Id == accountId, cancellationToken: cancellationToken);
@@ -125,7 +125,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             .AsNoTracking()
             .FirstAsync(smeltingSlots => smeltingSlots.Id == accountId, cancellationToken: cancellationToken);
 
-        var versions = await _earthDb.AccountVersions
+        var versions = await _earthDb.ProfileVersions
             .AsNoTracking()
             .Select(versions => new { versions.Id, versions.Smelting, })
             .FirstAsync(versions => versions.Id == accountId, cancellationToken: cancellationToken);
@@ -595,7 +595,7 @@ internal sealed class WorkshopController : SolaceControllerBase
 
         if (craftingSlot.ActiveJob is null)
         {
-            var versions = await _earthDb.AccountVersions
+            var versions = await _earthDb.ProfileVersions
                 .AsNoTracking()
                 .Select(versions => new { versions.Id, versions.Crafting, })
                 .FirstAsync(versions => versions.Id == accountId, cancellationToken: cancellationToken);
@@ -662,7 +662,7 @@ internal sealed class WorkshopController : SolaceControllerBase
 
         if (smeltingSlot.ActiveJob is null)
         {
-            var versions = await _earthDb.AccountVersions
+            var versions = await _earthDb.ProfileVersions
                 .AsNoTracking()
                 .Select(versions => new { versions.Id, versions.Smelting, })
                 .FirstAsync(versions => versions.Id == accountId, cancellationToken: cancellationToken);

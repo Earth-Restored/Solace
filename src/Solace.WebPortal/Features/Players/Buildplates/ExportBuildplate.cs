@@ -38,7 +38,7 @@ public sealed partial class ExportBuildplate(
     {
         var buildplate = await earthDb.PlayerBuildplates
             .AsNoTracking()
-            .FirstOrDefaultAsync(buildplate => buildplate.AccountId == query.PlayerId && buildplate.Id == query.BuildplateId, cancellationToken);
+            .FirstOrDefaultAsync(buildplate => buildplate.ProfileId == query.PlayerId && buildplate.Id == query.BuildplateId, cancellationToken);
 
         if (buildplate is null)
         {

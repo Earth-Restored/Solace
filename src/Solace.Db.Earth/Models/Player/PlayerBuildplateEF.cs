@@ -4,9 +4,9 @@ public sealed class PlayerBuildplateEF : IEntityWithId<Guid>
 {
     public Guid Id { get; set; }
 
-    public Guid AccountId { get; set; }
+    public Guid ProfileId { get; set; }
 
-    public Account Account { get; set; } = null!;
+    public ProfileEF Profile { get; set; } = null!;
 
     public Guid? TemplateId { get; set; }
 

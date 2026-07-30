@@ -9,6 +9,7 @@ using Solace.Db.Earth.Models.Player;
 using Solace.StaticData;
 using Effect = Solace.ApiServer.Types.Common.Effect;
 using Microsoft.EntityFrameworkCore;
+using Solace.Db.Earth.Models;
 
 namespace Solace.ApiServer.Controllers;
 

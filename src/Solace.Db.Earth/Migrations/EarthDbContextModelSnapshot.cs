@@ -22,89 +22,6 @@ namespace Solace.Db.Earth.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Solace.Db.Earth.Models.Account", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("FirstName")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsSkinSlim")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("LastName")
-                        .HasColumnType("text");
-
-                    b.Property<byte[]>("PasswordHash")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("bytea");
-
-                    b.Property<byte[]>("PasswordSalt")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("bytea");
-
-                    b.Property<string>("ProfilePictureUrl")
-                        .HasColumnType("text");
-
-                    b.Property<byte[]>("SkinImageData")
-                        .HasMaxLength(16384)
-                        .HasColumnType("bytea");
-
-                    b.Property<string>("Username")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Username")
-                        .IsUnique();
-
-                    b.ToTable("Accounts");
-                });
-
-            modelBuilder.Entity("Solace.Db.Earth.Models.AccountVersions", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Boosts")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Buildplates")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Challenges")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Crafting")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Inventory")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Journal")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Profile")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Smelting")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Tokens")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("AccountVersions");
-                });
-
             modelBuilder.Entity("Solace.Db.Earth.Models.Global.EncounterBuildplateEF", b =>
                 {
                     b.Property<Guid>("Id")
@@ -148,9 +65,6 @@ namespace Solace.Db.Earth.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("AccountId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTimeOffset>("BuildplateLastModifed")
                         .HasColumnType("timestamp with time zone");
 
@@ -173,6 +87,9 @@ namespace Solace.Db.Earth.Migrations
                     b.Property<int>("Offset")
                         .HasColumnType("integer");
 
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Scale")
                         .HasColumnType("integer");
 
@@ -184,7 +101,7 @@ namespace Solace.Db.Earth.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AccountId");
+                    b.HasIndex("ProfileId");
 
                     b.ToTable("SharedBuildplates");
                 });
@@ -240,7 +157,7 @@ namespace Solace.Db.Earth.Migrations
 
             modelBuilder.Entity("Solace.Db.Earth.Models.Player.ActivityLogEntryEF", b =>
                 {
-                    b.Property<Guid>("AccountId")
+                    b.Property<Guid>("ProfileId")
                         .HasColumnType("uuid");
 
                     b.Property<long>("EntryId")
@@ -257,7 +174,7 @@ namespace Solace.Db.Earth.Migrations
                         .HasMaxLength(34)
                         .HasColumnType("character varying(34)");
 
-                    b.HasKey("AccountId", "EntryId");
+                    b.HasKey("ProfileId", "EntryId");
 
                     b.ToTable("ActivityLogs");
 
@@ -296,7 +213,7 @@ namespace Solace.Db.Earth.Migrations
 
             modelBuilder.Entity("Solace.Db.Earth.Models.Player.ItemJournalEntryEF", b =>
                 {
-                    b.Property<Guid>("AccountId")
+                    b.Property<Guid>("ProfileId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("ItemId")
@@ -311,14 +228,14 @@ namespace Solace.Db.Earth.Migrations
                     b.Property<DateTimeOffset>("LastSeen")
                         .HasColumnType("timestamp with time zone");
 
-                    b.HasKey("AccountId", "ItemId");
+                    b.HasKey("ProfileId", "ItemId");
 
                     b.ToTable("JournalEntries");
                 });
 
             modelBuilder.Entity("Solace.Db.Earth.Models.Player.NonStackableItemInstanceEF", b =>
                 {
-                    b.Property<Guid>("AccountId")
+                    b.Property<Guid>("ProfileId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("ItemId")
@@ -330,7 +247,7 @@ namespace Solace.Db.Earth.Migrations
                     b.Property<int>("Wear")
                         .HasColumnType("integer");
 
-                    b.HasKey("AccountId", "ItemId", "InstanceId");
+                    b.HasKey("ProfileId", "ItemId", "InstanceId");
 
                     b.ToTable("NonStackableItems");
                 });
@@ -339,9 +256,6 @@ namespace Solace.Db.Earth.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AccountId")
                         .HasColumnType("uuid");
 
                     b.Property<int>("BlocksPerMeter")
@@ -363,6 +277,9 @@ namespace Solace.Db.Earth.Migrations
                     b.Property<Guid>("PreviewObjectId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("ServerDataObjectId")
                         .HasColumnType("uuid");
 
@@ -374,33 +291,14 @@ namespace Solace.Db.Earth.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AccountId");
+                    b.HasIndex("ProfileId");
 
                     b.ToTable("PlayerBuildplates");
                 });
 
-            modelBuilder.Entity("Solace.Db.Earth.Models.Player.ProfileEF", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Experience")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Health")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Level")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Profiles");
-                });
-
             modelBuilder.Entity("Solace.Db.Earth.Models.Player.RedeemedTappableEF", b =>
                 {
-                    b.Property<Guid>("AccountId")
+                    b.Property<Guid>("ProfileId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("TappableId")
@@ -409,14 +307,14 @@ namespace Solace.Db.Earth.Migrations
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.HasKey("AccountId", "TappableId");
+                    b.HasKey("ProfileId", "TappableId");
 
                     b.ToTable("RedeemedTappables");
                 });
 
             modelBuilder.Entity("Solace.Db.Earth.Models.Player.StackableItemEF", b =>
                 {
-                    b.Property<Guid>("AccountId")
+                    b.Property<Guid>("ProfileId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("ItemId")
@@ -425,14 +323,14 @@ namespace Solace.Db.Earth.Migrations
                     b.Property<int>("Count")
                         .HasColumnType("integer");
 
-                    b.HasKey("AccountId", "ItemId");
+                    b.HasKey("ProfileId", "ItemId");
 
                     b.ToTable("StackableItems");
                 });
 
             modelBuilder.Entity("Solace.Db.Earth.Models.Player.TokenEF", b =>
                 {
-                    b.Property<Guid>("AccountId")
+                    b.Property<Guid>("ProfileId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("TokenId")
@@ -444,7 +342,7 @@ namespace Solace.Db.Earth.Migrations
                         .HasMaxLength(21)
                         .HasColumnType("character varying(21)");
 
-                    b.HasKey("AccountId", "TokenId");
+                    b.HasKey("ProfileId", "TokenId");
 
                     b.ToTable("Tokens");
 
@@ -479,6 +377,87 @@ namespace Solace.Db.Earth.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("SmeltingSlots");
+                });
+
+            modelBuilder.Entity("Solace.Db.Earth.Models.ProfileEF", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Experience")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Health")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsSkinSlim")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProfilePictureUrl")
+                        .HasColumnType("text");
+
+                    b.Property<byte[]>("SkinImageData")
+                        .HasMaxLength(16384)
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("Username")
+                        .HasColumnType("text");
+
+                    b.Property<long?>("WebPortalAccountId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.HasIndex("WebPortalAccountId");
+
+                    b.ToTable("Profiles");
+                });
+
+            modelBuilder.Entity("Solace.Db.Earth.Models.ProfileVersions", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Boosts")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Buildplates")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Challenges")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Crafting")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Inventory")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Journal")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Profile")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Smelting")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Tokens")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ProfileVersions", (string)null);
                 });
 
             modelBuilder.Entity("Solace.Db.Earth.Models.Player.BoostActivatedEntryEF", b =>
@@ -585,102 +564,140 @@ namespace Solace.Db.Earth.Migrations
                     b.HasDiscriminator().HasValue("level_up");
                 });
 
-            modelBuilder.Entity("Solace.Db.Earth.Models.AccountVersions", b =>
-                {
-                    b.HasOne("Solace.Db.Earth.Models.Account", "Account")
-                        .WithOne("AccountVersions")
-                        .HasForeignKey("Solace.Db.Earth.Models.AccountVersions", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Account");
-                });
-
             modelBuilder.Entity("Solace.Db.Earth.Models.Global.SharedBuildplateEF", b =>
                 {
-                    b.HasOne("Solace.Db.Earth.Models.Account", "Account")
+                    b.HasOne("Solace.Db.Earth.Models.ProfileEF", "Profile")
                         .WithMany("SharedBuildplates")
-                        .HasForeignKey("AccountId")
+                        .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Account");
+                    b.Navigation("Profile");
                 });
 
             modelBuilder.Entity("Solace.Db.Earth.Models.Player.ActivityLogEntryEF", b =>
                 {
-                    b.HasOne("Solace.Db.Earth.Models.Account", "Account")
+                    b.HasOne("Solace.Db.Earth.Models.ProfileEF", "Profile")
                         .WithMany("ActivityLogs")
-                        .HasForeignKey("AccountId")
+                        .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Account");
+                    b.Navigation("Profile");
                 });
 
             modelBuilder.Entity("Solace.Db.Earth.Models.Player.BoostsEF", b =>
                 {
-                    b.HasOne("Solace.Db.Earth.Models.Account", "Account")
+                    b.HasOne("Solace.Db.Earth.Models.ProfileEF", "Profile")
                         .WithOne("Boosts")
                         .HasForeignKey("Solace.Db.Earth.Models.Player.BoostsEF", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Account");
+                    b.Navigation("Profile");
                 });
 
             modelBuilder.Entity("Solace.Db.Earth.Models.Player.HotbarEF", b =>
                 {
-                    b.HasOne("Solace.Db.Earth.Models.Account", "Account")
+                    b.HasOne("Solace.Db.Earth.Models.ProfileEF", "Profile")
                         .WithOne("Hotbar")
                         .HasForeignKey("Solace.Db.Earth.Models.Player.HotbarEF", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Account");
+                    b.Navigation("Profile");
                 });
 
             modelBuilder.Entity("Solace.Db.Earth.Models.Player.ItemJournalEntryEF", b =>
                 {
-                    b.HasOne("Solace.Db.Earth.Models.Account", "Account")
+                    b.HasOne("Solace.Db.Earth.Models.ProfileEF", "Profile")
                         .WithMany("JournalEntries")
-                        .HasForeignKey("AccountId")
+                        .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Account");
+                    b.Navigation("Profile");
                 });
 
             modelBuilder.Entity("Solace.Db.Earth.Models.Player.NonStackableItemInstanceEF", b =>
                 {
-                    b.HasOne("Solace.Db.Earth.Models.Account", "Account")
+                    b.HasOne("Solace.Db.Earth.Models.ProfileEF", "Profile")
                         .WithMany("NonStackableItems")
-                        .HasForeignKey("AccountId")
+                        .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Account");
+                    b.Navigation("Profile");
                 });
 
             modelBuilder.Entity("Solace.Db.Earth.Models.Player.PlayerBuildplateEF", b =>
                 {
-                    b.HasOne("Solace.Db.Earth.Models.Account", "Account")
+                    b.HasOne("Solace.Db.Earth.Models.ProfileEF", "Profile")
                         .WithMany("Buildplates")
-                        .HasForeignKey("AccountId")
+                        .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Account");
+                    b.Navigation("Profile");
                 });
 
-            modelBuilder.Entity("Solace.Db.Earth.Models.Player.ProfileEF", b =>
+            modelBuilder.Entity("Solace.Db.Earth.Models.Player.RedeemedTappableEF", b =>
                 {
-                    b.HasOne("Solace.Db.Earth.Models.Account", "Account")
-                        .WithOne("Profile")
-                        .HasForeignKey("Solace.Db.Earth.Models.Player.ProfileEF", "Id")
+                    b.HasOne("Solace.Db.Earth.Models.ProfileEF", "Profile")
+                        .WithMany("RedeemedTappables")
+                        .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Profile");
+                });
+
+            modelBuilder.Entity("Solace.Db.Earth.Models.Player.StackableItemEF", b =>
+                {
+                    b.HasOne("Solace.Db.Earth.Models.ProfileEF", "Profile")
+                        .WithMany("StackableItems")
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Profile");
+                });
+
+            modelBuilder.Entity("Solace.Db.Earth.Models.Player.TokenEF", b =>
+                {
+                    b.HasOne("Solace.Db.Earth.Models.ProfileEF", "Profile")
+                        .WithMany("Tokens")
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Profile");
+                });
+
+            modelBuilder.Entity("Solace.Db.Earth.Models.Player.Workshop.CraftingSlotsEF", b =>
+                {
+                    b.HasOne("Solace.Db.Earth.Models.ProfileEF", "Profile")
+                        .WithOne("CraftingSlots")
+                        .HasForeignKey("Solace.Db.Earth.Models.Player.Workshop.CraftingSlotsEF", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Profile");
+                });
+
+            modelBuilder.Entity("Solace.Db.Earth.Models.Player.Workshop.SmeltingSlotsEF", b =>
+                {
+                    b.HasOne("Solace.Db.Earth.Models.ProfileEF", "Profile")
+                        .WithOne("SmeltingSlots")
+                        .HasForeignKey("Solace.Db.Earth.Models.Player.Workshop.SmeltingSlotsEF", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Profile");
+                });
+
+            modelBuilder.Entity("Solace.Db.Earth.Models.ProfileEF", b =>
+                {
                     b.OwnsOne("Solace.Db.Earth.Models.Player.Rubies", "Rubies", b1 =>
                         {
                             b1.Property<Guid>("ProfileEFId");
@@ -701,72 +718,26 @@ namespace Solace.Db.Earth.Migrations
                                 .HasForeignKey("ProfileEFId");
                         });
 
-                    b.Navigation("Account");
-
                     b.Navigation("Rubies")
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Solace.Db.Earth.Models.Player.RedeemedTappableEF", b =>
+            modelBuilder.Entity("Solace.Db.Earth.Models.ProfileVersions", b =>
                 {
-                    b.HasOne("Solace.Db.Earth.Models.Account", "Account")
-                        .WithMany("RedeemedTappables")
-                        .HasForeignKey("AccountId")
+                    b.HasOne("Solace.Db.Earth.Models.ProfileEF", "ProfileRef")
+                        .WithOne("ProfileVersions")
+                        .HasForeignKey("Solace.Db.Earth.Models.ProfileVersions", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Account");
-                });
-
-            modelBuilder.Entity("Solace.Db.Earth.Models.Player.StackableItemEF", b =>
-                {
-                    b.HasOne("Solace.Db.Earth.Models.Account", "Account")
-                        .WithMany("StackableItems")
-                        .HasForeignKey("AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Account");
-                });
-
-            modelBuilder.Entity("Solace.Db.Earth.Models.Player.TokenEF", b =>
-                {
-                    b.HasOne("Solace.Db.Earth.Models.Account", "Account")
-                        .WithMany("Tokens")
-                        .HasForeignKey("AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Account");
-                });
-
-            modelBuilder.Entity("Solace.Db.Earth.Models.Player.Workshop.CraftingSlotsEF", b =>
-                {
-                    b.HasOne("Solace.Db.Earth.Models.Account", "Account")
-                        .WithOne("CraftingSlots")
-                        .HasForeignKey("Solace.Db.Earth.Models.Player.Workshop.CraftingSlotsEF", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Account");
-                });
-
-            modelBuilder.Entity("Solace.Db.Earth.Models.Player.Workshop.SmeltingSlotsEF", b =>
-                {
-                    b.HasOne("Solace.Db.Earth.Models.Account", "Account")
-                        .WithOne("SmeltingSlots")
-                        .HasForeignKey("Solace.Db.Earth.Models.Player.Workshop.SmeltingSlotsEF", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Account");
+                    b.Navigation("ProfileRef");
                 });
 
             modelBuilder.Entity("Solace.Db.Earth.Models.Player.RewardedActivityLogEntryEF", b =>
                 {
                     b.OwnsOne("Solace.Db.Earth.Models.Common.Rewards", "Rewards", b1 =>
                         {
-                            b1.Property<Guid>("RewardedActivityLogEntryEFAccountId");
+                            b1.Property<Guid>("RewardedActivityLogEntryEFProfileId");
 
                             b1.Property<long>("RewardedActivityLogEntryEFEntryId");
 
@@ -785,7 +756,7 @@ namespace Solace.Db.Earth.Migrations
 
                             b1.Property<int>("Rubies");
 
-                            b1.HasKey("RewardedActivityLogEntryEFAccountId", "RewardedActivityLogEntryEFEntryId");
+                            b1.HasKey("RewardedActivityLogEntryEFProfileId", "RewardedActivityLogEntryEFEntryId");
 
                             b1.ToTable("ActivityLogs");
 
@@ -794,7 +765,7 @@ namespace Solace.Db.Earth.Migrations
                                 .HasColumnType("jsonb");
 
                             b1.WithOwner()
-                                .HasForeignKey("RewardedActivityLogEntryEFAccountId", "RewardedActivityLogEntryEFEntryId");
+                                .HasForeignKey("RewardedActivityLogEntryEFProfileId", "RewardedActivityLogEntryEFEntryId");
                         });
 
                     b.Navigation("Rewards")
@@ -805,7 +776,7 @@ namespace Solace.Db.Earth.Migrations
                 {
                     b.OwnsOne("Solace.Db.Earth.Models.Common.Rewards", "Rewards", b1 =>
                         {
-                            b1.Property<Guid>("RewardedTokenEFAccountId");
+                            b1.Property<Guid>("RewardedTokenEFProfileId");
 
                             b1.Property<Guid>("RewardedTokenEFTokenId");
 
@@ -824,7 +795,7 @@ namespace Solace.Db.Earth.Migrations
 
                             b1.Property<int>("Rubies");
 
-                            b1.HasKey("RewardedTokenEFAccountId", "RewardedTokenEFTokenId");
+                            b1.HasKey("RewardedTokenEFProfileId", "RewardedTokenEFTokenId");
 
                             b1.ToTable("Tokens");
 
@@ -833,17 +804,15 @@ namespace Solace.Db.Earth.Migrations
                                 .HasColumnType("jsonb");
 
                             b1.WithOwner()
-                                .HasForeignKey("RewardedTokenEFAccountId", "RewardedTokenEFTokenId");
+                                .HasForeignKey("RewardedTokenEFProfileId", "RewardedTokenEFTokenId");
                         });
 
                     b.Navigation("Rewards")
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Solace.Db.Earth.Models.Account", b =>
+            modelBuilder.Entity("Solace.Db.Earth.Models.ProfileEF", b =>
                 {
-                    b.Navigation("AccountVersions");
-
                     b.Navigation("ActivityLogs");
 
                     b.Navigation("Boosts");
@@ -858,7 +827,7 @@ namespace Solace.Db.Earth.Migrations
 
                     b.Navigation("NonStackableItems");
 
-                    b.Navigation("Profile");
+                    b.Navigation("ProfileVersions");
 
                     b.Navigation("RedeemedTappables");
 

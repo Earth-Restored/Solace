@@ -542,7 +542,7 @@ public partial class InitialMigration : Migration
             RETURN NULL; 
         END;
         $$ LANGUAGE plpgsql;
-    """);
+        """);
 
     private static void CreateAccountVersionTrigger(MigrationBuilder migrationBuilder, string tableName, string triggerName, string functionName)
         => migrationBuilder.Sql($"""
@@ -550,7 +550,7 @@ public partial class InitialMigration : Migration
         AFTER INSERT OR UPDATE OR DELETE ON "{tableName}"
         FOR EACH ROW
         EXECUTE FUNCTION {functionName}();
-    """);
+        """);
 
     private static void DropAccountVersionTrigger(MigrationBuilder migrationBuilder, string tableName, string triggerName)
         => migrationBuilder.Sql($"""

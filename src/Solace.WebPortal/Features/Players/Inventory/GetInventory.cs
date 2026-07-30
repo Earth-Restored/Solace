@@ -38,13 +38,13 @@ public static partial class GetInventory
 
         var nonStackableItems = await earthDb.NonStackableItems
             .AsNoTracking()
-            .Where(item => item.AccountId == query.Id)
+            .Where(item => item.ProfileId == query.Id)
             .Select(item => new NonStackableItemDto(item.ItemId, item.Wear, item.InstanceId))
             .ToListAsync(cancellationToken);
 
         var stackableItems = await earthDb.StackableItems
             .AsNoTracking()
-            .Where(item => item.AccountId == query.Id)
+            .Where(item => item.ProfileId == query.Id)
             .Select(item => new StackableItemDto(item.ItemId, item.Count))
             .ToListAsync(cancellationToken);
 

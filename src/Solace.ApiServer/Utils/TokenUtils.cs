@@ -20,7 +20,7 @@ internal static class TokenUtils
     {
         var token = await earthDb.Tokens
             .AsTracking()
-            .FirstOrDefaultAsync(t => t.AccountId == accountId && t.TokenId == tokenId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.ProfileId == accountId && t.TokenId == tokenId, cancellationToken);
 
         if (token is null)
         {

@@ -11,20 +11,20 @@ public abstract class TokenEF
     // for EF
     protected TokenEF()
     {
-        AccountId = default;
+        ProfileId = default;
     }
 
     [SetsRequiredMembers]
     protected TokenEF(Guid accountId)
     {
-        AccountId = accountId;
+        ProfileId = accountId;
     }
 
-    public required Guid AccountId { get; set; }
+    public required Guid ProfileId { get; set; }
 
     public Guid TokenId { get; set; }
 
-    public Account Account { get; set; } = null!;
+    public ProfileEF Profile { get; set; } = null!;
 }
 
 public abstract class RewardedTokenEF : TokenEF

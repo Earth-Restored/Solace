@@ -223,7 +223,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
 
         var buildplate = await earthDb.PlayerBuildplates
             .AsNoTracking()
-            .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.AccountId == accountId, cancellationToken: cancellationToken);
+            .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.ProfileId == accountId, cancellationToken: cancellationToken);
 
         if (buildplate is null)
         {
@@ -362,7 +362,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
         {
             var buildplate = await earthDb.PlayerBuildplates
                 .AsTracking()
-                .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.AccountId == accountId, cancellationToken);
+                .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.ProfileId == accountId, cancellationToken);
 
             if (buildplate is null)
             {
@@ -444,12 +444,12 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                 {
                     var stackableItems = earthDb.StackableItems
                         .AsNoTracking()
-                        .Where(item => item.AccountId == playerConnectedRequest.Uuid)
+                        .Where(item => item.ProfileId == playerConnectedRequest.Uuid)
                         .AsAsyncEnumerable();
 
                     var nonStackableItems = earthDb.NonStackableItems
                         .AsNoTracking()
-                        .Where(item => item.AccountId == playerConnectedRequest.Uuid)
+                        .Where(item => item.ProfileId == playerConnectedRequest.Uuid)
                         .AsAsyncEnumerable();
 
                     var hotbar = await earthDb.Hotbars
@@ -732,12 +732,12 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
 
         var stackableItems = earthDb.StackableItems
             .AsNoTracking()
-            .Where(item => item.AccountId == requestedInventoryAccountId)
+            .Where(item => item.ProfileId == requestedInventoryAccountId)
             .AsAsyncEnumerable();
 
         var nonStackableItems = earthDb.NonStackableItems
             .AsNoTracking()
-            .Where(item => item.AccountId == requestedInventoryAccountId)
+            .Where(item => item.ProfileId == requestedInventoryAccountId)
             .AsAsyncEnumerable();
 
         var hotbar = await earthDb.Hotbars
@@ -831,7 +831,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
             {
                 var count = (await earthDb.StackableItems
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(item => item.AccountId == inventoryRemoveItemRequest.PlayerId && item.ItemId == inventoryRemoveItemRequest.ItemId, cancellationToken))?.Count ?? 0;
+                    .FirstOrDefaultAsync(item => item.ProfileId == inventoryRemoveItemRequest.PlayerId && item.ItemId == inventoryRemoveItemRequest.ItemId, cancellationToken))?.Count ?? 0;
                 if (!await InventoryUtils.TakeStackableItemsAsync(earthDb, ResultsEF.Builder.Null, inventoryRemoveItemRequest.PlayerId, inventoryRemoveItemRequest.ItemId, count, cancellationToken))
                 {
                     count = 0;
@@ -855,7 +855,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
 
         var nonStackableItemInstance = await earthDb.NonStackableItems
             .AsNoTracking()
-            .FirstOrDefaultAsync(item => item.AccountId == inventoryUpdateItemWearMessage.PlayerId && item.ItemId == inventoryUpdateItemWearMessage.ItemId && item.InstanceId == inventoryUpdateItemWearMessage.InstanceId, cancellationToken);
+            .FirstOrDefaultAsync(item => item.ProfileId == inventoryUpdateItemWearMessage.PlayerId && item.ItemId == inventoryUpdateItemWearMessage.ItemId && item.InstanceId == inventoryUpdateItemWearMessage.InstanceId, cancellationToken);
 
         if (nonStackableItemInstance is not null)
         {

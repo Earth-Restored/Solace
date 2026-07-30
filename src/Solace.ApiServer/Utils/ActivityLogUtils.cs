@@ -15,7 +15,7 @@ internal static class ActivityLogUtils
         await earthDb.SaveChangesAsync(cancellationToken);
 
         var thresholdTimestamp = await earthDb.ActivityLogs
-            .Where(log => log.AccountId == accountId)
+            .Where(log => log.ProfileId == accountId)
             .OrderByDescending(log => log.Timestamp)
             .Select(log => log.Timestamp)
             .Skip(39) // Skip the first 39 (0-indexed)
@@ -24,7 +24,7 @@ internal static class ActivityLogUtils
         if (thresholdTimestamp != default)
         {
             await earthDb.ActivityLogs
-                .Where(log => log.AccountId == accountId && log.Timestamp < thresholdTimestamp)
+                .Where(log => log.ProfileId == accountId && log.Timestamp < thresholdTimestamp)
                 .ExecuteDeleteAsync(cancellationToken);
         }
     }

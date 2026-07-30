@@ -133,7 +133,7 @@ public sealed partial class LoginWithXbox(
 
         var userId = xboxToken.Data.UserId;
 
-        var account = await earthDb.Accounts
+        var account = await earthDb.Profiles
             .AsNoTracking()
             .Select(account => new { account.Id, account.CreatedDate, })
             .FirstOrDefaultAsync(account => account.Id == userId, cancellationToken);

@@ -12,6 +12,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     {
         base.OnModelCreating(builder);
 
+        builder.UseOpenIddict();
+
         builder.Entity<BuildplatePreviewEF>(entity =>
         {
             entity.HasKey(bp => new { bp.BuildplateId, bp.PlayerId, });

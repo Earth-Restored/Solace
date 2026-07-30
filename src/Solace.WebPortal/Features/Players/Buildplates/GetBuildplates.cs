@@ -31,7 +31,7 @@ public static partial class GetBuildplates
     {
         var dbQuery = (IQueryable<PlayerBuildplateEF>)earthDb.PlayerBuildplates
             .AsNoTracking()
-            .Where(buildplate => buildplate.AccountId == query.PlayerId)
+            .Where(buildplate => buildplate.ProfileId == query.PlayerId)
             .OrderBy(template => template.Name);
 
         var totalCount = await dbQuery.CountAsync(cancellationToken);

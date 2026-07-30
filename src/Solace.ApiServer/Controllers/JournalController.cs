@@ -33,14 +33,14 @@ internal sealed class JournalController : SolaceControllerBase
 
         var journalEnties = _earthDb.JournalEntries
             .AsNoTracking()
-            .Where(entry => entry.AccountId == accountId)
+            .Where(entry => entry.ProfileId == accountId)
             .Select(entry => new { entry.ItemId, entry.FirstSeen, entry.LastSeen, entry.AmountCollected, })
             .AsAsyncEnumerable()
             .WithCancellation(cancellationToken);
 
         var activityLogEntries = _earthDb.ActivityLogs
             .AsNoTracking()
-            .Where(entry => entry.AccountId == accountId)
+            .Where(entry => entry.ProfileId == accountId)
             .AsAsyncEnumerable();
 
         Dictionary<Guid, Types.Journal.JournalRecord.InventoryJournalEntry> inventoryJournal = [];

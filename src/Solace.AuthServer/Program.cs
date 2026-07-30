@@ -3,16 +3,20 @@ using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization.Metadata;
 using Immediate.Handlers.Shared;
 using Immediate.Validations.Shared;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.HttpOverrides;
 
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.Net.Http.Headers;
 using Solace.Common;
 using Solace.Common.Asp;
+using Solace.Db;
 using Solace.Db.Earth;
 
 [assembly: Behaviors(
@@ -76,10 +80,6 @@ internal sealed partial class Program2
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddAntiforgery();
 
-        // needed for TypedResults.Forbid
-        builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-            .AddCookie();
-
         builder.Services.AddRazorComponents();
 
         builder.Services.AddSolaceAuthServerHandlers();
@@ -94,19 +94,84 @@ internal sealed partial class Program2
         builder.Services.Configure<Features.Live.Login.AuthSettings>(builder.Configuration.GetSection("Authentication:Login"));
         builder.Services.Configure<Features.XboxLive.AuthSettings>(builder.Configuration.GetSection("Authentication:XboxLive"));
         builder.Services.Configure<Features.PlayfabApi.AuthSettings>(builder.Configuration.GetSection("Authentication:PlayfabApi"));
-        builder.Services.Configure<Common.Asp.Captcha.CaptchaConfiguration>(builder.Configuration.GetSection("Captcha"));
+        builder.Services.Configure<Common.Asp.Oidc.OidcClientConfiguration>(builder.Configuration.GetSection("Oidc"));
 
-        var captchaProvider = builder.Configuration.GetValue("Captcha:Provider", Common.Asp.Captcha.CaptchaProvider.NoOp);
+        builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+            })
+            .AddCookie(options =>
+            {
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+                options.SlidingExpiration = false;
+            })
+            .AddOpenIdConnect(options =>
+            {
+                var oidcConfig = builder.Configuration.GetSection("Oidc").Get<Common.Asp.Oidc.OidcClientConfiguration>();
+                Debug.Assert(oidcConfig is not null);
 
-        switch (captchaProvider)
-        {
-            case Common.Asp.Captcha.CaptchaProvider.CloudflareTurnstile:
-                builder.Services.AddHttpClient<Common.Asp.Captcha.ICaptchaValidator, Common.Asp.Captcha.CloudflareTurnstileValidator>();
-                break;
-            default:
-                builder.Services.AddSingleton<Common.Asp.Captcha.ICaptchaValidator, Common.Asp.Captcha.NoOpCaptchaValidator>();
-                break;
-        }
+                var webPortalEndpoint = builder.Configuration["PublicEndpoints:WebPortal"];
+                if (string.IsNullOrEmpty(webPortalEndpoint))
+                {
+                    options.Authority = builder.Configuration["services:web-portal:http:0"]!;
+                }
+                else
+                {
+                    options.Authority = webPortalEndpoint;
+                }
+
+                options.ClientId = oidcConfig.ClientId;
+                options.ClientSecret = oidcConfig.ClientSecret;
+                options.ResponseType = OpenIdConnectResponseType.Code;
+
+                options.SignedOutRedirectUri = "/login.live.com/ppsecure/InlineConnect.srf";
+
+                options.Scope.Add("openid");
+                options.Scope.Add("email");
+                options.Scope.Add("profile");
+
+                options.ClaimActions.MapJsonKey("can_create_profile", "can_create_profile");
+
+                options.MapInboundClaims = false;
+                options.SaveTokens = false;
+                options.GetClaimsFromUserInfoEndpoint = true;
+
+                options.Events = new OpenIdConnectEvents
+                {
+                    OnTicketReceived = context =>
+                    {
+                        if (string.IsNullOrEmpty(context.ReturnUri) || context.ReturnUri is "/")
+                        {
+                            context.ReturnUri = "/login.live.com/ppsecure/InlineConnect.srf";
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
+
+                if (builder.Environment.IsDevelopment())
+                {
+                    options.RequireHttpsMetadata = false; // Disable strict HTTPS check in dev
+
+#pragma warning disable MA0039 // Do not write your own certificate validation method
+                    options.BackchannelHttpHandler = new HttpClientHandler
+                    {
+                        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                    };
+#pragma warning restore MA0039 // Do not write your own certificate validation method
+
+                    options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+                    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
+                    options.NonceCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+                    options.NonceCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                }
+            });
+
+        builder.Services.AddAuthorization();
+
+        builder.Services.AddCascadingAuthenticationState();
 
         using var app = builder.Build();
 
@@ -115,18 +180,13 @@ internal sealed partial class Program2
 
         var programLogger = loggerFactory.CreateLogger(nameof(Program));
 
-        if (captchaProvider is Common.Asp.Captcha.CaptchaProvider.NoOp)
-        {
-            LogUsingNoOpCaptchaProvider(programLogger);
-        }
-
         var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
 
         using (var scope = app.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<EarthDbContext>();
 
-            await db.Database.MigrateAsync();
+            await db.Database.MigrateAsyncWithLock();
 
             startupDeps.Secrets = await db.GetOrInitializeSecretsAsync();
         }
@@ -202,6 +262,13 @@ internal sealed partial class Program2
 
         app.MapRazorComponents<App>();
 
+        app.MapGet("/login", (string? returnUrl) =>
+            Results.Challenge(new AuthenticationProperties { RedirectUri = returnUrl ?? "/" }, [OpenIdConnectDefaults.AuthenticationScheme]));
+
+        app.MapGet("/logout", (string? returnUrl) =>
+            Results.SignOut(new AuthenticationProperties { RedirectUri = returnUrl },
+                [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
+
         app.Run();
 
         return 0;
@@ -212,9 +279,6 @@ internal sealed partial class Program2
         public Common.Asp.Auth.CryptoSecrets Secrets { get; set; } = null!;
         public StaticData.StaticDataProvider StaticData { get; set; } = null!;
     }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Using NoOp captcha provider")]
-    private static partial void LogUsingNoOpCaptchaProvider(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Loading static data")]
     private static partial void LogLoadingStaticData(ILogger logger);

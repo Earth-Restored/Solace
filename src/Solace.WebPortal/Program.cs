@@ -1,9 +1,13 @@
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using OpenIddict.Abstractions;
 using Solace.Common;
+using Solace.Common.Asp.Oidc;
+using Solace.Db;
 using Solace.Db.Earth;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
@@ -12,6 +16,7 @@ using Solace.WebPortal.Common.Features.Roles;
 using Solace.WebPortal.Components;
 using Solace.WebPortal.Components.Account;
 using Solace.WebPortal.Data;
+using Solace.WebPortal.Features.Oidc;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
@@ -148,6 +153,97 @@ internal sealed partial class Program2
 
         builder.Services.AddSingleton<Features.Catalog.CatalogResponseCacheService>();
 
+        builder.Services.AddOpenIddict()
+            .AddCore(options =>
+            {
+                options.UseEntityFrameworkCore()
+                    .UseDbContext<ApplicationDbContext>();
+            })
+            .AddServer(options =>
+            {
+                var webPortalEndpoint = builder.Configuration["PublicEndpoints:WebPortal"];
+                if (string.IsNullOrEmpty(webPortalEndpoint))
+                {
+                    options.SetIssuer(new Uri($"http://localhost:{builder.Configuration["PORT_SELF"]!}"));
+                }
+                else
+                {
+                    options.SetIssuer(new Uri(webPortalEndpoint));
+                }
+
+                options.SetAuthorizationEndpointUris("connect/authorize")
+                    .SetEndSessionEndpointUris("connect/logout")
+                    .SetTokenEndpointUris("connect/token")
+                    .SetUserInfoEndpointUris("connect/userinfo");
+
+                options.AllowAuthorizationCodeFlow()
+                    .AllowRefreshTokenFlow();
+
+                options.RegisterScopes(
+                    OpenIddictConstants.Scopes.OpenId,
+                    OpenIddictConstants.Scopes.Email,
+                    OpenIddictConstants.Scopes.Profile,
+                    OpenIddictConstants.Scopes.Roles);
+
+                var aspNetCoreOptions = options.UseAspNetCore()
+                    .EnableAuthorizationEndpointPassthrough()
+                    .EnableEndSessionEndpointPassthrough()
+                    .EnableTokenEndpointPassthrough()
+                    .EnableUserInfoEndpointPassthrough();
+
+                if (builder.Environment.IsDevelopment())
+                {
+                    aspNetCoreOptions.DisableTransportSecurityRequirement();
+
+                    options.AddEphemeralEncryptionKey()
+                        .AddEphemeralSigningKey();
+                }
+                else
+                {
+                    var oidcConfig = builder.Configuration.GetSection("Oidc").Get<OidcServerConfiguration>();
+                    Debug.Assert(oidcConfig is not null);
+
+                    if (!string.IsNullOrEmpty(oidcConfig.EncryptionCertPath) && File.Exists(oidcConfig.EncryptionCertPath))
+                    {
+                        var encryptionCert = X509CertificateLoader.LoadPkcs12FromFile(
+                            oidcConfig.EncryptionCertPath,
+                            password: oidcConfig.EncryptionCertPassword,
+                            keyStorageFlags: X509KeyStorageFlags.MachineKeySet
+                        );
+
+                        options.AddEncryptionCertificate(encryptionCert);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Warning: oidc encryption certificate not provided, using EphemeralEncryptionKey");
+                        options.AddEphemeralEncryptionKey();
+                    }
+
+                    if (!string.IsNullOrEmpty(oidcConfig.SigningCertPath) && File.Exists(oidcConfig.SigningCertPath))
+                    {
+                        var signingCert = X509CertificateLoader.LoadPkcs12FromFile(
+                            oidcConfig.SigningCertPath,
+                            password: oidcConfig.SigningCertPassword,
+                            keyStorageFlags: X509KeyStorageFlags.MachineKeySet
+                        );
+
+                        options.AddSigningCertificate(signingCert);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Warning: oidc signing certificate not provided, using EphemeralSigningKey");
+                        options.AddEphemeralSigningKey();
+                    }
+                }
+            })
+            .AddValidation(options =>
+            {
+                options.UseLocalServer();
+                options.UseAspNetCore();
+            });
+
+        builder.Services.AddHostedService<SeedClientWorker>();
+
         await using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
@@ -174,7 +270,6 @@ internal sealed partial class Program2
         }
 
         app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-        app.UseHttpsRedirection();
 
         app.UseAntiforgery();
 
@@ -187,6 +282,8 @@ internal sealed partial class Program2
 
         // Add additional endpoints required by the Identity /Account Razor components.
         app.MapAdditionalIdentityEndpoints();
+
+        app.MapOidcEndpoints();
 
         var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
 
@@ -250,7 +347,7 @@ internal sealed partial class Program2
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            await db.Database.MigrateAsync();
+            await db.Database.MigrateAsyncWithLock();
 
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -276,7 +373,7 @@ internal sealed partial class Program2
                 IsBuiltIn = true
             };
             await roleManager.CreateAsync(everyoneRole);
-            // await roleManager.AddClaimAsync(everyoneRole, new Claim("Permission", Permissions.LinkPlayers));
+            await roleManager.AddClaimAsync(everyoneRole, new Claim("Permission", Permissions.CreateProfile));
         }
 
         await AssignRoleToAllUsersAsync(userManager, RoleConstants.Default);

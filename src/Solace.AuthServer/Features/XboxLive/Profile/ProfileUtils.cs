@@ -24,7 +24,7 @@ public static class ProfileUtils
         string? Value
     );
 
-    public static IEnumerable<ProfileSetting> GetProfileFields(Account account, IEnumerable<string> fields, HttpRequest request)
+    public static IEnumerable<ProfileSetting> GetProfileFields(ProfileEF account, IEnumerable<string> fields, HttpRequest request)
     {
         var profile = GetProfile(account, request);
 
@@ -33,17 +33,15 @@ public static class ProfileUtils
             .Select(field => new ProfileSetting(field, profile[field]));
     }
 
-    private static Dictionary<string, string?> GetProfile(Account account, HttpRequest request)
+    private static Dictionary<string, string?> GetProfile(ProfileEF account, HttpRequest request)
         => new(StringComparer.Ordinal)
         {
             ["AppDisplayName"] = account.Username,
-            ["AppDisplayPicRaw"] = $"{(request.IsHttps ? "https://" : "http://")}{request.Host.Value}/{account.ProfilePictureUrl ?? Account.DefaultPictureUrl}",
+            ["AppDisplayPicRaw"] = $"{(request.IsHttps ? "https://" : "http://")}{request.Host.Value}/{account.ProfilePictureUrl ?? ProfileEF.DefaultPictureUrl}",
             ["GameDisplayName"] = account.Username,
-            ["GameDisplayPicRaw"] = $"{(request.IsHttps ? "https://" : "http://")}{request.Host.Value}/{account.ProfilePictureUrl ?? Account.DefaultPictureUrl}",
+            ["GameDisplayPicRaw"] = $"{(request.IsHttps ? "https://" : "http://")}{request.Host.Value}/{account.ProfilePictureUrl ?? ProfileEF.DefaultPictureUrl}",
             ["Gamertag"] = account.Username,
             ["Gamerscore"] = "100",
-            ["FirstName"] = account.FirstName ?? account.Username,
-            ["LastName"] = account.LastName ?? account.Username,
             ["SpeechAccessibility"] = "",
         };
 }

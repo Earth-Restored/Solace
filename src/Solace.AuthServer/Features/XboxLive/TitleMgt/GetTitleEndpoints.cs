@@ -6,7 +6,6 @@ using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using Nager.PublicSuffix;
 using Nager.PublicSuffix.RuleProviders;
 
@@ -66,7 +65,7 @@ public sealed partial class GetTitleEndpoints(
 
                     if (!singleDomainMode && isHostIp)
                     {
-                        logger.LogWarning("Title request from a client connecting using IP, but not using singleDomainMode");
+                        LogIPWithMultiDomain();
                         return TypedResults.BadRequest();
                     }
 
@@ -160,4 +159,7 @@ public sealed partial class GetTitleEndpoints(
 
         return _domainParser = new DomainParser(ruleProvider);
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Title request from a client connecting using IP, but not using singleDomainMode")]
+    private partial void LogIPWithMultiDomain();
 }

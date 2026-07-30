@@ -426,7 +426,7 @@ public sealed partial class RST2
                 var nextUserTokenString = JwtUtils.Sign(nextUserToken, cryptoSecrets.LoginUserTokenSecret, nextUserTokenValidity);
 
                 var xboxTokenValidity = ValidityDatePair.Create(authSettings.XboxTokenValidityMinutes);
-                var xboxToken = new Common.XboxTicketToken(userToken.Data.UserId, userToken.Data.Username);
+                var xboxToken = new Common.XboxTicketToken(userToken.Data.ProfileId, userToken.Data.Username);
                 var xboxTokenString = JwtUtils.Sign(xboxToken, cryptoSecrets.LoginXboxTokenSecret, xboxTokenValidity);
 
                 var nextSessionKey = cryptoSecrets.LoginUserTokenSessionKeyBase64; // todo: random?

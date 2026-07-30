@@ -13,17 +13,17 @@ public abstract class ActivityLogEntryEF
     [SetsRequiredMembers]
     protected ActivityLogEntryEF(Guid accountId, DateTimeOffset timestamp)
     {
-        AccountId = accountId;
+        ProfileId = accountId;
         Timestamp = timestamp;
     }
 
-    public required Guid AccountId { get; set; }
+    public required Guid ProfileId { get; set; }
 
     public long EntryId { get; set; }
 
     public required DateTimeOffset Timestamp { get; init; }
 
-    public Account Account { get; set; } = null!;
+    public ProfileEF Profile { get; set; } = null!;
 }
 
 public abstract class RewardedActivityLogEntryEF : ActivityLogEntryEF

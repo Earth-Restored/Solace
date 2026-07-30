@@ -40,12 +40,12 @@ internal sealed class InventoryController : SolaceControllerBase
 
         var stackableItems = await _earthDb.StackableItems
             .AsNoTracking()
-            .Where(item => item.AccountId == accountId)
+            .Where(item => item.ProfileId == accountId)
             .ToListAsync(cancellationToken);
 
         var nonStackableItems = await _earthDb.NonStackableItems
             .AsNoTracking()
-            .Where(item => item.AccountId == accountId)
+            .Where(item => item.ProfileId == accountId)
             .GroupBy(instance => instance.ItemId)
             .ToListAsync(cancellationToken);
 
@@ -55,7 +55,7 @@ internal sealed class InventoryController : SolaceControllerBase
 
         var journalEntries = await _earthDb.JournalEntries
             .AsNoTracking()
-            .Where(entry => entry.AccountId == accountId)
+            .Where(entry => entry.ProfileId == accountId)
             .ToDictionaryAsync(entry => entry.ItemId, cancellationToken);
 
         Dictionary<Guid, int> hotbarItemCounts = [];
@@ -153,7 +153,7 @@ internal sealed class InventoryController : SolaceControllerBase
             item.Uuid,
             item.Count,
             item.InstanceId,
-            item.InstanceId is not null ? ItemWear.WearToHealth(item.Uuid, _earthDb.NonStackableItems.AsNoTracking().First(nsi => nsi.AccountId == accountId && nsi.ItemId == item.Uuid && nsi.InstanceId == item.InstanceId.Value).Wear, _catalog.ItemsCatalog) : 0.0f
+            item.InstanceId is not null ? ItemWear.WearToHealth(item.Uuid, _earthDb.NonStackableItems.AsNoTracking().First(nsi => nsi.ProfileId == accountId && nsi.ItemId == item.Uuid && nsi.InstanceId == item.InstanceId.Value).Wear, _catalog.ItemsCatalog) : 0.0f
         ) : null)];
 
         var resp = Json.Serialize(hotbarItems);

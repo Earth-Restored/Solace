@@ -16,7 +16,7 @@ internal static class InventoryUtils
         }
 
         var rowsAffected = await earthDb.StackableItems
-            .Where(si => si.AccountId == accountId && si.ItemId == itemId && si.Count >= count)
+            .Where(si => si.ProfileId == accountId && si.ItemId == itemId && si.Count >= count)
             .ExecuteUpdateAsync(setters => setters.SetProperty(si => si.Count, si => si.Count - count), cancellationToken);
 
         results.Inventory(rowsAffected > 0);
@@ -32,7 +32,7 @@ internal static class InventoryUtils
         }
 
         var itemsToRemove = await earthDb.NonStackableItems
-            .Where(x => x.AccountId == accountId && x.ItemId == itemId && instanceIds.Contains(x.InstanceId))
+            .Where(x => x.ProfileId == accountId && x.ItemId == itemId && instanceIds.Contains(x.InstanceId))
             .ToListAsync(cancellationToken);
 
         earthDb.NonStackableItems.RemoveRange(itemsToRemove);
@@ -53,7 +53,7 @@ internal static class InventoryUtils
         }
 
         var rowsAffected = await earthDb.StackableItems
-            .Where(x => x.AccountId == accountId && x.ItemId == itemId)
+            .Where(x => x.ProfileId == accountId && x.ItemId == itemId)
             .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.Count, x => x.Count + count), cancellationToken);
 
         if (rowsAffected is 0)
@@ -68,7 +68,7 @@ internal static class InventoryUtils
             catch (DbUpdateException)
             {
                 await earthDb.StackableItems
-                    .Where(x => x.AccountId == accountId && x.ItemId == itemId)
+                    .Where(x => x.ProfileId == accountId && x.ItemId == itemId)
                     .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.Count, x => x.Count + count), cancellationToken);
             }
         }

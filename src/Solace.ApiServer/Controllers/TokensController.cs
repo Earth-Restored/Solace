@@ -35,7 +35,7 @@ internal sealed class TokensController : SolaceControllerBase
 
         var tokens = _earthDb.Tokens
             .AsNoTracking()
-            .Where(token => token.AccountId == accountId)
+            .Where(token => token.ProfileId == accountId)
             .AsAsyncEnumerable();
 
         var tokensResponse = await tokens.Where(token => token is not DailyLoginTokenEF { Claimed: true, })

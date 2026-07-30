@@ -11,7 +11,7 @@ internal static class JournalUtils
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         
         var entry = await earthDb.JournalEntries
-            .FirstOrDefaultAsync(e => e.AccountId == accountId && e.ItemId == itemId, cancellationToken);
+            .FirstOrDefaultAsync(e => e.ProfileId == accountId && e.ItemId == itemId, cancellationToken);
 
         int previousAmount;
 
@@ -21,7 +21,7 @@ internal static class JournalUtils
 
             entry = new ItemJournalEntryEF
             {
-                AccountId = accountId,
+                ProfileId = accountId,
                 ItemId = itemId,
                 FirstSeen = timestamp,
                 LastSeen = timestamp,

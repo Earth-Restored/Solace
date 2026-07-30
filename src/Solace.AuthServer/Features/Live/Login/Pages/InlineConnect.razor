@@ -1,20 +1,25 @@
 @page "/login.live.com/ppsecure/InlineConnect.srf"
-@inject Solace.Common.Asp.Captcha.ICaptchaValidator CaptchaValidator
-@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
-@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
-
-@{
-    var httpContext = HttpContextAccessor.HttpContext!;
-    var afToken = Antiforgery.GetAndStoreTokens(httpContext).RequestToken;
-    var currentContextPath = string.Join("/", httpContext.Request.Path.Value!.Split('/').SkipLast(1));
-}
+@using System.Diagnostics.CodeAnalysis
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Options
+@using Solace.Common.Asp.Auth
+@using Solace.Common.Utils
+@using Solace.Db.Earth
+@using Solace.StaticData
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IDbContextFactory<EarthDbContext> EarthDbFactory
+@inject IOptions<AuthSettings> AuthSettings
+@inject CryptoSecrets CryptoSecrets
+@inject StaticDataProvider StaticData
 
 <HeadContent>
     <meta charset="UTF-8">
-    <title>Login/Register</title>
+    <title>WebPortal Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="css/form.css" />
-    @((MarkupString)CaptchaValidator.Script)
 </HeadContent>
 
 <div class="minecraft-bg">
@@ -29,206 +34,303 @@
     <div class="hill hill-back"></div>
     <div class="hill hill-front"></div>
 </div>
+
 <div class="container">
-    <h1 id="formTitle">Login</h1>
-    <p class="subtitle">Please enter your credentials.</p>
+    <AuthorizeView>
+        <NotAuthorized>
+            <h1 id="formTitle">WebPortal Authentication</h1>
 
-    <div class="nav-tabs">
-        <button id="loginBtn" class="nav-tab active">Login</button>
-        <button id="registerBtn" class="nav-tab">Register</button>
-    </div>
+            <a href="/login" class="bp-submit-btn">
+                Log In
+            </a>
+        </NotAuthorized>
 
-    <form id="loginForm">
-        <div class="bp-form-row">
-            <label for="username">Username <span class="required">*</span></label>
-            <input id="username" type="text" placeholder="Username" required minlength="3" maxlength="16" pattern="[a-z0-9_:]+" title="Lowercase letters, numbers, underscore, and colon only" />
-        </div>
+        <Authorized>
+            @if (!CanCreateProfile)
+            {
+                <h1 id="formTitle">Access Denied</h1>
+                @if (!string.IsNullOrEmpty(Email))
+                {
+                    <p class="subtitle" style="margin-bottom: 6px; opacity: 0.85;">Logged in as <strong>@Email</strong></p>
+                }
+                <p class="subtitle" style="color: #ff5252; margin-bottom: 20px;">
+                    This account does not have permission to create profiles.
+                </p>
+                <div style="margin-top: 20px; text-align: center;">
+                    <a href="/logout?returnUrl=@(Uri.EscapeDataString("/login.live.com/ppsecure/InlineConnect.srf"))" style="color: #fff; text-decoration: underline;">
+                        Sign out
+                    </a>
+                </div>
+            }
+            else if (SelectedProfile is not null)
+            {
+                <h1 id="formTitle">Logging in...</h1>
+                <p class="subtitle">Welcome, @SelectedProfile.Username! Launching game...</p>
 
-        <div class="bp-form-row">
-            <label for="password">Password <span class="required">*</span></label>
-            <div class="password-wrapper">
-                <input id="password" type="password" placeholder="Password" required minlength="4" maxlength="128" />
-                <button type="button" id="togglePassword" class="password-toggle" aria-label="Show password">Show</button>
-            </div>
-        </div>
+                <script>
+                    external.Property('DAToken', `<EncryptedData xmlns="http://www.w3.org/2001/04/xmlenc#" Id="BinaryDAToken0"><CipherData><CipherValue>@HandoffToken</CipherValue></CipherData></EncryptedData>`);
+                    external.Property('DAStartTime', '@(HandoffTokenValidity!.Value.IssuedStr)');
+                    external.Property('DAExpires', '@(HandoffTokenValidity!.Value.ExpiresStr)');
+                    external.Property('DASessionKey', '@CryptoSecrets.LoginUserTokenSessionKeyBase64');
+                    external.Property('FirstName', '@SelectedProfile.Username');
+                    external.Property('LastName', '@SelectedProfile.Username');
+                    external.Property('SigninName', '@SelectedProfile.Username');
+                    external.Property('Username', '@SelectedProfile.Username');
+                    external.Property('CID', '@SelectedProfile.Id');
+                    external.Property('PUID', '@SelectedProfile.Id');
 
-        <div class="extra-fields" id="registerFields">
-            <div class="bp-form-row">
-                <label for="firstName">First Name</label>
-                <input id="firstName" type="text" placeholder="First Name" minlength="2" maxlength="100" />
-            </div>
+                    external.FinalNext();
+                </script>
+            }
+            else if (Profiles is null)
+            {
+                <h1 id="formTitle">Loading</h1>
+                <p class="subtitle">Fetching your profiles...</p>
+            }
+            else
+            {
+                <h1 id="formTitle">Select Profile</h1>
 
-            <div class="bp-form-row">
-                <label for="lastName">Last Name</label>
-                <input id="lastName" type="text" placeholder="Last Name" minlength="2" maxlength="100" />
-            </div>
-        </div>
+                @if (!string.IsNullOrEmpty(Email))
+                {
+                    <p class="subtitle" style="margin-bottom: 12px; opacity: 0.85;">Logged in as <strong>@Email</strong></p>
+                }
 
-        <div id="captcha-container"></div>
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="bp-status error" role="alert" style="margin-bottom: 15px;">
+                        @ErrorMessage
+                    </div>
+                }
 
-        <input type="hidden" id="afToken" value="@afToken" />
+                <div class="profile-list">
+                    @foreach (var profile in Profiles)
+                    {
+                        var pct = profile.LevelProgressPercentage ?? 1.0f;
+                        var circumference = 119.38f; // 2 * pi * r (r=19)
+                        var dashoffset = circumference * (1.0f - pct);
 
-        <button type="submit" class="bp-submit-btn">Submit</button>
+                        <div class="profile-card">
+                            <div class="profile-info">
+                                <div class="level-badge" title="Level @profile.Level (@(profile.LevelProgressPercentage.HasValue ? $"{(int)(profile.LevelProgressPercentage.Value * 100)}%" : "MAX"))">
+                                    <svg viewBox="0 0 48 48" class="level-svg">
+                                        <circle class="level-bg" cx="24" cy="24" r="19" />
+                                        <circle class="level-progress" cx="24" cy="24" r="19" 
+                                                style="stroke-dasharray: 119.38; stroke-dashoffset: @dashoffset;" />
+                                    </svg>
+                                    <span class="level-text">@profile.Level</span>
+                                </div>
 
-        <div id="errorMsg" class="bp-status error" role="alert" aria-live="assertive" style="display:none;"></div>
-    </form>
+                                <div class="profile-details">
+                                    <span class="profile-name">@profile.Username</span>
+                                    <div class="profile-rubies" title="@profile.Rubies Rubies">
+                                        <svg class="ruby-icon" viewBox="0 0 16 16">
+                                            <path d="M5 2h6l5 5-8 7-8-7z" />
+                                        </svg>
+                                        <span>@profile.Rubies</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <form method="post" @formname="@($"select_profile_{profile.Id}")" @onsubmit="() => SelectProfile(profile.Id)" class="profile-action">
+                                <AntiforgeryToken />
+                                <button type="submit" class="bp-submit-btn profile-play-btn">
+                                    Play
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
+
+                @if (Profiles.Count < 3)
+                {
+                    <hr style="border-color: rgba(255,255,255,0.2); margin: 20px 0;" />
+                    <form method="post" @formname="create_profile_form" @onsubmit="CreateProfile">
+                        <AntiforgeryToken />
+                        <div class="bp-form-row">
+                            <label for="newUsername">New Profile Username <span class="required">*</span></label>
+                            <input id="newUsername" name="NewUsername" type="text" @bind-value="NewUsername" placeholder="Username" required minlength="3" maxlength="16" pattern="[a-z0-9_:]+" title="Lowercase letters, numbers, underscore, and colon only" />
+                        </div>
+                        <button type="submit" class="bp-submit-btn" style="background-color: #2e7d32;">
+                            Create (@(Profiles.Count + 1) / 3)
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <p class="subtitle" style="color: #ffb74d;">Maximum profiles reached (3/3).</p>
+                }
+
+                <div class="logout-wrapper">
+                    <a class="logout-link" href="/logout?returnUrl=@(Uri.EscapeDataString("/login.live.com/ppsecure/InlineConnect.srf"))">Sign out</a>
+                </div>
+            }
+        </Authorized>
+    </AuthorizeView>
 </div>
 
-<script>
-    @((MarkupString)CaptchaValidator.ManagerScript)
+@code {
+    private List<ProfileDto>? Profiles;
+    private ProfileDto? SelectedProfile;
+    private string? HandoffToken;
+    private ValidityDatePair? HandoffTokenValidity;
 
-    const captchaManager = new CaptchaManager();
+    [SupplyParameterFromForm]
+    private string? NewUsername { get; set; }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        let isRegister = false;
+    private string? ErrorMessage;
 
-        const loginBtn = document.getElementById('loginBtn');
-        const registerBtn = document.getElementById('registerBtn');
-        const formTitle = document.getElementById('formTitle');
-        const registerFields = document.getElementById('registerFields');
-        const errorMsg = document.getElementById('errorMsg');
-        const loginForm = document.getElementById('loginForm');
+    private long? AccountId => long.TryParse(HttpContextAccessor.HttpContext?.User.FindFirst("sub")?.Value, out var id) ? id : null;
+    private string? Email => HttpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Email)?.Value;
 
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        const firstNameInput = document.getElementById('firstName');
-        const lastNameInput = document.getElementById('lastName');
+    private bool CanCreateProfile => HttpContextAccessor.HttpContext?.User.HasClaim("can_create_profile", "true") ?? false;
 
-        const togglePasswordBtn = document.getElementById('togglePassword');
+    protected override async Task OnInitializedAsync()
+    {
+        if (AccountId is not null && CanCreateProfile)
+        {
+            await LoadProfilesAsync();
+        }
+    }
 
-        togglePasswordBtn.addEventListener('click', () => {
-            const isPassword = passwordInput.getAttribute('type') === 'password';
-            passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+    private async Task LoadProfilesAsync()
+    {
+        if (AccountId is null)
+        {
+            return;
+        }
 
-            togglePasswordBtn.textContent = isPassword ? 'Hide' : 'Show';
-            togglePasswordBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
-        });
+        await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
+        Profiles = await earthDb.Profiles
+            .AsNoTracking()
+            .Where(profile => profile.WebPortalAccountId == AccountId.Value)
+            .Select(profile => new { profile.Id, profile.Username, profile.Level, profile.Experience, PurchasedRubies = profile.Rubies.Purchased, EarnedRubies = profile.Rubies.Earned })
+            .AsAsyncEnumerable()
+            .Select(profile => new ProfileDto(profile.Id, profile.Username!, profile.Level, GetLevelProgressPercentage(profile.Level, profile.Experience, StaticData.Levels), profile.PurchasedRubies + profile.EarnedRubies))
+            .ToListAsync();
+    }
 
-        loginBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (isRegister) {
-                isRegister = false;
-                formTitle.textContent = 'Login';
-                registerFields.classList.remove('active');
-                loginBtn.classList.add('active');
-                registerBtn.classList.remove('active');
-                errorMsg.style.display = 'none';
-                errorMsg.textContent = '';
-            }
-        });
+    private void SelectProfile(Guid profileId)
+    {
+        if (!CanCreateProfile)
+        {
+            ErrorMessage = "Your account does not have permission to create profiles.";
+            return;
+        }
 
-        registerBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (!isRegister) {
-                isRegister = true;
-                formTitle.textContent = 'Register';
-                registerFields.classList.add('active');
-                registerBtn.classList.add('active');
-                loginBtn.classList.remove('active');
-                errorMsg.style.display = 'none';
-                errorMsg.textContent = '';
-            }
-        });
+        var profile = Profiles?.FirstOrDefault(p => p.Id == profileId);
+        if (profile is null)
+        {
+            return;
+        }
 
-        let captchaToken = null;
-        let captchaFailed = false;
-        captchaManager.createWidget("#captcha-container", {
-            size: "compact",
-            onSuccess: (token) => {
-                captchaToken = token;
-            },
-            onError: (error) => {
-                console.log(`Captcha error: ${error}`);
-                captchaFailed = true;
-            }
-        });
+        SelectedProfile = profile;
+        CreateToken();
+    }
 
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+    private async Task CreateProfile()
+    {
+        ErrorMessage = null;
 
-            const antiForgeryToken = document.getElementById('afToken')?.value;
+        if (!CanCreateProfile)
+        {
+            ErrorMessage = "Your account does not have permission to create profiles.";
+            return;
+        }
 
-            if (!antiForgeryToken) {
-                errorMsg.textContent = "Security token missing. Please refresh the page.";
-                errorMsg.style.display = 'block';
-                return;
-            }
+        if (!AccountId.HasValue)
+        {
+            ErrorMessage = "Authentication session error. Please re-login.";
+            return;
+        }
 
-            if (captchaToken === null) {
-                if (captchaFailed) {
-                    errorMsg.textContent = "Captcha failed. Please refresh the page.";
-                    errorMsg.style.display = 'block';
-                    return;
-                } else {
-                    errorMsg.textContent = "Complete the captcha first.";
-                    errorMsg.style.display = 'block';
-                    return;
-                }
-            }
+        if (Profiles is not null && Profiles.Count >= 3)
+        {
+            ErrorMessage = "You cannot have more than 3 profiles.";
+            return;
+        }
 
-            const userData = {
-                username: usernameInput.value,
-                password: passwordInput.value,
-                captchaToken: captchaToken,
-                __RequestVerificationToken: antiForgeryToken
-            };
+        if (string.IsNullOrWhiteSpace(NewUsername) || NewUsername.Length < 3 || NewUsername.Length > 16)
+        {
+            ErrorMessage = "Username must be between 3 and 16 characters.";
+            return;
+        }
 
-            const basePath = '@currentContextPath';
-            const endpoint = isRegister ? `${basePath}/register` : `${basePath}/login`;
+        await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
 
-            if (isRegister) {
-                userData.firstName = firstNameInput.value;
-                userData.lastName = lastNameInput.value;
-            }
+        var exists = await earthDb.Profiles.AnyAsync(profile => profile.Username == NewUsername);
+        if (exists)
+        {
+            ErrorMessage = "Username is already taken. Please choose another.";
+            return;
+        }
 
-            try {
-                const formBody = new URLSearchParams(userData);
+        var newProfile = await earthDb.GetOrCreateAccount(Guid.CreateVersion7(), AccountId.Value);
+        newProfile.Username = NewUsername;
 
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    credentials: 'same-origin',
-                    body: formBody
-                });
+        await earthDb.SaveChangesAsync();
 
-                if (!response.ok) {
-                    captchaToken = null;
-                    captchaFailed = false;
-                    captchaManager.resetWidget("#captcha-container");
+        SelectedProfile = new ProfileDto(newProfile.Id, newProfile.Username, newProfile.Level, GetLevelProgressPercentage(newProfile.Level, newProfile.Experience, StaticData.Levels), newProfile.Rubies.Total);
+        CreateToken();
+    }
 
-                    const errorText = await response.text();
-                    throw new Error(errorText || "An unknown error occurred.");
-                }
+    private void CreateToken()
+    {
+        if (SelectedProfile is null)
+        {
+            return;
+        }
 
-                const data = await response.json();
+        HandoffTokenValidity = ValidityDatePair.Create(AuthSettings.Value.UserTokenValidityMinutes);
+        var token = new UserToken(
+            SelectedProfile.Id,
+            SelectedProfile.Username
+        );
+        HandoffToken = JwtUtils.Sign(token, CryptoSecrets.LoginUserTokenSecret, HandoffTokenValidity.Value);
+    }
 
-                errorMsg.style.display = 'none';
-                errorMsg.textContent = '';
+    public static int? GetRequiredExperienceForNextLevel(int level, PlayerLevels levels)
+    {
+        var levelIndex = int.Max(level - 1, 0);
+        return levelIndex < levels.Levels.Length ? levels.Levels[levelIndex].ExperienceRequired : null;
+    }
 
-                external.Property('DAToken', `<EncryptedData xmlns="http://www.w3.org/2001/04/xmlenc#" Id="BinaryDAToken0"><CipherData><CipherValue>${data.token}</CipherValue></CipherData></EncryptedData>`);
-                external.Property('DAStartTime', data.tokenIssuedAt);
-                external.Property('DAExpires', data.tokenExpires);
-                external.Property('DASessionKey', data.sessionKey);
-                external.Property('FirstName', data.firstName);
-                external.Property('LastName', data.lastName);
-                external.Property('SigninName', data.username);
-                external.Property('Username', data.username);
-                external.Property('CID', data.userId);
-                external.Property('PUID', data.userId);
+    public static float? GetLevelProgressPercentage(int level, int experience, PlayerLevels levels)
+    {
+        var requiredExperienceNull = GetRequiredExperienceForNextLevel(level, levels);
 
-                external.FinalNext();
+        if (requiredExperienceNull is not { } requiredExperience)
+        {
+            return null;
+        }
+        else if (requiredExperience <= 0f)
+        {
+            return 1f;
+        }
 
-            } catch (error) {
-                errorMsg.textContent = error.message;
-                errorMsg.style.display = 'block';
+        return float.Clamp(experience / (float)requiredExperience, 0f, 1f);
+    }
 
-                captchaToken = null;
-                captchaFailed = false;
-                captchaManager.resetWidget("#captcha-container");
-            }
-        });
-    });
-</script>
-    
+    private sealed class ProfileDto
+    {
+        [SetsRequiredMembers]
+        public ProfileDto(Guid id, string username, int level, float? levelProgressPercentage, int rubies)
+        {
+            Id = id;
+            Username = username;
+            Level = level;
+            LevelProgressPercentage = levelProgressPercentage;
+            Rubies = rubies;
+        }
+
+        public required Guid Id { get; set; }
+
+        public required string Username { get; set; }
+
+        public required int Level { get; set; }
+
+        public required float? LevelProgressPercentage { get; set; }
+
+        public required int Rubies { get; set; }
+    }
+}

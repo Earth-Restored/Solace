@@ -15,12 +15,12 @@ using Solace.WebPortal.Common.Features.Players;
 namespace Solace.WebPortal.Features.Players;
 
 [Handler]
-[MapPut("{id}")]
+[MapPut("{profileId}")]
 [MapGroup<PlayersGroup>]
 [Authorize(Policy = Permissions.ManagePlayers)]
 public static partial class UpdatePlayer
 {
-    public sealed record Command([property: FromRoute] Guid Id, [property: FromBody] UpdatePlayerCommand Body);
+    public sealed record Command([property: FromRoute] Guid ProfileId, [property: FromBody] UpdatePlayerCommand Body);
 
     private static async ValueTask<Results<Ok, BadRequest<string>, NotFound>> HandleAsync(
         Command command,
@@ -41,7 +41,7 @@ public static partial class UpdatePlayer
                 return TypedResults.BadRequest($"Username must contain only: {AccountConstants.UsernameAllowedCharacters}");
             }
 
-            if (await earthDb.Accounts
+            if (await earthDb.Profiles
                 .AnyAsync(account => account.Username == username, cancellationToken))
             {
                 return TypedResults.BadRequest("Account with the specified username already exists");
@@ -58,50 +58,48 @@ public static partial class UpdatePlayer
             return TypedResults.BadRequest("Rubies cannot be negative.");
         }
 
-        var account = await earthDb.Accounts
+        var profile = await earthDb.Profiles
             .AsTracking()
-            .Include(account => account.Profile)
-            .Include(account => account.Boosts)
-            .FirstOrDefaultAsync(account => account.Id == command.Id, cancellationToken);
+            .Include(profile => profile.Boosts)
+            .FirstOrDefaultAsync(profile => profile.Id == command.ProfileId, cancellationToken);
 
-        if (account is null)
+        if (profile is null)
         {
             return TypedResults.NotFound();
         }
 
-        Debug.Assert(account.Profile is not null);
-        Debug.Assert(account.Boosts is not null);
+        Debug.Assert(profile.Boosts is not null);
 
-        if ((long)(command.Body.PurchasedRubies ?? account.Profile.Rubies.Purchased) + (command.Body.EarnedRubies ?? account.Profile.Rubies.Earned) > int.MaxValue)
+        if ((long)(command.Body.PurchasedRubies ?? profile.Rubies.Purchased) + (command.Body.EarnedRubies ?? profile.Rubies.Earned) > int.MaxValue)
         {
             return TypedResults.BadRequest("Too many rubies.");
         }
 
         if (command.Body.Username is not null)
         {
-            account.Username = command.Body.Username;
+            profile.Username = command.Body.Username;
         }
 
         if (command.Body.Health is { } health)
         {
-            var maxHealth = BoostUtils.GetMaxPlayerHealth(account.Boosts, DateTimeOffset.UtcNow, staticData.Catalog.ItemsCatalog);
+            var maxHealth = BoostUtils.GetMaxPlayerHealth(profile.Boosts, DateTimeOffset.UtcNow, staticData.Catalog.ItemsCatalog);
 
             if (health > maxHealth)
             {
                 return TypedResults.BadRequest($"Health cannot be larger than {maxHealth}.");
             }
 
-            account.Profile.Health = health;
+            profile.Health = health;
         }
 
         if (command.Body.PurchasedRubies is { } purchasedRubies)
         {
-            account.Profile.Rubies.Purchased = purchasedRubies;
+            profile.Rubies.Purchased = purchasedRubies;
         }
 
         if (command.Body.EarnedRubies is { } earnedRubies)
         {
-            account.Profile.Rubies.Earned = earnedRubies;
+            profile.Rubies.Earned = earnedRubies;
         }
 
         await earthDb.SaveChangesAsync(cancellationToken);

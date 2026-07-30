@@ -2,11 +2,11 @@
 
 public sealed class RedeemedTappableEF
 {
-    public required Guid AccountId { get; set; }
+    public required Guid ProfileId { get; set; }
 
     public required Guid TappableId { get; set; }
 
     public required DateTimeOffset ExpiresAt { get; set; }
 
-    public Account Account { get; set; } = null!;
+    public ProfileEF Profile { get; set; } = null!;
 }

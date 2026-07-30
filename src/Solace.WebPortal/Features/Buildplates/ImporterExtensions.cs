@@ -87,7 +87,7 @@ internal static class ImporterExtensions
 
             var buildplate = await importer.EarthDb.PlayerBuildplates
                 .AsNoTracking()
-                .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.AccountId == accountId, cancellationToken);
+                .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.ProfileId == accountId, cancellationToken);
 
             if (buildplate is null)
             {

@@ -18,6 +18,7 @@
     <ProjectReference Include="../Solace.BuildplateRenderer/Solace.BuildplateRenderer.csproj" />
     <ProjectReference Include="../Solace.Common.Asp/Solace.Common.Asp.csproj" />
     <ProjectReference Include="../Solace.Common/Solace.Common.csproj" />
+    <ProjectReference Include="../Solace.Db/Solace.Db.csproj" />
     <ProjectReference Include="../Solace.EventBus.Client/Solace.EventBus.Client.csproj" />
     <ProjectReference Include="../Solace.ObjectStore.Client/Solace.ObjectStore.Client.csproj" />
     <ProjectReference Include="../Solace.ServiceDefaults/Solace.ServiceDefaults.csproj" />
@@ -40,6 +41,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" VersionOverride="11.0.0-preview.6.26359.118" PrivateAssets="all" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" VersionOverride="11.0.0-preview.6.26359.118" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" VersionOverride="11.0.0-preview.6" />
+    <PackageReference Include="OpenIddict.AspNetCore" />
+    <PackageReference Include="OpenIddict.EntityFrameworkCore" />
     <PackageReference Include="SixLabors.ImageSharp" />
   </ItemGroup>
 

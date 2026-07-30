@@ -25,11 +25,10 @@ public static partial class GetPlayers
     {
         var utcNow = DateTimeOffset.UtcNow;
 
-        var dbQuery = earthDb.Accounts
+        var dbQuery = earthDb.Profiles
             .AsNoTracking()
-            .Include(account => account.Profile)
-            .Include(account => account.Boosts)
-            .Select(account => new { account.Id, account.Username, account.Profile!.Health, account.Profile.Level, account.Profile.Experience, PurchasedRubies = account.Profile.Rubies.Purchased, EarnedRubies = account.Profile.Rubies.Earned, account.Boosts, });
+            .Include(profile => profile.Boosts)
+            .Select(profile => new { profile.Id, profile.Username, profile.Health, profile.Level, profile.Experience, PurchasedRubies = profile.Rubies.Purchased, EarnedRubies = profile.Rubies.Earned, profile.Boosts, });
 
         var totalCount = await dbQuery.CountAsync(cancellationToken);
         int matchingCount;
