@@ -32,6 +32,7 @@
     margin-right: 0.75rem;
     top: -1px;
     background-size: cover;
+    flex-shrink: 0;
 }
 
 .bi-house-door-fill-nav-menu {
@@ -69,6 +70,8 @@
 .nav-item {
     font-size: 0.9rem;
     padding-bottom: 0.5rem;
+    width: 100%;
+    min-width: 0;
 }
 
 .nav-item:first-of-type {
@@ -89,6 +92,7 @@
     align-items: center;
     line-height: 3rem;
     width: 100%;
+    min-width: 0;
 }
 
 .nav-item ::deep a.active {
@@ -107,6 +111,19 @@
 
 .navbar-toggler:checked~.nav-scrollable {
     display: block;
+}
+
+.nav-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1;
+}
+
+.nav-scrollable nav {
+    width: 100%;
+    max-width: 100%;
 }
 
 @media (min-width: 641px) {
@@ -129,5 +146,6 @@
         display: block;
         flex: 1;
         overflow-y: auto;
+        overflow-x: hidden;
     }
 }
