@@ -1,6 +1,7 @@
 ﻿@page "/"
 @using Solace.WebPortal.Common
 @inject PersistentComponentState ApplicationState
+@inject HttpClient Http
 @inject Microsoft.Extensions.Options.IOptions<PublicEndpointInfo> PublicEndpointInfo
 @implements IDisposable
 
@@ -73,33 +74,39 @@
 @code {
     private (string Protocol, string Address)? locatorInfo;
     private (string Protocol, string Address)? authServerInfo;
-    private PersistingComponentStateSubscription _persistingSubscription;
 
-    protected override void OnInitialized()
+    private PersistingComponentStateSubscription _subscription;
+
+    protected override async Task OnInitializedAsync()
     {
-        _persistingSubscription = ApplicationState.RegisterOnPersisting(PersistData);
+        _subscription = ApplicationState.RegisterOnPersisting(PersistConfig);
 
-        if (!ApplicationState.TryTakeFromJson<(string, string)?>(nameof(locatorInfo), out locatorInfo))
+        if (ApplicationState.TryTakeFromJson<PublicEndpointInfo>("public-endpoint-info", out var restored) && restored is not null)
         {
-            locatorInfo = ParseEndpoint(PublicEndpointInfo.Value.Locator);
+            locatorInfo = ParseEndpoint(restored.Locator);
+            authServerInfo = ParseEndpoint(restored.AuthServer);
         }
-
-        if (!ApplicationState.TryTakeFromJson<(string, string)?>(nameof(authServerInfo), out authServerInfo))
+        else if (!RendererInfo.IsInteractive)
         {
-            authServerInfo = ParseEndpoint(PublicEndpointInfo.Value.AuthServer);
+            var serverConfig = PublicEndpointInfo.Value;
+            locatorInfo = ParseEndpoint(serverConfig.Locator);
+            authServerInfo = ParseEndpoint(serverConfig.AuthServer);
+        }
+        else
+        {
+            var config = await Http.GetFromJsonAsync<PublicEndpointInfo>("api/config/public-endpoints");
+            if (config is not null)
+            {
+                locatorInfo = ParseEndpoint(config.Locator);
+                authServerInfo = ParseEndpoint(config.AuthServer);
+            }
         }
     }
 
-    private Task PersistData()
+    private Task PersistConfig()
     {
-        ApplicationState.PersistAsJson(nameof(locatorInfo), locatorInfo);
-        ApplicationState.PersistAsJson(nameof(authServerInfo), authServerInfo);
+        ApplicationState.PersistAsJson("public-endpoint-info", PublicEndpointInfo.Value);
         return Task.CompletedTask;
-    }
-
-    public void Dispose()
-    {
-        _persistingSubscription.Dispose();
     }
 
     private (string Protocol, string Address)? ParseEndpoint(string? endpointUrl)
@@ -119,4 +126,7 @@
 
         return null;
     }
+
+    public void Dispose()
+        => _subscription.Dispose();
 }
