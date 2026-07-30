@@ -7,11 +7,12 @@ internal static class AspireExtension
     extension<T>(IResourceBuilder<T> builder)
         where T : IResourceWithEnvironment
     {
-        public IResourceBuilder<T> WithEnvironmentFromSection(
+        public IResourceBuilder<T> WithEnvironmentSection(
             IConfiguration config,
             string sectionPath,
             string? prefixToRemove = null,
-            string? prefixToAdd = null)
+            string? prefixToAdd = null,
+            params ReadOnlySpan<ConfigParameter> parameterOverrides)
         {
             var section = config.GetSection(sectionPath);
 
@@ -22,63 +23,80 @@ internal static class AspireExtension
                     continue;
                 }
 
-                var envName = kvp.Key;
-                if (!string.IsNullOrEmpty(prefixToRemove) && envName.StartsWith(prefixToRemove, StringComparison.Ordinal))
+                var envName = TransformKey(kvp.Key, prefixToRemove, prefixToAdd);
+
+                var overrideParam = Find(parameterOverrides, p => p.ConfigPath == kvp.Key);
+
+                if (overrideParam.Parameter is not null)
                 {
-                    envName = envName[prefixToRemove.Length..];
+                    builder.WithEnvironment(envName, overrideParam.Parameter);
                 }
-
-                if (!string.IsNullOrEmpty(prefixToAdd))
+                else
                 {
-                    if (!prefixToAdd.EndsWith(':') && !envName.StartsWith(':'))
-                    {
-                        prefixToAdd = prefixToAdd + ":";
-                    }
-
-                    envName = prefixToAdd + envName;
+                    builder.WithEnvironment(envName, kvp.Value);
                 }
-
-                envName = envName.TrimStart(':');
-
-                envName = envName.Replace(":", "__", StringComparison.Ordinal);
-                builder.WithEnvironment(envName, kvp.Value);
             }
 
             return builder;
+
+            static TItem? Find<TItem>(ReadOnlySpan<TItem> collection, Func<TItem, bool> predicate)
+            {
+                foreach (var item in collection)
+                {
+                    if (predicate(item))
+                    {
+                        return item;
+                    }
+                }
+
+                return default;
+            }
         }
 
-        public IResourceBuilder<T> WithEnvironmentFromConfig(ParamterForEnvironment paramter)
-            => builder.WithEnvironment(paramter.EnvironmentName, paramter.Parameter);
+        public IResourceBuilder<T> WithEnvironmentParameter(
+            ConfigParameter configParam,
+            string? prefixToRemove = null,
+            string? prefixToAdd = null)
+        {
+            if (configParam.Parameter is null)
+            {
+                return builder;
+            }
+
+            var envName = TransformKey(configParam.ConfigPath, prefixToRemove, prefixToAdd);
+            return builder.WithEnvironment(envName, configParam.Parameter);
+        }
+    }
+
+    private static string TransformKey(string key, string? prefixToRemove, string? prefixToAdd)
+    {
+        var envName = key;
+        if (!string.IsNullOrEmpty(prefixToRemove) && envName.StartsWith(prefixToRemove, System.StringComparison.Ordinal))
+        {
+            envName = envName[prefixToRemove.Length..];
+        }
+
+        if (!string.IsNullOrEmpty(prefixToAdd))
+        {
+            if (!prefixToAdd.EndsWith(':') && !envName.StartsWith(':'))
+            {
+                prefixToAdd += ":";
+            }
+
+            envName = prefixToAdd + envName;
+        }
+
+        envName = envName.TrimStart(':');
+        return envName.Replace(":", "__", System.StringComparison.Ordinal);
     }
 
     extension(IDistributedApplicationBuilder builder)
     {
-        public ParamterForEnvironment AddParameterForEnvironment(string configPath,
+        public ConfigParameter AddConfigParameter(
+            string configPath,
             string defaultValue = "",
-            string? prefixToRemove = null,
-            string? prefixToAdd = null,
             bool isSecret = false)
         {
-            var envName = configPath;
-            if (!string.IsNullOrEmpty(prefixToRemove) && envName.StartsWith(prefixToRemove, StringComparison.Ordinal))
-            {
-                envName = envName[prefixToRemove.Length..];
-            }
-
-            if (!string.IsNullOrEmpty(prefixToAdd))
-            {
-                if (!prefixToAdd.EndsWith(':') && !envName.StartsWith(':'))
-                {
-                    prefixToAdd = prefixToAdd + ":";
-                }
-
-                envName = prefixToAdd + envName;
-            }
-
-            envName = envName.TrimStart(':');
-
-            envName = envName.Replace(":", "__", StringComparison.Ordinal);
-
             var parameterName = configPath.Replace(':', '-');
 
             var parameter = builder.AddParameter(
@@ -87,9 +105,9 @@ internal static class AspireExtension
                 secret: isSecret
             );
 
-            return new ParamterForEnvironment(envName, parameter);
+            return new ConfigParameter(configPath, parameter);
         }
     }
 
-    public readonly record struct ParamterForEnvironment(string EnvironmentName, IResourceBuilder<ParameterResource> Parameter);
+    public readonly record struct ConfigParameter(string ConfigPath, IResourceBuilder<ParameterResource>? Parameter);
 }
