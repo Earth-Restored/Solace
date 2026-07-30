@@ -229,7 +229,7 @@ public sealed class EarthDbContext : DbContext
 
         // profile versions
         modelBuilder.Entity<ProfileVersions>()
-            .ToTable("AccountVersions"); // do not rename, used by db triggers
+            .ToTable("ProfileVersions");
 
         // activity log
         modelBuilder.Entity<ActivityLogEntryEF>()
