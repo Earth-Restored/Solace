@@ -6,11 +6,14 @@
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Options
 @using Solace.Common.Asp.Auth
+@using Solace.Common.Utils
 @using Solace.Db.Earth
+@using Solace.StaticData
 @inject IHttpContextAccessor HttpContextAccessor
 @inject IDbContextFactory<EarthDbContext> EarthDbFactory
 @inject IOptions<AuthSettings> AuthSettings
 @inject CryptoSecrets CryptoSecrets
+@inject StaticDataProvider StaticData
 
 <HeadContent>
     <meta charset="UTF-8">
@@ -65,18 +68,18 @@
                 <p class="subtitle">Welcome, @SelectedProfile.Username! Launching game...</p>
 
                 <script>
-                                external.Property('DAToken', `<EncryptedData xmlns="http://www.w3.org/2001/04/xmlenc#" Id="BinaryDAToken0"><CipherData><CipherValue>@HandoffToken</CipherValue></CipherData></EncryptedData>`);
-                                external.Property('DAStartTime', '@(HandoffTokenValidity!.Value.IssuedStr)');
-                                external.Property('DAExpires', '@(HandoffTokenValidity!.Value.ExpiresStr)');
-                                external.Property('DASessionKey', '@CryptoSecrets.LoginUserTokenSessionKeyBase64');
-                                external.Property('FirstName', '@SelectedProfile.Username');
-                                external.Property('LastName', '@SelectedProfile.Username');
-                                external.Property('SigninName', '@SelectedProfile.Username');
-                                external.Property('Username', '@SelectedProfile.Username');
-                                external.Property('CID', '@SelectedProfile.Id');
-                                external.Property('PUID', '@SelectedProfile.Id');
+                    external.Property('DAToken', `<EncryptedData xmlns="http://www.w3.org/2001/04/xmlenc#" Id="BinaryDAToken0"><CipherData><CipherValue>@HandoffToken</CipherValue></CipherData></EncryptedData>`);
+                    external.Property('DAStartTime', '@(HandoffTokenValidity!.Value.IssuedStr)');
+                    external.Property('DAExpires', '@(HandoffTokenValidity!.Value.ExpiresStr)');
+                    external.Property('DASessionKey', '@CryptoSecrets.LoginUserTokenSessionKeyBase64');
+                    external.Property('FirstName', '@SelectedProfile.Username');
+                    external.Property('LastName', '@SelectedProfile.Username');
+                    external.Property('SigninName', '@SelectedProfile.Username');
+                    external.Property('Username', '@SelectedProfile.Username');
+                    external.Property('CID', '@SelectedProfile.Id');
+                    external.Property('PUID', '@SelectedProfile.Id');
 
-                                external.FinalNext();
+                    external.FinalNext();
                 </script>
             }
             else if (Profiles is null)
@@ -90,7 +93,7 @@
 
                 @if (!string.IsNullOrEmpty(Email))
                 {
-                    <p class="subtitle" style="margin-bottom: 6px; opacity: 0.85;">Logged in as <strong>@Email</strong></p>
+                    <p class="subtitle" style="margin-bottom: 12px; opacity: 0.85;">Logged in as <strong>@Email</strong></p>
                 }
 
                 @if (!string.IsNullOrEmpty(ErrorMessage))
@@ -100,14 +103,39 @@
                     </div>
                 }
 
-                <div class="profile-list" style="margin-bottom: 20px;">
+                <div class="profile-list">
                     @foreach (var profile in Profiles)
                     {
-                        <div style="margin-bottom: 10px;">
-                            <form method="post" @formname="@($"select_profile_{profile.Id}")" @onsubmit="() => SelectProfile(profile.Id)">
+                        var pct = profile.LevelProgressPercentage ?? 1.0f;
+                        var circumference = 119.38f; // 2 * pi * r (r=19)
+                        var dashoffset = circumference * (1.0f - pct);
+
+                        <div class="profile-card">
+                            <div class="profile-info">
+                                <div class="level-badge" title="Level @profile.Level (@(profile.LevelProgressPercentage.HasValue ? $"{(int)(profile.LevelProgressPercentage.Value * 100)}%" : "MAX"))">
+                                    <svg viewBox="0 0 48 48" class="level-svg">
+                                        <circle class="level-bg" cx="24" cy="24" r="19" />
+                                        <circle class="level-progress" cx="24" cy="24" r="19" 
+                                                style="stroke-dasharray: 119.38; stroke-dashoffset: @dashoffset;" />
+                                    </svg>
+                                    <span class="level-text">@profile.Level</span>
+                                </div>
+
+                                <div class="profile-details">
+                                    <span class="profile-name">@profile.Username</span>
+                                    <div class="profile-rubies" title="@profile.Rubies Rubies">
+                                        <svg class="ruby-icon" viewBox="0 0 16 16">
+                                            <path d="M5 2h6l5 5-8 7-8-7z" />
+                                        </svg>
+                                        <span>@profile.Rubies</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <form method="post" @formname="@($"select_profile_{profile.Id}")" @onsubmit="() => SelectProfile(profile.Id)" class="profile-action">
                                 <AntiforgeryToken />
-                                <button type="submit" class="bp-submit-btn">
-                                    Play as @profile.Username
+                                <button type="submit" class="bp-submit-btn profile-play-btn">
+                                    Play
                                 </button>
                             </form>
                         </div>
@@ -176,7 +204,9 @@
         Profiles = await earthDb.Profiles
             .AsNoTracking()
             .Where(profile => profile.WebPortalAccountId == AccountId.Value)
-            .Select(profile => new ProfileDto(profile.Id, profile.Username!))
+            .Select(profile => new { profile.Id, profile.Username, profile.Level, profile.Experience, PurchasedRubies = profile.Rubies.Purchased, EarnedRubies = profile.Rubies.Earned })
+            .AsAsyncEnumerable()
+            .Select(profile => new ProfileDto(profile.Id, profile.Username!, profile.Level, GetLevelProgressPercentage(profile.Level, profile.Experience, StaticData.Levels), profile.PurchasedRubies + profile.EarnedRubies))
             .ToListAsync();
     }
 
@@ -240,7 +270,7 @@
 
         await earthDb.SaveChangesAsync();
 
-        SelectedProfile = new ProfileDto(newProfile.Id, newProfile.Username);
+        SelectedProfile = new ProfileDto(newProfile.Id, newProfile.Username, newProfile.Level, GetLevelProgressPercentage(newProfile.Level, newProfile.Experience, StaticData.Levels), newProfile.Rubies.Total);
         CreateToken();
     }
 
@@ -259,17 +289,48 @@
         HandoffToken = JwtUtils.Sign(token, CryptoSecrets.LoginUserTokenSecret, HandoffTokenValidity.Value);
     }
 
+    public static int? GetRequiredExperienceForNextLevel(int level, PlayerLevels levels)
+    {
+        var levelIndex = int.Max(level - 1, 0);
+        return levelIndex < levels.Levels.Length ? levels.Levels[levelIndex].ExperienceRequired : null;
+    }
+
+    public static float? GetLevelProgressPercentage(int level, int experience, PlayerLevels levels)
+    {
+        var requiredExperienceNull = GetRequiredExperienceForNextLevel(level, levels);
+
+        if (requiredExperienceNull is not { } requiredExperience)
+        {
+            return null;
+        }
+        else if (requiredExperience <= 0f)
+        {
+            return 1f;
+        }
+
+        return float.Clamp(experience / (float)requiredExperience, 0f, 1f);
+    }
+
     private sealed class ProfileDto
     {
         [SetsRequiredMembers]
-        public ProfileDto(Guid id, string username)
+        public ProfileDto(Guid id, string username, int level, float? levelProgressPercentage, int rubies)
         {
             Id = id;
             Username = username;
+            Level = level;
+            LevelProgressPercentage = levelProgressPercentage;
+            Rubies = rubies;
         }
 
         public required Guid Id { get; set; }
 
         public required string Username { get; set; }
+
+        public required int Level { get; set; }
+
+        public required float? LevelProgressPercentage { get; set; }
+
+        public required int Rubies { get; set; }
     }
 }

@@ -336,7 +336,7 @@ h1 {
 }
 
 .bp-submit-btn {
-display: block;
+    display: block;
     width: 100%;
     background: linear-gradient(180deg, #6b8e23 0%, #556b2f 100%);
     color: white;
@@ -434,6 +434,117 @@ display: block;
 .logout-link {
     color: #0a123f;
     text-decoration: underline;
+}
+
+.profile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.profile-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #d4c5a0;
+    border: 3px solid #8b7355;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2), inset 0 3px 0 rgba(255, 255, 255, 0.3);
+    padding: 10px 12px;
+    gap: 12px;
+    width: 100%;
+}
+
+.profile-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+}
+
+.level-badge {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.level-svg {
+    transform: rotate(-90deg);
+    width: 48px;
+    height: 48px;
+}
+
+.level-bg {
+    fill: #5a4a3a;
+    stroke: #8b7355;
+    stroke-width: 5;
+}
+
+.level-progress {
+    fill: none;
+    stroke: #6b8e23;
+    stroke-width: 5;
+    transition: stroke-dashoffset 0.4s ease-in-out;
+}
+
+.level-text {
+    position: absolute;
+    font-family: "Press Start 2P", system-ui;
+    font-size: 0.65rem;
+    color: #ffffff;
+    text-shadow: 1px 1px 0 #000;
+}
+
+.profile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.profile-name {
+    font-family: "Press Start 2P", system-ui;
+    font-size: 0.65rem;
+    color: #3e2723;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.profile-rubies {
+    font-family: "Press Start 2P", system-ui;
+    font-size: 0.6rem;
+    color: #d32f2f;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.ruby-icon {
+    width: 14px;
+    height: 14px;
+    fill: #e53935;
+    filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.3));
+    flex-shrink: 0;
+}
+
+.profile-action {
+    flex-shrink: 0;
+}
+
+.profile-play-btn {
+    margin-top: 0 !important;
+    padding: 8px 12px !important;
+    font-size: 0.6rem !important;
+    white-space: nowrap;
+    width: auto !important;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -583,10 +694,35 @@ display: block;
         color: #ff8a80;
     }
 
-    @media (prefers-color-scheme: dark) {
-        .logout-link {
-            color: #fff;
-        }
+    .logout-link {
+        color: #fff;
+    }
+
+    .profile-card {
+        background: #1f1f1f;
+        border-color: #1a1a1a;
+        box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.5), inset 0 3px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .profile-name {
+        color: #ffffff;
+    }
+
+    .level-bg {
+        fill: #141414;
+        stroke: #3c3c3c;
+    }
+
+    .level-progress {
+        stroke: #a4c847;
+    }
+
+    .profile-rubies {
+        color: #ff6b6b;
+    }
+
+    .ruby-icon {
+        fill: #ff5252;
     }
 }
 
@@ -602,6 +738,43 @@ display: block;
     .nav-tab {
         font-size: 0.55rem;
         padding: 10px 2px;
+    }
+
+    .profile-card {
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    .profile-info {
+        gap: 8px;
+    }
+
+    .level-badge,
+    .level-svg {
+        width: 40px;
+        height: 40px;
+    }
+
+    .level-text {
+        font-size: 0.55rem;
+    }
+
+    .profile-name {
+        font-size: 0.55rem;
+    }
+
+    .profile-rubies {
+        font-size: 0.5rem;
+    }
+
+    .ruby-icon {
+        width: 12px;
+        height: 12px;
+    }
+
+    .profile-play-btn {
+        padding: 6px 8px !important;
+        font-size: 0.5rem !important;
     }
 }
 
