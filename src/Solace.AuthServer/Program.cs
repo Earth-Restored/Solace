@@ -222,7 +222,7 @@ internal sealed partial class Program2
 
         app.UseStaticFiles(new StaticFileOptions()
         {
-            OnPrepareResponse = ctx =>
+            OnPrepareResponse = static ctx =>
             {
                 if (ctx.File.Name is "master_loc_contents.json")
                 {
