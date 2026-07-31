@@ -31,9 +31,17 @@
     {
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3 class="m-0 text-dark font-weight-bold">Profile: @PlayerAccount.Username</h3>
-            <a class="btn btn-secondary btn-sm" href="/Players">
-                <i class="bi bi-arrow-left"></i> Back to Players
-            </a>
+            <div class="d-flex gap-2">
+                @if (CanEdit)
+                {
+                    <button class="btn btn-danger btn-sm" @onclick="OpenDeleteModal">
+                        <i class="bi bi-trash me-1"></i> Delete Player
+                    </button>
+                }
+                <a class="btn btn-secondary btn-sm" href="/Players">
+                    <i class="bi bi-arrow-left"></i> Back to Players
+                </a>
+            </div>
         </div>
 
         @if (!string.IsNullOrEmpty(UpdateErrorMessage))
@@ -205,7 +213,7 @@
                             <strong class="fs-5 ms-2 text-dark">@(BuildplateCount?.ToString() ?? "?")</strong>
                         </div>
                         <a class="btn btn-primary btn-sm" href="/Players/@PlayerAccount.Id/Buildplates">
-                            <i class="bi bi-gear-fill me-1"></i> Manage Buildplates
+                            View Buildplates
                         </a>
                     </div>
                 </div>
@@ -281,6 +289,44 @@
             </div>
         </div>
     }
+
+    @if (IsDeleteModalVisible && CanEdit)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content shadow-lg border-danger">
+                    <div class="modal-header py-2 bg-danger text-white">
+                        <h6 class="modal-title font-weight-bold" style="font-size: 0.9rem;">Confirm Deletion</h6>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CloseDeleteModal" disabled="@IsDeletingPlayer"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <p class="mb-3 text-dark" style="font-size: 0.85rem;">
+                            Are you sure you want to delete player <strong>@PlayerAccount?.Username</strong>? This action cannot be undone.
+                        </p>
+
+                        @if (!string.IsNullOrEmpty(DeleteErrorMessage))
+                        {
+                            <div class="alert alert-danger py-1 px-2 mb-2 small" role="alert" style="font-size: 0.75rem;">@DeleteErrorMessage</div>
+                        }
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseDeleteModal" disabled="@IsDeletingPlayer">Cancel</button>
+                            <button type="button" class="btn btn-danger btn-sm px-3" @onclick="DeletePlayerAsync" disabled="@IsDeletingPlayer">
+                                @if (IsDeletingPlayer)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                }
+                                else
+                                {
+                                    <span>Delete</span>
+                                }
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -327,6 +373,10 @@
     private string? SkinUploadErrorMessage { get; set; }
     private string? SkinUploadSuccessMessage { get; set; }
     private const long MaxSkinFileSize = 512 * 1024; // 512 KB
+
+    private bool IsDeleteModalVisible { get; set; } = false;
+    private bool IsDeletingPlayer { get; set; } = false;
+    private string? DeleteErrorMessage { get; set; }
 
     private string? UpdateErrorMessage { get; set; }
     private string? UpdateSuccessMessage { get; set; }
@@ -399,6 +449,7 @@
         UpdateSuccessMessage = null;
         SkinUploadErrorMessage = null;
         SkinUploadSuccessMessage = null;
+        DeleteErrorMessage = null;
     }
 
     private async Task UpdateUsername()
@@ -563,6 +614,54 @@
         finally
         {
             IsUploadingSkin = false;
+        }
+    }
+
+    private void OpenDeleteModal()
+    {
+        ClearMessages();
+        IsDeleteModalVisible = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        IsDeleteModalVisible = false;
+        DeleteErrorMessage = null;
+    }
+
+    private async Task DeletePlayerAsync()
+    {
+        if (PlayerAccount is null)
+        {
+            return;
+        }
+
+        IsDeletingPlayer = true;
+        DeleteErrorMessage = null;
+
+        try
+        {
+            var uri = $"api/players/{AccountId}";
+            using var response = await Http.DeleteAsync(uri);
+
+            if (response.IsSuccessStatusCode)
+            {
+                IsDeleteModalVisible = false;
+                NavManager.NavigateTo("/Players");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                DeleteErrorMessage = string.IsNullOrEmpty(error) ? "Failed to delete player account." : error;
+            }
+        }
+        catch
+        {
+            DeleteErrorMessage = "An error occurred while deleting the player.";
+        }
+        finally
+        {
+            IsDeletingPlayer = false;
         }
     }
 }
