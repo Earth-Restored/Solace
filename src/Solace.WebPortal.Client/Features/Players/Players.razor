@@ -70,10 +70,10 @@
                                     <td class="text-center">
                                         <div class="position-relative d-inline-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
                                             <svg viewBox="0 0 36 36" class="position-absolute top-0 start-0 w-100 h-100">
-                                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e9ecef" stroke-width="3" />
+                                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e6e6e6" stroke-width="3" />
                                                 @{
                                                     var progress = player.LevelProgressPercentage.HasValue ? (player.LevelProgressPercentage.Value * 100).ToString("0.0", CultureInfo.InvariantCulture) : "100";
-                                                    var strokeColor = player.LevelProgressPercentage.HasValue ? "#0d6efd" : "#198754";
+                                                    var strokeColor = player.LevelProgressPercentage.HasValue ? "#28a745" : "#198754";
                                                 }
                                                 <path stroke-dasharray="@progress, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="@strokeColor" stroke-width="3" />
                                             </svg>
@@ -81,7 +81,7 @@
                                         </div>
                                     </td>
                                     <td class="text-center">
-                                        <span class="text-success fw-medium text-nowrap"><i class="bi bi-heart-fill me-1"></i>@player.Health / @player.MaxHealth</span>
+                                        <span class="text-danger fw-medium text-nowrap"><i class="bi bi-heart-fill me-1"></i>@player.Health / @player.MaxHealth</span>
                                     </td>
                                     <td class="text-center text-danger fw-bold" title="Purchased: @player.PurchasedRubies | Earned: @player.EarnedRubies">
                                         <i class="bi bi-gem me-1"></i>@player.TotalRubies

@@ -23,6 +23,15 @@
 
         <AuthorizeView>
             <Authorized>
+                @if (HasPermission(Permissions.CreateProfile))
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="Profiles">
+                            <span class="bi bi-person-vcard" aria-hidden="true"></span> My Profiles
+                        </NavLink>
+                    </div>
+                }
+
                 @if (HasPermission(Permissions.ViewPlayers))
                 {
                     <div class="nav-item px-3">
@@ -63,7 +72,7 @@
                 {
                     <div class="nav-item px-3">
                         <NavLink class="nav-link" href="Roles">
-                            <span class="bi bi-person-lock" aria-hidden="true"></span> Roles
+                            <span class="bi bi-shield-lock" aria-hidden="true"></span> Roles
                         </NavLink>
                     </div>
                 }

@@ -488,7 +488,7 @@ h1 {
 
 .level-progress {
     fill: none;
-    stroke: #6b8e23;
+    stroke: #28a745;
     stroke-width: 5;
     transition: stroke-dashoffset 0.4s ease-in-out;
 }

@@ -102,7 +102,7 @@ else
                             <div class="position-relative d-inline-flex align-items-center justify-content-center" style="width: 55px; height: 55px; flex-shrink: 0;">
                                 <svg width="55" height="55" viewBox="0 0 50 50" style="transform: rotate(-90deg); position: absolute; top: 0; left: 0;">
                                     <circle cx="25" cy="25" r="20" stroke="#e6e6e6" stroke-width="4" fill="transparent" />
-                                    <circle cx="25" cy="25" r="20" stroke="#28a745" stroke-width="4" fill="transparent" stroke-dasharray="125.66" stroke-dashoffset="@(125.66 - (125.66 * (PlayerAccount.LevelProgressPercentage ?? 1f) / 100))" stroke-linecap="round" style="transition: stroke-dashoffset 0.3s ease;" />
+                                    <circle cx="25" cy="25" r="20" stroke="#28a745" stroke-width="4" fill="transparent" stroke-dasharray="125.66" stroke-dashoffset="@(125.66 - (125.66 * (PlayerAccount.LevelProgressPercentage ?? 100f)))" stroke-linecap="round" style="transition: stroke-dashoffset 0.3s ease;" />
                                 </svg>
                                 <div class="text-center d-flex flex-column align-items-center justify-content-center" style="z-index: 2;">
                                     <span class="m-0 font-weight-bold text-dark">@PlayerAccount.Level</span>
@@ -112,11 +112,8 @@ else
                             <div class="row flex-grow-1 g-3">
                                 <div class="col-12">
                                     <div class="d-flex justify-content-between mb-1 small">
-                                        <span class="text-muted">XP (@(PlayerAccount.LevelProgressPercentage?.ToString("F0") ?? "100")%)</span>
+                                        <span class="text-muted">XP (@(((PlayerAccount.LevelProgressPercentage ?? 1f) * 100).ToString("F0") ?? "100")%)</span>
                                         <span class="font-weight-bold">@PlayerAccount.TotalExperience</span>
-                                    </div>
-                                    <div class="progress" style="height: 8px;">
-                                        <div class="progress-bar bg-success" role="progressbar" style="width: @PlayerAccount.LevelProgressPercentage%;"></div>
                                     </div>
                                 </div>
                                 <div class="col-12">
@@ -132,7 +129,7 @@ else
                         </div>
 
                         <div class="mt-3 bg-light p-2 px-3 rounded border d-flex justify-content-between align-items-center">
-                            <span class="text-muted font-weight-bold"><i class="bi bi-gem text-warning"></i> Rubies</span>
+                            <span class="text-muted font-weight-bold"><i class="bi bi-gem text-danger"></i> Rubies</span>
                             <div class="d-flex gap-4">
                                 <span>Purchased: <strong class="text-primary">@PlayerAccount.PurchasedRubies</strong></span>
                                 <span>Earned: <strong class="text-success">@PlayerAccount.EarnedRubies</strong></span>
