@@ -88,7 +88,7 @@ public static partial class UpdatePlayer
 
         if (command.Body.Username is not null)
         {
-            var userId = long.Parse(httpUser.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
+            var userId = httpUser.GetIdLong();
             // allow changing username on the user's profiles
             if (!canManagePlayers && profile.WebPortalAccountId != userId)
             {

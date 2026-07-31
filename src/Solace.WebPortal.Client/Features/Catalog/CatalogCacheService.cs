@@ -18,7 +18,7 @@ public sealed class CatalogCacheService
     }
 
     public async Task<SyncAccessor> GetSyncAccessorAsync(CancellationToken cancellationToken = default)
-        => new SyncAccessor(await GetData(cancellationToken));
+        => new(await GetData(cancellationToken));
 
     public async Task<ItemDto> GetItemAsync(Guid id, CancellationToken cancellationToken = default)
         => (await GetData(cancellationToken))[id];

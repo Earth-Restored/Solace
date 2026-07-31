@@ -6,8 +6,9 @@
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Options
 @using Solace.Common.Asp.Auth
-@using Solace.Common.Utils
+@using Solace.Common.Constants
 @using Solace.Db.Earth
+@using Solace.Db.Earth.Utils
 @using Solace.StaticData
 @inject IHttpContextAccessor HttpContextAccessor
 @inject IDbContextFactory<EarthDbContext> EarthDbFactory
@@ -68,18 +69,18 @@
                 <p class="subtitle">Welcome, @SelectedProfile.Username! Launching game...</p>
 
                 <script>
-                    external.Property('DAToken', `<EncryptedData xmlns="http://www.w3.org/2001/04/xmlenc#" Id="BinaryDAToken0"><CipherData><CipherValue>@HandoffToken</CipherValue></CipherData></EncryptedData>`);
-                    external.Property('DAStartTime', '@(HandoffTokenValidity!.Value.IssuedStr)');
-                    external.Property('DAExpires', '@(HandoffTokenValidity!.Value.ExpiresStr)');
-                    external.Property('DASessionKey', '@CryptoSecrets.LoginUserTokenSessionKeyBase64');
-                    external.Property('FirstName', '@SelectedProfile.Username');
-                    external.Property('LastName', '@SelectedProfile.Username');
-                    external.Property('SigninName', '@SelectedProfile.Username');
-                    external.Property('Username', '@SelectedProfile.Username');
-                    external.Property('CID', '@SelectedProfile.Id');
-                    external.Property('PUID', '@SelectedProfile.Id');
+                                external.Property('DAToken', `<EncryptedData xmlns="http://www.w3.org/2001/04/xmlenc#" Id="BinaryDAToken0"><CipherData><CipherValue>@HandoffToken</CipherValue></CipherData></EncryptedData>`);
+                                external.Property('DAStartTime', '@(HandoffTokenValidity!.Value.IssuedStr)');
+                                external.Property('DAExpires', '@(HandoffTokenValidity!.Value.ExpiresStr)');
+                                external.Property('DASessionKey', '@CryptoSecrets.LoginUserTokenSessionKeyBase64');
+                                external.Property('FirstName', '@SelectedProfile.Username');
+                                external.Property('LastName', '@SelectedProfile.Username');
+                                external.Property('SigninName', '@SelectedProfile.Username');
+                                external.Property('Username', '@SelectedProfile.Username');
+                                external.Property('CID', '@SelectedProfile.Id');
+                                external.Property('PUID', '@SelectedProfile.Id');
 
-                    external.FinalNext();
+                                external.FinalNext();
                 </script>
             }
             else if (Profiles is null)
@@ -115,8 +116,7 @@
                                 <div class="level-badge" title="Level @profile.Level (@(profile.LevelProgressPercentage.HasValue ? $"{(int)(profile.LevelProgressPercentage.Value * 100)}%" : "MAX"))">
                                     <svg viewBox="0 0 48 48" class="level-svg">
                                         <circle class="level-bg" cx="24" cy="24" r="19" />
-                                        <circle class="level-progress" cx="24" cy="24" r="19" 
-                                                style="stroke-dasharray: 119.38; stroke-dashoffset: @dashoffset;" />
+                                        <circle class="level-progress" cx="24" cy="24" r="19" style="stroke-dasharray: 119.38; stroke-dashoffset: @dashoffset;" />
                                     </svg>
                                     <span class="level-text">@profile.Level</span>
                                 </div>
@@ -149,7 +149,7 @@
                         <AntiforgeryToken />
                         <div class="bp-form-row">
                             <label for="newUsername">New Profile Username <span class="required">*</span></label>
-                            <input id="newUsername" name="NewUsername" type="text" @bind-value="NewUsername" placeholder="Username" required minlength="3" maxlength="16" pattern="[a-z0-9_:]+" title="Lowercase letters, numbers, underscore, and colon only" />
+                            <input id="newUsername" name="NewUsername" type="text" @bind-value="NewUsername" placeholder="Username" required minlength="@AccountConstants.UsernameLengthMin" maxlength="@AccountConstants.UsernameLengthMax" pattern="@AccountConstants.GetUsernameRegex()" title="Lowercase letters, numbers, underscore, and colon only" />
                         </div>
                         <button type="submit" class="bp-submit-btn" style="background-color: #2e7d32;">
                             Create (@(Profiles.Count + 1) / 3)
@@ -250,13 +250,29 @@
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(NewUsername) || NewUsername.Length < 3 || NewUsername.Length > 16)
+        NewUsername = NewUsername?.Trim();
+
+        if (string.IsNullOrWhiteSpace(NewUsername) || NewUsername.Length < AccountConstants.UsernameLengthMin || NewUsername.Length > AccountConstants.UsernameLengthMax)
         {
-            ErrorMessage = "Username must be between 3 and 16 characters.";
+            ErrorMessage = $"Username must be between {AccountConstants.UsernameLengthMin} and {AccountConstants.UsernameLengthMax} characters.";
+            return;
+        }
+
+        if (!AccountConstants.GetUsernameRegex().IsMatch(NewUsername))
+        {
+            ErrorMessage = $"Username must only contain {AccountConstants.UsernameAllowedCharacters}.";
             return;
         }
 
         await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
+
+        await using var transaction = await earthDb.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+
+        if ((await earthDb.Profiles.CountAsync(profile => profile.WebPortalAccountId == AccountId.Value)) >= 3)
+        {
+            ErrorMessage = "You cannot have more than 3 profiles.";
+            return;
+        }
 
         var exists = await earthDb.Profiles.AnyAsync(profile => profile.Username == NewUsername);
         if (exists)
@@ -268,7 +284,16 @@
         var newProfile = await earthDb.GetOrCreateAccount(Guid.CreateVersion7(), AccountId.Value);
         newProfile.Username = NewUsername;
 
-        await earthDb.SaveChangesAsync();
+        try
+        {
+            await earthDb.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateException exception) when (exception.IsUniqueConstraintViolation)
+        {
+            ErrorMessage = "Username is already taken. Please choose another.";
+            return;
+        }
 
         SelectedProfile = new ProfileDto(newProfile.Id, newProfile.Username, newProfile.Level, GetLevelProgressPercentage(newProfile.Level, newProfile.Experience, StaticData.Levels), newProfile.Rubies.Total);
         CreateToken();

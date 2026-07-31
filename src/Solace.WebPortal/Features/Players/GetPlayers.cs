@@ -33,7 +33,7 @@ public static partial class GetPlayers
             return TypedResults.Unauthorized();
         }
 
-        var userId = long.Parse(httpUser.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
+        var userId = httpUser.GetIdLong();
 
         var utcNow = DateTimeOffset.UtcNow;
 

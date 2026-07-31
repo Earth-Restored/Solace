@@ -218,7 +218,7 @@
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
-        _currentUserId = long.Parse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+        _currentUserId = user.GetIdLong();
         _canAssignRoles = user.HasPermission(Permissions.AssignRoles);
         _canDeleteUsers = user.HasPermission(Permissions.DeleteUsers);
         _canEditAccountInfo = user.HasPermission(Permissions.EditAcountInfo);

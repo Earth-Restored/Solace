@@ -1,0 +1,314 @@
+@page "/MyProfiles"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using Solace.Common.Constants
+@using Solace.WebPortal.Common
+@using Solace.WebPortal.Common.Features.Profiles
+@attribute [Authorize(Policy = Permissions.CreateProfile)]
+@rendermode InteractiveWebAssembly
+@inject HttpClient Http
+
+<PageTitle>My Profiles - Solace</PageTitle>
+
+<div class="container my-4" style="max-width: 900px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @errorMessage
+                <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+            </div>
+        }
+
+        <div class="card shadow-sm">
+            <div class="card-header pb-0 pt-3 px-3 d-flex flex-wrap align-items-end justify-content-between gap-3">
+                <div class="d-flex align-items-end gap-3">
+                    <h4 class="mb-2 text-dark fw-bold me-2">My Profiles</h4>
+
+                    <ul class="nav nav-tabs card-header-tabs mb-0">
+                        @foreach (var profile in profiles)
+                        {
+                            var isSelected = selectedProfile?.Id == profile.Id;
+                            <li class="nav-item">
+                                <button class="nav-link @(isSelected ? "active fw-semibold" : "") d-inline-flex align-items-center gap-2" @onclick="() => SelectProfile(profile)">
+                                    <span>@(string.IsNullOrWhiteSpace(profile.Username) ? "Unnamed Profile" : profile.Username)</span>
+
+                                    @if (isSelected)
+                                    {
+                                        <span class="text-danger p-0 lh-1" role="button" title="Delete Profile" @onclick="() => PromptDeleteProfile(profile)" @onclick:stopPropagation="true">
+                                            <i class="bi bi-trash"></i>
+                                        </span>
+                                    }
+                                </button>
+                            </li>
+                        }
+                    </ul>
+                </div>
+
+                @if (profiles.Count < 3)
+                {
+                    <div class="pb-2">
+                        <button class="btn btn-success btn-sm" @onclick="() => showCreateModal = true">
+                            + Create Profile
+                        </button>
+                    </div>
+                }
+            </div>
+
+            <div class="card-body p-4">
+                @if (selectedProfile is not null)
+                {
+                    <div class="profile-view-container">
+                        <Solace.WebPortal.Client.Features.Players.ProfileDisplay @key="selectedProfile.Id" ProfileId="@selectedProfile.Id" DisplayOwner="false" />
+                    </div>
+                }
+                else if (profiles.Count == 0 && !showCreateModal)
+                {
+                    <div class="text-center py-4 text-muted">
+                        <p class="mb-0">No profiles found. Click <strong>"Create Profile"</strong> to get started!</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (showCreateModal && profiles.Count < 3)
+        {
+            <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" role="dialog">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content shadow">
+                        <div class="modal-header">
+                            <h5 class="modal-title">New Profile</h5>
+                            <button type="button" class="btn-close" @onclick="CancelCreate"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Username</label>
+                                <input type="text" class="form-control" @bind="newUsername" placeholder="Enter username" minlength="@AccountConstants.UsernameLengthMin" maxlength="@AccountConstants.UsernameLengthMax" pattern="@AccountConstants.GetUsernameRegex()" title="Lowercase letters, numbers, underscore, and colon only" />
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary btn-sm" @onclick="CancelCreate">
+                                Cancel
+                            </button>
+                            <button class="btn btn-primary btn-sm" @onclick="CreateProfileAsync" disabled="@string.IsNullOrWhiteSpace(newUsername)">
+                                Create Profile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (showDeleteModal && profileToDelete is not null)
+        {
+            <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" role="dialog" aria-modal="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content shadow border-0">
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title d-flex align-items-center gap-2">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                <span>Confirm Delete</span>
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" @onclick="CancelDelete" disabled="@isDeleting"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <p class="mb-2">
+                                Are you sure you want to delete profile
+                                <strong>"@(string.IsNullOrWhiteSpace(profileToDelete.Username) ? "Unnamed Profile" : profileToDelete.Username)"</strong>?
+                            </p>
+                            <p class="text-danger small mb-0 fw-semibold">
+                                This action cannot be undone.
+                            </p>
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelDelete" disabled="@isDeleting">
+                                Cancel
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm d-inline-flex align-items-center gap-2" @onclick="ConfirmDeleteAsync" disabled="@isDeleting">
+                                @if (isDeleting)
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    <span>Deleting...</span>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-trash"></i>
+                                    <span>Delete Profile</span>
+                                }
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<ProfileDto> profiles = new();
+    private ProfileDto? selectedProfile;
+    private ProfileDto? profileToDelete;
+
+    private bool isLoading = true;
+    private bool isDeleting = false;
+    private bool showCreateModal = false;
+    private bool showDeleteModal = false;
+
+    private string newUsername = string.Empty;
+    private string? errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadProfilesAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadProfilesAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<ProfileDto>>("api/profiles");
+            profiles = result ?? [];
+
+            if (selectedProfile is not null)
+            {
+                selectedProfile = profiles.FirstOrDefault(p => p.Id == selectedProfile.Id);
+            }
+            else
+            {
+                selectedProfile = profiles.FirstOrDefault();
+            }
+        }
+        catch (Exception exception)
+        {
+            errorMessage = $"Failed to load profiles: {exception.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SelectProfile(ProfileDto profile)
+    {
+        selectedProfile = profile;
+        showCreateModal = false;
+    }
+
+    private void CancelCreate()
+    {
+        showCreateModal = false;
+        newUsername = string.Empty;
+    }
+
+    private async Task CreateProfileAsync()
+    {
+        if (profiles.Count >= 3 || string.IsNullOrWhiteSpace(newUsername))
+        {
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/profiles", new CreateProfileCommand(newUsername));
+
+            if (response.IsSuccessStatusCode)
+            {
+                newUsername = string.Empty;
+                showCreateModal = false;
+                await LoadProfilesAsync();
+
+                var result = await response.Content.ReadFromJsonAsync<CreateProfileResponse>();
+
+                if (result is not null)
+                {
+                    selectedProfile = profiles.FirstOrDefault(p => p.Id == result.ProfileId);
+                }
+                else
+                {
+                    selectedProfile = profiles.FirstOrDefault();
+                }
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                errorMessage = string.IsNullOrEmpty(error) ? "Failed to create profile. Please try again." : error;
+            }
+        }
+        catch (Exception exception)
+        {
+            errorMessage = $"Error creating profile: {exception.Message}";
+        }
+    }
+
+    private void PromptDeleteProfile(ProfileDto profile)
+    {
+        profileToDelete = profile;
+        showDeleteModal = true;
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteModal = false;
+        profileToDelete = null;
+    }
+
+    private async Task ConfirmDeleteAsync()
+    {
+        if (profileToDelete is null)
+        {
+            return;
+        }
+
+        isDeleting = true;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/profiles/{profileToDelete.Id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                if (selectedProfile?.Id == profileToDelete.Id)
+                {
+                    selectedProfile = null;
+                }
+
+                showDeleteModal = false;
+                profileToDelete = null;
+                await LoadProfilesAsync();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                errorMessage = string.IsNullOrEmpty(error) ? "Failed to delete profile." : error;
+                showDeleteModal = false;
+            }
+        }
+        catch (Exception exception)
+        {
+            errorMessage = $"Error deleting profile: {exception.Message}";
+            showDeleteModal = false;
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+}

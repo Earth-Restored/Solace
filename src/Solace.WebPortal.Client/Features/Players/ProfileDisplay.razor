@@ -9,6 +9,7 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
 
 @if (PlayerAccount is null)
 {
@@ -183,7 +184,7 @@ else
                             <span class="text-muted" style="font-size: 0.8rem;">No skin loaded</span>
                         </div>
                     </div>
-                    @if (CanEdit)
+                    @if (CanEdit || OwnsProfile)
                     {
                         <button type="button" class="btn btn-outline-secondary btn-sm w-100" @onclick="OpenSkinModal">
                             <i class="bi bi-upload me-1"></i> Upload Skin
@@ -203,7 +204,7 @@ else
                         <span class="text-muted">Total Buildplates Owned:</span>
                         <strong class="fs-5 ms-2 text-dark">@(BuildplateCount?.ToString() ?? "?")</strong>
                     </div>
-                    <a class="btn btn-primary btn-sm" href="/Players/@PlayerAccount.Id/Buildplates">
+                    <a class="btn btn-primary btn-sm" href="/Players/@PlayerAccount.Id/Buildplates?returnUri=@NavigationManager.ToBaseRelativePath(NavigationManager.Uri)">
                         View Buildplates
                     </a>
                 </div>
@@ -223,7 +224,7 @@ else
     </div>
 }
 
-@if (IsSkinModalVisible && CanEdit)
+@if (IsSkinModalVisible)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog modal-dialog-centered modal-sm">

@@ -1,6 +1,7 @@
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Solace.Db.Earth;
@@ -14,7 +15,7 @@ namespace Solace.WebPortal.Features.Players.Buildplates;
 [Handler]
 [MapGet("")]
 [MapGroup<BuildplatesGroup>]
-[Authorize(Policy = Permissions.ViewPlayers)]
+[Authorize]
 public static partial class GetBuildplates
 {
     public sealed record Query(
@@ -24,11 +25,38 @@ public static partial class GetBuildplates
         int PageSize = 8
     ) : PagedSearchQuery(SearchTerm, Page, PageSize);
 
-    private static async ValueTask<PagedSearchResult<List<BuildplateDto>>> HandleAsync(
+    private static async ValueTask<Results<Ok<PagedSearchResult<List<BuildplateDto>>>, NotFound, UnauthorizedHttpResult, ForbidHttpResult>> HandleAsync(
         Query query,
         EarthDbContext earthDb,
+        IHttpContextAccessor httpContextAccessor,
         CancellationToken cancellationToken)
     {
+        var httpUser = httpContextAccessor.HttpContext?.User;
+        if (httpUser is null)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var userId = httpUser.GetIdLong();
+
+        if (!httpUser.HasPermission(Permissions.ViewPlayers))
+        {
+            var profile = await earthDb.Profiles
+               .AsNoTracking()
+               .Select(profile => new { profile.Id, profile.WebPortalAccountId, })
+               .FirstOrDefaultAsync(profile => profile.Id == query.PlayerId, cancellationToken);
+
+            if (profile is null)
+            {
+                return TypedResults.NotFound();
+            }
+
+            if (profile.WebPortalAccountId != userId)
+            {
+                return TypedResults.Forbid();
+            }
+        }
+
         var dbQuery = (IQueryable<PlayerBuildplateEF>)earthDb.PlayerBuildplates
             .AsNoTracking()
             .Where(buildplate => buildplate.ProfileId == query.PlayerId)
@@ -65,6 +93,6 @@ public static partial class GetBuildplates
                 buildplate.PreviewObjectId))
             .ToListAsync(cancellationToken);
 
-        return new(items, totalCount, matchingCount);
+        return TypedResults.Ok(new PagedSearchResult<List<BuildplateDto>>(items, totalCount, matchingCount));
     }
 }

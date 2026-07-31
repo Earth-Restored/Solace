@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Security.Claims;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Authorization;
@@ -18,12 +16,12 @@ namespace Solace.WebPortal.Features.Players;
 [Handler]
 [MapGet("{profileId}")]
 [MapGroup<PlayersGroup>]
-[Authorize(Policy = Permissions.ViewPlayers)]
+[Authorize]
 public static partial class GetPlayer
 {
     public sealed record Query([property: FromRoute] Guid ProfileId);
 
-    private static async ValueTask<Results<Ok<PlayerDto>, NotFound, UnauthorizedHttpResult>> HandleAsync(
+    private static async ValueTask<Results<Ok<PlayerDto>, NotFound, UnauthorizedHttpResult, ForbidHttpResult>> HandleAsync(
         Query query,
         EarthDbContext earthDb,
         ApplicationDbContext appDb,
@@ -37,7 +35,7 @@ public static partial class GetPlayer
             return TypedResults.Unauthorized();
         }
 
-        var userId = long.Parse(httpUser.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
+        var userId = httpUser.GetIdLong();
 
         var utcNow = DateTimeOffset.UtcNow;
 
@@ -50,6 +48,11 @@ public static partial class GetPlayer
         if (profile is null)
         {
             return TypedResults.NotFound();
+        }
+
+        if (!httpUser.HasPermission(Permissions.ViewPlayers) && profile.WebPortalAccountId != userId)
+        {
+            return TypedResults.Forbid();
         }
 
         var maxHealth = BoostUtils.GetMaxPlayerHealth(profile.Boosts!, utcNow, staticData.Catalog.ItemsCatalog);
