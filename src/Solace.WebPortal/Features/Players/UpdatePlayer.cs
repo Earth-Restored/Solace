@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Globalization;
+using System.Security.Claims;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Authorization;
@@ -17,18 +19,25 @@ namespace Solace.WebPortal.Features.Players;
 [Handler]
 [MapPut("{profileId}")]
 [MapGroup<PlayersGroup>]
-[Authorize(Policy = Permissions.ManagePlayers)]
+[Authorize]
 public static partial class UpdatePlayer
 {
     public sealed record Command([property: FromRoute] Guid ProfileId, [property: FromBody] UpdatePlayerCommand Body);
 
-    private static async ValueTask<Results<Ok, BadRequest<string>, NotFound>> HandleAsync(
+    private static async ValueTask<Results<Ok, BadRequest<string>, NotFound, UnauthorizedHttpResult, ForbidHttpResult>> HandleAsync(
         Command command,
         EarthDbContext earthDb,
         StaticDataProvider staticData,
+        IHttpContextAccessor httpContextAccessor,
         CancellationToken cancellationToken
     )
     {
+        var httpUser = httpContextAccessor.HttpContext?.User;
+        if (httpUser is null)
+        {
+            return TypedResults.Unauthorized();
+        }
+
         if (command.Body.Username is { } username)
         {
             if (string.IsNullOrWhiteSpace(username) || username.Length < AccountConstants.UsernameLengthMin || username.Length > AccountConstants.UsernameLengthMax)
@@ -75,13 +84,27 @@ public static partial class UpdatePlayer
             return TypedResults.BadRequest("Too many rubies.");
         }
 
+        var canManagePlayers = httpUser.HasPermission(Permissions.ManagePlayers);
+
         if (command.Body.Username is not null)
         {
+            var userId = long.Parse(httpUser.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
+            // allow changing username on the user's profiles
+            if (!canManagePlayers && profile.WebPortalAccountId != userId)
+            {
+                return TypedResults.Forbid();
+            }
+
             profile.Username = command.Body.Username;
         }
 
         if (command.Body.Health is { } health)
         {
+            if (!canManagePlayers)
+            {
+                return TypedResults.Forbid();
+            }
+
             var maxHealth = BoostUtils.GetMaxPlayerHealth(profile.Boosts, DateTimeOffset.UtcNow, staticData.Catalog.ItemsCatalog);
 
             if (health > maxHealth)
@@ -94,11 +117,21 @@ public static partial class UpdatePlayer
 
         if (command.Body.PurchasedRubies is { } purchasedRubies)
         {
+            if (!canManagePlayers)
+            {
+                return TypedResults.Forbid();
+            }
+
             profile.Rubies.Purchased = purchasedRubies;
         }
 
         if (command.Body.EarnedRubies is { } earnedRubies)
         {
+            if (!canManagePlayers)
+            {
+                return TypedResults.Forbid();
+            }
+
             profile.Rubies.Earned = earnedRubies;
         }
 

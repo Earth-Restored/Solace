@@ -2,6 +2,8 @@ namespace Solace.WebPortal.Common.Features.Players;
 
 public sealed record PlayerDto(
     Guid Id,
+    string? OwnerUser,
+    bool OwnsProfile,
     string? Username,
     int Health,
     int MaxHealth,

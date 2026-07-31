@@ -1,6 +1,9 @@
+using System.Globalization;
+using System.Security.Claims;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Solace.Common.Utils;
 using Solace.Db.Earth;
@@ -17,18 +20,27 @@ namespace Solace.WebPortal.Features.Players;
 [Authorize(Policy = Permissions.ViewPlayers)]
 public static partial class GetPlayers
 {
-    private static async ValueTask<PagedSearchResult<List<PlayerDto>>> HandleAsync(
+    private static async ValueTask<Results<Ok<PagedSearchResult<List<PlayerDto>>>, UnauthorizedHttpResult>> HandleAsync(
         PagedSearchQuery query,
         EarthDbContext earthDb,
         StaticDataProvider staticData,
+        IHttpContextAccessor httpContextAccessor,
         CancellationToken cancellationToken)
     {
+        var httpUser = httpContextAccessor.HttpContext?.User;
+        if (httpUser is null)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var userId = long.Parse(httpUser.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
+
         var utcNow = DateTimeOffset.UtcNow;
 
         var dbQuery = earthDb.Profiles
             .AsNoTracking()
             .Include(profile => profile.Boosts)
-            .Select(profile => new { profile.Id, profile.Username, profile.Health, profile.Level, profile.Experience, PurchasedRubies = profile.Rubies.Purchased, EarnedRubies = profile.Rubies.Earned, profile.Boosts, });
+            .Select(profile => new { profile.Id, profile.WebPortalAccountId, profile.Username, profile.Health, profile.Level, profile.Experience, PurchasedRubies = profile.Rubies.Purchased, EarnedRubies = profile.Rubies.Earned, profile.Boosts, });
 
         var totalCount = await dbQuery.CountAsync(cancellationToken);
         int matchingCount;
@@ -60,6 +72,8 @@ public static partial class GetPlayers
 
             playerDtos.Add(new PlayerDto(
                 player.Id,
+                null,
+                player.WebPortalAccountId == userId,
                 player.Username,
                 player.Health,
                 maxHealth,
@@ -71,6 +85,6 @@ public static partial class GetPlayers
                 null));
         }
 
-        return new(playerDtos, totalCount, matchingCount);
+        return TypedResults.Ok(new PagedSearchResult<List<PlayerDto>>(playerDtos, totalCount, matchingCount));
     }
 }
