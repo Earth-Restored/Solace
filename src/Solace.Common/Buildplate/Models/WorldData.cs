@@ -125,13 +125,24 @@ public sealed partial record class WorldData(
 
     public static WorldData? Load(byte[] serverData, string? buildplateMetadataString, ILogger logger)
     {
+        var metadata = LoadMetadata(buildplateMetadataString, logger);
+        if (metadata is null)
+        {
+            return null;
+        }
+
+        return new WorldData(serverData, metadata.Size, metadata.Offset, metadata.Night);
+    }
+
+    public static BuildplateMetadataV1? LoadMetadata(string? metadataJson, ILogger logger)
+    {
         int size;
         int offset;
         bool night;
 
         try
         {
-            if (buildplateMetadataString is null)
+            if (metadataJson is null)
             {
                 LogNoBuildplateMetadataFile(logger);
                 size = 16;
@@ -140,7 +151,7 @@ public sealed partial record class WorldData(
             }
             else
             {
-                var buildplateMetadataVersion = JsonSerializer.Deserialize(buildplateMetadataString, AppJsonContext.Default.BuildplateMetadataVersion);
+                var buildplateMetadataVersion = JsonSerializer.Deserialize(metadataJson, AppJsonContext.Default.BuildplateMetadataVersion);
 
                 if (buildplateMetadataVersion is null)
                 {
@@ -152,7 +163,7 @@ public sealed partial record class WorldData(
                 {
                     case 1:
                         {
-                            var buildplateMetadata = JsonSerializer.Deserialize(buildplateMetadataString, AppJsonContext.Default.BuildplateMetadataV1);
+                            var buildplateMetadata = JsonSerializer.Deserialize(metadataJson, AppJsonContext.Default.BuildplateMetadataV1);
 
                             if (buildplateMetadata is null)
                             {
@@ -186,7 +197,7 @@ public sealed partial record class WorldData(
             return null;
         }
 
-        return new WorldData(serverData, size, offset, night);
+        return new BuildplateMetadataV1(size, offset, night);
     }
 
     public static void WriteMetadata(Stream stream, BuildplateMetadataV1 data)

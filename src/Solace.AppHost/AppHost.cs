@@ -79,7 +79,7 @@ if (builder.Configuration.GetValue<bool>("Shared:ResolvePaths", false))
     staticDataPath = Path.GetFullPath(staticDataPath);
 }
 
-var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate>("buildplate-launcher")
+var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate_Launcher>("buildplate-launcher")
     .WithReference(eventBus)
     .WaitFor(eventBus)
     .WithEnvironmentSection(builder.Configuration, "BuildplateLauncher", prefixToRemove: "BuildplateLauncher:")
