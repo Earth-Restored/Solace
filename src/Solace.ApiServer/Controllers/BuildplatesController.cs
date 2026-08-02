@@ -225,7 +225,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.InternalServerError();
         }
 
-        var preview = await _buildplateInstancesManager.GetBuildplatePreviewAsync(serverData, sharedBuildplate.Night);
+        var preview = await _buildplateInstancesManager.GetBuildplatePreviewAsync(serverData, sharedBuildplate.Night, cancellationToken);
         if (preview is null)
         {
             LogSharedBuildplatePreviewGenerateError(sharedBuildplateId);
@@ -382,7 +382,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.NotFound();
         }
 
-        var instanceId = await _buildplateInstancesManager.RequestBuildplateInstance(accountId, null, buildplateId, type, DateTimeOffset.MinValue, buildplate.Night);
+        var instanceId = await _buildplateInstancesManager.RequestBuildplateInstanceAsync(accountId, null, buildplateId, type, DateTimeOffset.MinValue, buildplate.Night, cancellationToken);
         if (instanceId is null)
         {
             return TypedResults.InternalServerError();
@@ -415,7 +415,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.NotFound();
         }
 
-        var instanceId = await _buildplateInstancesManager.RequestBuildplateInstance(accountId, null, sharedBuildplateId, type, DateTimeOffset.MinValue, sharedBuildplate.Night);
+        var instanceId = await _buildplateInstancesManager.RequestBuildplateInstanceAsync(accountId, null, sharedBuildplateId, type, DateTimeOffset.MinValue, sharedBuildplate.Night, cancellationToken);
         if (instanceId is null)
         {
             return TypedResults.InternalServerError();
@@ -449,7 +449,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.NotFound();
         }
 
-        var instanceId = await _buildplateInstancesManager.RequestBuildplateInstance(null, encounterId, encounter.EncounterBuildplateId, BuildplateInstancesManager.InstanceType.ENCOUNTER, encounter.SpawnTime + encounter.ValidFor, false);
+        var instanceId = await _buildplateInstancesManager.RequestBuildplateInstanceAsync(null, encounterId, encounter.EncounterBuildplateId, BuildplateInstancesManager.InstanceType.ENCOUNTER, encounter.SpawnTime + encounter.ValidFor, false, cancellationToken);
 
         if (instanceId is null)
         {

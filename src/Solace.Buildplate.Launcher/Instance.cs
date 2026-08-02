@@ -215,9 +215,9 @@ internal sealed partial class Instance
             );
 
             _requestHandler = await _eventBusClient.AddRequestHandlerAsync(_eventBusQueueName,
-                async request =>
+                async (request, cancellationToken) =>
                 {
-                    var responseObject = await HandleConnectorRequest(request);
+                    var responseObject = await HandleConnectorRequestAsync(request, cancellationToken);
                     return responseObject is not null ? Json.Serialize(responseObject) : null;
                 },
                 async exception =>
@@ -307,7 +307,7 @@ internal sealed partial class Instance
         }
     }
 
-    private async Task HandleConnectorEvent(SubscriberEvent @event)
+    private async Task HandleConnectorEvent(SubscriberEvent @event, CancellationToken cancellationToken)
     {
         switch (@event.Type)
         {
@@ -315,7 +315,7 @@ internal sealed partial class Instance
                 {
                     LogServerIsReady();
                     await StartBridgeProcessAsync();
-                    SendEventBusInstanceStatusNotification("ready");
+                    SendEventBusInstanceStatusNotification("ready", cancellationToken);
                     if (_shutdownTime is not null)
                     {
                         StartShutdownTimer();
@@ -337,7 +337,7 @@ internal sealed partial class Instance
                             if (_hostPlayerConnected)
                             {
                                 LogSavingSnapshot();
-                                SendEventBusRequest<object>("saved", worldSavedMessage, false)
+                                SendEventBusRequest<object>("saved", worldSavedMessage, false, cancellationToken)
                                     .Forget();
                             }
                             else
@@ -358,7 +358,7 @@ internal sealed partial class Instance
                     InventoryAddItemMessage? inventoryAddItemMessage = ReadJson<InventoryAddItemMessage>(@event.Data);
                     if (inventoryAddItemMessage is not null)
                     {
-                        SendEventBusRequest<object>("inventoryAdd", inventoryAddItemMessage, false)
+                        SendEventBusRequest<object>("inventoryAdd", inventoryAddItemMessage, false, cancellationToken)
                             .Forget();
                     }
                 }
@@ -369,7 +369,7 @@ internal sealed partial class Instance
                     InventoryUpdateItemWearMessage? inventoryUpdateItemWearMessage = ReadJson<InventoryUpdateItemWearMessage>(@event.Data);
                     if (inventoryUpdateItemWearMessage is not null)
                     {
-                        SendEventBusRequest<object>("inventoryUpdateWear", inventoryUpdateItemWearMessage, false)
+                        SendEventBusRequest<object>("inventoryUpdateWear", inventoryUpdateItemWearMessage, false, cancellationToken)
                             .Forget();
                     }
                 }
@@ -381,7 +381,7 @@ internal sealed partial class Instance
                     InventorySetHotbarMessage? inventorySetHotbarMessage = ReadJson<InventorySetHotbarMessage>(@event.Data);
                     if (inventorySetHotbarMessage is not null)
                     {
-                        SendEventBusRequest<object>("inventorySetHotbar", inventorySetHotbarMessage, false)
+                        SendEventBusRequest<object>("inventorySetHotbar", inventorySetHotbarMessage, false, cancellationToken)
                             .Forget();
                     }
                 }
@@ -390,7 +390,7 @@ internal sealed partial class Instance
         }
     }
 
-    private async Task<object?> HandleConnectorRequest(RequestHandlerRequest request)
+    private async Task<object?> HandleConnectorRequestAsync(RequestHandlerRequest request, CancellationToken cancellationToken)
     {
         switch (request.Type)
         {
@@ -405,7 +405,7 @@ internal sealed partial class Instance
                             return new PlayerConnectedResponse(false, null);
                         }
 
-                        PlayerConnectedResponse? playerConnectedResponse = await SendEventBusRequest<PlayerConnectedResponse>("playerConnected", playerConnectedRequest, true);
+                        PlayerConnectedResponse? playerConnectedResponse = await SendEventBusRequest<PlayerConnectedResponse>("playerConnected", playerConnectedRequest, true, cancellationToken);
                         if (playerConnectedResponse is not null)
                         {
                             LogPlayerConnected(playerConnectedRequest.Uuid);
@@ -434,7 +434,7 @@ internal sealed partial class Instance
                     PlayerDisconnectedRequest? playerDisconnectedRequest = ReadJson<PlayerDisconnectedRequest>(request.Data);
                     if (playerDisconnectedRequest is not null)
                     {
-                        PlayerDisconnectedResponse? playerDisconnectedResponse = await SendEventBusRequest<PlayerDisconnectedResponse>("playerDisconnected", playerDisconnectedRequest, true);
+                        PlayerDisconnectedResponse? playerDisconnectedResponse = await SendEventBusRequest<PlayerDisconnectedResponse>("playerDisconnected", playerDisconnectedRequest, true, cancellationToken);
                         if (playerDisconnectedResponse is not null)
                         {
                             LogPlayerDisconnected(playerDisconnectedRequest.PlayerId);
@@ -456,7 +456,7 @@ internal sealed partial class Instance
                     var playerId = ReadJson<string>(request.Data);
                     if (playerId is not null)
                     {
-                        var respawn = await SendEventBusRequest<bool?>("playerDead", playerId, true);
+                        var respawn = await SendEventBusRequest<bool?>("playerDead", playerId, true, cancellationToken);
                         if (respawn is not null)
                         {
                             return respawn.Value;
@@ -470,7 +470,7 @@ internal sealed partial class Instance
                     var playerId = ReadJson<string>(request.Data);
                     if (playerId is not null)
                     {
-                        InventoryResponse? inventoryResponse = await SendEventBusRequest<InventoryResponse>("getInventory", playerId, true);
+                        InventoryResponse? inventoryResponse = await SendEventBusRequest<InventoryResponse>("getInventory", playerId, true, cancellationToken);
                         if (inventoryResponse is not null)
                         {
                             return inventoryResponse;
@@ -494,7 +494,7 @@ internal sealed partial class Instance
                     {
                         if (inventoryRemoveItemRequest.InstanceId is not null)
                         {
-                            var success = await SendEventBusRequest<bool?>("inventoryRemove", inventoryRemoveItemRequest, true);
+                            var success = await SendEventBusRequest<bool?>("inventoryRemove", inventoryRemoveItemRequest, true, cancellationToken);
                             if (success is not null)
                             {
                                 return success.Value;
@@ -502,7 +502,7 @@ internal sealed partial class Instance
                         }
                         else
                         {
-                            var removedCount = await SendEventBusRequest<int?>("inventoryRemove", inventoryRemoveItemRequest, true);
+                            var removedCount = await SendEventBusRequest<int?>("inventoryRemove", inventoryRemoveItemRequest, true, cancellationToken);
                             if (removedCount is not null)
                             {
                                 return removedCount.Value;
@@ -532,7 +532,7 @@ internal sealed partial class Instance
                     var playerId = ReadJson<string>(request.Data);
                     if (playerId is not null)
                     {
-                        InitialPlayerStateResponse? initialPlayerStateResponse = await SendEventBusRequest<InitialPlayerStateResponse>("getInitialPlayerState", playerId, true);
+                        InitialPlayerStateResponse? initialPlayerStateResponse = await SendEventBusRequest<InitialPlayerStateResponse>("getInitialPlayerState", playerId, true, cancellationToken);
                         if (initialPlayerStateResponse is not null)
                         {
                             return initialPlayerStateResponse;
@@ -564,11 +564,11 @@ internal sealed partial class Instance
         }
     }
 
-    private void SendEventBusInstanceStatusNotification(string status)
+    private void SendEventBusInstanceStatusNotification(string status, CancellationToken cancellationToken = default)
     {
         Debug.Assert(_publisher is not null);
 
-        _publisher.PublishAsync("buildplates", status, InstanceId.ToString())
+        _publisher.PublishAsync("buildplates", status, InstanceId.ToString(), cancellationToken)
             .ContinueWith(task =>
             {
                 if (!task.Result)
@@ -576,7 +576,7 @@ internal sealed partial class Instance
                     LogEventBusPublisherError();
                     BeginShutdown();
                 }
-            })
+            }, cancellationToken)
             .Forget();
     }
 
@@ -585,20 +585,20 @@ internal sealed partial class Instance
         object Request
     );
 
-    private Task<T?> SendEventBusRequest<T>(string type, object obj, bool returnResponse)
+    private Task<T?> SendEventBusRequest<T>(string type, object obj, bool returnResponse, CancellationToken cancellationToken = default)
     {
         var request = new RequestWithInstanceId(InstanceId.ToString(), obj);
 
-        return SendEventBusRequestRaw<T>(type, request, returnResponse);
+        return SendEventBusRequestRaw<T>(type, request, returnResponse, cancellationToken);
     }
 
-    private async Task<T?> SendEventBusRequestRaw<T>(string type, object obj, bool returnResponse)
+    private async Task<T?> SendEventBusRequestRaw<T>(string type, object obj, bool returnResponse, CancellationToken cancellationToken = default)
     {
         Debug.Assert(_requestSender is not null);
 
         try
         {
-            var response = await _requestSender.RequestAsync("buildplates", type, Json.Serialize(obj));
+            var response = await _requestSender.RequestAsync("buildplates", type, Json.Serialize(obj), cancellationToken);
 
             if (response is null)
             {

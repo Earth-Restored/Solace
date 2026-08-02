@@ -6,7 +6,7 @@ public sealed class Subscriber : IAsyncDisposable
 {
     private readonly EventBusService.EventBusServiceClient _client;
     private readonly string _queueName;
-    private readonly Func<SubscriberEvent, Task> _onEvent;
+    private readonly Func<SubscriberEvent, CancellationToken, Task> _onEvent;
     private readonly Func<Exception?, Task> _onError;
 
     private CancellationTokenSource? _cts;
@@ -15,7 +15,7 @@ public sealed class Subscriber : IAsyncDisposable
     private SemaphoreSlim? _semaphore;
     private const int MaxDegreeOfParallelism = 4;
 
-    internal Subscriber(EventBusService.EventBusServiceClient client, string queueName, Func<SubscriberEvent, Task> onEvent, Func<Exception?, Task> onError)
+    internal Subscriber(EventBusService.EventBusServiceClient client, string queueName, Func<SubscriberEvent, CancellationToken, Task> onEvent, Func<Exception?, Task> onError)
     {
         _client = client;
         _queueName = queueName;
@@ -42,7 +42,7 @@ public sealed class Subscriber : IAsyncDisposable
                     {
                         try
                         {
-                            await _onEvent(new SubscriberEvent(msg.Timestamp.ToDateTimeOffset(), msg.Type, msg.Data));
+                            await _onEvent(new SubscriberEvent(msg.Timestamp.ToDateTimeOffset(), msg.Type, msg.Data), _cts.Token);
                         }
                         catch (Exception exception)
                         {

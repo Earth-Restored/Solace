@@ -36,7 +36,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
 
     internal async Task InitializeAsync(EventBusClient eventBusClient)
         => _requestHandler = await eventBusClient.AddRequestHandlerAsync("buildplates",
-            async request =>
+            async (request, cancellationToken) =>
             {
                 try
                 {
@@ -50,7 +50,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                                     return null;
                                 }
 
-                                BuildplateLoadResponse? buildplateLoadResponse = await HandleLoadAsync(buildplateLoadRequest.PlayerId, buildplateLoadRequest.BuildplateId);
+                                BuildplateLoadResponse? buildplateLoadResponse = await HandleLoadAsync(buildplateLoadRequest.PlayerId, buildplateLoadRequest.BuildplateId, cancellationToken);
                                 return buildplateLoadResponse is not null ? Json.Serialize(buildplateLoadResponse) : null;
                             }
                         case "loadShared":
@@ -61,7 +61,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                                     return null;
                                 }
 
-                                BuildplateLoadResponse? buildplateLoadResponse = await HandleLoadSharedAsync(sharedBuildplateLoadRequest.SharedBuildplateId);
+                                BuildplateLoadResponse? buildplateLoadResponse = await HandleLoadSharedAsync(sharedBuildplateLoadRequest.SharedBuildplateId, cancellationToken);
                                 return buildplateLoadResponse is not null ? Json.Serialize(buildplateLoadResponse) : null;
                             }
                         case "loadEncounter":
@@ -73,7 +73,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                                     return null;
                                 }
 
-                                BuildplateLoadResponse? buildplateLoadResponse = await HandleLoadEncounterAsync(encounterBuildplateLoadRequest.EncounterBuildplateId);
+                                BuildplateLoadResponse? buildplateLoadResponse = await HandleLoadEncounterAsync(encounterBuildplateLoadRequest.EncounterBuildplateId, cancellationToken);
                                 return buildplateLoadResponse is not null ? Json.Serialize(buildplateLoadResponse) : null;
                             }
                         case "saved":
@@ -81,7 +81,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                                 RequestWithInstanceId<WorldSavedMessage>? requestWithInstanceId = ReadRequest<WorldSavedMessage>(request.Data, _logger);
                                 return requestWithInstanceId is null
                                     ? null
-                                    : await HandleSavedAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request.DataBase64, request.Timestamp) ? "" : null;
+                                    : await HandleSavedAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request.DataBase64, request.Timestamp, cancellationToken) ? "" : null;
                             }
                         case "playerConnected":
                             {
@@ -92,7 +92,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                                     return null;
                                 }
 
-                                PlayerConnectedResponse? playerConnectedResponse = await HandlePlayerConnectedAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request);
+                                PlayerConnectedResponse? playerConnectedResponse = await HandlePlayerConnectedAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, cancellationToken);
                                 return playerConnectedResponse is not null ? Json.Serialize(playerConnectedResponse) : null;
                             }
                         case "playerDisconnected":
@@ -103,7 +103,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                                     return null;
                                 }
 
-                                PlayerDisconnectedResponse? playerDisconnectedResponse = await HandlePlayerDisconnectedAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, request.Timestamp);
+                                PlayerDisconnectedResponse? playerDisconnectedResponse = await HandlePlayerDisconnectedAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, request.Timestamp, cancellationToken);
                                 return playerDisconnectedResponse is not null ? Json.Serialize(playerDisconnectedResponse) : null;
                             }
                         case "playerDead":
@@ -125,7 +125,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                                     return null;
                                 }
 
-                                InitialPlayerStateResponse? initialPlayerStateResponse = await HandleGetInitialPlayerStateAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, request.Timestamp);
+                                InitialPlayerStateResponse? initialPlayerStateResponse = await HandleGetInitialPlayerStateAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, request.Timestamp, cancellationToken);
                                 return initialPlayerStateResponse is not null ? Json.Serialize(initialPlayerStateResponse) : null;
                             }
                         case "getInventory":
@@ -136,7 +136,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                                     return null;
                                 }
 
-                                InventoryResponse? inventoryResponse = await HandleGetInventoryAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request);
+                                InventoryResponse? inventoryResponse = await HandleGetInventoryAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, cancellationToken);
                                 return inventoryResponse is not null ? Json.Serialize(inventoryResponse) : null;
                             }
                         case "inventoryAdd":
@@ -144,7 +144,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                                 RequestWithInstanceId<InventoryAddItemMessage>? requestWithInstanceId = ReadRequest<InventoryAddItemMessage>(request.Data, _logger);
                                 return requestWithInstanceId is null
                                     ? null
-                                    : await HandleInventoryAddAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, request.Timestamp) ? "" : null;
+                                    : await HandleInventoryAddAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, request.Timestamp, cancellationToken) ? "" : null;
                             }
                         case "inventoryRemove":
                             {
@@ -154,7 +154,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                                     return null;
                                 }
 
-                                var response = await HandleInventoryRemoveAsync(requestWithBuildplateId.InstanceId, requestWithBuildplateId.Request);
+                                var response = await HandleInventoryRemoveAsync(requestWithBuildplateId.InstanceId, requestWithBuildplateId.Request, cancellationToken);
                                 return response is not null ? Json.Serialize(response) : null;
                             }
                         case "inventoryUpdateWear":
@@ -163,7 +163,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
 
                                 return requestWithInstanceId is null
                                     ? null
-                                    : await HandleInventoryUpdateWearAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request) ? "" : null;
+                                    : await HandleInventoryUpdateWearAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, cancellationToken) ? "" : null;
                             }
                         case "inventorySetHotbar":
                             {
@@ -171,7 +171,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
 
                                 return requestWithInstanceId is null
                                     ? null
-                                    : await HandleInventorySetHotbarAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request) ? "" : null;
+                                    : await HandleInventorySetHotbarAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, cancellationToken) ? "" : null;
                             }
                         default:
                             return null;
@@ -331,7 +331,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
             return false;
         }
 
-        var preview = await _buildplateInstancesManager.GetBuildplatePreviewAsync(serverData, buildplateUnsafeForPreviewGenerator.Night);
+        var preview = await _buildplateInstancesManager.GetBuildplatePreviewAsync(serverData, buildplateUnsafeForPreviewGenerator.Night, cancellationToken);
         if (preview is null)
         {
             LogCouldNotGeneratePreviewForBuildplate();

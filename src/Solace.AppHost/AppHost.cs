@@ -79,10 +79,32 @@ if (builder.Configuration.GetValue<bool>("Shared:ResolvePaths", false))
     staticDataPath = Path.GetFullPath(staticDataPath);
 }
 
+var acceptMinecraftEula = builder.AddConfigParameter("Shared:AcceptMinecraftEula");
+
 var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate_Launcher>("buildplate-launcher")
     .WithReference(eventBus)
     .WaitFor(eventBus)
     .WithEnvironmentSection(builder.Configuration, "BuildplateLauncher", prefixToRemove: "BuildplateLauncher:")
+    .WithEnvironmentParameter(acceptMinecraftEula, prefixToRemove: "Shared:")
+    .WithEnvironment("StaticDataPath", staticDataPath)
+    .PublishAsDockerComposeService((resource, service) =>
+    {
+        service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
+        {
+            Name = "static-data-volume",
+            Type = "bind",
+            Source = staticDataPath,
+            Target = "/app/static-data",
+            ReadOnly = true,
+        });
+
+        service.Environment["StaticDataPath"] = "/app/static-data";
+    });
+
+var buildplateUpdater = builder.AddProject<Projects.Solace_Buildplate_Updater>("buildplate-updater")
+    .WithReference(eventBus)
+    .WaitFor(eventBus)
+    .WithEnvironmentParameter(acceptMinecraftEula, prefixToRemove: "Shared:")
     .WithEnvironment("StaticDataPath", staticDataPath)
     .PublishAsDockerComposeService((resource, service) =>
     {
@@ -100,6 +122,8 @@ var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate_Launcher>
 
 var apiPort = builder.Configuration.GetValue<int>("ApiServer:Port", 8089);
 
+var fixUpBuildplatesOnImport = builder.AddConfigParameter("Shared:FixUpBuildplatesOnImport");
+
 var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
     .WithHttpEndpoint(port: apiPort, name: "http")
     .WithEndpoint("http", endpoint =>
@@ -113,6 +137,7 @@ var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
     .WithReference(objectStore)
     .WaitFor(objectStore)
     .WithEnvironmentSection(builder.Configuration, "ApiServer:Authentication", prefixToRemove: "ApiServer:")
+    .WithEnvironmentParameter(fixUpBuildplatesOnImport, prefixToRemove: "Shared:")
     .WithEnvironment("StaticDataPath", staticDataPath)
     .PublishAsDockerComposeService((resource, service) =>
     {
@@ -320,6 +345,7 @@ var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
     .WithEnvironmentParameter(authServerPublicEndPoint, prefixToRemove: "Shared:")
     .WithEnvironmentParameter(buildplatePreviewEnabled, prefixToRemove: "WebPortal:")
     .WithEnvironmentParameter(buildplatePreviewGenerationMaxConcurrency, prefixToRemove: "WebPortal:")
+    .WithEnvironmentParameter(fixUpBuildplatesOnImport, prefixToRemove: "Shared:")
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume

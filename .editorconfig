@@ -10,7 +10,7 @@ dotnet_diagnostic.SX1101.severity = warning
 dotnet_diagnostic.SX1309.severity = warning
 csharp_indent_labels = one_less_than_current
 csharp_using_directive_placement = outside_namespace:error
-csharp_prefer_simple_using_statement = true:suggestion
+csharp_prefer_simple_using_statement = true:silent
 csharp_prefer_braces = true:warning
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_style_prefer_method_group_conversion = true:silent
@@ -172,6 +172,9 @@ dotnet_diagnostic.MA0016.severity = none
 
 # MA0025: Implement the functionality instead of throwing NotImplementedException
 dotnet_diagnostic.MA0025.severity = none
+
+# IDE0063: Use simple 'using' statement
+dotnet_diagnostic.IDE0063.severity = silent
 
 [*.{cs,vb}]
 #### Naming styles ####

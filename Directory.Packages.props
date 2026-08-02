@@ -38,7 +38,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tasks" Version="10.0.10" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="11.0.0-preview.6.26359.118" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="11.0.0-preview.6.26359.118" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="11.0.0-preview.6.26359.118" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.8.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.10" />

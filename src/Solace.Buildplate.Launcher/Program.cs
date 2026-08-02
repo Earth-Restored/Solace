@@ -41,6 +41,7 @@ internal static partial class App
 {
     internal static string StaticDataPath = "./staticdata";
 
+    public static readonly Version MinimumServerVersion = new Version(1, 20, 5, 0);
     public static readonly Version MinimumFountainBridgeVersion = new Version(0, 0, 2);
     public static readonly Version MinimumBuildplateConnectorPluginVersion = new Version(0, 0, 1);
 
@@ -70,6 +71,12 @@ internal static partial class App
         }
 
         var builder = Host.CreateApplicationBuilder(args);
+
+        if (!builder.Configuration.GetValue<bool>("AcceptMinecraftEula"))
+        {
+            Console.Write("Error: you must accept the minecraft eula, change AcceptMinecraftEula to true");
+            return 3;
+        }
 
         builder.AddServiceDefaults();
 
@@ -107,7 +114,7 @@ internal static partial class App
         {
             LogConnectToEventBusError(programLogger, exception);
             loggerFactory.Dispose();
-            return 3;
+            return 4;
         }
 
         LogConnectedToEventBus(programLogger);
@@ -120,7 +127,11 @@ internal static partial class App
         var baseInstancePublicPort = checked((ushort)builder.Configuration.GetValue<int>("BaseInstancePublicPort"));
 
         var fabricJarName = builder.Configuration["FabricJarName"];
-        Debug.Assert(fabricJarName is not null);
+
+        if ((fabricJarName = ResolveVersionedFile(fabricJarName, MinimumServerVersion)) is null)
+        {
+            return 5;
+        }
 
         var serverJarsDir = Path.Combine(StaticDataPath, "server_jars");
 
@@ -132,22 +143,9 @@ internal static partial class App
             fountainBridgeJarName = Path.GetFullPath(Path.Combine(serverJarsDir, fountainBridgeJarName));
         }
 
-        if (fountainBridgeJarName.Contains("{{version}}", StringComparison.Ordinal))
+        if ((fountainBridgeJarName = ResolveVersionedFile(fountainBridgeJarName, MinimumFountainBridgeVersion)) is null)
         {
-            var fileName = Path.GetFileName(fountainBridgeJarName);
-            var directory = Path.GetDirectoryName(fountainBridgeJarName)!;
-
-            if (!File.TryFindCompatibleFile(directory, MinimumFountainBridgeVersion, fileName, out var path))
-            {
-                LogVersionedStaticDataNotFoundError(programLogger, Path.GetFullPath(Path.Combine(StaticDataPath, fountainBridgeJarName)), MinimumFountainBridgeVersion);
-                loggerFactory.Dispose();
-                return 4;
-            }
-            else
-            {
-                fountainBridgeJarName = path;
-                LogVersionedStaticFileFound(programLogger, fountainBridgeJarName);
-            }
+            return 6;
         }
 
         var connectorPluginJarName = builder.Configuration["ConnectorPluginJarName"];
@@ -158,22 +156,9 @@ internal static partial class App
             connectorPluginJarName = Path.GetFullPath(Path.Combine(serverJarsDir, connectorPluginJarName));
         }
 
-        if (connectorPluginJarName.Contains("{{version}}", StringComparison.Ordinal))
+        if ((connectorPluginJarName = ResolveVersionedFile(connectorPluginJarName, MinimumBuildplateConnectorPluginVersion)) is null)
         {
-            var fileName = Path.GetFileName(connectorPluginJarName);
-            var directory = Path.GetDirectoryName(connectorPluginJarName)!;
-
-            if (!File.TryFindCompatibleFile(directory, MinimumBuildplateConnectorPluginVersion, fileName, out var path))
-            {
-                LogVersionedStaticDataNotFoundError(programLogger, Path.GetFullPath(Path.Combine(StaticDataPath, connectorPluginJarName)), MinimumBuildplateConnectorPluginVersion);
-                loggerFactory.Dispose();
-                return 5;
-            }
-            else
-            {
-                connectorPluginJarName = path;
-                LogVersionedStaticFileFound(programLogger, connectorPluginJarName);
-            }
+            return 7;
         }
 
         var starter = new Starter(eventBusClient, eventBusConnectionString, publicEndPoint, baseInstancePublicPort, javaCmd, fountainBridgeJarName, Path.GetFullPath(Path.Combine(StaticDataPath, "server_template_dir")), fabricJarName, connectorPluginJarName, loggerFactory, GlobalLoggerFactory.CreateLogger<Starter>());
@@ -203,6 +188,35 @@ internal static partial class App
         {
             await Task.Delay(1000);
         }
+
+        string? ResolveVersionedFile(string? path, Version minimumVersion)
+        {
+            if (path is null)
+            {
+                LogStaticDataNotSpecified(programLogger);
+                return null;
+            }
+
+            if (path.Contains("{{version}}", StringComparison.Ordinal))
+            {
+                var fileName = Path.GetFileName(path);
+                var directory = Path.GetDirectoryName(path)!;
+
+                if (!File.TryFindCompatibleFile(directory, minimumVersion, fileName, out var matchingFile))
+                {
+                    LogVersionedStaticDataNotFoundError(programLogger, Path.GetFullPath(Path.Combine(StaticDataPath, path)), minimumVersion);
+                    loggerFactory.Dispose();
+                    return null;
+                }
+                else
+                {
+                    path = matchingFile;
+                    LogVersionedStaticFileFound(programLogger, path);
+                }
+            }
+
+            return path;
+        }
     }
 
     internal sealed class StartupDependencies
@@ -222,6 +236,9 @@ internal static partial class App
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Connected to event bus")]
     private static partial void LogConnectedToEventBus(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Parameter for a static data file was not supplied")]
+    private static partial void LogStaticDataNotSpecified(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Static data file '{Path}' does not exist, is outdated, or unsupported. Minimum version is {MinimumVersion}")]
     private static partial void LogVersionedStaticDataNotFoundError(ILogger logger, string Path, Version MinimumVersion);

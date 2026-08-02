@@ -9,6 +9,7 @@ using Solace.ObjectStore.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Solace.Db.Earth;
+using System.Buffers.Text;
 
 namespace Solace.BuildplateImporter;
 
@@ -33,8 +34,28 @@ public sealed partial class Importer : IAsyncDisposable
 
     public required bool OwnsObjectStoreClient { get; init; }
 
-    public async Task<bool> ImportTemplateAsync(Guid templateId, string name, Stream stream, CancellationToken cancellationToken = default)
+    public async Task<bool> ImportTemplateAsync(Guid templateId, string name, Stream stream, bool fixUpBuildplate = false, CancellationToken cancellationToken = default)
     {
+        if (fixUpBuildplate)
+        {
+            if (EventBusClient is null)
+            {
+                throw new InvalidOperationException($"Cannot fix up buildplate when {nameof(EventBusClient)} has not been provided.");
+            }
+
+            await using var sender = await EventBusClient.AddRequestSenderAsync();
+
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream, cancellationToken);
+
+            // Convert buffer directly to Base64 string
+            var dataBase64 = Base64.EncodeToString(memoryStream.GetBuffer().AsSpan(0, (int)memoryStream.Length));
+
+            var fixedUpData = await sender.RequestAsync("buildplate-update", "updateBuildplate", dataBase64, cancellationToken);
+
+            stream = new MemoryStream(Base64.DecodeFromChars(fixedUpData));
+        }
+
         var worldData = await WorldData.LoadFromZipAsync(stream, Logger, cancellationToken);
 
         if (worldData is null)
@@ -42,7 +63,7 @@ public sealed partial class Importer : IAsyncDisposable
             return false;
         }
 
-        var preview = await GeneratePreview(worldData);
+        var preview = await GeneratePreviewAsync(worldData, cancellationToken);
 
         if (preview is null)
         {
@@ -96,7 +117,7 @@ public sealed partial class Importer : IAsyncDisposable
 
         worldData = worldData with { Size = template.Size, Offset = template.Offset, Night = template.Night, };
 
-        var preview = await GeneratePreview(worldData);
+        var preview = await GeneratePreviewAsync(worldData, cancellationToken);
 
         if (preview is null)
         {
@@ -250,7 +271,7 @@ public sealed partial class Importer : IAsyncDisposable
         if (preview is null)
         {
             LogTemplatePreviewLoadError(LogLevel.Warning, templateId);
-            preview = await GeneratePreview(new WorldData(serverData, template.Size, template.Offset, template.Night));
+            preview = await GeneratePreviewAsync(new WorldData(serverData, template.Size, template.Offset, template.Night), cancellationToken);
 
             if (preview is null)
             {
@@ -307,7 +328,7 @@ public sealed partial class Importer : IAsyncDisposable
             return false;
         }
 
-        WorldData? worldData = await WorldData.LoadFromZipAsync(serverData, Logger, cancellationToken);
+        var worldData = await WorldData.LoadFromZipAsync(serverData, Logger, cancellationToken);
 
         if (worldData is null)
         {
@@ -316,7 +337,7 @@ public sealed partial class Importer : IAsyncDisposable
 
         worldData = worldData with { Size = buildplate.Size, Offset = buildplate.Offset, Night = buildplate.Night, };
 
-        var preview = await GeneratePreview(worldData);
+        var preview = await GeneratePreviewAsync(worldData, cancellationToken);
 
         if (preview is null)
         {
@@ -417,14 +438,14 @@ public sealed partial class Importer : IAsyncDisposable
         }
     }
 
-    private async Task<Stream?> GeneratePreview(WorldData worldData)
+    private async Task<Stream?> GeneratePreviewAsync(WorldData worldData, CancellationToken cancellationToken)
     {
         string? preview;
         if (EventBusClient is not null)
         {
             LogGeneratingPreview();
-            await using RequestSender requestSender = await EventBusClient.AddRequestSenderAsync();
-            preview = await requestSender.RequestAsync("buildplates", "preview", JsonSerializer.Serialize(new PreviewRequest(Convert.ToBase64String(worldData.ServerData), worldData.Night)));
+            await using var requestSender = await EventBusClient.AddRequestSenderAsync();
+            preview = await requestSender.RequestAsync("buildplates", "preview", JsonSerializer.Serialize(new PreviewRequest(Convert.ToBase64String(worldData.ServerData), worldData.Night)), cancellationToken);
 
             if (preview is null)
             {
@@ -521,7 +542,7 @@ public sealed partial class Importer : IAsyncDisposable
             }
 
             LogStoringTemplatePreview();
-            Guid? previewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
+            var previewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
             if (previewObjectId is null)
             {
                 LogTemplatePreviewStoreFail(templateId);

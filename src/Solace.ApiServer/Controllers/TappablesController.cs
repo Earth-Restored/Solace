@@ -39,7 +39,7 @@ internal sealed class TappablesController : SolaceControllerBase
 
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        await _tappablesManager.NotifyTileActiveAsync(accountId, lat, lon);
+        await _tappablesManager.NotifyTileActiveAsync(accountId, lat, lon, cancellationToken);
 
         TappablesManager.Tappable[] tappables = _tappablesManager.GetTappablesAround(lat, lon, 5.0);    // TODO: radius
         TappablesManager.Encounter[] encounters = _tappablesManager.GetEncountersAround(lat, lon, 5.0);    // TODO: radius

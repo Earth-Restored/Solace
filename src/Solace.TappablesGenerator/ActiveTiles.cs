@@ -28,7 +28,7 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
         _activeTileListener = activeTileListener;
 
         _requestHandler = await eventBusClient.AddRequestHandlerAsync("tappables",
-        async request =>
+        async (request, cancellationToken) =>
         {
             if (request.Type is "activeTile")
             {
@@ -63,7 +63,7 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
 
                 if (newActiveTiles.Count > 0)
                 {
-                    await activeTileListener.Active(newActiveTiles);
+                    await activeTileListener.Active(newActiveTiles, cancellationToken);
                 }
 
                 return string.Empty;
@@ -151,27 +151,27 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
 
     internal interface IActiveTileListener
     {
-        Task Active(IEnumerable<ActiveTile> activeTiles);
+        Task Active(IEnumerable<ActiveTile> activeTiles, CancellationToken cancellationToken = default);
 
-        Task Inactive(IEnumerable<ActiveTile> activeTiles);
+        Task Inactive(IEnumerable<ActiveTile> activeTiles, CancellationToken cancellationToken = default);
     }
 
     internal sealed class ActiveTileListener : IActiveTileListener
     {
-        public Func<IEnumerable<ActiveTile>, Task>? OnActive;
-        public Func<IEnumerable<ActiveTile>, Task>? OnInactive;
+        public Func<IEnumerable<ActiveTile>, CancellationToken, Task> OnActive;
+        public Func<IEnumerable<ActiveTile>, CancellationToken, Task> OnInactive;
 
-        public ActiveTileListener(Func<IEnumerable<ActiveTile>, Task>? active, Func<IEnumerable<ActiveTile>, Task>? inactive)
+        public ActiveTileListener(Func<IEnumerable<ActiveTile>, CancellationToken, Task> active, Func<IEnumerable<ActiveTile>, CancellationToken, Task> inactive)
         {
             OnActive = active;
             OnInactive = inactive;
         }
 
-        public Task Active(IEnumerable<ActiveTile> activeTiles)
-            => OnActive?.Invoke(activeTiles) ?? Task.CompletedTask;
+        public async Task Active(IEnumerable<ActiveTile> activeTiles, CancellationToken cancellationToken = default)
+            => await OnActive(activeTiles, cancellationToken);
 
-        public Task Inactive(IEnumerable<ActiveTile> activeTiles)
-            => OnInactive?.Invoke(activeTiles) ?? Task.CompletedTask;
+        public async Task Inactive(IEnumerable<ActiveTile> activeTiles, CancellationToken cancellationToken = default)
+            => await OnInactive.Invoke(activeTiles, cancellationToken);
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Could not deserialise active tile notification event")]

@@ -63,7 +63,7 @@ internal sealed partial class InstanceManager
         _publisher = await eventBusClient.AddPublisherAsync();
 
         _requestHandler = await eventBusClient.AddRequestHandlerAsync("buildplates",
-            async request =>
+            async (request, cancellationToken) =>
             {
                 if (request.Type is "start")
                 {
@@ -177,7 +177,7 @@ internal sealed partial class InstanceManager
                         instance.PublicAddress,
                         instance.Port,
                         startRequest.Type
-                    )));
+                    )), cancellationToken);
 
                     Task.Run(async () =>
                     {
@@ -195,7 +195,7 @@ internal sealed partial class InstanceManager
                         _lock.Enter();
                         _runningInstanceCount -= 1;
                         _lock.Exit();
-                    }).Forget();
+                    }, CancellationToken.None).Forget();
 
                     return instanceId.ToString();
                 }
@@ -236,18 +236,18 @@ internal sealed partial class InstanceManager
         );
     }
 
-    private void SendEventBusMessage(string type, string message)
+    private void SendEventBusMessage(string type, string message, CancellationToken cancellationToken = default)
     {
         Debug.Assert(_publisher is not null);
 
-        _publisher.PublishAsync("buildplates", type, message)
+        _publisher.PublishAsync("buildplates", type, message, cancellationToken)
             .ContinueWith(task =>
             {
                 if (!task.Result)
                 {
                     LogEventBusPublisherError();
                 }
-            })
+            }, cancellationToken)
             .Forget();
     }
 

@@ -1,191 +1,126 @@
 ﻿using System.Diagnostics;
-using System.Globalization;
-using System.IO.Compression;
-using System.Text.RegularExpressions;
-using Cyotek.Data.Nbt;
-using Cyotek.Data.Nbt.Serialization;
-using Microsoft.Extensions.Logging.Abstractions;
-using Solace.Buildplate.Model;
-using Solace.Common.Utils;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Solace.Common;
+using Solace.EventBus.Client;
 
 namespace Solace.Buildplate.Updater;
 
-internal static class Program
+internal sealed partial class Program
 {
-    private static async Task Main()
+    private static async Task Main(string[] args)
     {
-        var serverFolder = new DirectoryInfo("world");
-        var worldFolder = new DirectoryInfo(Path.Combine(serverFolder.FullName, "world"));
-
-        worldFolder.Delete(true);
-        worldFolder.Create();
-
-        await ZipFile.ExtractToDirectoryAsync("bp.zip", worldFolder.FullName);
-
-        var metadata = WorldData.LoadMetadata(await File.ReadAllTextAsync(Path.Combine(worldFolder.FullName, "buildplate_metadata.json")), NullLogger.Instance)!;
-
-        var levelDatTag = CreateLevelDat(false, false);
-        using (var fs = new FileStream(Path.Combine(worldFolder.FullName, "level.dat"), FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read))
-        using (var gzs = new GZipStream(fs, CompressionLevel.Optimal))
+        if (!Debugger.IsAttached)
         {
-            var writer = new BinaryTagWriter(gzs);
-            writer.WriteStartDocument();
-            writer.WriteStartTag(null, TagType.Compound);
-            writer.WriteTag(levelDatTag);
-            writer.WriteEndTag();
-            writer.WriteEndDocument();
+            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+            {
+                Console.Error.WriteLine($"Unhandled exception: {e.ExceptionObject}");
+
+                try
+                {
+                    var logger = GlobalLoggerFactory.CreateLogger(nameof(Program));
+                    LogUnhandledException(logger, e.ExceptionObject as Exception);
+                }
+                catch
+                {
+                    Console.Error.WriteLine($"Unhandled exception before logger initialization");
+                }
+
+                Console.Out.Flush();
+                Console.Error.Flush();
+
+                Environment.Exit(2);
+            };
         }
 
-        // todo: configurable
-        // todo: cleanup
-        string[] javaOptions = ["-Xms256M", "-Xmx1G", "-XX:+UseG1GC", "-XX:+ParallelRefProcEnabled", "-XX:MaxGCPauseMillis=200", "-XX:+UnlockExperimentalVMOptions", "-XX:+DisableExplicitGC", "-XX:G1NewSizePercent=20", "-XX:G1MaxNewSizePercent=30", "-XX:G1HeapRegionSize=4M", "-XX:G1ReservePercent=15", "-XX:G1HeapWastePercent=5", "-XX:G1MixedGCCountTarget=4", "-XX:InitiatingHeapOccupancyPercent=15", "-XX:G1MixedGCLiveThresholdPercent=90", "-XX:G1RSetUpdatingPauseTimePercent=5", "-XX:SurvivorRatio=32", "-XX:MaxTenuringThreshold=1", "-XX:+PerfDisableSharedMem", "-XX:MaxMetaspaceSize=192M", "-XX:MaxDirectMemorySize=128M", "-Xss256k"];
-
-        var server = new Process()
+        // ProcessStartInfo.KillOnParentExit currently only supported on these
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux() && !OperatingSystem.IsAndroid())
         {
-            StartInfo = new ProcessStartInfo("java", [.. javaOptions, "-jar", Path.Combine(serverFolder.FullName, "server.jar"), "--nogui"])
-            {
-                KillOnParentExit = true,
-                RedirectStandardOutput = true,
-                RedirectStandardInput = true,
-                WorkingDirectory = serverFolder.FullName,
-            },
-        };
+            Console.WriteLine("Unsupported OS, supported: windows, linux, android");
+            return;
+        }
 
-        server.Start();
+        var builder = Host.CreateApplicationBuilder(args);
 
-        var serverStarted = new TaskCompletionSource();
-        var chunksForceLoaded = new TaskCompletionSource();
-        server.OutputDataReceived += (sender, e) =>
+        if (!builder.Configuration.GetValue<bool>("AcceptMinecraftEula"))
         {
-            if (string.IsNullOrEmpty(e.Data))
+            Console.Write("Error: you must accept the minecraft eula, change AcceptMinecraftEula to true");
+            return;
+        }
+
+        builder.AddServiceDefaults();
+
+        builder.Services.AddSingleton<StartupDependencies>();
+        builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
+        builder.Services.AddSingleton<BuildplateUpdater>();
+        builder.Services.AddSingleton<EventBusBuildplateUpdater>();
+
+        using var app = builder.Build();
+
+        using var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
+        GlobalLoggerFactory.Initialize(loggerFactory);
+
+        var programLogger = loggerFactory.CreateLogger(nameof(Program));
+
+        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
+        Debug.Assert(eventBusConnectionString is not null);
+
+        LogConnectingToEventBus(programLogger);
+        EventBusClient eventBusClient;
+        try
+        {
+            eventBusClient = await EventBusClient.ConnectAsync(eventBusConnectionString, programLogger);
+        }
+        catch (Exception exception)
+        {
+            LogConnectToEventBusError(programLogger, exception);
+            loggerFactory.Dispose();
+            return;
+        }
+
+        LogConnectedToEventBus(programLogger);
+
+        // init stuff that requires logger but needs to be injected
+        var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
+        startupDeps.EventBus = eventBusClient;
+
+        try
+        {
+            if (!await app.Services.GetRequiredService<BuildplateUpdater>().InitializeAsync())
             {
                 return;
             }
 
-            Console.WriteLine($"[java] {e.Data}");
-
-            if (Regex.IsMatch(e.Data, @"Done \((.*?)\)! For help, type ""help"""))
-            {
-                serverStarted.SetResult();
-            }
-
-            var forceLoadMarkedMatch = Regex.Match(e.Data, @"Marked \d+ chunks in [\w:]+ from \[(?<x1>-?\d+),\s*(?<y1>-?\d+)\] to \[(?<x2>-?\d+),\s*(?<y2>-?\d+)\] to be force loaded");
-
-            if (forceLoadMarkedMatch.Success)
-            {
-                var x1 = int.Parse(forceLoadMarkedMatch.Groups["x1"].Value, CultureInfo.InvariantCulture);
-                var y1 = int.Parse(forceLoadMarkedMatch.Groups["y1"].Value, CultureInfo.InvariantCulture);
-                var x2 = int.Parse(forceLoadMarkedMatch.Groups["x2"].Value, CultureInfo.InvariantCulture);
-                var y2 = int.Parse(forceLoadMarkedMatch.Groups["y2"].Value, CultureInfo.InvariantCulture);
-
-                var minChunk = -metadata.Size >> 4;
-                var maxChunk = metadata.Size >> 4;
-
-                if (x1 == minChunk && y1 == minChunk && x2 == maxChunk && y2 == maxChunk)
-                {
-                    chunksForceLoaded.TrySetResult();
-                }
-            }
-        };
-
-        server.BeginOutputReadLine();
-
-        await serverStarted.Task;
-
-        Console.WriteLine("Server started");
-
-        await Task.Delay(100);
-
-        await server.StandardInput.WriteLineAsync($"/forceload add {-metadata.Size} {-metadata.Size} {metadata.Size} {metadata.Size}");
-
-        await chunksForceLoaded.Task;
-
-        await Task.Delay(500);
-
-        await server.StandardInput.WriteLineAsync($"/stop");
-
-        await server.WaitForExitAsync();
-
-        File.Delete("bp-out.zip");
-        await using var resultFs = File.OpenWriteNew("bp-out.zip");
-        using var result = new ZipArchive(resultFs, ZipArchiveMode.Create);
-
-        await result.CreateEntryFromFileAsync(Path.Combine(worldFolder.FullName, "buildplate_metadata.json"), "buildplate_metadata.json");
-
-        foreach (var file in Directory.EnumerateFiles(Path.Combine(worldFolder.FullName, "region")))
-        {
-            await result.CreateEntryFromFileAsync(file, $"region/{Path.GetFileName(file)}");
+            var renderer = app.Services.GetRequiredService<EventBusBuildplateUpdater>();
+            await renderer.RunAsync();
         }
-
-        foreach (var file in Directory.EnumerateFiles(Path.Combine(worldFolder.FullName, "entities")))
+        catch (IOException exception)
         {
-            await result.CreateEntryFromFileAsync(file, $"entities/{Path.GetFileName(file)}");
+            LogFatalErrorDuringServerStartup(programLogger, exception);
+            loggerFactory.Dispose();
+            return;
         }
     }
 
-    private static TagCompound CreateLevelDat(bool survival, bool night)
+    internal sealed class StartupDependencies
     {
-        var dataTag = new NbtBuilder.Compound()
-            .Add("GameType", survival ? 0 : 1)
-            .Add("Difficulty", 1)
-            .Add("DayTime", !night ? 6000 : 18000)
-            .Add("GameRules", new NbtBuilder.Compound()
-                .Add("doDaylightCycle", "false")
-                .Add("doWeatherCycle", "false")
-                .Add("doMobSpawning", "false")
-                .Add("fountain:doMobDespawn", "false")
-                .Add("keepInventory", "true")
-                .Add("spawnChunkRadius", "0")
-            )
-            .Add("WorldGenSettings", new NbtBuilder.Compound()
-                .Add("seed", (long)0)    // TODO
-                .Add("generate_features", (byte)0)
-                .Add("dimensions", new NbtBuilder.Compound()
-                    .Add("minecraft:overworld", new NbtBuilder.Compound()
-                        .Add("type", "minecraft:overworld")
-                        .Add("generator", new NbtBuilder.Compound()
-                            .Add("type", "fountain:wrapper")
-                            .Add("buildplate", new NbtBuilder.Compound()
-                                .Add("ground_level", 63))
-                            .Add("inner", new NbtBuilder.Compound()
-                                .Add("type", "minecraft:noise")
-                                .Add("settings", "minecraft:overworld")
-                                .Add("biome_source", new NbtBuilder.Compound()
-                                    .Add("type", "minecraft:multi_noise")
-                                    .Add("preset", "minecraft:overworld")
-                                )
-                            )
-                        )
-                    )
-                    .Add("minecraft:the_nether", new NbtBuilder.Compound()
-                        .Add("type", "minecraft:the_nether")
-                        .Add("generator", new NbtBuilder.Compound()
-                            .Add("type", "fountain:wrapper")
-                            .Add("buildplate", new NbtBuilder.Compound()
-                                .Add("ground_level", 32))
-                            .Add("inner", new NbtBuilder.Compound()
-                                .Add("type", "minecraft:noise")
-                                .Add("settings", "minecraft:nether")
-                                .Add("biome_source", new NbtBuilder.Compound()
-                                    .Add("type", "minecraft:fixed")
-                                    .Add("biome", "minecraft:nether_wastes")
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-            .Add("DataVersion", 3837)
-            .Add("version", 19133)
-            .Add("Version", new NbtBuilder.Compound()
-                .Add("Id", 3837)
-                .Add("Name", "1.20.5")
-                .Add("Series", "main")
-                .Add("Snapshot", (byte)0)
-            )
-            .Add("initialized", (byte)1)
-            .Build("Data");
-
-        return dataTag;
+        public EventBusClient EventBus { get; set; } = null!;
     }
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Unhandled exception")]
+    private static partial void LogUnhandledException(ILogger logger, Exception? exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Connecting to event bus")]
+    private static partial void LogConnectingToEventBus(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Could not connect to event bus")]
+    private static partial void LogConnectToEventBusError(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Connected to event bus")]
+    private static partial void LogConnectedToEventBus(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Fatal error during server startup")]
+    private static partial void LogFatalErrorDuringServerStartup(ILogger logger, Exception exception);
 }

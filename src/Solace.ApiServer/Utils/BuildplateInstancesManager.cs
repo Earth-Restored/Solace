@@ -38,7 +38,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
         _requestSender = await eventBusClient.AddRequestSenderAsync();
     }
 
-    public async Task<Guid?> RequestBuildplateInstance(Guid? playerId, Guid? encounterId, Guid buildplateId, InstanceType type, DateTimeOffset shutdownTime, bool night)
+    public async Task<Guid?> RequestBuildplateInstanceAsync(Guid? playerId, Guid? encounterId, Guid buildplateId, InstanceType type, DateTimeOffset shutdownTime, bool night, CancellationToken cancellationToken = default)
     {
         if (playerId is null && type is not InstanceType.ENCOUNTER)
         {
@@ -96,7 +96,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
 
         Debug.Assert(_requestSender is not null);
 
-        var instanceIdString = await _requestSender.RequestAsync("buildplates", "start", Json.Serialize(new StartRequest(playerId, encounterId, buildplateId, night, type, shutdownTime)));
+        var instanceIdString = await _requestSender.RequestAsync("buildplates", "start", Json.Serialize(new StartRequest(playerId, encounterId, buildplateId, night, type, shutdownTime)), cancellationToken);
         if (!Guid.TryParse(instanceIdString, out var instanceId))
         {
             LogBuildplateStartRequestWasRejectedIgnored();
@@ -136,13 +136,13 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
         }
     }
 
-    public async Task<string?> GetBuildplatePreviewAsync(byte[] serverData, bool night)
+    public async Task<string?> GetBuildplatePreviewAsync(byte[] serverData, bool night, CancellationToken cancellationToken = default)
     {
         LogRequestingBuildplatePreview();
 
         Debug.Assert(_requestSender is not null);
 
-        var preview = await _requestSender.RequestAsync("buildplates", "preview", Json.Serialize(new PreviewRequest(Convert.ToBase64String(serverData), night)));
+        var preview = await _requestSender.RequestAsync("buildplates", "preview", Json.Serialize(new PreviewRequest(Convert.ToBase64String(serverData), night)), cancellationToken);
         if (preview is null)
         {
             LogPreviewRequestWasRejectedIgnored();
@@ -164,7 +164,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
         }
     }
 
-    private Task HandleEvent(SubscriberEvent @event)
+    private Task HandleEvent(SubscriberEvent @event, CancellationToken cancellationToken)
     {
         switch (@event.Type)
         {

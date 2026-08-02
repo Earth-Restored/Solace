@@ -123,11 +123,11 @@ internal static partial class App
         // init stuff that needs async initialization
         var spawner = app.Services.GetRequiredService<Spawner>();
         await app.Services.GetRequiredService<ActiveTiles>().InitializeAsync(eventBusClient, new ActiveTiles.ActiveTileListener(
-            async activeTiles =>
+            async (activeTiles, cancellationToken) =>
             {
-                await spawner.SpawnTiles(activeTiles);
+                await spawner.SpawnTilesAsync(activeTiles, cancellationToken);
             },
-            async activeTile =>
+            async (activeTile, cancellationToken) =>
             {
                 // empty
             }

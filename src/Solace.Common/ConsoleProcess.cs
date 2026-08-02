@@ -246,10 +246,10 @@ public sealed partial class ConsoleProcess : IDisposable
         => await ActualProcess.WaitForExitAsync(cancellationToken);
 
     public async Task StopNoWaitAsync(ILogger logger, int timeout = 15 * 1000, CancellationToken cancellationToken = default)
-        => await ActualProcess.StopGracefullyOrKillAsync(timeout, logger, cancellationToken);
+        => await ActualProcess.StopGracefullyOrKillAsync(TimeSpan.FromMilliseconds(timeout), logger, cancellationToken);
 
     public async Task StopAndWaitAsync(ILogger logger, int timeout = 15 * 1000, CancellationToken cancellationToken = default)
-        => await ActualProcess.StopGracefullyOrKillAndWaitAsync(timeout, logger, cancellationToken);
+        => await ActualProcess.StopGracefullyOrKillAndWaitAsync(TimeSpan.FromMilliseconds(timeout), logger, cancellationToken);
 
     private void ApplyTerminalWrapper(IEnumerable<string> args)
     {
