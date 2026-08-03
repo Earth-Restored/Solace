@@ -7,7 +7,9 @@
   <Project Path="src/Solace.AppHost/Solace.AppHost.csproj" />
   <Project Path="src/Solace.AuthServer/Solace.AuthServer.csproj" />
   <Project Path="src/Solace.BuildplateRenderer/Solace.BuildplateRenderer.csproj" />
+  <Project Path="src/Solace.Buildplate.Common/Solace.Buildplate.Common.csproj" />
   <Project Path="src/Solace.Buildplate.Launcher/Solace.Buildplate.Launcher.csproj" />
+  <Project Path="src/Solace.Buildplate.ServerSetup/Solace.Buildplate.ServerSetup.csproj" />
   <Project Path="src/Solace.Buildplate.Updater/Solace.Buildplate.Updater.csproj" />
   <Project Path="src/Solace.BuildplateImporter/Solace.BuildplateImporter.csproj" />
   <Project Path="src/Solace.Cdn/Solace.Cdn.csproj" />

@@ -4,9 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Solace.Common;
-using Solace.EventBus.Client;
 
-namespace Solace.Buildplate.Updater;
+namespace Solace.Buildplate.ServerSetup;
 
 internal sealed partial class Program
 {
@@ -52,10 +51,7 @@ internal sealed partial class Program
 
         builder.AddServiceDefaults();
 
-        builder.Services.AddSingleton<StartupDependencies>();
-        builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
-        builder.Services.AddSingleton<BuildplateUpdater>();
-        builder.Services.AddSingleton<EventBusBuildplateUpdater>();
+        builder.Services.AddSingleton<SetupService>();
 
         using var app = builder.Build();
 
@@ -64,58 +60,21 @@ internal sealed partial class Program
 
         var programLogger = loggerFactory.CreateLogger(nameof(Program));
 
-        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
-        Debug.Assert(eventBusConnectionString is not null);
-
-        LogConnectingToEventBus(programLogger);
-        EventBusClient eventBusClient;
         try
         {
-            eventBusClient = await EventBusClient.ConnectAsync(eventBusConnectionString, programLogger);
-        }
-        catch (Exception exception)
-        {
-            LogConnectToEventBusError(programLogger, exception);
-            loggerFactory.Dispose();
-            return;
-        }
-
-        LogConnectedToEventBus(programLogger);
-
-        // init stuff that requires logger but needs to be injected
-        var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
-        startupDeps.EventBus = eventBusClient;
-
-        try
-        {
-            var renderer = app.Services.GetRequiredService<EventBusBuildplateUpdater>();
-            await renderer.RunAsync();
+            await app.Services.GetRequiredService<SetupService>().SetupAsync();
         }
         catch (IOException exception)
         {
-            LogFatalErrorDuringServerStartup(programLogger, exception);
+            LogFatalErrorDuringServerSetup(programLogger, exception);
             loggerFactory.Dispose();
             return;
         }
-    }
-
-    internal sealed class StartupDependencies
-    {
-        public EventBusClient EventBus { get; set; } = null!;
     }
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "Unhandled exception")]
     private static partial void LogUnhandledException(ILogger logger, Exception? exception);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Connecting to event bus")]
-    private static partial void LogConnectingToEventBus(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Critical, Message = "Could not connect to event bus")]
-    private static partial void LogConnectToEventBusError(ILogger logger, Exception exception);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Connected to event bus")]
-    private static partial void LogConnectedToEventBus(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Critical, Message = "Fatal error during server startup")]
-    private static partial void LogFatalErrorDuringServerStartup(ILogger logger, Exception exception);
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Fatal error during server setup")]
+    private static partial void LogFatalErrorDuringServerSetup(ILogger logger, Exception exception);
 }

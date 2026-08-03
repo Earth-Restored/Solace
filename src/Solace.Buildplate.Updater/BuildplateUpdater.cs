@@ -8,6 +8,7 @@ using Cyotek.Data.Nbt;
 using Cyotek.Data.Nbt.Serialization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Solace.Buildplate.Common;
 using Solace.Buildplate.Model;
 using Solace.Common;
 using Solace.Common.Utils;
@@ -24,7 +25,7 @@ internal sealed partial class BuildplateUpdater
     private static readonly string[] JavaOptions = ["-Xms256M", "-Xmx1G", "-XX:+UseG1GC", "-XX:+ParallelRefProcEnabled", "-XX:MaxGCPauseMillis=200", "-XX:+UnlockExperimentalVMOptions", "-XX:+DisableExplicitGC", "-XX:G1NewSizePercent=20", "-XX:G1MaxNewSizePercent=30", "-XX:G1HeapRegionSize=4M", "-XX:G1ReservePercent=15", "-XX:G1HeapWastePercent=5", "-XX:G1MixedGCCountTarget=4", "-XX:InitiatingHeapOccupancyPercent=15", "-XX:G1MixedGCLiveThresholdPercent=90", "-XX:G1RSetUpdatingPauseTimePercent=5", "-XX:SurvivorRatio=32", "-XX:MaxTenuringThreshold=1", "-XX:+PerfDisableSharedMem", "-XX:MaxMetaspaceSize=192M", "-XX:MaxDirectMemorySize=128M", "-Xss256k"];
 
     // todo: configurable
-    private static readonly TimeSpan StartTimeout = TimeSpan.FromSeconds(120);
+    private static readonly TimeSpan StartTimeout = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan LoadTimeout = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(15);
 
@@ -59,6 +60,8 @@ internal sealed partial class BuildplateUpdater
     {
         _ = cancellationToken;
 
+        await ServerUtils.WaitForSetup(_staticDataPath, _logger, cancellationToken);
+
         var tempDirectory = new DirectoryInfo("tmp");
         if (tempDirectory.Exists)
         {
@@ -74,7 +77,7 @@ internal sealed partial class BuildplateUpdater
 
         var staticDataServer = new DirectoryInfo(Path.Combine(_staticDataPath, "server_template_dir"));
 
-        if (!File.TryFindCompatibleFile(staticDataServer.FullName, new Version(1, 20, 5, 0), "server-{{version}}.jar", out var serverJarPath))
+        if (!File.TryFindCompatibleFile(staticDataServer.FullName, Buildplate.Common.Constants.GameVersion, "server-{{version}}.jar", out var serverJarPath))
         {
             LogServerJarNotFound();
             return false;
@@ -94,7 +97,7 @@ internal sealed partial class BuildplateUpdater
         _templateLevelDat = new FileInfo(Path.Combine(_serverDirectory.FullName, "level.dat"));
         _levelDat = new FileInfo(Path.Combine(_worldDirectory.FullName, "level.dat"));
 
-        var levelDatTag = CreateLevelDat();
+        var levelDatTag = LevelDatUtils.Create(false, false, 0);
         using (var fs = new FileStream(_templateLevelDat.FullName, FileMode.Create, FileAccess.Write, FileShare.Read))
         using (var gzs = new GZipStream(fs, CompressionLevel.Optimal))
         {
@@ -109,9 +112,22 @@ internal sealed partial class BuildplateUpdater
 
         _javaExe = JavaLocator.Locate(_logger);
 
+        CopyFolder(Path.Combine(".fabric", "server"));
+        CopyFolder("libraries");
+        CopyFolder("versions");
+        CopyFolder("config");
+
         Initialized = true;
 
         return true;
+
+        void CopyFolder(string path)
+        {
+            Debug.Assert(_serverDirectory is not null);
+            var target = Path.Combine(_serverDirectory.FullName, path);
+            Directory.CreateDirectory(target);
+            new DirectoryInfo(Path.Combine(staticDataServer.FullName, path)).CopyTo(target);
+        }
     }
 
     [SupportedOSPlatform("android")]
@@ -119,11 +135,6 @@ internal sealed partial class BuildplateUpdater
     [SupportedOSPlatform("windows")]
     public async Task<byte[]?> UpdateAsync(Stream worldZipData, CancellationToken cancellationToken = default)
     {
-        if (!Initialized)
-        {
-            throw new InvalidOperationException($"{nameof(BuildplateUpdater)} needs to be initialized.");
-        }
-
         // todo: detect if any updates are queued, and if so, reuse the server - https://modrinth.com/mod/multiworld
 
         // convert only 1 buildplate at a time, don't want multiple java server instances
@@ -133,6 +144,16 @@ internal sealed partial class BuildplateUpdater
 
         try
         {
+            if (!Initialized)
+            {
+                if (!await InitializeAsync(cancellationToken))
+                {
+                    return null;
+                }
+            }
+
+            Debug.Assert(Initialized);
+
             _worldDirectory.Delete(true);
             _worldDirectory.Create();
 
@@ -173,7 +194,7 @@ internal sealed partial class BuildplateUpdater
 
                 // Console.WriteLine($"[java] {e.Data}");
 
-                if (GetServerStartedRegex().IsMatch(e.Data))
+                if (Common.Constants.GetServerStartedRegex().IsMatch(e.Data))
                 {
                     serverStarted.SetResult();
                 }
@@ -253,75 +274,6 @@ internal sealed partial class BuildplateUpdater
             _convertLock.Release();
         }
     }
-
-    private static TagCompound CreateLevelDat()
-    {
-        var dataTag = new NbtBuilder.Compound()
-            .Add("GameType", 1)
-            .Add("Difficulty", 1)
-            .Add("DayTime", 6000)
-            .Add("GameRules", new NbtBuilder.Compound()
-                .Add("doDaylightCycle", "false")
-                .Add("doWeatherCycle", "false")
-                .Add("doMobSpawning", "false")
-                .Add("fountain:doMobDespawn", "false")
-                .Add("keepInventory", "true")
-                .Add("spawnChunkRadius", "0")
-            )
-            .Add("WorldGenSettings", new NbtBuilder.Compound()
-                .Add("seed", (long)0)    // TODO
-                .Add("generate_features", (byte)0)
-                .Add("dimensions", new NbtBuilder.Compound()
-                    .Add("minecraft:overworld", new NbtBuilder.Compound()
-                        .Add("type", "minecraft:overworld")
-                        .Add("generator", new NbtBuilder.Compound()
-                            .Add("type", "fountain:wrapper")
-                            .Add("buildplate", new NbtBuilder.Compound()
-                                .Add("ground_level", 63))
-                            .Add("inner", new NbtBuilder.Compound()
-                                .Add("type", "minecraft:noise")
-                                .Add("settings", "minecraft:overworld")
-                                .Add("biome_source", new NbtBuilder.Compound()
-                                    .Add("type", "minecraft:multi_noise")
-                                    .Add("preset", "minecraft:overworld")
-                                )
-                            )
-                        )
-                    )
-                    .Add("minecraft:the_nether", new NbtBuilder.Compound()
-                        .Add("type", "minecraft:the_nether")
-                        .Add("generator", new NbtBuilder.Compound()
-                            .Add("type", "fountain:wrapper")
-                            .Add("buildplate", new NbtBuilder.Compound()
-                                .Add("ground_level", 32))
-                            .Add("inner", new NbtBuilder.Compound()
-                                .Add("type", "minecraft:noise")
-                                .Add("settings", "minecraft:nether")
-                                .Add("biome_source", new NbtBuilder.Compound()
-                                    .Add("type", "minecraft:fixed")
-                                    .Add("biome", "minecraft:nether_wastes")
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-            .Add("DataVersion", 3837)
-            .Add("version", 19133)
-            .Add("Version", new NbtBuilder.Compound()
-                .Add("Id", 3837)
-                .Add("Name", "1.20.5")
-                .Add("Series", "main")
-                .Add("Snapshot", (byte)0)
-            )
-            .Add("initialized", (byte)1)
-            .Build("Data");
-
-        return dataTag;
-    }
-
-    [GeneratedRegex(@"Done \((?<time>.*?)\)! For help, type ""help""", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 200)]
-    private static partial Regex GetServerStartedRegex();
 
     [GeneratedRegex(@"Marked \d+ chunks in [\w:]+ from \[(?<x1>-?\d+),\s*(?<y1>-?\d+)\] to \[(?<x2>-?\d+),\s*(?<y2>-?\d+)\] to be force loaded", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 200)]
     private static partial Regex GetChunksLoadedRegex();

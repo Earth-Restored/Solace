@@ -41,15 +41,15 @@ internal static partial class App
 {
     internal static string StaticDataPath = "./staticdata";
 
-    public static readonly Version MinimumServerVersion = new Version(1, 20, 5, 0);
-    public static readonly Version MinimumFountainBridgeVersion = new Version(0, 0, 2);
-    public static readonly Version MinimumBuildplateConnectorPluginVersion = new Version(0, 0, 1);
+    public static readonly Version MinimumServerVersion = Buildplate.Common.Constants.GameVersion;
+    public static readonly Version MinimumFountainBridgeVersion = new(0, 0, 2);
+    public static readonly Version MinimumBuildplateConnectorPluginVersion = new(0, 0, 1);
 
     public static async Task<int> RunAsync(string[] args)
     {
         if (!Debugger.IsAttached)
         {
-            AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
+            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
             {
                 Console.Error.WriteLine($"Unhandled exception: {e.ExceptionObject}");
 
@@ -251,7 +251,4 @@ internal static partial class App
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Started, public address: {Address}, base port: {BasePort}")]
     private static partial void LogStarted(ILogger logger, string Address, int BasePort);
-
-    [LoggerMessage(Level = LogLevel.Critical, Message = "Fatal error during server startup")]
-    private static partial void LogFatalErrorDuringServerStartup(ILogger logger, Exception exception);
 }

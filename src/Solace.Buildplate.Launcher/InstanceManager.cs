@@ -20,7 +20,7 @@ internal sealed partial class InstanceManager
 
     private readonly ILogger<InstanceManager> _logger;
 
-    private readonly Lock _lock = new Lock();
+    private readonly Lock _lock = new();
 
     [JsonConverter(typeof(JsonStringEnumConverter<InstanceType>))]
     private enum InstanceType
@@ -162,7 +162,7 @@ internal sealed partial class InstanceManager
 
                     LogStartingBuildplateInstance(instanceId);
 
-                    var instance = _starter.StartInstance(instanceId, startRequest.PlayerId, startRequest.BuildplateId, buildplateSource, survival, startRequest.Night, saveEnabled, inventoryType, shutdownTime);
+                    var instance = await _starter.StartInstanceAsync(instanceId, startRequest.PlayerId, startRequest.BuildplateId, buildplateSource, survival, startRequest.Night, saveEnabled, inventoryType, shutdownTime, cancellationToken);
                     if (instance is null)
                     {
                         LogErrorStartingBuildplateInstance(instanceId);

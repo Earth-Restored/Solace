@@ -80,7 +80,8 @@ function Push-Project {
             "/p:PublishAot=true",
             "/p:PublishTrimmed=true",
             "/p:EnableTrimAnalyzer=true",
-            "/p:TrimmerRemoveSymbols=true"
+            "/p:TrimmerRemoveSymbols=true",
+            "/p:ContainerBaseImage=mcr.microsoft.com/dotnet/runtime-deps:10.0-noble-chiseled" # .net11 not available yet, todo: remove once .net11 images exist
         )
     }
 
@@ -103,8 +104,9 @@ Push-Location ./../
 $projectList = @(
     [pscustomobject]@{ProjectName = 'Solace.EventBus.Server'; PackageName = 'event-bus'; AOT = $true }
     [pscustomobject]@{ProjectName = 'Solace.ObjectStore.Server'; PackageName = 'object-store'; AOT = $true }
-    [pscustomobject]@{ProjectName = 'Solace.Buildplate.Launcher'; PackageName = 'buildplate-launcher'; AOT = $false }
+    [pscustomobject]@{ProjectName = 'Solace.Buildplate.ServerSetup'; PackageName = 'buildplate-server-setup'; AOT = $true }
     [pscustomobject]@{ProjectName = 'Solace.Buildplate.Updater'; PackageName = 'buildplate-updater'; AOT = $true }
+    [pscustomobject]@{ProjectName = 'Solace.Buildplate.Launcher'; PackageName = 'buildplate-launcher'; AOT = $false }
     [pscustomobject]@{ProjectName = 'Solace.ApiServer'; PackageName = 'api-server'; AOT = $false }
     [pscustomobject]@{ProjectName = 'Solace.Cdn'; PackageName = 'cdn'; AOT = $false }
     [pscustomobject]@{ProjectName = 'Solace.AuthServer'; PackageName = 'auth-server'; AOT = $false }

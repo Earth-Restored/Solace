@@ -2,22 +2,19 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <AssemblyName>BuildplateUpdater</AssemblyName>
+    <AssemblyName>ServerSetup</AssemblyName>
     <PublishTrimmed>true</PublishTrimmed>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Cyotek.Data.Nbt" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <ProjectReference Include="../Solace.Buildplate.Common/Solace.Buildplate.Common.csproj" />
+    <ProjectReference Include="../Solace.Common/Solace.Common.csproj" />
+    <ProjectReference Include="../Solace.ServiceDefaults/Solace.ServiceDefaults.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Solace.Buildplate.Common/Solace.Buildplate.Common.csproj" />
-    <ProjectReference Include="../Solace.Common/Solace.Common.csproj" />
-    <ProjectReference Include="../Solace.EventBus.Client/Solace.EventBus.Client.csproj" />
-    <ProjectReference Include="../Solace.ServiceDefaults/Solace.ServiceDefaults.csproj" />
-    <ProjectReference Include="../Solace.StaticData/Solace.StaticData.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 
 </Project>

@@ -34,6 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../Solace.Buildplate.Common/Solace.Buildplate.Common.csproj" />
     <ProjectReference Include="../Solace.ServiceDefaults/Solace.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Solace.Common\Solace.Common.csproj" />
     <ProjectReference Include="..\Solace.Db.Earth\Solace.Db.Earth.csproj" />

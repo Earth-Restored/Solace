@@ -132,7 +132,6 @@ public static class IOExtenions
             }
             catch (DirectoryNotFoundException)
             {
-
             }
         }
 
