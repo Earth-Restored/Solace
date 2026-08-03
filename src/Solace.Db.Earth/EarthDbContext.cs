@@ -340,7 +340,7 @@ public sealed class EarthDbContext : DbContext
             .Property(x => x.Slots)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, DbJsonContext.Default.CraftingSlotEFArray),
-                v => JsonSerializer.Deserialize(v, DbJsonContext.Default.CraftingSlotEFArray) ?? new CraftingSlotEF[] { new CraftingSlotEF(), new CraftingSlotEF(), new CraftingSlotEF(), }
+                v => JsonSerializer.Deserialize(v, DbJsonContext.Default.CraftingSlotEFArray) ?? new CraftingSlotEF[] { new(), new(), new(), }
             )
             .Metadata.SetValueComparer(new ArrayValueComparer<CraftingSlotEF>(CraftingSlotEF.Comparer.Instance));
 
@@ -353,7 +353,7 @@ public sealed class EarthDbContext : DbContext
             .Property(x => x.Slots)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, DbJsonContext.Default.SmeltingSlotEFArray),
-                v => JsonSerializer.Deserialize(v, DbJsonContext.Default.SmeltingSlotEFArray) ?? new SmeltingSlotEF[] { new SmeltingSlotEF(), new SmeltingSlotEF(), new SmeltingSlotEF(), }
+                v => JsonSerializer.Deserialize(v, DbJsonContext.Default.SmeltingSlotEFArray) ?? new SmeltingSlotEF[] { new(), new(), new(), }
             )
             .Metadata.SetValueComparer(new ArrayValueComparer<SmeltingSlotEF>(SmeltingSlotEF.Comparer.Instance));
 

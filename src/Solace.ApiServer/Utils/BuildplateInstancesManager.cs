@@ -223,7 +223,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
 
                     lock (_instances)
                     {
-                        InstanceInfo? instanceInfo = _instances.GetValueOrDefault(instanceId);
+                        var instanceInfo = _instances.GetValueOrDefault(instanceId);
                         if (instanceInfo is not null)
                         {
                             LogBuildplateInstanceIsReady(instanceId);
@@ -253,7 +253,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
 
                     lock (_instances)
                     {
-                        InstanceInfo? instanceInfo = _instances.GetValueOrDefault(instanceId);
+                        var instanceInfo = _instances.GetValueOrDefault(instanceId);
                         if (instanceInfo is not null)
                         {
                             LogBuildplateInstanceIsShuttingDown(instanceId);

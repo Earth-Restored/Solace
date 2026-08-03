@@ -32,10 +32,10 @@ public sealed class TappablesConfig
 
             Tappables = tappables.DrainToImmutable();
 
-            foreach (TappableConfig tappableConfig in Tappables)
+            foreach (var tappableConfig in Tappables)
 
             {
-                foreach (TappableConfig.DropSetR dropSet in tappableConfig.DropSets)
+                foreach (var dropSet in tappableConfig.DropSets)
                 {
                     foreach (var itemId in dropSet.Items)
                     {

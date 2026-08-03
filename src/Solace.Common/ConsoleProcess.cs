@@ -11,7 +11,7 @@ namespace Solace.Common;
 public sealed partial class ConsoleProcess : IDisposable
 {
     private readonly string _filePath;
-    public readonly Process Process = new Process();
+    public readonly Process Process = new();
 
     public bool IORedirected { get; private set; }
     public bool OpenInNewWindow { get; private set; }
@@ -58,7 +58,7 @@ public sealed partial class ConsoleProcess : IDisposable
     private static string? _cachedLinuxTerminal;
     private static string? _cachedLinuxTerminalExecArg;
     private static bool _linuxTerminalDiscoveryAttempted;
-    private static readonly Lock _terminalCacheLock = new Lock();
+    private static readonly Lock _terminalCacheLock = new();
 
     private static readonly (string Name, string ExecutionArg)[] _linuxTerminalsToCheck =
     [

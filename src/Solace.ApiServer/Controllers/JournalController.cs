@@ -62,7 +62,7 @@ internal sealed class JournalController : SolaceControllerBase
 
     private static Types.Journal.JournalRecord.ActivityLogEntry ActivityLogEntryToApiResponse(ActivityLogEntryEF entry)
     {
-        Rewards rewards = entry switch
+        var rewards = entry switch
         {
             LevelUpEntryEF levelUp => new Rewards().SetLevel(levelUp.Level),
             TappableEntryEF tappable => Rewards.FromDBRewardsModel(tappable.Rewards),

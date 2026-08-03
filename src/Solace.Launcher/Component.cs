@@ -75,7 +75,7 @@ internal sealed class Component : IAsyncDisposable
     {
         if (IsRunning)
         {
-            await _process.StopGracefullyOrKillAsync(200, NullLogger.Instance, default);
+            await _process.StopGracefullyOrKillAsync(TimeSpan.FromMilliseconds(200), NullLogger.Instance, default);
         }
     }
 
@@ -83,7 +83,7 @@ internal sealed class Component : IAsyncDisposable
     {
         if (_process is not null)
         {
-            await _process.StopGracefullyOrKillAsync(200, NullLogger.Instance, default);
+            await _process.StopGracefullyOrKillAsync(TimeSpan.FromMilliseconds(200), NullLogger.Instance, default);
             _process.Dispose();
         }
     }
@@ -202,6 +202,6 @@ internal sealed class Component : IAsyncDisposable
         }
 
         public Component Build()
-            => new Component(_command, _useShellExecute, _redirectOutput, _workingDirectory, _arguments, _environmentVariables);
+            => new(_command, _useShellExecute, _redirectOutput, _workingDirectory, _arguments, _environmentVariables);
     }
 }

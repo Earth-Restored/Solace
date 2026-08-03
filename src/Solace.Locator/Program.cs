@@ -159,7 +159,7 @@ internal sealed partial class App
 
         app.Run();
     }
-    
+
     [LoggerMessage(Level = LogLevel.Critical, Message = "{Component} public endpoint ({Uri}) is missing protocol, must start with http:// or https://")]
     public static partial void LogUriMissingProtocol(ILogger logger, string Component, string Uri);
 

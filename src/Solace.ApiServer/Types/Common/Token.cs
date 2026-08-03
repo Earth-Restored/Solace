@@ -44,7 +44,7 @@ internal static class TokenTypeExtensions
         public static Token.Type FromDb(Db.Earth.Models.Player.TokenEF token)
             => token switch
             {
-                Db.Earth.Models.Player.LevelUpTokenEF => Token.Type.LEVEL_UP,  
+                Db.Earth.Models.Player.LevelUpTokenEF => Token.Type.LEVEL_UP,
                 Db.Earth.Models.Player.JournalItemUnlockedTokenEF => Token.Type.JOURNAL_ITEM_UNLOCKED,
                 Db.Earth.Models.Player.DailyLoginTokenEF => Token.Type.DAILY_LOGIN,
                 _ => throw new UnreachableException(),

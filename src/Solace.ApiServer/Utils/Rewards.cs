@@ -104,7 +104,7 @@ internal sealed class Rewards
             {
                 if (quantity > 0)
                 {
-                    Catalog.ItemsCatalogR.Item? item = staticData.Catalog.ItemsCatalog.GetItem(itemId);
+                    var item = staticData.Catalog.ItemsCatalog.GetItem(itemId);
                     Debug.Assert(item is not null);
 
                     if (item.Stackable)
@@ -149,7 +149,7 @@ internal sealed class Rewards
     }
 
     public Types.Common.Rewards ToApiResponse()
-        => new Types.Common.Rewards(
+        => new(
             _rubies,
             _experiencePoints,
             _level,
@@ -189,7 +189,7 @@ internal sealed class Rewards
     }
 
     public Db.Earth.Models.Common.Rewards ToDBRewardsModel()
-        => new Db.Earth.Models.Common.Rewards(
+        => new(
             _rubies,
             _experiencePoints,
             _level,

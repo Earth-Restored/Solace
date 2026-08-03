@@ -315,7 +315,7 @@ internal sealed partial class TappablesManager : IAsyncDisposable
             return false;
         }
 
-        if (!int.TryParse(tileIdStr[(underscoreIndex+1)..], CultureInfo.InvariantCulture, out var y))
+        if (!int.TryParse(tileIdStr[(underscoreIndex + 1)..], CultureInfo.InvariantCulture, out var y))
         {
             Unsafe.SkipInit(out tileId);
             return false;

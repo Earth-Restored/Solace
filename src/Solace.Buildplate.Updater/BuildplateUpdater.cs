@@ -15,7 +15,7 @@ using Solace.Common.Utils;
 
 namespace Solace.Buildplate.Updater;
 
-internal sealed partial class BuildplateUpdater
+internal sealed partial class BuildplateUpdater : IDisposable
 {
     // todo: configurable
     private static readonly string[] Mods = ["fabric-api-*.jar", "ferritecore-*-fabric.jar", "fountain-*.jar", "lithium-fabric-mc*.jar", "modernfix-fabric-*.jar"];
@@ -274,6 +274,9 @@ internal sealed partial class BuildplateUpdater
             _convertLock.Release();
         }
     }
+
+    public void Dispose()
+        => _convertLock.Dispose();
 
     [GeneratedRegex(@"Marked \d+ chunks in [\w:]+ from \[(?<x1>-?\d+),\s*(?<y1>-?\d+)\] to \[(?<x2>-?\d+),\s*(?<y2>-?\d+)\] to be force loaded", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 200)]
     private static partial Regex GetChunksLoadedRegex();

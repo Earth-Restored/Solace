@@ -41,16 +41,16 @@ internal sealed class TappablesController : SolaceControllerBase
 
         await _tappablesManager.NotifyTileActiveAsync(accountId, lat, lon, cancellationToken);
 
-        TappablesManager.Tappable[] tappables = _tappablesManager.GetTappablesAround(lat, lon, 5.0);    // TODO: radius
-        TappablesManager.Encounter[] encounters = _tappablesManager.GetEncountersAround(lat, lon, 5.0);    // TODO: radius
+        var tappables = _tappablesManager.GetTappablesAround(lat, lon, 5.0);    // TODO: radius
+        var encounters = _tappablesManager.GetEncountersAround(lat, lon, 5.0);    // TODO: radius
 
         var redeemedTappables = await _earthDb.RedeemedTappables
             .AsNoTracking()
-            .Where (rt => rt.ProfileId == accountId)
-            .Select(rt => rt.TappableId)
+            .Where(rt => rt.ProfileId == accountId)
+            .Select(rt => rt.TappableId)
             .ToHashSetAsync(cancellationToken);
 
-        IEnumerable<ActiveLocation> activeLocationTappables = tappables
+        var activeLocationTappables = tappables
             .Where(tappable => tappable.SpawnTime + tappable.ValidFor > requestStartedOn && !redeemedTappables.Contains(tappable.Id))
             .Select(tappable => new ActiveLocation(
                 tappable.Id,
@@ -65,7 +65,7 @@ internal sealed class TappablesController : SolaceControllerBase
                 null
             ));
 
-        IEnumerable<ActiveLocation> activeLocationEncounters = encounters
+        var activeLocationEncounters = encounters
             .Where(encounter => encounter.SpawnTime + encounter.ValidFor > requestStartedOn)
             .Select(encounter => new ActiveLocation(
                 encounter.Id,
@@ -119,7 +119,7 @@ internal sealed class TappablesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        TappablesManager.Tappable? tappable = _tappablesManager.GetTappableWithId(tappableRequest.Id, tileId);
+        var tappable = _tappablesManager.GetTappableWithId(tappableRequest.Id, tileId);
         if (tappable is null || !TappablesManager.IsTappableValidFor(tappable, requestStartedOn, tappableRequest.PlayerCoordinate.Latitude, tappableRequest.PlayerCoordinate.Longitude))
         {
             return TypedResults.BadRequest();
@@ -157,7 +157,7 @@ internal sealed class TappablesController : SolaceControllerBase
 
         var rewards = new Utils.Rewards();
 
-        foreach (TappablesManager.Tappable.Item item in tappable.Items)
+        foreach (var item in tappable.Items)
         {
             rewards.AddItem(item.Id, item.Count);
             var experiencePoints = _staticData.Catalog.ItemsCatalog.GetItem(item.Id)!.Experience.Tappable;
@@ -172,9 +172,9 @@ internal sealed class TappablesController : SolaceControllerBase
 
         rewards.AddRubies(1); // TODO
 
-        _earthDb.RedeemedTappables.Add(new RedeemedTappableEF {ProfileId = accountId, TappableId = tappable.Id, ExpiresAt =tappable.SpawnTime + tappable.ValidFor, });
+        _earthDb.RedeemedTappables.Add(new RedeemedTappableEF { ProfileId = accountId, TappableId = tappable.Id, ExpiresAt = tappable.SpawnTime + tappable.ValidFor, });
         await _earthDb.SaveChangesAsync(cancellationToken);
-        
+
         await RedeemedTappableUtils.PruneAsync(_earthDb, requestStartedOn, cancellationToken);
 
         await _earthDb.SaveChangesAsync(cancellationToken);

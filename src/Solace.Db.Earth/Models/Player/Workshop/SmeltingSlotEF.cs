@@ -19,7 +19,7 @@ public sealed class SmeltingSlotEF : IEquatable<SmeltingSlotEF>, ICloneable<Smel
     }
 
     public SmeltingSlotEF DeepCopy()
-        => new SmeltingSlotEF()
+        => new()
         {
             ActiveJob = ActiveJob?.DeepCopy(),
             Burning = Burning?.DeepCopy(),
@@ -68,7 +68,7 @@ public sealed class SmeltingSlotEF : IEquatable<SmeltingSlotEF>, ICloneable<Smel
         }
 
         public ActiveSmeltingJob DeepCopy()
-            => new ActiveSmeltingJob(SessionId, RecipeId, StartTime, Input.DeepCopy(), AddedFuel?.DeepCopy(), TotalRounds, CollectedRounds, FinishedEarly);
+            => new(SessionId, RecipeId, StartTime, Input.DeepCopy(), AddedFuel?.DeepCopy(), TotalRounds, CollectedRounds, FinishedEarly);
     }
 
     public sealed record Fuel(
@@ -83,7 +83,7 @@ public sealed class SmeltingSlotEF : IEquatable<SmeltingSlotEF>, ICloneable<Smel
         }
 
         public Fuel DeepCopy()
-            => new Fuel(Item.DeepCopy(), BurnDuration, HeatPerSecond);
+            => new(Item.DeepCopy(), BurnDuration, HeatPerSecond);
     }
 
     public sealed record BurningR(
@@ -97,6 +97,6 @@ public sealed class SmeltingSlotEF : IEquatable<SmeltingSlotEF>, ICloneable<Smel
         }
 
         public BurningR DeepCopy()
-            => new BurningR(Fuel.DeepCopy(), RemainingHeat);
+            => new(Fuel.DeepCopy(), RemainingHeat);
     }
 }

@@ -153,7 +153,7 @@ internal sealed class DailyGoodiesController : SolaceControllerBase
 
     private static DailyGoodiesResponse BuildDailyGoodiesResponse(DateOnly today, DailyLoginTokenEF dailyLoginToken, Guid? tokenId)
     {
-        DBRewards rewards = dailyLoginToken.Rewards;
+        var rewards = dailyLoginToken.Rewards;
 
         var rewardResponse = Utils.Rewards.FromDBRewardsModel(rewards).ToApiResponse();
         var streak = 1;

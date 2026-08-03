@@ -15,7 +15,7 @@ public sealed class SafeStreamWriter<T> : IDisposable
     public async Task WriteAsync(T message)
     {
         await _semaphore.WaitAsync();
-        
+
         try
         {
             await _writer.WriteAsync(message);

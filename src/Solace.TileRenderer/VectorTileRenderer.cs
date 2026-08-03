@@ -64,20 +64,20 @@ internal sealed partial class VectorTileRenderer
     public static VectorTileRenderer Create(string tagMapJson, ILogger logger)
     {
         List<string> tags = [];
-        Dictionary<string, Dictionary<string, RenderLayer>> tagsMap = new(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, Dictionary<string, RenderLayer>> tagsMap = [with(StringComparer.OrdinalIgnoreCase)];
 
         LogLoadingTags(logger);
 
         using (var doc = JsonDocument.Parse(tagMapJson))
         {
-            foreach (JsonProperty tagField in doc.RootElement.EnumerateObject())
+            foreach (var tagField in doc.RootElement.EnumerateObject())
             {
                 var tagName = tagField.Name;
 
                 tags.Add(tagName);
-                tagsMap[tagName] = new(StringComparer.OrdinalIgnoreCase);
+                tagsMap[tagName] = [with(StringComparer.OrdinalIgnoreCase)];
 
-                foreach (JsonProperty valueField in tagField.Value.EnumerateObject())
+                foreach (var valueField in tagField.Value.EnumerateObject())
                 {
                     var tagValue = valueField.Name;
                     var tagMapping = "_NO_RENDER";
@@ -87,7 +87,7 @@ internal sealed partial class VectorTileRenderer
                         tagMapping = valueField.Value.GetString() ?? "";
                     }
 
-                    if (layerStringMapping.TryGetValue(tagMapping, out RenderLayer layer))
+                    if (layerStringMapping.TryGetValue(tagMapping, out var layer))
                     {
                         tagsMap[tagName][tagValue] = layer;
                     }

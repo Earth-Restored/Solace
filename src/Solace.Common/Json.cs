@@ -9,16 +9,16 @@ public static class Json
     internal const string SerializationUnreferencedCodeMessage = "JSON serialization and deserialization might require types that cannot be statically analyzed. Use the overload that takes a JsonTypeInfo or JsonSerializerContext, or make sure all of the required types are preserved.";
     internal const string SerializationRequiresDynamicCodeMessage = "JSON serialization and deserialization might require types that cannot be statically analyzed and might need runtime code generation. Use System.Text.Json source generation for native AOT applications.";
 
-    private static readonly JsonSerializerOptions options = new JsonSerializerOptions()
+    private static readonly JsonSerializerOptions options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
-    private static readonly JsonSerializerOptions deseralizeOptions = new JsonSerializerOptions()
+    private static readonly JsonSerializerOptions deseralizeOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
     };
-    private static readonly JsonSerializerOptions optionsIndented = new JsonSerializerOptions()
+    private static readonly JsonSerializerOptions optionsIndented = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,

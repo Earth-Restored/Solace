@@ -19,11 +19,11 @@ public static class DirectoryInfoExtensions
                 throw new DirectoryNotFoundException($"Source directory not found: {directoryInfo.FullName}");
             }
 
-            DirectoryInfo[] subDirs = directoryInfo.GetDirectories();
+            var subDirs = directoryInfo.GetDirectories();
 
             Directory.CreateDirectory(destDirectoryName);
 
-            foreach (FileInfo file in directoryInfo.GetFiles())
+            foreach (var file in directoryInfo.GetFiles())
             {
                 var targetFilePath = Path.Combine(destDirectoryName, file.Name);
                 file.CopyTo(targetFilePath, true);
@@ -31,7 +31,7 @@ public static class DirectoryInfoExtensions
 
             if (recursive)
             {
-                foreach (DirectoryInfo subDir in subDirs)
+                foreach (var subDir in subDirs)
                 {
                     var newDestDir = Path.Combine(destDirectoryName, subDir.Name);
                     subDir.CopyTo(newDestDir, true);

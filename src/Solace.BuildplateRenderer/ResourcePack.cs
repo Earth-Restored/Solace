@@ -494,7 +494,7 @@ public sealed class ResourcePack
             foreach (var requirement in andGroup.AsSpan())
             {
                 var targetProperty = requirement.Key;
-                MPSBuffer allowedValues = requirement.Value;
+                var allowedValues = requirement.Value;
 
                 if (!StateSatisfiesRequirement(blockState, targetProperty, allowedValues))
                 {

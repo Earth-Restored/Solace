@@ -9,35 +9,35 @@ namespace Solace.BuildplateRenderer.Utils;
 
 internal static class JsonUtils
 {
-	private static readonly JsonSerializerOptions DefaultJsonOptions = new JsonSerializerOptions()
-	{
-		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-		PropertyNameCaseInsensitive = true,
-	};
+    private static readonly JsonSerializerOptions DefaultJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+    };
 
-	static JsonUtils()
-	{
-		DefaultJsonOptions.Converters.Add(new JsonConverter_float2());
-		DefaultJsonOptions.Converters.Add(new JsonConverter_int3());
-		DefaultJsonOptions.Converters.Add(new JsonConverter_Vector3());
-		DefaultJsonOptions.Converters.Add(new JsonConverter_float3());
-		DefaultJsonOptions.Converters.Add(new JsonConverter_double3());
-		DefaultJsonOptions.Converters.Add(new JsonConverter_UVCoordinates());
-		DefaultJsonOptions.Converters.Add(new VariantModelArrayConverter());
-	}
+    static JsonUtils()
+    {
+        DefaultJsonOptions.Converters.Add(new JsonConverter_float2());
+        DefaultJsonOptions.Converters.Add(new JsonConverter_int3());
+        DefaultJsonOptions.Converters.Add(new JsonConverter_Vector3());
+        DefaultJsonOptions.Converters.Add(new JsonConverter_float3());
+        DefaultJsonOptions.Converters.Add(new JsonConverter_double3());
+        DefaultJsonOptions.Converters.Add(new JsonConverter_UVCoordinates());
+        DefaultJsonOptions.Converters.Add(new VariantModelArrayConverter());
+    }
 
-	public static T? DeserializeJson<T>(ReadOnlySpan<char> json)
-		=> JsonSerializer.Deserialize<T>(json, DefaultJsonOptions);
+    public static T? DeserializeJson<T>(ReadOnlySpan<char> json)
+        => JsonSerializer.Deserialize<T>(json, DefaultJsonOptions);
 
-	public static T? DeserializeJson<T>(ReadOnlySpan<byte> utf8Json)
-		=> JsonSerializer.Deserialize<T>(utf8Json, DefaultJsonOptions);
+    public static T? DeserializeJson<T>(ReadOnlySpan<byte> utf8Json)
+        => JsonSerializer.Deserialize<T>(utf8Json, DefaultJsonOptions);
 
-	public static T? DeserializeJson<T>(Stream stream)
-		=> JsonSerializer.Deserialize<T>(stream, DefaultJsonOptions);
+    public static T? DeserializeJson<T>(Stream stream)
+        => JsonSerializer.Deserialize<T>(stream, DefaultJsonOptions);
 
-	public static async Task<T?> DeserializeJsonAsync<T>(Stream stream, CancellationToken cancellationToken = default)
-		=> await JsonSerializer.DeserializeAsync<T>(stream, DefaultJsonOptions, cancellationToken);
+    public static async Task<T?> DeserializeJsonAsync<T>(Stream stream, CancellationToken cancellationToken = default)
+        => await JsonSerializer.DeserializeAsync<T>(stream, DefaultJsonOptions, cancellationToken);
 
-	public static string SerializeJson<T>(T value)
-		=> JsonSerializer.Serialize(value, DefaultJsonOptions);
+    public static string SerializeJson<T>(T value)
+        => JsonSerializer.Serialize(value, DefaultJsonOptions);
 }

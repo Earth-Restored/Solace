@@ -336,7 +336,7 @@ internal sealed class CatalogResponseCacheService
         })];
 
         Dictionary<string, ItemsCatalog.EfficiencyCategory> efficiencyCategories = [];
-        foreach (Catalog.ItemEfficiencyCategoriesCatalogR.EfficiencyCategory efficiencyCategory in _catalog.ItemEfficiencyCategoriesCatalog.EfficiencyCategories)
+        foreach (var efficiencyCategory in _catalog.ItemEfficiencyCategoriesCatalog.EfficiencyCategories)
         {
             efficiencyCategories[efficiencyCategory.Name] = new ItemsCatalog.EfficiencyCategory(
                 new ItemsCatalog.EfficiencyCategory.EfficiencyMapR(
@@ -400,7 +400,7 @@ internal sealed class CatalogResponseCacheService
     private JournalCatalog CreateJournalCatalog()
     {
         Dictionary<string, JournalCatalog.Item> items = [];
-        foreach (Catalog.ItemJournalGroupsCatalogR.JournalGroup group in _catalog.ItemJournalGroupsCatalog.Groups)
+        foreach (var group in _catalog.ItemJournalGroupsCatalog.Groups)
         {
             var parentCollectionString = group.ParentCollection switch
             {

@@ -11,7 +11,6 @@ public sealed class ObjectStoreClient : IAsyncDisposable
 {
     private readonly GrpcChannel _channel;
     private readonly ObjectStoreService.ObjectStoreServiceClient _client;
-    private readonly ILogger _logger;
 
     public static async Task<ObjectStoreClient> ConnectAsync(string connectionString, ILogger logger)
     {
@@ -25,9 +24,9 @@ public sealed class ObjectStoreClient : IAsyncDisposable
 
     public ObjectStoreClient(GrpcChannel channel, ObjectStoreService.ObjectStoreServiceClient client, ILogger logger)
     {
+        _ = logger;
         _channel = channel;
         _client = client;
-        _logger = logger;
     }
 
     public async Task<long> GetTotalSizeAsync(CancellationToken cancellationToken = default)

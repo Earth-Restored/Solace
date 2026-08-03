@@ -9,7 +9,7 @@ public sealed class StackableItemEF
     private StackableItemEF()
     {
     }
-    
+
     [SetsRequiredMembers]
     public StackableItemEF(Guid accountId, Guid itemId, int count)
     {

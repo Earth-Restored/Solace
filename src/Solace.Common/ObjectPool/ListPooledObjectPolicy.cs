@@ -22,7 +22,7 @@ public sealed class ListPooledObjectPolicy<T> : PooledObjectPolicy<List<T>>
 
     /// <inheritdoc />
     public override List<T> Create()
-        => new List<T>(InitialCapacity);
+        => [with(InitialCapacity)];
 
     /// <inheritdoc />
     public override bool Return(List<T> obj)

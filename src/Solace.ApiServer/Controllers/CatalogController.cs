@@ -43,14 +43,14 @@ internal sealed class CatalogController : SolaceControllerBase
     [HttpPost("products/getProductInfo")]
     public async Task<ContentHttpResult> GetProductInfo(CancellationToken cancellationToken)
     {
-        HashSet<string> requestedProductIds = ProductIdsFromQuery();
+        var requestedProductIds = ProductIdsFromQuery();
         if (requestedProductIds.Count == 0 && Request.ContentLength is not null and not 0)
         {
             requestedProductIds = await ReadRequestedProductIdsAsync(Request.Body, cancellationToken);
         }
 
-        NFCBoost[] products = MakeNFCBoostsCatalogApiResponse(_catalog);
-        NFCBoost[] matchingProducts = requestedProductIds.Count == 0
+        var products = MakeNFCBoostsCatalogApiResponse(_catalog);
+        var matchingProducts = requestedProductIds.Count == 0
             ? products
             : [.. products.Where(product => requestedProductIds.Contains(product.Id))];
         string[] invalidProductIds = requestedProductIds.Count == 0
@@ -136,7 +136,7 @@ internal sealed class CatalogController : SolaceControllerBase
 
         try
         {
-            using JsonDocument document = await JsonDocument.ParseAsync(body, cancellationToken: cancellationToken);
+            using var document = await JsonDocument.ParseAsync(body, cancellationToken: cancellationToken);
             AddProductIds(document.RootElement, productIds);
         }
         catch (JsonException)
@@ -151,7 +151,7 @@ internal sealed class CatalogController : SolaceControllerBase
         switch (element.ValueKind)
         {
             case JsonValueKind.Object:
-                foreach (JsonProperty property in element.EnumerateObject())
+                foreach (var property in element.EnumerateObject())
                 {
                     if (property.Name.Equals("productId", StringComparison.OrdinalIgnoreCase)
                         || property.Name.Equals("id", StringComparison.OrdinalIgnoreCase)
@@ -169,7 +169,7 @@ internal sealed class CatalogController : SolaceControllerBase
 
                 break;
             case JsonValueKind.Array:
-                foreach (JsonElement item in element.EnumerateArray())
+                foreach (var item in element.EnumerateArray())
                 {
                     AddProductIds(item, productIds);
                 }

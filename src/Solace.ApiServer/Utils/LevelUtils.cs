@@ -21,7 +21,7 @@ internal sealed partial class LevelUtils
         {
             changed = true;
             profile.Level++;
-            Rewards rewards = MakeLevelRewards(staticData.Levels.Levels[profile.Level - 2]);
+            var rewards = MakeLevelRewards(staticData.Levels.Levels[profile.Level - 2]);
             await TokenUtils.AddTokenAsync(earthDb, results, new LevelUpTokenEF(accountId, profile.Level, rewards.ToDBRewardsModel()));
         }
 

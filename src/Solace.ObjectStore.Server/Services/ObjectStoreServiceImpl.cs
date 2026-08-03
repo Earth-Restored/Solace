@@ -21,7 +21,7 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
     public override async Task<GetTotalSizeResponse> GetTotalSize(GetTotalSizeRequest request, ServerCallContext context)
     {
         var size = _dataStore.GetTotalSize(context.CancellationToken);
-        
+
         return new GetTotalSizeResponse() { TotalSize = size, };
     }
 

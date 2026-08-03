@@ -21,32 +21,32 @@ internal readonly struct Point
     }
 
     public static Point Load(BinaryReader reader)
-        => new Point(reader.ReadDouble(), reader.ReadDouble());
+        => new(reader.ReadDouble(), reader.ReadDouble());
 
     public static Point operator +(Point left, Point right)
-        => new Point(left.X + right.X, left.Y + right.Y);
+        => new(left.X + right.X, left.Y + right.Y);
 
     public static Point operator -(Point left, Point right)
-        => new Point(left.X - right.X, left.Y - right.Y);
+        => new(left.X - right.X, left.Y - right.Y);
 
     public static Point operator *(Point left, Point right)
-        => new Point(left.X * right.X, left.Y * right.Y);
+        => new(left.X * right.X, left.Y * right.Y);
 
     public static Point operator /(Point left, Point right)
-        => new Point(left.X / right.X, left.Y / right.Y);
+        => new(left.X / right.X, left.Y / right.Y);
 
     public static Point operator +(Point left, double right)
-        => new Point(left.X + right, left.Y + right);
+        => new(left.X + right, left.Y + right);
 
     public static Point operator -(Point left, double right)
-        => new Point(left.X - right, left.Y - right);
+        => new(left.X - right, left.Y - right);
 
     public static Point operator *(Point left, double right)
-        => new Point(left.X * right, left.Y * right);
+        => new(left.X * right, left.Y * right);
 
     public static Point operator /(Point left, double right)
-        => new Point(left.X / right, left.Y / right);
+        => new(left.X / right, left.Y / right);
 
-    public readonly override string ToString()
+    public override readonly string ToString()
         => $"<{X.ToString("G", CultureInfo.InvariantCulture)}, {Y.ToString("G", CultureInfo.InvariantCulture)}>";
 }

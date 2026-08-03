@@ -7,7 +7,7 @@ namespace Solace.PreviewGenerator.NBT;
 public sealed class NbtList : IList, IList<object?>
 #pragma warning restore CA1010 // Generic interface should also be implemented
 {
-    public static readonly NbtList EMPTY = new NbtList(NbtType.End);
+    public static readonly NbtList EMPTY = new(NbtType.End);
 
     [JsonInclude, JsonPropertyName("type")]
     public readonly NbtType _type;

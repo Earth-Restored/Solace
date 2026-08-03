@@ -22,7 +22,7 @@ internal sealed class SeasonsController : SolaceControllerBase
     public ContentHttpResult GetSeason()
     {
         var now = HttpContext.GetTimestamp();
-        DateTime endDate = now.UtcDateTime.Date.AddDays(30);
+        var endDate = now.UtcDateTime.Date.AddDays(30);
         var endsAt = new DateTimeOffset(endDate, TimeSpan.Zero).ToUnixTimeMilliseconds();
 
         return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal)

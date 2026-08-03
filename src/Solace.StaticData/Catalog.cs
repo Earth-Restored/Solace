@@ -54,7 +54,7 @@ public sealed class Catalog
 
             HashSet<Guid> ids = [];
             HashSet<string> names = [];
-            foreach (Item item in Items)
+            foreach (var item in Items)
             {
                 if (!ids.Add(item.Id))
                 {
@@ -67,7 +67,7 @@ public sealed class Catalog
                 }
             }
 
-            foreach (Item item in Items)
+            foreach (var item in Items)
             {
                 itemsById[item.Id] = item;
             }
@@ -321,7 +321,7 @@ public sealed class Catalog
             }
 
             HashSet<string> names = [];
-            foreach (EfficiencyCategory efficiencyCategory in EfficiencyCategories)
+            foreach (var efficiencyCategory in EfficiencyCategories)
             {
                 if (!names.Add(efficiencyCategory.Name))
                 {
@@ -364,7 +364,7 @@ public sealed class Catalog
 
             HashSet<string> ids = [];
             HashSet<string> names = [];
-            foreach (JournalGroup journalGroup in Groups)
+            foreach (var journalGroup in Groups)
             {
                 if (!ids.Add(journalGroup.Id))
                 {
@@ -427,7 +427,7 @@ public sealed class Catalog
 
             HashSet<Guid> craftingIds = [];
             HashSet<Guid> smeltingIds = [];
-            foreach (CraftingRecipe craftingRecipe in Crafting)
+            foreach (var craftingRecipe in Crafting)
             {
                 if (!craftingIds.Add(craftingRecipe.Id))
                 {
@@ -435,7 +435,7 @@ public sealed class Catalog
                 }
             }
 
-            foreach (SmeltingRecipe smeltingRecipe in Smelting)
+            foreach (var smeltingRecipe in Smelting)
             {
                 if (!smeltingIds.Add(smeltingRecipe.Id))
                 {
@@ -443,12 +443,12 @@ public sealed class Catalog
                 }
             }
 
-            foreach (CraftingRecipe craftingRecipe in Crafting)
+            foreach (var craftingRecipe in Crafting)
             {
                 craftingRecipesById[craftingRecipe.Id] = craftingRecipe;
             }
 
-            foreach (SmeltingRecipe smeltingRecipe in Smelting)
+            foreach (var smeltingRecipe in Smelting)
             {
                 smeltingRecipesById[smeltingRecipe.Id] = smeltingRecipe;
             }

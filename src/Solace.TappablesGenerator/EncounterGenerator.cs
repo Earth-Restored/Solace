@@ -47,7 +47,7 @@ internal sealed partial class EncounterGenerator
         {
             var spawnDelay = TimeSpan.FromTicks(_random.NextInt64(MIN_DELAY.Ticks, MAX_DELAY.Ticks + 1));
 
-            EncountersConfig.EncounterConfig encounterConfig = _staticData.EncountersConfig.Encounters[_random.Next(0, _staticData.EncountersConfig.Encounters.Length)];
+            var encounterConfig = _staticData.EncountersConfig.Encounters[_random.Next(0, _staticData.EncountersConfig.Encounters.Length)];
 #pragma warning restore CA5394 // Do not use insecure randomness
 
             Span<float> tileBounds = stackalloc float[4];

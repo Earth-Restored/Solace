@@ -10,76 +10,76 @@ namespace Solace.BuildplateRenderer.JsonConverters;
 
 internal sealed class JsonConverter_double3 : JsonConverter<double3>
 {
-	public override double3 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-	{
-		if (reader.TokenType != JsonTokenType.StartObject)
-		{
-			throw new JsonException($"Unexpected token {reader.TokenType}, expected StartObject.");
-		}
+    public override double3 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType != JsonTokenType.StartObject)
+        {
+            throw new JsonException($"Unexpected token {reader.TokenType}, expected StartObject.");
+        }
 
-		double x = 0, y = 0, z = 0;
+        double x = 0, y = 0, z = 0;
 
-		var propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(double3.X)) ?? nameof(double3.X);
-		var propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Y)) ?? nameof(double3.Y);
-		var propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Z)) ?? nameof(double3.Z);
+        var propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(double3.X)) ?? nameof(double3.X);
+        var propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Y)) ?? nameof(double3.Y);
+        var propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Z)) ?? nameof(double3.Z);
 
-		while (reader.Read())
-		{
-			if (reader.TokenType == JsonTokenType.EndObject)
-			{
-				return new double3(x, y, z);
-			}
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndObject)
+            {
+                return new double3(x, y, z);
+            }
 
-			if (reader.TokenType == JsonTokenType.PropertyName)
-			{
-				var propertyName = reader.GetString();
-				reader.Read();
+            if (reader.TokenType == JsonTokenType.PropertyName)
+            {
+                var propertyName = reader.GetString();
+                reader.Read();
 
-				if (StringEquals(propertyName, propertyX))
-				{
-					x = reader.GetSingle();
-				}
+                if (StringEquals(propertyName, propertyX))
+                {
+                    x = reader.GetSingle();
+                }
 #pragma warning disable IDE0045 // Convert to conditional expression
-				else if (StringEquals(propertyName, propertyY))
-				{
-					y = reader.GetSingle();
-				}
-				else if (StringEquals(propertyName, propertyZ))
-				{
-					z = reader.GetSingle();
-				}
-				else
-				{
-					throw new JsonException($"Unknown property {propertyName}");
-				}
+                else if (StringEquals(propertyName, propertyY))
+                {
+                    y = reader.GetSingle();
+                }
+                else if (StringEquals(propertyName, propertyZ))
+                {
+                    z = reader.GetSingle();
+                }
+                else
+                {
+                    throw new JsonException($"Unknown property {propertyName}");
+                }
 #pragma warning restore IDE0045 // Convert to conditional expression
-			}
-		}
+            }
+        }
 
-		throw new JsonException("Unexpected end of JSON.");
+        throw new JsonException("Unexpected end of JSON.");
 
-		bool StringEquals(string? a, string? b)
-		{
-			return a is null || b is null
-				? a is null && b is null
-				: options.PropertyNameCaseInsensitive
-				? a.Equals(b, StringComparison.OrdinalIgnoreCase)
-				: a.Equals(b, StringComparison.Ordinal);
-		}
-	}
+        bool StringEquals(string? a, string? b)
+        {
+            return a is null || b is null
+                ? a is null && b is null
+                : options.PropertyNameCaseInsensitive
+                ? a.Equals(b, StringComparison.OrdinalIgnoreCase)
+                : a.Equals(b, StringComparison.Ordinal);
+        }
+    }
 
-	public override void Write(Utf8JsonWriter writer, double3 value, JsonSerializerOptions options)
-	{
-		writer.WriteStartObject();
+    public override void Write(Utf8JsonWriter writer, double3 value, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
 
-		var propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(double3.X)) ?? nameof(double3.X);
-		var propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Y)) ?? nameof(double3.Y);
-		var propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Z)) ?? nameof(double3.Z);
+        var propertyX = options.PropertyNamingPolicy?.ConvertName(nameof(double3.X)) ?? nameof(double3.X);
+        var propertyY = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Y)) ?? nameof(double3.Y);
+        var propertyZ = options.PropertyNamingPolicy?.ConvertName(nameof(double3.Z)) ?? nameof(double3.Z);
 
-		writer.WriteNumber(propertyX, value.X);
-		writer.WriteNumber(propertyY, value.Y);
-		writer.WriteNumber(propertyZ, value.Z);
+        writer.WriteNumber(propertyX, value.X);
+        writer.WriteNumber(propertyY, value.Y);
+        writer.WriteNumber(propertyZ, value.Z);
 
-		writer.WriteEndObject();
-	}
+        writer.WriteEndObject();
+    }
 }

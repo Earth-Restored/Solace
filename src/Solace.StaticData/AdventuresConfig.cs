@@ -20,7 +20,7 @@ public sealed class AdventuresConfig
             SpawnConfig = LoadSpawnConfig(dir);
 
             HashSet<string> folders = [.. DefaultFolders];
-            foreach (AdventureCrystalType crystalType in SpawnConfig.CrystalTypes)
+            foreach (var crystalType in SpawnConfig.CrystalTypes)
             {
                 folders.Add(crystalType.Folder);
             }
@@ -60,7 +60,7 @@ public sealed class AdventuresConfig
 
     public string? PickTemplateForFolder(string folder, Random random)
     {
-        if (!_buildplatesByFolder.TryGetValue(folder, out ImmutableArray<AdventureBuildplate> buildplates) || buildplates.Length == 0)
+        if (!_buildplatesByFolder.TryGetValue(folder, out var buildplates) || buildplates.Length == 0)
         {
             return null;
         }

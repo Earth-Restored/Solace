@@ -55,7 +55,7 @@ internal sealed class DatabaseTileDataSource : ITileDataSource
                     continue;
                 }
 
-                RenderLayer targetLayer = RenderLayer.LAYER_NONE;
+                var targetLayer = RenderLayer.LAYER_NONE;
 
                 for (var i = 0; i < ctx.Tags.Length; i++)
                 {
@@ -87,7 +87,7 @@ internal sealed class DatabaseTileDataSource : ITileDataSource
                 using var ms = new MemoryStream(wkb);
                 using var bReader = new BinaryReader(ms);
 
-                IWKBObject? obj = wkbType switch
+                var obj = wkbType switch
                 {
                     WkbGeometryType.Point => null,
                     WkbGeometryType.MultiPoint => null,

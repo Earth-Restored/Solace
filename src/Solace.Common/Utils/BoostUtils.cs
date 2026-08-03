@@ -24,13 +24,13 @@ internal static class BoostUtils
                 continue;
             }
 
-            Catalog.ItemsCatalogR.Item? item = itemsCatalog.GetItem(activeBoost.ItemId);
+            var item = itemsCatalog.GetItem(activeBoost.ItemId);
             if (item is null || item.BoostInfo is null)
             {
                 continue;
             }
 
-            Catalog.ItemsCatalogR.Item.BoostInfoR? existingBoostInfo = activeBoostsInfo.GetValueOrDefault(item.BoostInfo.Name);
+            var existingBoostInfo = activeBoostsInfo.GetValueOrDefault(item.BoostInfo.Name);
             if (existingBoostInfo is not null && existingBoostInfo.Level > item.BoostInfo.Level)
             {
                 continue;
@@ -39,7 +39,7 @@ internal static class BoostUtils
             activeBoostsInfo[item.BoostInfo.Name] = item.BoostInfo;
         }
 
-        foreach (Catalog.ItemsCatalogR.Item.BoostInfoR boostInfo in activeBoostsInfo.Values)
+        foreach (var boostInfo in activeBoostsInfo.Values)
         {
             foreach (var effect in boostInfo.Effects
                 .Where(effect => effect.Activation switch

@@ -13,9 +13,9 @@ namespace Solace.Common.Asp.Auth;
 
 public static partial class JwtUtils
 {
-    private static readonly JwtSecurityTokenHandler jwtHandler = new JwtSecurityTokenHandler();
+    private static readonly JwtSecurityTokenHandler jwtHandler = new();
 
-    private static readonly JsonSerializerOptions jsonOptions = new JsonSerializerOptions()
+    private static readonly JsonSerializerOptions jsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
@@ -44,7 +44,7 @@ public static partial class JwtUtils
         ThrowHelper.ThrowIfNull(dataOrToken);
         ThrowHelper.ThrowIfNull(secret);
 
-        TData data = dataOrToken switch
+        var data = dataOrToken switch
         {
             Token<TData> token => token.Data,
             TData tokenData => tokenData,
@@ -67,8 +67,8 @@ public static partial class JwtUtils
         var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
 
         return jwtHandler.WriteToken(new JwtSecurityToken(
-            new JwtHeader(credentials),
-            new JwtPayload(payload)
+            [with(credentials)],
+            [with(payload)]
         ));
     }
 

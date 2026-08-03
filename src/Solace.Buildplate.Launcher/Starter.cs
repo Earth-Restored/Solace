@@ -69,7 +69,7 @@ internal sealed partial class Starter
             await instance.WaitForShutdownAsync();
             ReleasePort(_portsInUse, port);
             ReleasePort(_serverInternalPortsInUse, serverInternalPort);
-        }).Forget();
+        }, CancellationToken.None).Forget();
 
         return instance;
     }

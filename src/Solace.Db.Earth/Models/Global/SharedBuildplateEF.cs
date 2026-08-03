@@ -39,7 +39,7 @@ public sealed class SharedBuildplateEF : IEntityWithId<Guid>
     ) : ICloneable<HotbarItem>
     {
         public HotbarItem DeepCopy()
-            => new HotbarItem(this);
+            => new(this);
 
         public sealed class Comparer : IEqualityComparer<HotbarItem>
         {

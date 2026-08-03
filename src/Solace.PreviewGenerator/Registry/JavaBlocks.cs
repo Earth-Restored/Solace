@@ -16,7 +16,7 @@ public static partial class JavaBlocks
     private static readonly Dictionary<string, BedrockMapping> bedrockMapByName = [];
     private static readonly Dictionary<string, BedrockMapping> bedrockNonVanillaMap = [];
 
-    private static readonly Lock _initLock = new Lock();
+    private static readonly Lock _initLock = new();
     private static volatile bool _isInitialized;
 
     private static void EnsureInitialized()
@@ -68,7 +68,7 @@ public static partial class JavaBlocks
 
                 try
                 {
-                    BedrockMapping? bedrockMapping = ReadBedrockMapping((JsonObject)element["bedrock"]!, jArray);
+                    var bedrockMapping = ReadBedrockMapping((JsonObject)element["bedrock"]!, jArray);
                     if (bedrockMapping is null)
                     {
                         LogIgnoringJavaBlock(logger, name);
@@ -110,7 +110,7 @@ public static partial class JavaBlocks
 
                     try
                     {
-                        BedrockMapping? bedrockMapping = ReadBedrockMapping((JsonObject)stateElement["bedrock"]!, null);
+                        var bedrockMapping = ReadBedrockMapping((JsonObject)stateElement["bedrock"]!, null);
                         if (bedrockMapping is null)
                         {
                             LogIgnoringJavaBlock(logger, name);
@@ -209,13 +209,13 @@ public static partial class JavaBlocks
                                     .Select(element => (JsonObject)((JsonObject)element!)["bedrock"]!)
                                     .First(element => !element.ContainsKey("ignore") || !element["ignore"]!.GetValue<bool>());
 
-                                NbtMapBuilder builder = NbtMap.Builder();
+                                var builder = NbtMap.Builder();
                                 builder.PutString("name", element["name"]!.GetValue<string>()!);
                                 if (element.TryGetPropertyValue("state", out var stateToken2))
                                 {
                                     Debug.Assert(stateToken2 is not null);
 
-                                    NbtMapBuilder stateBuilder = NbtMap.Builder();
+                                    var stateBuilder = NbtMap.Builder();
                                     foreach (var (key, stateElement) in (JsonObject)stateToken2)
                                     {
                                         Debug.Assert(stateElement is not null);
@@ -361,7 +361,7 @@ public static partial class JavaBlocks
     {
         EnsureInitialized();
 
-        BedrockMapping? bedrockMapping = bedrockMap.GetValueOrDefault(javaId);
+        var bedrockMapping = bedrockMap.GetValueOrDefault(javaId);
         if (bedrockMapping is null && fabricRegistryManager is not null)
         {
             string? fabricName = null;//fabricRegistryManager.getBlockName(javaId);

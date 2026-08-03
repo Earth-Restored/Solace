@@ -52,7 +52,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             .AsNoTracking()
             .Where(buildplate => buildplate.ProfileId == accountId);
 
-        OwnedBuildplate[] ownedBuildplates = await Task.WhenAll(buildplates.AsEnumerable().Select(async buildplate =>
+        var ownedBuildplates = await Task.WhenAll(buildplates.AsEnumerable().Select(async buildplate =>
         {
             using var previewData = await _objectStore.GetStreamAsync(buildplate.PreviewObjectId);
             if (previewData is null)
@@ -177,7 +177,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             }
             else
             {
-                var instance = await _earthDb.NonStackableItems  
+                var instance = await _earthDb.NonStackableItems
                     .AsNoTracking()
                     .FirstOrDefaultAsync(instance => instance.ProfileId == accountId && instance.ItemId == item.Uuid && instance.InstanceId == item.InstanceId.Value, cancellationToken);
                 sharedBuildplateHotbarItem = new SharedBuildplateEF.HotbarItem(item.Uuid, 1, item.InstanceId, instance?.Wear ?? 0);
@@ -289,7 +289,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
 
         // TODO: coordinates etc.
 
-        SharedBuildplateInstanceRequest sharedBuildplateInstanceRequest = (await Request.Body.AsJsonAsync(AppJsonContext.Default.SharedBuildplateInstanceRequest, cancellationToken))!;
+        var sharedBuildplateInstanceRequest = (await Request.Body.AsJsonAsync(AppJsonContext.Default.SharedBuildplateInstanceRequest, cancellationToken))!;
 
         return await GetNewSharedBuildplateInstanceResponse(accountId, sharedBuildplateId, sharedBuildplateInstanceRequest.FullSize ? BuildplateInstancesManager.InstanceType.SHARED_PLAY : BuildplateInstancesManager.InstanceType.SHARED_BUILD, cancellationToken);
     }
@@ -324,7 +324,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        BuildplateInstancesManager.InstanceInfo? instanceInfo = _buildplateInstancesManager.GetInstanceInfo(instanceId);
+        var instanceInfo = _buildplateInstancesManager.GetInstanceInfo(instanceId);
         if (instanceInfo is null || instanceInfo.ShuttingDown)
         {
             return TypedResults.NotFound();
@@ -361,7 +361,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             }
         }
         while (!instanceInfo1.Ready && waitCount < 35);
-        BuildplateInstance? buildplateInstance = await InstanceInfoToApiResponse(instanceInfo1, cancellationToken);
+        var buildplateInstance = await InstanceInfoToApiResponse(instanceInfo1, cancellationToken);
 
         if (buildplateInstance is null)
         {
@@ -534,7 +534,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
                 break;
             case Source.ENCOUNTER:
                 {
-                    BuildplateGeometry? geometry = await GetEncounterBuildplateGeometry(instanceInfo.BuildplateId, cancellationToken);
+                    var geometry = await GetEncounterBuildplateGeometry(instanceInfo.BuildplateId, cancellationToken);
                     if (geometry is null)
                     {
                         return null;

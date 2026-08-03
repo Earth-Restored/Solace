@@ -8,7 +8,7 @@ namespace Solace.Common.Asp.Json;
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 public sealed class ForcePascalCaseAttribute : Attribute
 {
-     public static void PascalCaseModifier(JsonTypeInfo typeInfo)
+    public static void PascalCaseModifier(JsonTypeInfo typeInfo)
     {
         if (typeInfo.Kind is not JsonTypeInfoKind.Object)
         {

@@ -66,7 +66,7 @@ internal sealed partial class Instance
     private readonly ILoggerFactory _loggerFactory;
 
     private Task? _thread;
-    private readonly SemaphoreSlim _threadStartedSemaphore = new SemaphoreSlim(1, 1);
+    private readonly SemaphoreSlim _threadStartedSemaphore = new(1, 1);
     private readonly ILogger _logger;
 
     private Publisher? _publisher;
@@ -80,7 +80,7 @@ internal sealed partial class Instance
     private ConsoleProcess? _serverProcess;
     private ConsoleProcess? _bridgeProcess;
     private bool _shuttingDown;
-    private readonly ReentrantAsyncLock.ReentrantAsyncLock _subprocessLock = new ReentrantAsyncLock.ReentrantAsyncLock(); // java uses ReentrantLock, Lock cannot be used, because it does not support locking and unlocking on different threads, which happens due to async, SemaphoreSlim does not support multiple locks from the same async context
+    private readonly ReentrantAsyncLock.ReentrantAsyncLock _subprocessLock = new(); // java uses ReentrantLock, Lock cannot be used, because it does not support locking and unlocking on different threads, which happens due to async, SemaphoreSlim does not support multiple locks from the same async context
 
     private volatile bool _hostPlayerConnected;
 
@@ -149,7 +149,7 @@ internal sealed partial class Instance
 
             LogSettingUpServer();
 
-            BuildplateLoadResponse? buildplateLoadResponse = _buildplateSource switch
+            var buildplateLoadResponse = _buildplateSource switch
             {
                 BuildplateSource.PLAYER => await SendEventBusRequestRaw<BuildplateLoadResponse>("load", new BuildplateLoadRequest(_playerId!.Value, _buildplateId), true),
                 BuildplateSource.SHARED => await SendEventBusRequestRaw<BuildplateLoadResponse>("loadShared", new SharedBuildplateLoadRequest(_buildplateId), true),
@@ -332,7 +332,7 @@ internal sealed partial class Instance
                 {
                     if (_saveEnabled)
                     {
-                        WorldSavedMessage? worldSavedMessage = ReadJson<WorldSavedMessage>(@event.Data);
+                        var worldSavedMessage = ReadJson<WorldSavedMessage>(@event.Data);
                         if (worldSavedMessage is not null)
                         {
                             if (_hostPlayerConnected)
@@ -356,7 +356,7 @@ internal sealed partial class Instance
                 break;
             case "inventoryAdd":
                 {
-                    InventoryAddItemMessage? inventoryAddItemMessage = ReadJson<InventoryAddItemMessage>(@event.Data);
+                    var inventoryAddItemMessage = ReadJson<InventoryAddItemMessage>(@event.Data);
                     if (inventoryAddItemMessage is not null)
                     {
                         SendEventBusRequest<object>("inventoryAdd", inventoryAddItemMessage, false, cancellationToken)
@@ -367,7 +367,7 @@ internal sealed partial class Instance
                 break;
             case "inventoryUpdateWear":
                 {
-                    InventoryUpdateItemWearMessage? inventoryUpdateItemWearMessage = ReadJson<InventoryUpdateItemWearMessage>(@event.Data);
+                    var inventoryUpdateItemWearMessage = ReadJson<InventoryUpdateItemWearMessage>(@event.Data);
                     if (inventoryUpdateItemWearMessage is not null)
                     {
                         SendEventBusRequest<object>("inventoryUpdateWear", inventoryUpdateItemWearMessage, false, cancellationToken)
@@ -379,7 +379,7 @@ internal sealed partial class Instance
 
             case "inventorySetHotbar":
                 {
-                    InventorySetHotbarMessage? inventorySetHotbarMessage = ReadJson<InventorySetHotbarMessage>(@event.Data);
+                    var inventorySetHotbarMessage = ReadJson<InventorySetHotbarMessage>(@event.Data);
                     if (inventorySetHotbarMessage is not null)
                     {
                         SendEventBusRequest<object>("inventorySetHotbar", inventorySetHotbarMessage, false, cancellationToken)
@@ -397,7 +397,7 @@ internal sealed partial class Instance
         {
             case "playerConnected":
                 {
-                    PlayerConnectedRequest? playerConnectedRequest = ReadJson<PlayerConnectedRequest>(request.Data);
+                    var playerConnectedRequest = ReadJson<PlayerConnectedRequest>(request.Data);
                     if (playerConnectedRequest is not null)
                     {
                         if (_playerId is not null && !_hostPlayerConnected && playerConnectedRequest.Uuid != _playerId)
@@ -406,7 +406,7 @@ internal sealed partial class Instance
                             return new PlayerConnectedResponse(false, null);
                         }
 
-                        PlayerConnectedResponse? playerConnectedResponse = await SendEventBusRequest<PlayerConnectedResponse>("playerConnected", playerConnectedRequest, true, cancellationToken);
+                        var playerConnectedResponse = await SendEventBusRequest<PlayerConnectedResponse>("playerConnected", playerConnectedRequest, true, cancellationToken);
                         if (playerConnectedResponse is not null)
                         {
                             LogPlayerConnected(playerConnectedRequest.Uuid);
@@ -432,10 +432,10 @@ internal sealed partial class Instance
                 break;
             case "playerDisconnected":
                 {
-                    PlayerDisconnectedRequest? playerDisconnectedRequest = ReadJson<PlayerDisconnectedRequest>(request.Data);
+                    var playerDisconnectedRequest = ReadJson<PlayerDisconnectedRequest>(request.Data);
                     if (playerDisconnectedRequest is not null)
                     {
-                        PlayerDisconnectedResponse? playerDisconnectedResponse = await SendEventBusRequest<PlayerDisconnectedResponse>("playerDisconnected", playerDisconnectedRequest, true, cancellationToken);
+                        var playerDisconnectedResponse = await SendEventBusRequest<PlayerDisconnectedResponse>("playerDisconnected", playerDisconnectedRequest, true, cancellationToken);
                         if (playerDisconnectedResponse is not null)
                         {
                             LogPlayerDisconnected(playerDisconnectedRequest.PlayerId);
@@ -471,7 +471,7 @@ internal sealed partial class Instance
                     var playerId = ReadJson<string>(request.Data);
                     if (playerId is not null)
                     {
-                        InventoryResponse? inventoryResponse = await SendEventBusRequest<InventoryResponse>("getInventory", playerId, true, cancellationToken);
+                        var inventoryResponse = await SendEventBusRequest<InventoryResponse>("getInventory", playerId, true, cancellationToken);
                         if (inventoryResponse is not null)
                         {
                             return inventoryResponse;
@@ -490,7 +490,7 @@ internal sealed partial class Instance
                 break;
             case "inventoryRemove":
                 {
-                    InventoryRemoveItemRequest? inventoryRemoveItemRequest = ReadJson<InventoryRemoveItemRequest>(request.Data);
+                    var inventoryRemoveItemRequest = ReadJson<InventoryRemoveItemRequest>(request.Data);
                     if (inventoryRemoveItemRequest is not null)
                     {
                         if (inventoryRemoveItemRequest.InstanceId is not null)
@@ -515,7 +515,7 @@ internal sealed partial class Instance
                 break;
             case "findPlayer":
                 {
-                    FindPlayerIdRequest? findPlayerIdRequest = ReadJson<FindPlayerIdRequest>(request.Data);
+                    var findPlayerIdRequest = ReadJson<FindPlayerIdRequest>(request.Data);
                     if (findPlayerIdRequest is not null)
                     {
                         // TODO
@@ -533,7 +533,7 @@ internal sealed partial class Instance
                     var playerId = ReadJson<string>(request.Data);
                     if (playerId is not null)
                     {
-                        InitialPlayerStateResponse? initialPlayerStateResponse = await SendEventBusRequest<InitialPlayerStateResponse>("getInitialPlayerState", playerId, true, cancellationToken);
+                        var initialPlayerStateResponse = await SendEventBusRequest<InitialPlayerStateResponse>("getInitialPlayerState", playerId, true, cancellationToken);
                         if (initialPlayerStateResponse is not null)
                         {
                             return initialPlayerStateResponse;

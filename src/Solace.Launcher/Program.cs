@@ -5,7 +5,7 @@ using Solace.Launcher;
 
 if (!Debugger.IsAttached)
 {
-    AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
+    AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
     {
         Console.Error.WriteLine($"Unhandled exception: {e.ExceptionObject}");
 

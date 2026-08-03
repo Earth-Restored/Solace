@@ -9,7 +9,7 @@ internal static class JournalUtils
     public static async Task<int> AddCollectedItemAsync(EarthDbContext earthDb, ResultsEF.Builder results, Guid accountId, Guid itemId, DateTimeOffset timestamp, int count, CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        
+
         var entry = await earthDb.JournalEntries
             .FirstOrDefaultAsync(e => e.ProfileId == accountId && e.ItemId == itemId, cancellationToken);
 

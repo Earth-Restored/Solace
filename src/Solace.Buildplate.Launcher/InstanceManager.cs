@@ -299,7 +299,7 @@ internal sealed partial class InstanceManager
     private partial void LogFailedToSendStoppedMessage(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Bad preview request")]
-    private  partial void LogBadPreviewRequest(Exception exception);
+    private partial void LogBadPreviewRequest(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Generating buildplate preview")]
     private partial void LogGeneratingBuildplatePreview();

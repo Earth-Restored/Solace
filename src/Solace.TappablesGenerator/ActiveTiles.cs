@@ -52,7 +52,7 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
                 {
                     for (var tileY = activeTileNotification.Y - ACTIVE_TILE_RADIUS; tileY < activeTileNotification.Y + ACTIVE_TILE_RADIUS + 1; tileY++)
                     {
-                        ActiveTile activeTile = MarkTileActive(tileX, tileY, currentTime);
+                        var activeTile = MarkTileActive(tileX, tileY, currentTime);
 
                         if (activeTile.LatestActiveTime == activeTile.FirstActiveTime) // indicating that the tile is newly-active
                         {

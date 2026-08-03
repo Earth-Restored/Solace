@@ -2,7 +2,7 @@ namespace Solace.Common.Utils;
 
 public static class ProgressExtensions
 {
-    extension (IProgress<ProgressReport> progress)
+    extension(IProgress<ProgressReport> progress)
     {
         public void Complete()
             => progress.Report(new ProgressReport(1d, "Done"));

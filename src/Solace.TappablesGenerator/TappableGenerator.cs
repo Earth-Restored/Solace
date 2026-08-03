@@ -52,7 +52,7 @@ internal sealed partial class TappableGenerator
             var spawnDelay = TimeSpan.FromTicks(_random.NextInt64(MIN_DELAY.Ticks, MAX_DELAY.Ticks + 1));
             var duration = TimeSpan.FromTicks(_random.NextInt64(MIN_DURATION.Ticks, MAX_DURATION.Ticks + 1));
 
-            TappablesConfig.TappableConfig tappableConfig = _staticData.TappablesConfig.Tappables[_random.Next(0, _staticData.TappablesConfig.Tappables.Length)];
+            var tappableConfig = _staticData.TappablesConfig.Tappables[_random.Next(0, _staticData.TappablesConfig.Tappables.Length)];
 
             GetTileBounds(tileX, tileY, tileBounds);
             var lat = _random.NextSingle(tileBounds[1], tileBounds[0]);
@@ -61,7 +61,7 @@ internal sealed partial class TappableGenerator
             var dropSetIndex = _random.Next(0, tappableConfig.DropSets.Select(dropSet => dropSet.Chance).Sum());
             TappablesConfig.TappableConfig.DropSetR? dropSet = null;
 
-            foreach (TappablesConfig.TappableConfig.DropSetR dropSet1 in tappableConfig.DropSets)
+            foreach (var dropSet1 in tappableConfig.DropSets)
             {
                 dropSet = dropSet1;
                 dropSetIndex -= dropSet1.Chance;
@@ -80,7 +80,7 @@ internal sealed partial class TappableGenerator
 
             foreach (var itemId in dropSet.Items)
             {
-                TappablesConfig.TappableConfig.ItemCount itemCount = tappableConfig.ItemCounts[itemId];
+                var itemCount = tappableConfig.ItemCounts[itemId];
                 items.Add(new TappableItem(itemId, _random.Next(itemCount.Min, itemCount.Max + 1)));
 #pragma warning restore CA5394 // Do not use insecure randomness
             }

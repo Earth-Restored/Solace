@@ -18,7 +18,7 @@ public sealed class HotbarEF : IEntityWithId<Guid>
     ) : ICloneable<Item>
     {
         public Item DeepCopy()
-            => new Item(this);
+            => new(this);
 
         public sealed class Comparer : IEqualityComparer<Item>
         {

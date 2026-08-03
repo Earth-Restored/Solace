@@ -24,11 +24,11 @@ internal static partial class RegionUtils
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int2 ChunkToRegion(int2 chunkPosition)
-        => new int2(chunkPosition.X >> 5, chunkPosition.Y >> 5);
+        => new(chunkPosition.X >> 5, chunkPosition.Y >> 5);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int2 ChunkToLocal(int2 chunkPosition)
-        => new int2(chunkPosition.X & ChunkToLocalMask, chunkPosition.Y & ChunkToLocalMask);
+        => new(chunkPosition.X & ChunkToLocalMask, chunkPosition.Y & ChunkToLocalMask);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int2 LocalToChunk(int2 localPosition, int2 regionPosition)
@@ -117,7 +117,7 @@ internal static partial class RegionUtils
     {
         ValidateLocalCoords(localPosition);
 
-        ReadOnlyMemory<byte> chunkData = ReadRawChunkData(regionData, localPosition, out var compressionType);
+        var chunkData = ReadRawChunkData(regionData, localPosition, out var compressionType);
 
         MemoryStream uncompressed;
 
@@ -163,7 +163,7 @@ internal static partial class RegionUtils
     {
         ValidateLocalCoords(localPosition);
 
-        using (MemoryStream ms = ReadChunkData(regionData, localPosition))
+        using (var ms = ReadChunkData(regionData, localPosition))
         {
             var document = new NbtDocument();
             document.Load(ms);
