@@ -2,6 +2,8 @@ package earthrestored.solace.eventbus.client;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+
+import java.net.URI;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -17,12 +19,36 @@ public final class EventBusClient implements AutoCloseable {
 	}
 
 	public static EventBusClient connectAsync(String connectionString) {
-		ManagedChannel channel = ManagedChannelBuilder.forTarget(connectionString)
-			.usePlaintext()
-			.build();
-
+		ManagedChannel channel = createChannel(connectionString);
 		var asyncStub = EventBusServiceGrpc.newStub(channel);
 		return new EventBusClient(channel, asyncStub);
+	}
+
+	private static ManagedChannel createChannel(String connectionString) {
+		String normalizedConnectionString = normalizeConnectionString(connectionString);
+
+		return ManagedChannelBuilder.forTarget("dns:///" + normalizedConnectionString)
+				.usePlaintext()
+				.build();
+	}
+
+	static String normalizeConnectionString(String connectionString) {
+		if (connectionString == null || connectionString.isBlank()) {
+			throw new IllegalArgumentException("connectionString must not be null or blank");
+		}
+
+		URI uri;
+		try {
+			uri = URI.create(connectionString);
+		} catch (IllegalArgumentException ex) {
+			return connectionString;
+		}
+
+		if (uri.getHost() == null || uri.getPort() == -1) {
+			return connectionString;
+		}
+
+		return uri.getHost() + ":" + uri.getPort();
 	}
 
 	public Publisher addPublisher() {

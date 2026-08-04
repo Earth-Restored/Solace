@@ -1,0 +1,2 @@
+./mvnw package
+./mvnw install

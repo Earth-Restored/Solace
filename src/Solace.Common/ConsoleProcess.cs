@@ -1,4 +1,4 @@
-﻿//#define KEEP_WINDOW_OPEN
+﻿#define KEEP_WINDOW_OPEN
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -288,7 +288,7 @@ public sealed partial class ConsoleProcess : IDisposable
             var command = $"'{_filePath}' {arguments}";
 
 #if KEEP_WINDOW_OPEN
-            string appleScript = $"tell application \"Terminal\" to do script \"{command.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
+            var appleScript = $"tell application \"Terminal\" to do script \"{command.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
 #else
             var appleScript = $"tell application \"Terminal\" to do script \"{command.Replace("\"", "\\\"", StringComparison.Ordinal)}; exit\"";
 #endif

@@ -695,8 +695,8 @@ internal sealed partial class Instance
             .Append("enable-command-block=true\n")
             .Append(CultureInfo.InvariantCulture, $"server-port={_serverInternalPort.ToString(CultureInfo.InvariantCulture)}\n")
             .Append(CultureInfo.InvariantCulture, $"gamemode={(_survival ? "survival" : "creative")}\n")
-            .Append(CultureInfo.InvariantCulture, $"vienna-event-bus-address={_eventBusAddress}\n")
-            .Append(CultureInfo.InvariantCulture, $"vienna-event-bus-queue-name={_eventBusQueueName}\n")
+            .Append(CultureInfo.InvariantCulture, $"solace-event-bus-address={_eventBusAddress}\n")
+            .Append(CultureInfo.InvariantCulture, $"solace-event-bus-queue-name={_eventBusQueueName}\n")
             .ToString();
         await File.WriteAllTextAsync(Path.Combine(workDir.FullName, "server.properties"), serverProperties);
 
@@ -945,7 +945,7 @@ internal sealed partial class Instance
                     "-serverAddress", "127.0.0.1",
                     "-serverPort", _serverInternalPort.ToString(CultureInfo.InvariantCulture),
                     "-connectorPluginJar", _connectorPluginJar.FullName,
-                    "-connectorPluginClass", "earthrestored.solace.buildplate.connector.plugin.ViennaConnectorPlugin",
+                    "-connectorPluginClass", "earthrestored.solace.buildplate.connector.plugin.SolaceConnectorPlugin",
                     "-connectorPluginArg", _connectorPluginArgString,
                     "-useUUIDAsUsername",
                 ]);

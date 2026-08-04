@@ -43,7 +43,7 @@ internal static partial class App
 
     public static readonly Version MinimumServerVersion = Buildplate.Common.Constants.GameVersion;
     public static readonly Version MinimumFountainBridgeVersion = new(0, 0, 2);
-    public static readonly Version MinimumBuildplateConnectorPluginVersion = new(0, 0, 1);
+    public static readonly Version MinimumBuildplateConnectorPluginVersion = new(0, 1, 0);
 
     public static async Task<int> RunAsync(string[] args)
     {
@@ -126,12 +126,14 @@ internal static partial class App
 
         var baseInstancePublicPort = checked((ushort)builder.Configuration.GetValue<int>("BaseInstancePublicPort"));
 
-        var fabricJarName = builder.Configuration["FabricJarName"];
+        var fabricJarName = Path.Combine(StaticDataPath, "server_template_dir", builder.Configuration["FabricJarName"]!);
 
         if ((fabricJarName = ResolveVersionedFile(fabricJarName, MinimumServerVersion)) is null)
         {
             return 5;
         }
+
+        fabricJarName = Path.GetFileName(fabricJarName);
 
         var serverJarsDir = Path.Combine(StaticDataPath, "server_jars");
 

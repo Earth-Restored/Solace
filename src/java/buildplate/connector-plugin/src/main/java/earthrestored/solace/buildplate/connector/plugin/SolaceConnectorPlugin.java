@@ -21,7 +21,7 @@ import earthrestored.solace.eventbus.client.RequestSender;
 
 import java.util.HashMap;
 
-public final class ViennaConnectorPlugin implements ConnectorPlugin {
+public final class SolaceConnectorPlugin implements ConnectorPlugin {
 	private String queueName;
 	private EventBusClient eventBusClient;
 	private Publisher publisher;

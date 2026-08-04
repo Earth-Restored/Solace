@@ -127,10 +127,10 @@ internal sealed partial class SetupService : IDisposable
                     writer.Close();
                 }
 
-                // copy vienna mod out
-                foreach (var viennaModFile in _modsDirectory.EnumerateFiles("vienna-*.jar"))
+                // copy solace mod out
+                foreach (var solaceModFile in _modsDirectory.EnumerateFiles("solace-*.jar"))
                 {
-                    viennaModFile.MoveTo(Path.Combine(_serverDirectory.FullName, viennaModFile.Name));
+                    solaceModFile.MoveTo(Path.Combine(_serverDirectory.FullName, solaceModFile.Name));
                 }
 
                 var javaExe = JavaLocator.Locate(_logger);
@@ -201,10 +201,10 @@ internal sealed partial class SetupService : IDisposable
                 preDownloadedFile.Create();
             }
 
-            // copy vienna mod in
-            foreach (var viennaModFile in _serverDirectory.EnumerateFiles("vienna-*.jar"))
+            // copy solace mod in
+            foreach (var solaceModFile in _serverDirectory.EnumerateFiles("solace-*.jar"))
             {
-                viennaModFile.MoveTo(Path.Combine(_modsDirectory.FullName, viennaModFile.Name));
+                solaceModFile.MoveTo(Path.Combine(_modsDirectory.FullName, solaceModFile.Name));
             }
 
             // cleanup

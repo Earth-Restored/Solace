@@ -117,7 +117,7 @@ internal sealed partial class Starter
 
     private DirectoryInfo? CreateInstanceBaseDir(Guid instanceId)
     {
-        var directory = new DirectoryInfo(Path.Combine(_tmpDir.FullName, $"vienna-buildplate-instance_{instanceId}"));
+        var directory = new DirectoryInfo(Path.Combine(_tmpDir.FullName, $"solace-buildplate-instance_{instanceId}"));
         try
         {
             directory.Create();
