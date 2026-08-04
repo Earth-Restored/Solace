@@ -54,6 +54,7 @@ internal sealed class InventoryController : SolaceControllerBase
         var journalEntries = await _earthDb.JournalEntries
             .AsNoTracking()
             .Where(entry => entry.ProfileId == accountId)
+            .Select(entry => new JournalEntryDto(entry.ItemId, entry.FirstSeen, entry.LastSeen))
             .ToDictionaryAsync(entry => entry.ItemId, cancellationToken);
 
         Dictionary<Guid, int> hotbarItemCounts = [];
@@ -102,7 +103,12 @@ internal sealed class InventoryController : SolaceControllerBase
             [.. nonStackableItems.Select(group =>
             {
                 var uuid = group.Key;
-                var itemJournalEntry = journalEntries[uuid];
+                if (!journalEntries.TryGetValue(uuid, out var itemJournalEntry))
+                {
+                    var now =  DateTimeOffset.UtcNow;
+                    itemJournalEntry = new JournalEntryDto(uuid, now, now);
+                }
+
                 var firstSeen = TimeFormatter.FormatTime(itemJournalEntry.FirstSeen);
                 var lastSeen = TimeFormatter.FormatTime(itemJournalEntry.LastSeen);
                 return new NonStackableInventoryItem(
@@ -246,4 +252,6 @@ internal sealed class InventoryController : SolaceControllerBase
         int Count,
         Guid? InstanceId
     );
+
+    private sealed record JournalEntryDto(Guid ItemId, DateTimeOffset FirstSeen, DateTimeOffset LastSeen);
 }
