@@ -1,0 +1,106 @@
+@if (Visible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered @(ModalSizeClass)">
+            <div class="modal-content shadow-lg border-danger">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title d-flex align-items-center gap-2">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <span>@Title</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CancelAsync" disabled="@IsBusy"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    @if (!string.IsNullOrWhiteSpace(Message) || !string.IsNullOrWhiteSpace(HelpText))
+                    {
+                        @if (!string.IsNullOrWhiteSpace(Message))
+                        {
+                            <p class="mb-2">
+                                @Message
+                                @if (!string.IsNullOrWhiteSpace(ItemName))
+                                {
+                                    <span>&nbsp;</span>
+                                    <strong>@ItemName</strong>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(MessageSuffix))
+                                {
+                                    <span>@MessageSuffix</span>
+                                }
+                            </p>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(HelpText))
+                        {
+                            <p class="text-muted small mb-0">@HelpText</p>
+                        }
+                    }
+
+                    @if (ChildContent is not null)
+                    {
+                        @ChildContent
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+                    {
+                        <div class="alert alert-danger small py-2 mt-3 mb-0" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            @ErrorMessage
+                        </div>
+                    }
+                </div>
+
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelAsync" disabled="@IsBusy">
+                        @CancelButtonText
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm d-inline-flex align-items-center gap-2" @onclick="ConfirmAsync" disabled="@IsBusy">
+                        @if (IsBusy)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span>@(string.IsNullOrWhiteSpace(LoadingButtonText) ? ConfirmButtonText : LoadingButtonText)</span>
+                        }
+                        else
+                        {
+                            <span>@ConfirmButtonText</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public bool IsBusy { get; set; }
+    [Parameter] public string Title { get; set; } = "Confirm Deletion";
+    [Parameter] public string ConfirmButtonText { get; set; } = "Delete";
+    [Parameter] public string? LoadingButtonText { get; set; }
+    [Parameter] public string CancelButtonText { get; set; } = "Cancel";
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public string? ItemName { get; set; }
+    [Parameter] public string? MessageSuffix { get; set; } = "?";
+    [Parameter] public string? HelpText { get; set; } = "This action cannot be undone.";
+    [Parameter] public string? ErrorMessage { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string ModalSizeClass { get; set; } = string.Empty;
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    private async Task CancelAsync()
+    {
+        if (!IsBusy)
+        {
+            await OnCancel.InvokeAsync();
+        }
+    }
+
+    private async Task ConfirmAsync()
+    {
+        if (!IsBusy)
+        {
+            await OnConfirm.InvokeAsync();
+        }
+    }
+}

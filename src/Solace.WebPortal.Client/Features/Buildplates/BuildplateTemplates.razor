@@ -125,67 +125,16 @@
 
 @if (_showDeleteModal)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirm Deletion</h5>
-                    <button type="button" class="btn-close" @onclick="CancelDelete"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to delete <strong>@_buildplateToDelete?.Name</strong>?</p>
-
-                    <div class="form-check form-switch mt-3">
-                        <input class="form-check-input" type="checkbox" id="removeTemplateCheckbox" @bind="_removeTemplateFromPlayers" />
-                        <label class="form-check-label text-danger" for="removeTemplateToggle">
-                            Also remove this template from all players inventories
-                        </label>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" @onclick="CancelDelete" disabled="@_isDeleting">Cancel</button>
-                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@_isDeleting" style="min-width: 100px;">
-                        @if (_isDeleting)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            <span>Deleting...</span>
-                        }
-                        else
-                        {
-                            <span>Delete</span>
-                        }
-                    </button>
-                </div>
+    <DeleteConfirmModal Visible="true" IsBusy="_isDeleting"  LoadingButtonText="Deleting..." Message="Are you sure you want to delete" ItemName="@_buildplateToDelete?.Name"  ErrorMessage="@_deleteErrorMessage" OnCancel="CancelDelete" OnConfirm="ConfirmDelete">
+        <ChildContent>
+            <div class="form-check form-switch mt-3">
+                <input class="form-check-input" type="checkbox" id="removeTemplateCheckbox" @bind="_removeTemplateFromPlayers" />
+                <label class="form-check-label text-danger" for="removeTemplateCheckbox">
+                    Also remove this template from all players inventories
+                </label>
             </div>
-        </div>
-    </div>
-}
-
-@if (!string.IsNullOrEmpty(_deleteErrorMessage))
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6); z-index: 1060;">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-danger shadow-lg">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title"><i class="bi bi-exclamation-octagon-fill me-2"></i>Deletion Failed</h5>
-                    <button type="button" class="btn-close btn-close-white" @onclick="CloseErrorModal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>An error occurred while trying to delete <strong>@_buildplateToDelete?.Name</strong>:</p>
-                    <div class="alert alert-light border small text-break">
-                        @_deleteErrorMessage
-                    </div>
-                    <p class="mb-0">Please try again or report the issue if it persists.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseErrorModal">Close</button>
-                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">
-                        <i class="bi bi-arrow-clockwise me-1"></i> Retry
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+        </ChildContent>
+    </DeleteConfirmModal>
 }
 
 @if (_showExportModal)

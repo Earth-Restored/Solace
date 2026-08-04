@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using Solace.WebPortal.Client.Features.Common
 @using Solace.WebPortal.Common
 @attribute [Authorize(Policy = Permissions.ViewPlayers)]
 @rendermode InteractiveWebAssembly
@@ -32,40 +33,7 @@
 
     @if (IsDeleteModalVisible)
     {
-        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-            <div class="modal-dialog modal-dialog-centered modal-sm">
-                <div class="modal-content shadow-lg border-danger">
-                    <div class="modal-header py-2 bg-danger text-white">
-                        <h6 class="modal-title font-weight-bold" style="font-size: 0.9rem;">Confirm Deletion</h6>
-                        <button type="button" class="btn-close btn-close-white" @onclick="CloseDeleteModal" disabled="@IsDeletingPlayer"></button>
-                    </div>
-                    <div class="modal-body py-3">
-                        <p class="mb-3 text-dark" style="font-size: 0.85rem;">
-                            Are you sure you want to delete player <strong>@(_profileDisplay?.PlayerAccount?.Username ?? "[unknown]")</strong>? This action cannot be undone.
-                        </p>
-
-                        @if (!string.IsNullOrEmpty(DeleteErrorMessage))
-                        {
-                            <div class="alert alert-danger py-1 px-2 mb-2 small" role="alert" style="font-size: 0.75rem;">@DeleteErrorMessage</div>
-                        }
-
-                        <div class="d-flex justify-content-end gap-2">
-                            <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseDeleteModal" disabled="@IsDeletingPlayer">Cancel</button>
-                            <button type="button" class="btn btn-danger btn-sm px-3" @onclick="DeletePlayerAsync" disabled="@IsDeletingPlayer">
-                                @if (IsDeletingPlayer)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                }
-                                else
-                                {
-                                    <span>Delete</span>
-                                }
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <DeleteConfirmModal Visible="true" IsBusy="IsDeletingPlayer"  LoadingButtonText="Deleting..." Message="Are you sure you want to delete player" ItemName="@(_profileDisplay?.PlayerAccount?.Username ?? "[unknown]")"  ErrorMessage="@DeleteErrorMessage" ModalSizeClass="modal-sm" OnCancel="CloseDeleteModal" OnConfirm="DeletePlayerAsync" />
     }
 </div>
 

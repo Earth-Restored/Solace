@@ -1,5 +1,6 @@
 @page "/Roles"
 @using Microsoft.AspNetCore.Authorization
+@using Solace.WebPortal.Client.Features.Common
 @using Solace.WebPortal.Common
 @using Solace.WebPortal.Common.Features.Common
 @using Solace.WebPortal.Common.Features.Roles
@@ -197,27 +198,7 @@
 
 @if (_showDeleteConfirm && _roleToDelete is not null)
 {
-    <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title text-danger">Confirm Delete</h5>
-                    <button class="btn-close" @onclick="CloseDeleteConfirm"></button>
-                </div>
-                <div class="modal-body">
-                    <p>
-                        Are you sure you want to delete
-                        <strong>@_roleToDelete.Name</strong>?
-                    </p>
-                    <p class="text-muted small">This action cannot be undone.</p>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CloseDeleteConfirm">Cancel</button>
-                    <button class="btn btn-danger" @onclick="DeleteConfirmed">Delete</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <DeleteConfirmModal Visible="true"  Message="Are you sure you want to delete" ItemName="@_roleToDelete.Name"  OnCancel="CloseDeleteConfirm" OnConfirm="DeleteConfirmed" />
 }
 
 @code {

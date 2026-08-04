@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @using Solace.Common.Constants
+@using Solace.WebPortal.Client.Features.Common
 @using Solace.WebPortal.Common
 @using Solace.WebPortal.Common.Features.Profiles
 @attribute [Authorize(Policy = Permissions.CreateProfile)]
@@ -112,45 +113,7 @@
 
         @if (showDeleteModal && profileToDelete is not null)
         {
-            <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" role="dialog" aria-modal="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content shadow border-0">
-                        <div class="modal-header bg-danger text-white">
-                            <h5 class="modal-title d-flex align-items-center gap-2">
-                                <i class="bi bi-exclamation-triangle-fill"></i>
-                                <span>Confirm Delete</span>
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" @onclick="CancelDelete" disabled="@isDeleting"></button>
-                        </div>
-                        <div class="modal-body p-4">
-                            <p class="mb-2">
-                                Are you sure you want to delete profile
-                                <strong>"@(string.IsNullOrWhiteSpace(profileToDelete.Username) ? "Unnamed Profile" : profileToDelete.Username)"</strong>?
-                            </p>
-                            <p class="text-danger small mb-0 fw-semibold">
-                                This action cannot be undone.
-                            </p>
-                        </div>
-                        <div class="modal-footer bg-light">
-                            <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelDelete" disabled="@isDeleting">
-                                Cancel
-                            </button>
-                            <button type="button" class="btn btn-danger btn-sm d-inline-flex align-items-center gap-2" @onclick="ConfirmDeleteAsync" disabled="@isDeleting">
-                                @if (isDeleting)
-                                {
-                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                    <span>Deleting...</span>
-                                }
-                                else
-                                {
-                                    <i class="bi bi-trash"></i>
-                                    <span>Delete Profile</span>
-                                }
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <DeleteConfirmModal Visible="true" IsBusy="isDeleting" Message="Are you sure you want to delete profile" ItemName="@(string.IsNullOrWhiteSpace(profileToDelete.Username) ? "Unnamed Profile" : profileToDelete.Username)" LoadingButtonText="Deleting..."  OnCancel="CancelDelete" OnConfirm="ConfirmDeleteAsync" />
         }
     }
 </div>

@@ -92,7 +92,7 @@
                                         </a>
                                         @if (HasPermission(Permissions.ManagePlayers))
                                         {
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePlayerAsync(player.Id, player.Username)" title="Delete">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => OpenDeletePlayerModal(player.Id, player.Username)" title="Delete">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         }
@@ -156,7 +156,7 @@
                                 </a>
                                 @if (HasPermission(Permissions.ManagePlayers))
                                 {
-                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePlayerAsync(player.Id, player.Username)">
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => OpenDeletePlayerModal(player.Id, player.Username)">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 }
@@ -169,11 +169,21 @@
     </PagedDataView>
 </div>
 
+@if (_showDeleteConfirm && _playerToDeleteId.HasValue)
+{
+    <DeleteConfirmModal Visible="true" IsBusy="_isDeletingPlayer" Message="Are you sure you want to permanently delete player" ItemName="@(string.IsNullOrWhiteSpace(_playerToDeleteUsername) ? $"with id '{_playerToDeleteId}'" : _playerToDeleteUsername)"  LoadingButtonText="Deleting..." ErrorMessage="@_deletePlayerErrorMessage" ModalSizeClass="modal-md" OnCancel="CloseDeletePlayerModal" OnConfirm="ConfirmDeletePlayerAsync" />
+}
+
 @code {
     private PagedDataView<List<AccountViewModel>>? _pagedView;
 
     private ClaimsPrincipal? _user;
     private string _searchTerm = string.Empty;
+    private bool _showDeleteConfirm;
+    private Guid? _playerToDeleteId;
+    private string? _playerToDeleteUsername;
+    private bool _isDeletingPlayer;
+    private string? _deletePlayerErrorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -223,25 +233,41 @@
     {
     }
 
-    private async Task DeletePlayerAsync(Guid id, string? username)
+    private void OpenDeletePlayerModal(Guid id, string? username)
     {
         if (!HasPermission(Permissions.ManagePlayers))
         {
             return;
         }
 
-        string confirmText = string.IsNullOrEmpty(username)
-            ? $"Are you sure you want to permanently delete player with id '{id}'?"
-            : $"Are you sure you want to permanently delete player '{username}', id: {id}?";
+        _playerToDeleteId = id;
+        _playerToDeleteUsername = username;
+        _deletePlayerErrorMessage = null;
+        _showDeleteConfirm = true;
+    }
 
-        if (!await JS.InvokeAsync<bool>("confirm", confirmText))
+    private void CloseDeletePlayerModal()
+    {
+        _showDeleteConfirm = false;
+        _playerToDeleteId = null;
+        _playerToDeleteUsername = null;
+        _deletePlayerErrorMessage = null;
+    }
+
+    private async Task ConfirmDeletePlayerAsync()
+    {
+        if (_playerToDeleteId is null)
         {
             return;
         }
 
+        var playerId = _playerToDeleteId.Value;
+        _isDeletingPlayer = true;
+        _deletePlayerErrorMessage = null;
+
         try
         {
-            using var response = await Http.DeleteAsync($"api/players/{id}");
+            using var response = await Http.DeleteAsync($"api/players/{playerId}");
 
             if (response is { IsSuccessStatusCode: true } or { StatusCode: System.Net.HttpStatusCode.NotFound })
             {
@@ -250,16 +276,22 @@
                     await _pagedView.ReloadCurrentPageAsync();
                 }
 
-                Logger.LogInformation("Deleted player {PlayerId}", id);
+                Logger.LogInformation("Deleted player {PlayerId}", playerId);
+                CloseDeletePlayerModal();
             }
             else
             {
-                _pagedView?.ErrorMessage = $"Failed to delete player ({response.StatusCode}).";
+                _deletePlayerErrorMessage = $"Failed to delete player ({response.StatusCode}).";
             }
         }
         catch (Exception exception)
         {
-            Logger.LogError(exception, "Failed to delete player {PlayerId}", id);
+            Logger.LogError(exception, "Failed to delete player {PlayerId}", playerId);
+            _deletePlayerErrorMessage = "An unexpected error occurred while deleting the player.";
+        }
+        finally
+        {
+            _isDeletingPlayer = false;
         }
     }
 

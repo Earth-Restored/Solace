@@ -228,44 +228,7 @@ else
 
     @if (_showDeleteModal)
     {
-        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6);">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-danger shadow-lg">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Confirm Removal</h5>
-                        <button type="button" class="btn-close btn-close-white" @onclick="CloseDeleteModal" disabled="@_isDeleting"></button>
-                    </div>
-                    <div class="modal-body py-4 text-center">
-                        <p class="mb-1">Are you sure you want to remove this buildplate from the player?</p>
-                        <strong class="fs-5">@_nameToDelete</strong>
-                        <div class="text-muted small mt-2">This action cannot be undone.</div>
-
-                        @if (!string.IsNullOrEmpty(_deleteErrorMessage))
-                        {
-                            <div class="alert alert-danger alert-dismissible fade show small py-2 mt-3 mb-0 text-start" role="alert">
-                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                @_deleteErrorMessage
-                                <button type="button" class="btn-close small" style="padding: 0.75rem" @onclick="() => _deleteErrorMessage = null"></button>
-                            </div>
-                        }
-                    </div>
-                    <div class="modal-footer bg-light">
-                        <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal" disabled="@_isDeleting">Cancel</button>
-                        <button type="button" class="btn btn-danger px-4" @onclick="ConfirmDelete" disabled="@_isDeleting">
-                            @if (_isDeleting)
-                            {
-                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                <span>Removing...</span>
-                            }
-                            else
-                            {
-                                <span>Remove Buildplate</span>
-                            }
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <DeleteConfirmModal Visible="true" IsBusy="_isDeleting" LoadingButtonText="Removing..." Message="Are you sure you want to remove this buildplate from the player?" ItemName="@_nameToDelete"  ErrorMessage="@_deleteErrorMessage" ModalSizeClass="modal-md" OnCancel="CloseDeleteModal" OnConfirm="ConfirmDelete" />
     }
 
     @if (_showExportModal)
