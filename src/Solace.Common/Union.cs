@@ -35,10 +35,10 @@ internal static class Union
     public static Union<TA, TB> CreateA<TA, TB>(TA value)
         where TA : notnull
         where TB : notnull
-        => new Union<TA, TB>(value, false);
+        => new(value, false);
 
     public static Union<TA, TB> CreateB<TA, TB>(TB value)
         where TA : notnull
         where TB : notnull
-        => new Union<TA, TB>(value, true);
+        => new(value, true);
 }

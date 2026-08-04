@@ -8,8 +8,8 @@ public sealed class RequestSender : IAsyncDisposable
         _client = client;
     }
 
-    public Task<string?> RequestAsync(string queueName, string type, string data)
-        => _client.RequestAsync(new RequestMessage { QueueName = queueName, Type = type, Data = data, })
+    public Task<string?> RequestAsync(string queueName, string type, string data, CancellationToken cancellationToken = default)
+        => _client.RequestAsync(new RequestMessage { QueueName = queueName, Type = type, Data = data, }, cancellationToken: cancellationToken)
             .ResponseAsync
             .ContinueWith(task =>
             {

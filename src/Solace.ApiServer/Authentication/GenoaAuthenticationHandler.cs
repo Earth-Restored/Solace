@@ -47,7 +47,7 @@ public sealed class GenoaAuthenticationHandler : AuthenticationHandler<Authentic
         string? encryptedToken;
         try
         {
-            if (!Request.Headers.TryGetValue("Authorization", out StringValues authorization))
+            if (!Request.Headers.TryGetValue("Authorization", out var authorization))
             {
                 return AuthenticateResult.Fail("Invalid Authorization Header");
             }

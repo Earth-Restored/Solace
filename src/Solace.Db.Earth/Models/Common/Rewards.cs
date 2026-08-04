@@ -16,7 +16,7 @@ public sealed record Rewards(
     }
 
     public Rewards DeepCopy()
-          => new Rewards(Rubies, ExperiencePoints, Level, new Dictionary<Guid, int>(Items), [.. Buildplates], [.. Challenges]);
+        => new(Rubies, ExperiencePoints, Level, [with(Items)], [.. Buildplates], [.. Challenges]);
 
     public bool Equals(Rewards? other)
         => other is not null && Rubies == other.Rubies && ExperiencePoints == other.ExperiencePoints && Level == other.Level && Items.OrderBy(item => item.Key).Select(item => (item.Key, item.Value)).SequenceEqual(other.Items.OrderBy(item => item.Key).Select(item => (item.Key, item.Value))) && Buildplates.SequenceEqual(other.Buildplates) && Challenges.SequenceEqual(other.Challenges);

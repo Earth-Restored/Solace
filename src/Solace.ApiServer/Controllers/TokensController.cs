@@ -89,14 +89,14 @@ internal sealed class TokensController : SolaceControllerBase
                 break;
         }
 
-        Rewards rewards = token switch
+        var rewards = token switch
         {
             LevelUpTokenEF levelUp => Rewards.FromDBRewardsModel(levelUp.Rewards).SetLevel(levelUp.Level),
             DailyLoginTokenEF dailyLogin => Rewards.FromDBRewardsModel(dailyLogin.Rewards),
             _ => new Rewards(),
         };
 
-        Token.LifetimeE lifetime = token switch
+        var lifetime = token switch
         {
             LevelUpTokenEF => Token.LifetimeE.TRANSIENT,
             JournalItemUnlockedTokenEF => Token.LifetimeE.PERSISTENT,

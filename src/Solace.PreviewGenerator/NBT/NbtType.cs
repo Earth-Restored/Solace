@@ -3,20 +3,20 @@
 public sealed class NbtType
 {
 #pragma warning disable CA1720 // Identifier contains type name
-    public static readonly NbtType End = new NbtType(typeof(void), EnumE.End);
-    public static readonly NbtType Byte = new NbtType(typeof(byte), EnumE.Byte);
-    public static readonly NbtType Short = new NbtType(typeof(short), EnumE.Short);
-    public static readonly NbtType Int = new NbtType(typeof(int), EnumE.Int);
-    public static readonly NbtType Long = new NbtType(typeof(long), EnumE.Long);
-    public static readonly NbtType Float = new NbtType(typeof(float), EnumE.Float);
-    public static readonly NbtType Double = new NbtType(typeof(double), EnumE.Double);
-    public static readonly NbtType ByteArray = new NbtType(typeof(byte[]), EnumE.ByteArray);
-    public static readonly NbtType String = new NbtType(typeof(string), EnumE.String);
+    public static readonly NbtType End = new(typeof(void), EnumE.End);
+    public static readonly NbtType Byte = new(typeof(byte), EnumE.Byte);
+    public static readonly NbtType Short = new(typeof(short), EnumE.Short);
+    public static readonly NbtType Int = new(typeof(int), EnumE.Int);
+    public static readonly NbtType Long = new(typeof(long), EnumE.Long);
+    public static readonly NbtType Float = new(typeof(float), EnumE.Float);
+    public static readonly NbtType Double = new(typeof(double), EnumE.Double);
+    public static readonly NbtType ByteArray = new(typeof(byte[]), EnumE.ByteArray);
+    public static readonly NbtType String = new(typeof(string), EnumE.String);
 
-    public static readonly NbtType List = new NbtType(typeof(NbtList), EnumE.List);
-    public static readonly NbtType Compound = new NbtType(typeof(NbtMap), EnumE.Compound);
-    public static readonly NbtType IntArray = new NbtType(typeof(int[]), EnumE.IntArray);
-    public static readonly NbtType LongArray = new NbtType(typeof(long[]), EnumE.LongArray);
+    public static readonly NbtType List = new(typeof(NbtList), EnumE.List);
+    public static readonly NbtType Compound = new(typeof(NbtMap), EnumE.Compound);
+    public static readonly NbtType IntArray = new(typeof(int[]), EnumE.IntArray);
+    public static readonly NbtType LongArray = new(typeof(long[]), EnumE.LongArray);
 #pragma warning restore CA1720 // Identifier contains type name
 
     private static readonly NbtType[] BY_ID = [End, Byte, Short, Int, Long, Float, Double, ByteArray, String, List, Compound, IntArray, LongArray];
@@ -25,7 +25,7 @@ public sealed class NbtType
 
     static NbtType()
     {
-        foreach (NbtType type in BY_ID)
+        foreach (var type in BY_ID)
         {
             BY_CLASS.Add(type.TagType, type);
         }

@@ -94,7 +94,7 @@ internal sealed partial class App
         forwardedHeadersOptions.KnownProxies.Clear();
 
         app.UseForwardedHeaders(forwardedHeadersOptions);
-        
+
         // app.UseHttpsRedirection();
 
         app.MapMethods("/availableresourcepack/resourcepacks/dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35", ["GET", "HEAD"], GetResourcePackHandler);
@@ -191,7 +191,7 @@ internal sealed partial class App
         public EventBusClient EventBus { get; set; } = null!;
         public ObjectStoreClient ObjectStore { get; set; } = null!;
     }
-    
+
     [LoggerMessage(Level = LogLevel.Error, Message = "Resource pack file not found")]
     public static partial void LogResourcepackNotFound(ILogger logger);
 

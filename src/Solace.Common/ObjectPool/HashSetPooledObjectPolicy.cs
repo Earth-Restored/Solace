@@ -22,7 +22,7 @@ public sealed class HashSetPooledObjectPolicy<T> : PooledObjectPolicy<HashSet<T>
 
     /// <inheritdoc />
     public override HashSet<T> Create()
-        => new HashSet<T>(InitialCapacity);
+        => [with(InitialCapacity)];
 
     /// <inheritdoc />
     public override bool Return(HashSet<T> obj)

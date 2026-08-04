@@ -8,7 +8,7 @@ internal static class CraftingCalculator
 {
     public static State CalculateState(DateTimeOffset currentTime, CraftingSlotEF.ActiveCraftingJob activeJob, Catalog catalog)
     {
-        Catalog.RecipesCatalogR.CraftingRecipe recipe = catalog.RecipesCatalog.Crafting.Where(craftingRecipe => craftingRecipe.Id == activeJob.RecipeId).First();
+        var recipe = catalog.RecipesCatalog.Crafting.Where(craftingRecipe => craftingRecipe.Id == activeJob.RecipeId).First();
 
         var roundDuration = TimeSpan.FromSeconds(recipe.Duration);
         var completedRounds = activeJob.FinishedEarly ? activeJob.TotalRounds : int.Min((int)((currentTime - activeJob.StartTime) / roundDuration), activeJob.TotalRounds);
@@ -23,8 +23,8 @@ internal static class CraftingCalculator
         for (var index = 0; index < recipe.Ingredients.Length; index++)
         {
             var usedCount = recipe.Ingredients[index].Count * completedRounds;
-            InputItem[] inputItems = activeJob.Input[index].Items;
-            foreach (InputItem inputItem in inputItems)
+            var inputItems = activeJob.Input[index].Items;
+            foreach (var inputItem in inputItems)
             {
                 if (usedCount == 0)
                 {

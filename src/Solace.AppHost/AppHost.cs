@@ -79,10 +79,53 @@ if (builder.Configuration.GetValue<bool>("Shared:ResolvePaths", false))
     staticDataPath = Path.GetFullPath(staticDataPath);
 }
 
-var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate>("buildplate-launcher")
+var acceptMinecraftEula = builder.AddConfigParameter("Shared:AcceptMinecraftEula");
+
+var buildplateServerSetup = builder.AddProject<Projects.Solace_Buildplate_ServerSetup>("buildplate-server-setup")
+    .WithEnvironmentParameter(acceptMinecraftEula, prefixToRemove: "Shared:")
+    .WithEnvironment("StaticDataPath", staticDataPath)
+    .PublishAsDockerComposeService((resource, service) =>
+    {
+        service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
+        {
+            Name = "static-data-volume",
+            Type = "bind",
+            Source = staticDataPath,
+            Target = "/app/static-data",
+            ReadOnly = true,
+        });
+
+        service.Environment["StaticDataPath"] = "/app/static-data";
+    });
+
+var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate_Launcher>("buildplate-launcher")
     .WithReference(eventBus)
     .WaitFor(eventBus)
+    .WithReference(buildplateServerSetup)
+    .WaitFor(buildplateServerSetup)
     .WithEnvironmentSection(builder.Configuration, "BuildplateLauncher", prefixToRemove: "BuildplateLauncher:")
+    .WithEnvironmentParameter(acceptMinecraftEula, prefixToRemove: "Shared:")
+    .WithEnvironment("StaticDataPath", staticDataPath)
+    .PublishAsDockerComposeService((resource, service) =>
+    {
+        service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
+        {
+            Name = "static-data-volume",
+            Type = "bind",
+            Source = staticDataPath,
+            Target = "/app/static-data",
+            ReadOnly = true,
+        });
+
+        service.Environment["StaticDataPath"] = "/app/static-data";
+    });
+
+var buildplateUpdater = builder.AddProject<Projects.Solace_Buildplate_Updater>("buildplate-updater")
+    .WithReference(eventBus)
+    .WaitFor(eventBus)
+    .WithReference(buildplateServerSetup)
+    .WaitFor(buildplateServerSetup)
+    .WithEnvironmentParameter(acceptMinecraftEula, prefixToRemove: "Shared:")
     .WithEnvironment("StaticDataPath", staticDataPath)
     .PublishAsDockerComposeService((resource, service) =>
     {
@@ -100,6 +143,8 @@ var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate>("buildpl
 
 var apiPort = builder.Configuration.GetValue<int>("ApiServer:Port", 8089);
 
+var fixUpBuildplatesOnImport = builder.AddConfigParameter("Shared:FixUpBuildplatesOnImport");
+
 var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
     .WithHttpEndpoint(port: apiPort, name: "http")
     .WithEndpoint("http", endpoint =>
@@ -112,7 +157,10 @@ var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
     .WaitFor(eventBus)
     .WithReference(objectStore)
     .WaitFor(objectStore)
+    .WithReference(buildplateLauncher)
+    .WaitFor(buildplateLauncher)
     .WithEnvironmentSection(builder.Configuration, "ApiServer:Authentication", prefixToRemove: "ApiServer:")
+    .WithEnvironmentParameter(fixUpBuildplatesOnImport, prefixToRemove: "Shared:")
     .WithEnvironment("StaticDataPath", staticDataPath)
     .PublishAsDockerComposeService((resource, service) =>
     {
@@ -184,9 +232,9 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
     .WithReference(earthDb)
     .WaitFor(earthDb)
     .WithEnvironmentSection(builder.Configuration, "AuthServer:Authentication", prefixToRemove: "AuthServer:")
-    .WithEnvironmentSection(builder.Configuration, "Shared:Oidc:WebPortal:AuthServer", 
-        prefixToRemove: "Shared:Oidc:WebPortal:AuthServer:", 
-        prefixToAdd: "Oidc:", 
+    .WithEnvironmentSection(builder.Configuration, "Shared:Oidc:WebPortal:AuthServer",
+        prefixToRemove: "Shared:Oidc:WebPortal:AuthServer:",
+        prefixToAdd: "Oidc:",
         authServerOidcClientSecret)
     .WithEnvironmentParameter(webPortalPublicEndPoint, prefixToRemove: "Shared:")
     .WithEnvironmentParameter(captchaProvider, prefixToRemove: "Shared:")
@@ -306,8 +354,8 @@ var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
     .WaitFor(objectStore)
     .WithEnvironment("PORT_SELF", webPortalPort.ToString(CultureInfo.InvariantCulture))
     .WithEnvironment("StaticDataPath", staticDataPath)
-    .WithEnvironmentSection(builder.Configuration, "Shared:Oidc:WebPortal", 
-        prefixToRemove: "Shared:Oidc:WebPortal:", 
+    .WithEnvironmentSection(builder.Configuration, "Shared:Oidc:WebPortal",
+        prefixToRemove: "Shared:Oidc:WebPortal:",
         prefixToAdd: "Oidc:",
         authServerOidcClientSecret,
         webportalOidcSigningCertPassword,
@@ -320,6 +368,7 @@ var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
     .WithEnvironmentParameter(authServerPublicEndPoint, prefixToRemove: "Shared:")
     .WithEnvironmentParameter(buildplatePreviewEnabled, prefixToRemove: "WebPortal:")
     .WithEnvironmentParameter(buildplatePreviewGenerationMaxConcurrency, prefixToRemove: "WebPortal:")
+    .WithEnvironmentParameter(fixUpBuildplatesOnImport, prefixToRemove: "Shared:")
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume

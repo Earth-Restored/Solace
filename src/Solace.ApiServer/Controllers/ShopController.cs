@@ -50,7 +50,7 @@ internal sealed partial class ShopController : SolaceControllerBase
             return EarthJson(Array.Empty<StoreItemInfo>());
         }
 
-        List<StoreItemInfo> result = new(request.Length);
+        List<StoreItemInfo> result = [with(request.Length)];
 
         foreach (var item in request)
         {
@@ -64,7 +64,7 @@ internal sealed partial class ShopController : SolaceControllerBase
                             .AsNoTracking()
                             .FirstOrDefaultAsync(template => template.Id == itemId, cancellationToken);
 
-                        StoreItemInfo.StoreItemTypeE storeItemType = Enum.Parse<StoreItemInfo.StoreItemTypeE>(item.StoreItemType);
+                        var storeItemType = Enum.Parse<StoreItemInfo.StoreItemTypeE>(item.StoreItemType);
 
                         if (buildplate is null)
                         {

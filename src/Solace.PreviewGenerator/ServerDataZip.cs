@@ -7,7 +7,7 @@ namespace Solace.PreviewGenerator;
 internal sealed class ServerDataZip
 {
     public static ServerDataZip Read(Stream inputStream)
-        => new ServerDataZip(inputStream);
+        => new(inputStream);
 
     private readonly Dictionary<string, byte[]> _files = [];
 
@@ -22,7 +22,7 @@ internal sealed class ServerDataZip
                 continue;
             }
 
-            using (Stream entryStream = entry.Open())
+            using (var entryStream = entry.Open())
             using (var ms = new MemoryStream())
             {
                 entryStream.CopyTo(ms);

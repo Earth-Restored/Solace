@@ -8,7 +8,7 @@ public sealed record NonStackableItemInstance(
 ) : ICloneable<NonStackableItemInstance>
 {
     public NonStackableItemInstance DeepCopy()
-        => new NonStackableItemInstance(this);
+        => new(this);
 
     public sealed record Legacy(
         string InstanceId,

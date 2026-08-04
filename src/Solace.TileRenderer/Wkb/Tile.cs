@@ -17,7 +17,7 @@ internal sealed class Tile
 
     public Point ToLocalPixel(Point sphereMerc)
     {
-        Point slippy = TileUtils.SphereMercToSlippy(sphereMerc, Zoom);
+        var slippy = TileUtils.SphereMercToSlippy(sphereMerc, Zoom);
         slippy -= Slippy;
         slippy *= Resolution;
 

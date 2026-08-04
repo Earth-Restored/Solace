@@ -208,7 +208,7 @@ public sealed class TileRange : IEnumerable<Tile?>
         public bool MoveNext()
         {
             if (_current is null)
-            { 
+            {
                 // start with the center tile.
                 var centerX = (int)double.Floor((_range.XMax + _range.XMin) / 2.0);
                 var centerY = (int)double.Ceiling((_range.YMax + _range.YMin) / 2.0);
@@ -219,7 +219,7 @@ public sealed class TileRange : IEnumerable<Tile?>
 
             // check if there are more tiles to be enumerated.
             if (_range.Count <= _enumeratedTiles.Count)
-            { 
+            {
                 // no more tiles left.
                 return false;
             }
@@ -227,20 +227,20 @@ public sealed class TileRange : IEnumerable<Tile?>
             // try to move in the desired direction.
             Tile? next = null;
             while (next is null)
-            { 
+            {
                 // try until a valid tile is found.
                 switch (_direction)
                 {
                     case DirectionEnum.Up: // up
                         next = new Tile(_current.X, _current.Y - 1, _range.Zoom);
                         if (_enumeratedTiles.Contains(next))
-                        { 
+                        {
                             // moving up does not work, try to move left.
                             _direction = DirectionEnum.Left;
                             next = null;
                         }
                         else
-                        { 
+                        {
                             // moved up, try right.
                             _direction = DirectionEnum.Right;
                         }
@@ -249,7 +249,7 @@ public sealed class TileRange : IEnumerable<Tile?>
                     case DirectionEnum.Left: // left
                         next = new Tile(_current.X - 1, _current.Y, _range.Zoom);
                         if (_enumeratedTiles.Contains(next))
-                        { 
+                        {
                             // moving left does not work, try to move down.
                             _direction = DirectionEnum.Down;
                             next = null;
@@ -263,13 +263,13 @@ public sealed class TileRange : IEnumerable<Tile?>
                     case DirectionEnum.Down: // down
                         next = new Tile(_current.X, _current.Y + 1, _range.Zoom);
                         if (_enumeratedTiles.Contains(next))
-                        { 
+                        {
                             // moving down does not work, try to move right.
                             _direction = DirectionEnum.Right;
                             next = null;
                         }
                         else
-                        { 
+                        {
                             // moved down, try left.
                             _direction = DirectionEnum.Left;
                         }
@@ -278,7 +278,7 @@ public sealed class TileRange : IEnumerable<Tile?>
                     case DirectionEnum.Right: // right
                         next = new Tile(_current.X + 1, _current.Y, _range.Zoom);
                         if (_enumeratedTiles.Contains(next))
-                        { 
+                        {
                             // moving right does not work, try to move up.
                             _direction = DirectionEnum.Up;
                             next = null;

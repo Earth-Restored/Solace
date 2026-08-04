@@ -29,7 +29,7 @@ public static partial class GetAbOptions
     private static async ValueTask<Result> HandleAsync(
         Query _,
         CancellationToken cancellationToken)
-            => new Result(
+            => new(
             [ 
                 //"mc-sunsetting_1",
                 //"mc-reco-algo2simfirst",

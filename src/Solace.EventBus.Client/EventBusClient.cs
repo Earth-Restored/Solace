@@ -31,9 +31,9 @@ public sealed partial class EventBusClient : IAsyncDisposable
     }
 
     public async Task<Publisher> AddPublisherAsync()
-        => new Publisher(_client);
+        => new(_client); // todo: single instance, Lazy<>?, handle dispose somehow
 
-    public async Task<Subscriber> AddSubscriberAsync(string queueName, Func<SubscriberEvent, Task> onEvent, Func<Exception?, Task> onError)
+    public async Task<Subscriber> AddSubscriberAsync(string queueName, Func<SubscriberEvent, CancellationToken, Task> onEvent, Func<Exception?, Task> onError)
     {
         var subscriber = new Subscriber(_client, queueName, onEvent, onError);
         await subscriber.StartAsync();
@@ -41,9 +41,9 @@ public sealed partial class EventBusClient : IAsyncDisposable
     }
 
     public async Task<RequestSender> AddRequestSenderAsync()
-        => new RequestSender(_client);
+        => new(_client); // todo: single instance, Lazy<>?, handle dispose somehow
 
-    public async Task<RequestHandler> AddRequestHandlerAsync(string queueName, Func<RequestHandlerRequest, Task<string?>> onRequest, Func<Exception?, Task> onError)
+    public async Task<RequestHandler> AddRequestHandlerAsync(string queueName, Func<RequestHandlerRequest, CancellationToken, Task<string?>> onRequest, Func<Exception?, Task> onError)
     {
         var handler = new RequestHandler(_client, queueName, onRequest, onError);
         await handler.StartAsync();

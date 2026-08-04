@@ -114,7 +114,7 @@ public sealed class Tile
     /// <summary>
     /// Gets the parent tile.
     /// </summary>
-    public Tile Parent => new Tile(X / 2, Y / 2, Zoom - 1);
+    public Tile Parent => new(X / 2, Y / 2, Zoom - 1);
 
     /// <summary>
     /// Returns a hashcode for this tile position.

@@ -192,7 +192,7 @@ public sealed class BuildplateMeshGenerator
                 {
                     GenerateBlockMesh(modelVariant, currentWorldPos, mesh, ref state, static (queryWorldPos, ref state) =>
                     {
-                        int3 rawBlockPos = queryWorldPos - state.Offset;
+                        var rawBlockPos = queryWorldPos - state.Offset;
 
                         var targetSubChunkCoord = new int3(
                             (int)float.Floor((float)rawBlockPos.X / ChunkUtils.Width),
@@ -205,7 +205,7 @@ public sealed class BuildplateMeshGenerator
                             return null;
                         }
 
-                        int3 localPos = rawBlockPos - (targetSubChunkCoord * ChunkUtils.SubChunkSize);
+                        var localPos = rawBlockPos - (targetSubChunkCoord * ChunkUtils.SubChunkSize);
 
                         var targetIndex = localPos.X + localPos.Z * ChunkUtils.Width + localPos.Y * ChunkUtils.Width * ChunkUtils.Width;
                         var targetBlockIndex = targetSubChunk.Blocks[targetIndex];
@@ -241,21 +241,21 @@ public sealed class BuildplateMeshGenerator
     {
         var model = _resourcePack.GetBlockModel(modelVariant.Model);
 
-        Matrix4x4 variantTransform = CreateVariantTransform(modelVariant);
+        var variantTransform = CreateVariantTransform(modelVariant);
 
         foreach (var element in model.Elements)
         {
-            Vector3 from = element.From * BlockModelScale;
-            Vector3 to = element.To * BlockModelScale;
+            var from = element.From * BlockModelScale;
+            var to = element.To * BlockModelScale;
 
-            Matrix4x4 elementTransform = CreateElementTransform(element.Rotation);
-            Matrix4x4 finalTransform = elementTransform * variantTransform;
+            var elementTransform = CreateElementTransform(element.Rotation);
+            var finalTransform = elementTransform * variantTransform;
 
             for (var i = 0; i < 6; i++)
             {
                 var direction = (Direction)i;
 
-                BlockFace? face = element.Faces[(int)direction];
+                var face = element.Faces[(int)direction];
 
                 if (face is null)
                 {
@@ -265,11 +265,11 @@ public sealed class BuildplateMeshGenerator
                 if (face.CullFace.HasValue)
                 {
                     // Rotate the defined cull direction based on the variant's transform
-                    Vector3 cullNormal = GetDirectionVector3(face.CullFace.Value);
+                    var cullNormal = GetDirectionVector3(face.CullFace.Value);
                     var rotatedNormal = Vector3.TransformNormal(cullNormal, variantTransform);
-                    Direction actualCullDir = GetClosestDirection(rotatedNormal);
+                    var actualCullDir = GetClosestDirection(rotatedNormal);
 
-                    int3 neighborPos = blockPosition + GetDirectionOffset(actualCullDir);
+                    var neighborPos = blockPosition + GetDirectionOffset(actualCullDir);
 
                     var neighbor = getBlockAtPos(neighborPos, ref state);
                     if (neighbor is not null)
@@ -303,7 +303,7 @@ public sealed class BuildplateMeshGenerator
         var startIndex = primitive.VertexCount;
 
         Span<Vector3> corners = stackalloc Vector3[4];
-        GetFaceVertices(dir, from, to, corners, out Vector3 normal);
+        GetFaceVertices(dir, from, to, corners, out var normal);
 
         Span<Vector2> uvs = stackalloc Vector2[4];
         CalculateUVs(face.UV, face.Rotation, uvs);
@@ -333,14 +333,14 @@ public sealed class BuildplateMeshGenerator
         }
 
         var r = rot.Value;
-        Vector3 origin = r.Origin * BlockModelScale;
+        var origin = r.Origin * BlockModelScale;
 
         // deg to rad
         var radX = r.X * (float.Pi / 180f);
         var radY = r.Y * (float.Pi / 180f);
         var radZ = r.Z * (float.Pi / 180f);
 
-        Matrix4x4 matrix = Matrix4x4.Identity;
+        var matrix = Matrix4x4.Identity;
 
         // Move to Origin
         matrix *= Matrix4x4.CreateTranslation(-origin);
@@ -518,7 +518,7 @@ public sealed class BuildplateMeshGenerator
     {
         normal = Vector3.Normalize(normal);
         var maxDot = -2f; // init lower than any possible dot product (-1 to 1)
-        Direction closest = Direction.Up;
+        var closest = Direction.Up;
 
         for (var i = 0; i < 6; i++)
         {
@@ -562,7 +562,7 @@ public sealed class BuildplateMeshGenerator
         Span<bool> faceGrid = stackalloc bool[16 * 16];
         faceGrid.Clear();
 
-        Vector3 normal = GetDirectionVector3(faceDirection);
+        var normal = GetDirectionVector3(faceDirection);
 
         foreach (var modelVariant in modelVariants)
         {
@@ -572,17 +572,17 @@ public sealed class BuildplateMeshGenerator
                 continue;
             }
 
-            Matrix4x4 variantTransform = CreateVariantTransform(modelVariant);
+            var variantTransform = CreateVariantTransform(modelVariant);
 
             foreach (var element in model.Elements)
             {
-                Vector3 from = element.From * BlockModelScale;
-                Vector3 to = element.To * BlockModelScale;
+                var from = element.From * BlockModelScale;
+                var to = element.To * BlockModelScale;
 
-                Matrix4x4 elementTransform = CreateElementTransform(element.Rotation);
-                Matrix4x4 finalTransform = elementTransform * variantTransform;
+                var elementTransform = CreateElementTransform(element.Rotation);
+                var finalTransform = elementTransform * variantTransform;
 
-                CalculateTransformedAABB(from, to, finalTransform, out Vector3 min, out Vector3 max);
+                CalculateTransformedAABB(from, to, finalTransform, out var min, out var max);
 
                 ProjectElementToFaceGrid(min, max, normal, faceGrid);
             }

@@ -42,7 +42,7 @@ public static class IdTranslator
         Debug.Assert(formatted && charsWritten == 32);
 
         ReadOnlySpan<char> trimmed = buffer.TrimStart('0');
-        
+
         return trimmed.IsEmpty ? string.Empty : trimmed.ToString();
     }
 
@@ -66,7 +66,7 @@ public static class IdTranslator
 
         // Hybrid approach: use stackalloc for small strings, ArrayPool for large ones to prevent Stack Overflow
         byte[]? rented = null;
-        Span<byte> utf8Bytes = maxByteCount <= 1024
+        var utf8Bytes = maxByteCount <= 1024
             ? stackalloc byte[1024]
             : (rented = ArrayPool<byte>.Shared.Rent(maxByteCount));
 

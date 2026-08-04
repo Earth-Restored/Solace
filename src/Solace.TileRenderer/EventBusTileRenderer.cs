@@ -24,7 +24,7 @@ internal sealed partial class EventBusTileRenderer : IAsyncDisposable
     public async Task RunAsync()
     {
         await _eventBus.AddRequestHandlerAsync("tile",
-        async request =>
+        async (request, cancellationToken) =>
         {
             if (request.Type is "renderTile")
             {
@@ -44,7 +44,7 @@ internal sealed partial class EventBusTileRenderer : IAsyncDisposable
                 using (var bitmap = new SKBitmap(128, 128))
                 using (var canvas = new SKCanvas(bitmap))
                 {
-                    await _renderer.RenderAsync(_dataSource, canvas, getTile.TileX, getTile.TileY, getTile.Zoom, _logger);
+                    await _renderer.RenderAsync(_dataSource, canvas, getTile.TileX, getTile.TileY, getTile.Zoom, _logger, cancellationToken);
 
                     // TODO: higher/lower quality?
                     using (var data = bitmap.Encode(SKEncodedImageFormat.Png, 80))

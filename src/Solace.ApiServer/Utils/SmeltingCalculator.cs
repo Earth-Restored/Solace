@@ -8,12 +8,12 @@ internal static class SmeltingCalculator
 {
     public static State CalculateState(DateTimeOffset currentTime, SmeltingSlotEF.ActiveSmeltingJob activeJob, SmeltingSlotEF.BurningR? burning, Catalog catalog)
     {
-        Catalog.RecipesCatalogR.SmeltingRecipe? recipe = catalog.RecipesCatalog.GetSmeltingRecipe(activeJob.RecipeId);
+        var recipe = catalog.RecipesCatalog.GetSmeltingRecipe(activeJob.RecipeId);
         Debug.Assert(recipe is not null);
 
         var totalHeatRequired = recipe.HeatRequired * activeJob.TotalRounds;
         var totalCompletionTime = activeJob.StartTime + CalculateDurationForHeat(totalHeatRequired, burning, activeJob.AddedFuel);
-        DateTimeOffset nextCompletionTime = DateTimeOffset.MinValue;
+        var nextCompletionTime = DateTimeOffset.MinValue;
         int completedRounds;
         if (activeJob.FinishedEarly)
         {

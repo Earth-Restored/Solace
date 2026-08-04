@@ -153,13 +153,13 @@ internal sealed partial class TappablesManager : IAsyncDisposable
         return true;
     }
 
-    public async Task NotifyTileActiveAsync(Guid accountId, double lat, double lon)
+    public async Task NotifyTileActiveAsync(Guid accountId, double lat, double lon, CancellationToken cancellationToken = default)
     {
         Debug.Assert(_requestSender is not null);
 
         var tileX = XToTile(LonToX(lon));
         var tileY = YToTile(LatToY(lat));
-        var response = await _requestSender.RequestAsync("tappables", "activeTile", Json.Serialize(new ActiveTileNotification(tileX, tileY, accountId.ToString())));
+        var response = await _requestSender.RequestAsync("tappables", "activeTile", Json.Serialize(new ActiveTileNotification(tileX, tileY, accountId.ToString())), cancellationToken);
         if (response is null)
         {
             LogActiveTileNotificationEventWasRejectedIgnored();
@@ -185,7 +185,7 @@ internal sealed partial class TappablesManager : IAsyncDisposable
         string PlayerId
     );
 
-    private Task HandleEvent(SubscriberEvent @event)
+    private Task HandleEvent(SubscriberEvent @event, CancellationToken cancellationToken)
     {
         switch (@event.Type)
         {
@@ -315,7 +315,7 @@ internal sealed partial class TappablesManager : IAsyncDisposable
             return false;
         }
 
-        if (!int.TryParse(tileIdStr[(underscoreIndex+1)..], CultureInfo.InvariantCulture, out var y))
+        if (!int.TryParse(tileIdStr[(underscoreIndex + 1)..], CultureInfo.InvariantCulture, out var y))
         {
             Unsafe.SkipInit(out tileId);
             return false;

@@ -12,7 +12,7 @@ public static partial class BedrockBlocks
     private static readonly Dictionary<BlockNameAndState, int> stateToIdMap = [];
     private static readonly Dictionary<int, BlockNameAndState> idToStateMap = [];
 
-    private static readonly Lock _initLock = new Lock();
+    private static readonly Lock _initLock = new();
     private static volatile bool _isInitialized;
 
     public static int AirId { get; private set; }
@@ -143,7 +143,7 @@ public static partial class BedrockBlocks
             return null;
         }
 
-        NbtMapBuilder builder = NbtMap.Builder();
+        var builder = NbtMap.Builder();
         foreach (var (key, value) in blockNameAndState.State)
         {
             if (value is string s)

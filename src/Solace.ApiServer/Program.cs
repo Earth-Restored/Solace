@@ -55,7 +55,7 @@ internal static partial class App
 
         if (!Debugger.IsAttached)
         {
-            AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
+            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
             {
                 Console.Error.WriteLine($"Unhandled exception: {e.ExceptionObject}");
 
@@ -240,7 +240,9 @@ internal static partial class App
 
             startupDeps.Secrets = await db.GetOrInitializeSecretsAsync();
 
-            await ImportShopBuildplates(db, eventBus, objectStore, staticData, programLogger);
+            var fixUpBuildplates = builder.Configuration.GetValue<bool>("FixUpBuildplatesOnImport", false);
+
+            await ImportShopBuildplates(db, eventBus, objectStore, staticData, fixUpBuildplates, programLogger);
         }
 
         // init stuff that needs async initialization
@@ -253,7 +255,7 @@ internal static partial class App
         return 0;
     }
 
-    private static async Task ImportShopBuildplates(EarthDbContext earthDbContext, EventBusClient eventBus, ObjectStoreClient objectStore, SData staticData, ILogger logger)
+    private static async Task ImportShopBuildplates(EarthDbContext earthDbContext, EventBusClient eventBus, ObjectStoreClient objectStore, SData staticData, bool fixUpBuildplates, ILogger logger)
     {
         LogImportingShopBuildplates(logger);
 
@@ -287,9 +289,9 @@ internal static partial class App
                     name = bpPlayfabItem.Title;
                 }
 
-                using (var buidplateData = buildplate.OpenRead())
+                await using (var buidplateData = buildplate.OpenRead())
                 {
-                    await importer.ImportTemplateAsync(buildplate.Id, $"[SHOP] {name}", buidplateData);
+                    await importer.ImportTemplateAsync(buildplate.Id, $"[SHOP] {name}", buidplateData, fixUpBuildplates);
                 }
             }
             catch (Exception exception)

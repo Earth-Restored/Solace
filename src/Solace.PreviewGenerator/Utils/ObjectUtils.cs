@@ -32,8 +32,8 @@ public static class ObjectUtils
 
         if (obj1 is IEnumerable enumerable1 && obj2 is IEnumerable enumerable2)
         {
-            IEnumerator enumerator1 = enumerable1.GetEnumerator();
-            IEnumerator enumerator2 = enumerable2.GetEnumerator();
+            var enumerator1 = enumerable1.GetEnumerator();
+            var enumerator2 = enumerable2.GetEnumerator();
 
             while (enumerator1.MoveNext() && enumerator2.MoveNext())
             {
@@ -46,7 +46,7 @@ public static class ObjectUtils
             return !(enumerator1.MoveNext() || enumerator2.MoveNext());
         }
 
-        foreach (PropertyInfo property in type1.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        foreach (var property in type1.GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             var value1 = property.GetValue(obj1);
             var value2 = property.GetValue(obj2);

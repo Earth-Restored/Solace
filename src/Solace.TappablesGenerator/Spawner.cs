@@ -50,12 +50,12 @@ internal sealed partial class Spawner : IAsyncDisposable
 
             nextTime += SPAWN_INTERVAL;
 
-            await DoSpawnCycle();
+            await DoSpawnCycleAsync();
         }
     }
 
-    [Obsolete($"Use {nameof(SpawnTiles)} instead.")]
-    public async Task SpawnTile(int tileX, int tileY)
+    [Obsolete($"Use {nameof(SpawnTilesAsync)} instead.")]
+    public async Task SpawnTileAsync(int tileX, int tileY, CancellationToken cancellationToken = default)
     {
         var spawnCycleTime = _spawnCycleTime;
         var spawnCycleIndex = _spawnCycleIndex;
@@ -75,10 +75,10 @@ internal sealed partial class Spawner : IAsyncDisposable
         tappables.RemoveAll(tappable => tappable.SpawnTime + tappable.ValidFor < tappableCutoffTime);
         encounters.RemoveAll(encounter => encounter.SpawnTime + encounter.ValidFor < tappableCutoffTime);
 
-        await SendSpawnedTappables(tappables, encounters);
+        await SendSpawnedTappablesAsync(tappables, encounters, cancellationToken);
     }
 
-    public async Task SpawnTiles(IEnumerable<ActiveTiles.ActiveTile> activeTiles)
+    public async Task SpawnTilesAsync(IEnumerable<ActiveTiles.ActiveTile> activeTiles, CancellationToken cancellationToken = default)
     {
         var spawnCycleTime = _spawnCycleTime;
         var spawnCycleIndex = _spawnCycleIndex;
@@ -100,7 +100,7 @@ internal sealed partial class Spawner : IAsyncDisposable
         tappables.RemoveAll(tappable => tappable.SpawnTime + tappable.ValidFor < tappableCutoffTime);
         encounters.RemoveAll(encounter => encounter.SpawnTime + encounter.ValidFor < tappableCutoffTime);
 
-        await SendSpawnedTappables(tappables, encounters);
+        await SendSpawnedTappablesAsync(tappables, encounters, cancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -111,7 +111,7 @@ internal sealed partial class Spawner : IAsyncDisposable
         }
     }
 
-    private async Task DoSpawnCycle()
+    private async Task DoSpawnCycleAsync(CancellationToken cancellationToken = default)
     {
         var activeTiles = _activeTiles.GetActiveTiles(_spawnCycleTime);
 
@@ -123,7 +123,7 @@ internal sealed partial class Spawner : IAsyncDisposable
 
         List<Tappable> tappables = [];
         List<Encounter> encounters = [];
-        foreach (ActiveTiles.ActiveTile activeTile in activeTiles)
+        foreach (var activeTile in activeTiles)
         {
             DoSpawnCyclesForTile(activeTile.TileX, activeTile.TileY, _spawnCycleTime, _spawnCycleIndex, tappables, encounters);
         }
@@ -133,7 +133,7 @@ internal sealed partial class Spawner : IAsyncDisposable
         tappables.RemoveAll(tappable => tappable.SpawnTime + tappable.ValidFor < tappableCutoffTime);
         encounters.RemoveAll(encounter => encounter.SpawnTime + encounter.ValidFor < tappableCutoffTime);
 
-        await SendSpawnedTappables(tappables, encounters);
+        await SendSpawnedTappablesAsync(tappables, encounters, cancellationToken);
     }
 
     private void DoSpawnCyclesForTile(int tileX, int tileY, DateTimeOffset spawnCycleTime, int spawnCycleIndex, List<Tappable> tappables, List<Encounter> encounters)
@@ -154,16 +154,16 @@ internal sealed partial class Spawner : IAsyncDisposable
         encounters.AddRange(_encounterGenerator.GenerateEncounters(tileX, tileY, currentTime));
     }
 
-    private async Task SendSpawnedTappables(List<Tappable> tappables, List<Encounter> encounters)
+    private async Task SendSpawnedTappablesAsync(List<Tappable> tappables, List<Encounter> encounters, CancellationToken cancellationToken = default)
     {
         Debug.Assert(_publisher is not null);
 
-        if (!await _publisher.PublishAsync("tappables", "tappableSpawn", JsonSerializer.Serialize(tappables, AppJsonContext.Default.ListTappable)))
+        if (!await _publisher.PublishAsync("tappables", "tappableSpawn", JsonSerializer.Serialize(tappables, AppJsonContext.Default.ListTappable), cancellationToken))
         {
             LogEventBusServerRejectedTappableSpawnEvent();
         }
 
-        if (!await _publisher.PublishAsync("tappables", "encounterSpawn", JsonSerializer.Serialize(encounters, AppJsonContext.Default.ListEncounter)))
+        if (!await _publisher.PublishAsync("tappables", "encounterSpawn", JsonSerializer.Serialize(encounters, AppJsonContext.Default.ListEncounter), cancellationToken))
         {
             LogEventBusServerRejectedEncounterSpawnEvent();
         }

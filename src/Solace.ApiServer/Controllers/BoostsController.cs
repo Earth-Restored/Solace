@@ -77,13 +77,13 @@ internal sealed partial class BoostsController : SolaceControllerBase
                 continue;
             }
 
-            Catalog.ItemsCatalogR.Item? item = _catalog.ItemsCatalog.GetItem(activeBoost.ItemId);
+            var item = _catalog.ItemsCatalog.GetItem(activeBoost.ItemId);
             if (item is null || item.BoostInfo is null)
             {
                 continue;
             }
 
-            ActiveBoostInfo? existingActiveBoostInfo = activeBoostsWithInfo.GetValueOrDefault(item.BoostInfo.Name);
+            var existingActiveBoostInfo = activeBoostsWithInfo.GetValueOrDefault(item.BoostInfo.Name);
             if (existingActiveBoostInfo is not null && existingActiveBoostInfo.BoostInfo.Level > item.BoostInfo.Level)
             {
                 continue;
@@ -94,11 +94,11 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         LinkedList<Types.Boost.Boosts.ActiveEffect> activeEffects = [];
         LinkedList<Types.Boost.Boosts.ScenarioBoost> triggeredOnDeathBoosts = [];
-        foreach (ActiveBoostInfo activeBoostInfo in activeBoostsWithInfo.Values)
+        foreach (var activeBoostInfo in activeBoostsWithInfo.Values)
         {
             if (!activeBoostInfo.BoostInfo.TriggeredOnDeath)
             {
-                foreach (Catalog.ItemsCatalogR.Item.BoostEffect effect in activeBoostInfo.BoostInfo.Effects)
+                foreach (var effect in activeBoostInfo.BoostInfo.Effects)
                 {
                     if (effect.Activation != Catalog.ItemsCatalogR.Item.BoostEffectActivation.TIMED)
                     {
@@ -112,7 +112,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             else
             {
                 var effects = new List<Effect>(activeBoostInfo.BoostInfo.Effects.Length);
-                foreach (Catalog.ItemsCatalogR.Item.BoostEffect effect in activeBoostInfo.BoostInfo.Effects)
+                foreach (var effect in activeBoostInfo.BoostInfo.Effects)
                 {
                     if (effect.Activation is not Catalog.ItemsCatalogR.Item.BoostEffectActivation.TRIGGERED)
                     {
@@ -169,7 +169,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        Catalog.ItemsCatalogR.Item? item = _catalog.ItemsCatalog.GetItem(itemId);
+        var item = _catalog.ItemsCatalog.GetItem(itemId);
 
         if (item is null || item.BoostInfo is null || item.BoostInfo.Type is not Catalog.ItemsCatalogR.Item.BoostInfoType.POTION)
         {

@@ -16,14 +16,14 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
     }
 
     public double Left { get; }
-    
+
     public double Bottom { get; }
 
     public double Right { get; }
 
     public double Top { get; }
 
-    public readonly override bool Equals(object? obj)
+    public override readonly bool Equals(object? obj)
         => obj is BoundingBox bounds && Equals(bounds);
 
     public readonly bool Equals(BoundingBox other)
@@ -32,7 +32,7 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
             Right == other.Right &&
             Top == other.Top;
 
-    public readonly override int GetHashCode()
+    public override readonly int GetHashCode()
         => HashCode.Combine(Left, Bottom, Right, Top);
 
     public readonly double[] ToArray()

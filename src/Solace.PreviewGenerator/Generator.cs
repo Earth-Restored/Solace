@@ -32,7 +32,7 @@ public static partial class Generator
             }
         }
 
-        PreviewModel.SubChunk[] subChunks = chunks
+        var subChunks = chunks
             .SelectMany(chunk =>
             {
                 return Enumerable.Range(0, 16)
@@ -120,7 +120,7 @@ public static partial class Generator
         var previewModel = new PreviewModel(
             1,
             false,
-            subChunks,
+            subChunks!,
             blockEntities,
             []
         );

@@ -6,7 +6,7 @@ public sealed class RequestHandler : IAsyncDisposable
 {
     private readonly EventBusService.EventBusServiceClient _client;
     private readonly string _queueName;
-    private readonly Func<RequestHandlerRequest, Task<string?>> _onRequest;
+    private readonly Func<RequestHandlerRequest, CancellationToken, Task<string?>> _onRequest;
     private readonly Func<Exception?, Task> _onError;
     private AsyncDuplexStreamingCall<ClientMessage, ServerMessage>? _call;
 
@@ -16,7 +16,7 @@ public sealed class RequestHandler : IAsyncDisposable
     private SemaphoreSlim? _semaphore;
     private const int MaxDegreeOfParallelism = 4;
 
-    public RequestHandler(EventBusService.EventBusServiceClient client, string queueName, Func<RequestHandlerRequest, Task<string?>> onRequest, Func<Exception?, Task> onError)
+    public RequestHandler(EventBusService.EventBusServiceClient client, string queueName, Func<RequestHandlerRequest, CancellationToken, Task<string?>> onRequest, Func<Exception?, Task> onError)
     {
         _client = client;
         _queueName = queueName;
@@ -47,13 +47,13 @@ public sealed class RequestHandler : IAsyncDisposable
                     {
                         try
                         {
-                            var outData = await _onRequest(new RequestHandlerRequest(serverMsg.Timestamp.ToDateTimeOffset(), serverMsg.Type, serverMsg.Data));
+                            var outData = await _onRequest(new RequestHandlerRequest(serverMsg.Timestamp.ToDateTimeOffset(), serverMsg.Type, serverMsg.Data), _cts.Token);
                             await safeStream.WriteAsync(new ClientMessage
                             {
                                 Response = new HandlerResponse { CorrelationId = serverMsg.CorrelationId, Data = outData ?? "", Status = outData is null ? HandlerResponse.Types.Status.NotHandled : HandlerResponse.Types.Status.Success, }
                             });
                         }
-                        catch (Exception exception)
+                        catch (Exception exception) when (exception is not (OperationCanceledException or RpcException { StatusCode: StatusCode.Cancelled, }))
                         {
                             await _onError(exception);
 

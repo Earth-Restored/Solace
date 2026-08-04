@@ -9,7 +9,7 @@ public sealed class CraftingSlotEF : ICloneable<CraftingSlotEF>
     public bool Locked { get; set; }
 
     public CraftingSlotEF DeepCopy()
-        => new CraftingSlotEF()
+        => new()
         {
             ActiveJob = ActiveJob?.DeepCopy(),
             Locked = Locked,
@@ -40,7 +40,7 @@ public sealed class CraftingSlotEF : ICloneable<CraftingSlotEF>
         }
 
         public InputRow DeepCopy()
-            => new InputRow([.. Items.Select(item => item.DeepCopy())]);
+            => new([.. Items.Select(item => item.DeepCopy())]);
 
         public bool Equals(InputRow? other)
             => other is not null && Items.SequenceEqual(other.Items);
@@ -75,7 +75,7 @@ public sealed class CraftingSlotEF : ICloneable<CraftingSlotEF>
         }
 
         public ActiveCraftingJob DeepCopy()
-            => new ActiveCraftingJob(SessionId, RecipeId, StartTime, [.. Input.Select(item => item.DeepCopy())], TotalRounds, CollectedRounds, FinishedEarly);
+            => new(SessionId, RecipeId, StartTime, [.. Input.Select(item => item.DeepCopy())], TotalRounds, CollectedRounds, FinishedEarly);
 
         public bool Equals(ActiveCraftingJob? other)
              => other is not null && SessionId == other.SessionId && RecipeId == other.RecipeId && StartTime == other.StartTime && Input.SequenceEqual(other.Input) && TotalRounds == other.TotalRounds && CollectedRounds == other.CollectedRounds && FinishedEarly == other.FinishedEarly;

@@ -9,8 +9,8 @@ public sealed class Publisher : IAsyncDisposable
         _client = client;
     }
 
-    public Task<bool> PublishAsync(string queueName, string type, string data)
-        => _client.PublishAsync(new PublishRequest { QueueName = queueName, Type = type, Data = data, })
+    public Task<bool> PublishAsync(string queueName, string type, string data, CancellationToken cancellationToken = default)
+        => _client.PublishAsync(new PublishRequest { QueueName = queueName, Type = type, Data = data, }, cancellationToken: cancellationToken)
             .ResponseAsync
             .ContinueWith(task => task.Result.Success, TaskContinuationOptions.ExecuteSynchronously);
 

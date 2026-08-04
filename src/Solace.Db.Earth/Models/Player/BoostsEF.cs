@@ -18,7 +18,7 @@ public sealed class BoostsEF : IEntityWithId<Guid>
     {
         for (var index = 0; index < ActiveBoosts.Length; index++)
         {
-            ActiveBoost? activeBoost = ActiveBoosts[index];
+            var activeBoost = ActiveBoosts[index];
             if (activeBoost is not null && activeBoost.StartTime + activeBoost.Duration < currentTime)
             {
                 ActiveBoosts[index] = null;
@@ -35,7 +35,7 @@ public sealed class BoostsEF : IEntityWithId<Guid>
     ) : ICloneable<ActiveBoost>
     {
         public ActiveBoost DeepCopy()
-            => new ActiveBoost(this);
+            => new(this);
 
         public sealed class Comparer : IEqualityComparer<ActiveBoost>
         {

@@ -40,7 +40,7 @@ public static class MeshDataExtensions
     }.ToFrozenDictionary();
 
     private static Vector4 HexToVector4(int hex)
-        => new Vector4(
+        => new(
             ((hex >> 16) & 0xFF) / 255.0f,
             ((hex >> 8) & 0xFF) / 255.0f,
             (hex & 0xFF) / 255.0f,
@@ -101,7 +101,7 @@ public static class MeshDataExtensions
         try
         {
             var img = await resourcePackManager.GetTextureImageAsync(path);
-            Rgba32 pixel = img[u, v];
+            var pixel = img[u, v];
             return new Vector4(pixel.R / 255f, pixel.G / 255f, pixel.B / 255f, 1.0f);
         }
         catch
@@ -123,11 +123,11 @@ public static class MeshDataExtensions
             foreach (var kvp in mesh.Primitives)
             {
                 var textureId = kvp.Key;
-                MeshPrimitive primitiveData = kvp.Value;
+                var primitiveData = kvp.Value;
 
                 var textureBytes = await resourcePack.GetTextureDataPNGAsync(textureId);
 
-                Vector4? colorMultiplier = await TryGetColorMultiplierAsync(textureId, biome, resourcePack);
+                var colorMultiplier = await TryGetColorMultiplierAsync(textureId, biome, resourcePack);
 
                 var material = new MaterialBuilder(textureId)
                     .WithBaseColor(new SharpGLTF.Memory.MemoryImage(textureBytes), colorMultiplier)

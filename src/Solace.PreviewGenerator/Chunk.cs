@@ -51,7 +51,7 @@ internal sealed partial class Chunk
             var blockStatesTag = sectionTag.GetCompound("block_states");
 
             var paletteTag = blockStatesTag.GetList("palette");
-            List<string> javaPalette = new(paletteTag.Count);
+            List<string> javaPalette = [with(paletteTag.Count)];
             foreach (var paletteEntryTag in paletteTag.Value)
             {
                 javaPalette.Add(ReadPaletteEntry((TagCompound)paletteEntryTag));
@@ -86,7 +86,7 @@ internal sealed partial class Chunk
                     {
                         var javaName = javaPalette[javaBlocks[(y * 16 + z) * 16 + x]];
 
-                        JavaBlocks.BedrockMapping? bedrockMapping = JavaBlocks.GetBedrockMapping(javaName);
+                        var bedrockMapping = JavaBlocks.GetBedrockMapping(javaName);
                         if (bedrockMapping is null)
                         {
                             if (alreadyNotifiedMissingBlocks.Add(javaName))

@@ -8,7 +8,7 @@ namespace Solace.PreviewGenerator.NBT;
 public sealed class NbtMap// : IDictionary<string, object>
 #pragma warning restore CA1708 // Identifiers should differ by more than case
 {
-    public static readonly NbtMap EMPTY = new NbtMap();
+    public static readonly NbtMap EMPTY = new();
 
     private static readonly byte[] EMPTY_BYTE_ARRAY = [];
     private static readonly int[] EMPTY_INT_ARRAY = [];
@@ -38,7 +38,7 @@ public sealed class NbtMap// : IDictionary<string, object>
         => [];
 
     public static NbtMap FromMap(IReadOnlyDictionary<string, object> map)
-        => new NbtMap(map);
+        => new(map);
 
     public NbtMapBuilder ToBuilder()
         => NbtMapBuilder.From(this);
@@ -344,7 +344,7 @@ public sealed class NbtMap// : IDictionary<string, object>
         var sb = new StringBuilder();
         sb.Append('{').Append('\n');
 
-        IEnumerator<KeyValuePair<string, object>> enumerator = map.GetEnumerator();
+        var enumerator = map.GetEnumerator();
         enumerator.MoveNext();
         for (; ; )
         {

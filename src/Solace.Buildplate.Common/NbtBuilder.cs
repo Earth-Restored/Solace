@@ -1,10 +1,10 @@
 ﻿using Cyotek.Data.Nbt;
 
-namespace Solace.Buildplate.Launcher;
+namespace Solace.Buildplate.Common;
 
-internal sealed class NbtBuilder
+public sealed class NbtBuilder
 {
-    internal sealed class Compound
+    public sealed class Compound
     {
         private readonly List<Tag> tags = [];
 
@@ -92,20 +92,20 @@ internal sealed class NbtBuilder
 
         public Compound Add(string name, Compound value)
         {
-            TagCompound tag = value.Build(name);
+            var tag = value.Build(name);
             tags.Add(tag);
             return this;
         }
 
         public Compound Add(string name, List value)
         {
-            TagList tag = value.Build(name);
+            var tag = value.Build(name);
             tags.Add(tag);
             return this;
         }
     }
 
-    internal sealed class List
+    public sealed class List
     {
         private readonly TagType type;
         private readonly List<Tag> tags = [];
@@ -194,14 +194,14 @@ internal sealed class NbtBuilder
 
         public List Add(Compound value)
         {
-            TagCompound tag = value.Build("");
+            var tag = value.Build("");
             tags.Add(tag);
             return this;
         }
 
         public List Add(List value)
         {
-            TagList tag = value.Build("");
+            var tag = value.Build("");
             tags.Add(tag);
             return this;
         }

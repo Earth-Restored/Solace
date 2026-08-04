@@ -19,6 +19,7 @@ public sealed partial class ImportTemplate(
     EarthDbContext earthDb,
     EventBusClient eventBus,
     ObjectStoreClient objectStore,
+    IConfiguration configuration,
     ILogger<ImportTemplate> logger
 )
 {
@@ -42,6 +43,8 @@ public sealed partial class ImportTemplate(
 
             var rawName = Path.GetFileNameWithoutExtension(command.File.FileName);
             var displayName = string.IsNullOrWhiteSpace(rawName) ? "imported buildplate" : rawName;
+
+            var fixUpBuildplates = configuration.GetValue<bool>("FixUpBuildplatesOnImport", false);
 
             using var memoryStream = new MemoryStream();
             await command.File.CopyToAsync(memoryStream, cancellationToken);
@@ -78,14 +81,14 @@ public sealed partial class ImportTemplate(
                 }
 
                 zipStream.Position = 0;
-                if (!await importer.ImportTemplateAsync(Guid.CreateVersion7(), displayName, zipStream, cancellationToken))
+                if (!await importer.ImportTemplateAsync(Guid.CreateVersion7(), displayName, zipStream, fixUpBuildplates, cancellationToken))
                 {
                     return TypedResults.InternalServerError("Unknown error occured.");
                 }
             }
             else
             {
-                if (!await importer.ImportTemplateAsync(Guid.CreateVersion7(), displayName, memoryStream, cancellationToken))
+                if (!await importer.ImportTemplateAsync(Guid.CreateVersion7(), displayName, memoryStream, fixUpBuildplates, cancellationToken))
                 {
                     return TypedResults.InternalServerError("Unknown error occured.");
                 }

@@ -9,28 +9,28 @@ public sealed record InputItem(
      NonStackableItemInstance[] Instances
 ) : ICloneable<InputItem>
 {
-     // efcore json needs this
-     private InputItem()
-          : this(default!, default!, default!)
-     {
-     }
+    // efcore json needs this
+    private InputItem()
+         : this(default!, default!, default!)
+    {
+    }
 
-     public InputItem DeepCopy()
-          => new InputItem(Id, Count, [.. Instances.Select(item => item.DeepCopy())]);
+    public InputItem DeepCopy()
+         => new(Id, Count, [.. Instances.Select(item => item.DeepCopy())]);
 
-     public bool Equals(InputItem? other)
-          => other is not null && Id == other.Id && Count == other.Count && Instances.SequenceEqual(other.Instances);
+    public bool Equals(InputItem? other)
+         => other is not null && Id == other.Id && Count == other.Count && Instances.SequenceEqual(other.Instances);
 
-     public override int GetHashCode()
-     {
-          var hash = new HashCode();
-          hash.Add(Id);
-          hash.Add(Count);
-          foreach (var item in Instances)
-          {
-               hash.Add(item);
-          }
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Id);
+        hash.Add(Count);
+        foreach (var item in Instances)
+        {
+            hash.Add(item);
+        }
 
-          return hash.ToHashCode();
-     }
+        return hash.ToHashCode();
+    }
 }

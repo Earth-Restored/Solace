@@ -144,7 +144,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        StartRequestCrafting? startRequest = await Request.Body.AsJsonAsync(AppJsonContext.Default.StartRequestCrafting, cancellationToken);
+        var startRequest = await Request.Body.AsJsonAsync(AppJsonContext.Default.StartRequestCrafting, cancellationToken);
         if (startRequest is null || startRequest.Multiplier < 1)
         {
             return TypedResults.BadRequest();
@@ -155,7 +155,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        Catalog.RecipesCatalogR.CraftingRecipe? recipe = _staticData.Catalog.RecipesCatalog.GetCraftingRecipe(startRequest.RecipeId);
+        var recipe = _staticData.Catalog.RecipesCatalog.GetCraftingRecipe(startRequest.RecipeId);
 
         if (recipe is null)
         {
@@ -187,7 +187,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         var providedItems = new InputItem[startRequest.Ingredients.Length];
         for (var index = 0; index < startRequest.Ingredients.Length; index++)
         {
-            StartRequestCraftingItem item = startRequest.Ingredients[index];
+            var item = startRequest.Ingredients[index];
             if (item.ItemInstanceIds is null || item.ItemInstanceIds.Length == 0)
             {
                 if (!await InventoryUtils.TakeStackableItemsAsync(_earthDb, results, accountId, item.ItemId, item.Quantity, cancellationToken))
@@ -212,13 +212,13 @@ internal sealed class WorkshopController : SolaceControllerBase
         await HotbarUtils.LimitToInventoryAsync(_earthDb, accountId, hotbar, cancellationToken);
 
         var inputItems = new List<List<InputItem>>(recipe.Ingredients.Length);
-        foreach (Catalog.RecipesCatalogR.CraftingRecipe.Ingredient ingredient in recipe.Ingredients)
+        foreach (var ingredient in recipe.Ingredients)
         {
             var ingredientItems = new List<InputItem>(providedItems.Length);
             var requiredCount = ingredient.Count * startRequest.Multiplier;
             for (var index = 0; index < providedItems.Length; index++)
             {
-                InputItem providedItem = providedItems[index];
+                var providedItem = providedItems[index];
                 if (providedItem.Count == 0)
                 {
                     continue;
@@ -306,7 +306,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        StartRequestSmelting? startRequest = await Request.Body.AsJsonAsync(AppJsonContext.Default.StartRequestSmelting, cancellationToken);
+        var startRequest = await Request.Body.AsJsonAsync(AppJsonContext.Default.StartRequestSmelting, cancellationToken);
         if (startRequest is null || startRequest.Multiplier < 1)
         {
             return TypedResults.BadRequest();
@@ -322,8 +322,8 @@ internal sealed class WorkshopController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        Catalog.RecipesCatalogR.SmeltingRecipe? recipe = _staticData.Catalog.RecipesCatalog.GetSmeltingRecipe(startRequest.RecipeId);
-        Catalog.ItemsCatalogR.Item? fuelCatalogItem = startRequest.Fuel is not null ? _staticData.Catalog.ItemsCatalog.GetItem(startRequest.Fuel.ItemId) : null;
+        var recipe = _staticData.Catalog.RecipesCatalog.GetSmeltingRecipe(startRequest.RecipeId);
+        var fuelCatalogItem = startRequest.Fuel is not null ? _staticData.Catalog.ItemsCatalog.GetItem(startRequest.Fuel.ItemId) : null;
         if (recipe is null)
         {
             return TypedResults.BadRequest();
@@ -479,7 +479,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         var rewards = new Rewards();
         if (craftingSlot.ActiveJob is not null)
         {
-            CraftingCalculator.State state = CraftingCalculator.CalculateState(requestStartedOn, craftingSlot.ActiveJob, _staticData.Catalog);
+            var state = CraftingCalculator.CalculateState(requestStartedOn, craftingSlot.ActiveJob, _staticData.Catalog);
 
             var quantity = state.AvailableRounds * state.Output.Count;
             if (quantity > 0)
@@ -493,7 +493,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             }
             else
             {
-                CraftingSlot.ActiveCraftingJob activeJob = craftingSlot.ActiveJob;
+                var activeJob = craftingSlot.ActiveJob;
                 craftingSlot.ActiveJob = new CraftingSlot.ActiveCraftingJob(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.TotalRounds, activeJob.CollectedRounds + state.AvailableRounds, activeJob.FinishedEarly);
             }
         }
@@ -532,7 +532,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         var rewards = new Rewards();
         if (smeltingSlot.ActiveJob is not null)
         {
-            SmeltingCalculator.State state = SmeltingCalculator.CalculateState(requestStartedOn, smeltingSlot.ActiveJob, smeltingSlot.Burning, _staticData.Catalog);
+            var state = SmeltingCalculator.CalculateState(requestStartedOn, smeltingSlot.ActiveJob, smeltingSlot.Burning, _staticData.Catalog);
 
             var quantity = state.AvailableRounds * state.Output.Count;
             if (quantity > 0)
@@ -557,7 +557,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             }
             else
             {
-                SmeltingSlotEF.ActiveSmeltingJob activeJob = smeltingSlot.ActiveJob;
+                var activeJob = smeltingSlot.ActiveJob;
                 smeltingSlot.ActiveJob = new SmeltingSlotEF.ActiveSmeltingJob(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.AddedFuel, activeJob.TotalRounds, activeJob.CollectedRounds + state.AvailableRounds, activeJob.FinishedEarly);
             }
         }
@@ -670,7 +670,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             return EarthJson(SmeltingSlotModelToResponse(smeltingSlot, requestStartedOn, versions.Smelting), new EarthApiResponse.UpdatesResponse());
         }
 
-        SmeltingCalculator.State state = SmeltingCalculator.CalculateState(requestStartedOn, smeltingSlot.ActiveJob, smeltingSlot.Burning, _staticData.Catalog);
+        var state = SmeltingCalculator.CalculateState(requestStartedOn, smeltingSlot.ActiveJob, smeltingSlot.Burning, _staticData.Catalog);
 
         var results = new ResultsEF.Builder();
 
@@ -740,7 +740,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        ExpectedPurchasePriceR? expectedPurchasePrice = await Request.Body.AsJsonAsync(AppJsonContext.Default.ExpectedPurchasePriceR, cancellationToken);
+        var expectedPurchasePrice = await Request.Body.AsJsonAsync(AppJsonContext.Default.ExpectedPurchasePriceR, cancellationToken);
         if (expectedPurchasePrice is null || expectedPurchasePrice.ExpectedPurchasePrice < 0)
         {
             return TypedResults.BadRequest();
@@ -761,7 +761,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse());
         }
 
-        CraftingCalculator.State state = CraftingCalculator.CalculateState(requestStartedOn, craftingSlot.ActiveJob, _staticData.Catalog);
+        var state = CraftingCalculator.CalculateState(requestStartedOn, craftingSlot.ActiveJob, _staticData.Catalog);
         if (state.Completed)
         {
             return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse());
@@ -785,7 +785,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse());
         }
 
-        CraftingSlot.ActiveCraftingJob activeJob = craftingSlot.ActiveJob;
+        var activeJob = craftingSlot.ActiveJob;
         craftingSlot.ActiveJob = new CraftingSlot.ActiveCraftingJob(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.TotalRounds, activeJob.CollectedRounds, true);
 
         await _earthDb.SaveChangesAsync(cancellationToken);
@@ -808,7 +808,7 @@ internal sealed class WorkshopController : SolaceControllerBase
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        ExpectedPurchasePriceR? expectedPurchasePrice = await Request.Body.AsJsonAsync(AppJsonContext.Default.ExpectedPurchasePriceR, cancellationToken);
+        var expectedPurchasePrice = await Request.Body.AsJsonAsync(AppJsonContext.Default.ExpectedPurchasePriceR, cancellationToken);
         if (expectedPurchasePrice is null || expectedPurchasePrice.ExpectedPurchasePrice < 0)
         {
             return TypedResults.BadRequest();
@@ -829,7 +829,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse());
         }
 
-        SmeltingCalculator.State state = SmeltingCalculator.CalculateState(requestStartedOn, smeltingSlot.ActiveJob, smeltingSlot.Burning, _staticData.Catalog);
+        var state = SmeltingCalculator.CalculateState(requestStartedOn, smeltingSlot.ActiveJob, smeltingSlot.Burning, _staticData.Catalog);
         if (state.Completed)
         {
             return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse());
@@ -853,7 +853,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             return EarthJson(new SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned), new EarthApiResponse.UpdatesResponse());
         }
 
-        SmeltingSlotEF.ActiveSmeltingJob activeJob = smeltingSlot.ActiveJob;
+        var activeJob = smeltingSlot.ActiveJob;
         smeltingSlot.ActiveJob = new SmeltingSlotEF.ActiveSmeltingJob(activeJob.SessionId, activeJob.RecipeId, activeJob.StartTime, activeJob.Input, activeJob.AddedFuel, activeJob.TotalRounds, activeJob.CollectedRounds, true);
 
         await _earthDb.SaveChangesAsync(cancellationToken);
@@ -868,7 +868,7 @@ internal sealed class WorkshopController : SolaceControllerBase
     [HttpGet("crafting/finish/price")]
     public Results<ContentHttpResult, BadRequest> GetCraftingPrice()
     {
-        if (!Request.Query.TryGetValue("remainingTime", out StringValues remainingTimeString))
+        if (!Request.Query.TryGetValue("remainingTime", out var remainingTimeString))
         {
             return TypedResults.BadRequest();
         }
@@ -895,7 +895,7 @@ internal sealed class WorkshopController : SolaceControllerBase
     [HttpGet("smelting/finish/price")]
     public Results<ContentHttpResult, BadRequest> GetSmeltingPrice()
     {
-        if (!Request.Query.TryGetValue("remainingTime", out StringValues remainingTimeString))
+        if (!Request.Query.TryGetValue("remainingTime", out var remainingTimeString))
         {
             return TypedResults.BadRequest();
         }
@@ -914,7 +914,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        SmeltingCalculator.FinishPrice finishPrice = SmeltingCalculator.CalculateFinishPrice(remainingTime);
+        var finishPrice = SmeltingCalculator.CalculateFinishPrice(remainingTime);
 
         return EarthJson(new FinishPrice(finishPrice.Price, 0, TimeFormatter.FormatDuration(finishPrice.ValidFor)));
     }
@@ -927,7 +927,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        ExpectedPurchasePriceR? expectedPurchasePrice = await Request.Body.AsJsonAsync(AppJsonContext.Default.ExpectedPurchasePriceR, cancellationToken);
+        var expectedPurchasePrice = await Request.Body.AsJsonAsync(AppJsonContext.Default.ExpectedPurchasePriceR, cancellationToken);
         if (expectedPurchasePrice is null || expectedPurchasePrice.ExpectedPurchasePrice < 0)
         {
             return TypedResults.BadRequest();
@@ -979,7 +979,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        ExpectedPurchasePriceR? expectedPurchasePrice = await Request.Body.AsJsonAsync(AppJsonContext.Default.ExpectedPurchasePriceR, cancellationToken);
+        var expectedPurchasePrice = await Request.Body.AsJsonAsync(AppJsonContext.Default.ExpectedPurchasePriceR, cancellationToken);
         if (expectedPurchasePrice is null || expectedPurchasePrice.ExpectedPurchasePrice < 0)
         {
             return TypedResults.BadRequest();
@@ -1042,10 +1042,10 @@ internal sealed class WorkshopController : SolaceControllerBase
             throw new ArgumentException($"{nameof(craftingSlotModel)} is locked.", nameof(craftingSlotModel));
         }
 
-        CraftingSlot.ActiveCraftingJob? activeJob = craftingSlotModel.ActiveJob;
+        var activeJob = craftingSlotModel.ActiveJob;
         if (activeJob is not null)
         {
-            CraftingCalculator.State state = CraftingCalculator.CalculateState(currentTime, activeJob, _staticData.Catalog);
+            var state = CraftingCalculator.CalculateState(currentTime, activeJob, _staticData.Catalog);
             return new Types.Workshop.CraftingSlot(
                 activeJob.SessionId,
                 activeJob.RecipeId,
@@ -1091,10 +1091,10 @@ internal sealed class WorkshopController : SolaceControllerBase
             throw new ArgumentException($"{nameof(smeltingSlotModel)} is locked.", nameof(smeltingSlotModel));
         }
 
-        SmeltingSlotEF.ActiveSmeltingJob? activeJob = smeltingSlotModel.ActiveJob;
+        var activeJob = smeltingSlotModel.ActiveJob;
         if (activeJob is not null)
         {
-            SmeltingCalculator.State state = SmeltingCalculator.CalculateState(currentTime, activeJob, smeltingSlotModel.Burning, _staticData.Catalog);
+            var state = SmeltingCalculator.CalculateState(currentTime, activeJob, smeltingSlotModel.Burning, _staticData.Catalog);
 
             Types.Workshop.SmeltingSlot.FuelR? fuel;
             if (state.RemainingAddedFuel is not null && state.RemainingAddedFuel.Item.Count > 0)
@@ -1144,8 +1144,8 @@ internal sealed class WorkshopController : SolaceControllerBase
         }
         else
         {
-            SmeltingSlotEF.BurningR? burningModel = smeltingSlotModel.Burning;
-            Types.Workshop.SmeltingSlot.BurningR? burning = burningModel is not null ? new Types.Workshop.SmeltingSlot.BurningR(
+            var burningModel = smeltingSlotModel.Burning;
+            var burning = burningModel is not null ? new Types.Workshop.SmeltingSlot.BurningR(
                 null,
                 null,
                 TimeFormatter.FormatDuration(burningModel.RemainingHeat * 1000 / burningModel.Fuel.HeatPerSecond),

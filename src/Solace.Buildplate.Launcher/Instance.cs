@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using Cyotek.Data.Nbt;
 using Cyotek.Data.Nbt.Serialization;
 using Microsoft.Extensions.Logging;
+using Solace.Buildplate.Common;
 using Solace.Buildplate.Connector.Model;
 using Solace.Common;
 using Solace.Common.Utils;
@@ -65,7 +66,7 @@ internal sealed partial class Instance
     private readonly ILoggerFactory _loggerFactory;
 
     private Task? _thread;
-    private readonly SemaphoreSlim _threadStartedSemaphore = new SemaphoreSlim(1, 1);
+    private readonly SemaphoreSlim _threadStartedSemaphore = new(1, 1);
     private readonly ILogger _logger;
 
     private Publisher? _publisher;
@@ -79,7 +80,7 @@ internal sealed partial class Instance
     private ConsoleProcess? _serverProcess;
     private ConsoleProcess? _bridgeProcess;
     private bool _shuttingDown;
-    private readonly ReentrantAsyncLock.ReentrantAsyncLock _subprocessLock = new ReentrantAsyncLock.ReentrantAsyncLock(); // java uses ReentrantLock, Lock cannot be used, because it does not support locking and unlocking on different threads, which happens due to async, SemaphoreSlim does not support multiple locks from the same async context
+    private readonly ReentrantAsyncLock.ReentrantAsyncLock _subprocessLock = new(); // java uses ReentrantLock, Lock cannot be used, because it does not support locking and unlocking on different threads, which happens due to async, SemaphoreSlim does not support multiple locks from the same async context
 
     private volatile bool _hostPlayerConnected;
 
@@ -148,7 +149,7 @@ internal sealed partial class Instance
 
             LogSettingUpServer();
 
-            BuildplateLoadResponse? buildplateLoadResponse = _buildplateSource switch
+            var buildplateLoadResponse = _buildplateSource switch
             {
                 BuildplateSource.PLAYER => await SendEventBusRequestRaw<BuildplateLoadResponse>("load", new BuildplateLoadRequest(_playerId!.Value, _buildplateId), true),
                 BuildplateSource.SHARED => await SendEventBusRequestRaw<BuildplateLoadResponse>("loadShared", new SharedBuildplateLoadRequest(_buildplateId), true),
@@ -215,9 +216,9 @@ internal sealed partial class Instance
             );
 
             _requestHandler = await _eventBusClient.AddRequestHandlerAsync(_eventBusQueueName,
-                async request =>
+                async (request, cancellationToken) =>
                 {
-                    var responseObject = await HandleConnectorRequest(request);
+                    var responseObject = await HandleConnectorRequestAsync(request, cancellationToken);
                     return responseObject is not null ? Json.Serialize(responseObject) : null;
                 },
                 async exception =>
@@ -307,7 +308,7 @@ internal sealed partial class Instance
         }
     }
 
-    private async Task HandleConnectorEvent(SubscriberEvent @event)
+    private async Task HandleConnectorEvent(SubscriberEvent @event, CancellationToken cancellationToken)
     {
         switch (@event.Type)
         {
@@ -315,7 +316,7 @@ internal sealed partial class Instance
                 {
                     LogServerIsReady();
                     await StartBridgeProcessAsync();
-                    SendEventBusInstanceStatusNotification("ready");
+                    SendEventBusInstanceStatusNotification("ready", cancellationToken);
                     if (_shutdownTime is not null)
                     {
                         StartShutdownTimer();
@@ -331,13 +332,13 @@ internal sealed partial class Instance
                 {
                     if (_saveEnabled)
                     {
-                        WorldSavedMessage? worldSavedMessage = ReadJson<WorldSavedMessage>(@event.Data);
+                        var worldSavedMessage = ReadJson<WorldSavedMessage>(@event.Data);
                         if (worldSavedMessage is not null)
                         {
                             if (_hostPlayerConnected)
                             {
                                 LogSavingSnapshot();
-                                SendEventBusRequest<object>("saved", worldSavedMessage, false)
+                                SendEventBusRequest<object>("saved", worldSavedMessage, false, cancellationToken)
                                     .Forget();
                             }
                             else
@@ -355,10 +356,10 @@ internal sealed partial class Instance
                 break;
             case "inventoryAdd":
                 {
-                    InventoryAddItemMessage? inventoryAddItemMessage = ReadJson<InventoryAddItemMessage>(@event.Data);
+                    var inventoryAddItemMessage = ReadJson<InventoryAddItemMessage>(@event.Data);
                     if (inventoryAddItemMessage is not null)
                     {
-                        SendEventBusRequest<object>("inventoryAdd", inventoryAddItemMessage, false)
+                        SendEventBusRequest<object>("inventoryAdd", inventoryAddItemMessage, false, cancellationToken)
                             .Forget();
                     }
                 }
@@ -366,10 +367,10 @@ internal sealed partial class Instance
                 break;
             case "inventoryUpdateWear":
                 {
-                    InventoryUpdateItemWearMessage? inventoryUpdateItemWearMessage = ReadJson<InventoryUpdateItemWearMessage>(@event.Data);
+                    var inventoryUpdateItemWearMessage = ReadJson<InventoryUpdateItemWearMessage>(@event.Data);
                     if (inventoryUpdateItemWearMessage is not null)
                     {
-                        SendEventBusRequest<object>("inventoryUpdateWear", inventoryUpdateItemWearMessage, false)
+                        SendEventBusRequest<object>("inventoryUpdateWear", inventoryUpdateItemWearMessage, false, cancellationToken)
                             .Forget();
                     }
                 }
@@ -378,10 +379,10 @@ internal sealed partial class Instance
 
             case "inventorySetHotbar":
                 {
-                    InventorySetHotbarMessage? inventorySetHotbarMessage = ReadJson<InventorySetHotbarMessage>(@event.Data);
+                    var inventorySetHotbarMessage = ReadJson<InventorySetHotbarMessage>(@event.Data);
                     if (inventorySetHotbarMessage is not null)
                     {
-                        SendEventBusRequest<object>("inventorySetHotbar", inventorySetHotbarMessage, false)
+                        SendEventBusRequest<object>("inventorySetHotbar", inventorySetHotbarMessage, false, cancellationToken)
                             .Forget();
                     }
                 }
@@ -390,13 +391,13 @@ internal sealed partial class Instance
         }
     }
 
-    private async Task<object?> HandleConnectorRequest(RequestHandlerRequest request)
+    private async Task<object?> HandleConnectorRequestAsync(RequestHandlerRequest request, CancellationToken cancellationToken)
     {
         switch (request.Type)
         {
             case "playerConnected":
                 {
-                    PlayerConnectedRequest? playerConnectedRequest = ReadJson<PlayerConnectedRequest>(request.Data);
+                    var playerConnectedRequest = ReadJson<PlayerConnectedRequest>(request.Data);
                     if (playerConnectedRequest is not null)
                     {
                         if (_playerId is not null && !_hostPlayerConnected && playerConnectedRequest.Uuid != _playerId)
@@ -405,7 +406,7 @@ internal sealed partial class Instance
                             return new PlayerConnectedResponse(false, null);
                         }
 
-                        PlayerConnectedResponse? playerConnectedResponse = await SendEventBusRequest<PlayerConnectedResponse>("playerConnected", playerConnectedRequest, true);
+                        var playerConnectedResponse = await SendEventBusRequest<PlayerConnectedResponse>("playerConnected", playerConnectedRequest, true, cancellationToken);
                         if (playerConnectedResponse is not null)
                         {
                             LogPlayerConnected(playerConnectedRequest.Uuid);
@@ -431,10 +432,10 @@ internal sealed partial class Instance
                 break;
             case "playerDisconnected":
                 {
-                    PlayerDisconnectedRequest? playerDisconnectedRequest = ReadJson<PlayerDisconnectedRequest>(request.Data);
+                    var playerDisconnectedRequest = ReadJson<PlayerDisconnectedRequest>(request.Data);
                     if (playerDisconnectedRequest is not null)
                     {
-                        PlayerDisconnectedResponse? playerDisconnectedResponse = await SendEventBusRequest<PlayerDisconnectedResponse>("playerDisconnected", playerDisconnectedRequest, true);
+                        var playerDisconnectedResponse = await SendEventBusRequest<PlayerDisconnectedResponse>("playerDisconnected", playerDisconnectedRequest, true, cancellationToken);
                         if (playerDisconnectedResponse is not null)
                         {
                             LogPlayerDisconnected(playerDisconnectedRequest.PlayerId);
@@ -456,7 +457,7 @@ internal sealed partial class Instance
                     var playerId = ReadJson<string>(request.Data);
                     if (playerId is not null)
                     {
-                        var respawn = await SendEventBusRequest<bool?>("playerDead", playerId, true);
+                        var respawn = await SendEventBusRequest<bool?>("playerDead", playerId, true, cancellationToken);
                         if (respawn is not null)
                         {
                             return respawn.Value;
@@ -470,7 +471,7 @@ internal sealed partial class Instance
                     var playerId = ReadJson<string>(request.Data);
                     if (playerId is not null)
                     {
-                        InventoryResponse? inventoryResponse = await SendEventBusRequest<InventoryResponse>("getInventory", playerId, true);
+                        var inventoryResponse = await SendEventBusRequest<InventoryResponse>("getInventory", playerId, true, cancellationToken);
                         if (inventoryResponse is not null)
                         {
                             return inventoryResponse;
@@ -489,12 +490,12 @@ internal sealed partial class Instance
                 break;
             case "inventoryRemove":
                 {
-                    InventoryRemoveItemRequest? inventoryRemoveItemRequest = ReadJson<InventoryRemoveItemRequest>(request.Data);
+                    var inventoryRemoveItemRequest = ReadJson<InventoryRemoveItemRequest>(request.Data);
                     if (inventoryRemoveItemRequest is not null)
                     {
                         if (inventoryRemoveItemRequest.InstanceId is not null)
                         {
-                            var success = await SendEventBusRequest<bool?>("inventoryRemove", inventoryRemoveItemRequest, true);
+                            var success = await SendEventBusRequest<bool?>("inventoryRemove", inventoryRemoveItemRequest, true, cancellationToken);
                             if (success is not null)
                             {
                                 return success.Value;
@@ -502,7 +503,7 @@ internal sealed partial class Instance
                         }
                         else
                         {
-                            var removedCount = await SendEventBusRequest<int?>("inventoryRemove", inventoryRemoveItemRequest, true);
+                            var removedCount = await SendEventBusRequest<int?>("inventoryRemove", inventoryRemoveItemRequest, true, cancellationToken);
                             if (removedCount is not null)
                             {
                                 return removedCount.Value;
@@ -514,7 +515,7 @@ internal sealed partial class Instance
                 break;
             case "findPlayer":
                 {
-                    FindPlayerIdRequest? findPlayerIdRequest = ReadJson<FindPlayerIdRequest>(request.Data);
+                    var findPlayerIdRequest = ReadJson<FindPlayerIdRequest>(request.Data);
                     if (findPlayerIdRequest is not null)
                     {
                         // TODO
@@ -532,7 +533,7 @@ internal sealed partial class Instance
                     var playerId = ReadJson<string>(request.Data);
                     if (playerId is not null)
                     {
-                        InitialPlayerStateResponse? initialPlayerStateResponse = await SendEventBusRequest<InitialPlayerStateResponse>("getInitialPlayerState", playerId, true);
+                        var initialPlayerStateResponse = await SendEventBusRequest<InitialPlayerStateResponse>("getInitialPlayerState", playerId, true, cancellationToken);
                         if (initialPlayerStateResponse is not null)
                         {
                             return initialPlayerStateResponse;
@@ -564,11 +565,11 @@ internal sealed partial class Instance
         }
     }
 
-    private void SendEventBusInstanceStatusNotification(string status)
+    private void SendEventBusInstanceStatusNotification(string status, CancellationToken cancellationToken = default)
     {
         Debug.Assert(_publisher is not null);
 
-        _publisher.PublishAsync("buildplates", status, InstanceId.ToString())
+        _publisher.PublishAsync("buildplates", status, InstanceId.ToString(), cancellationToken)
             .ContinueWith(task =>
             {
                 if (!task.Result)
@@ -576,7 +577,7 @@ internal sealed partial class Instance
                     LogEventBusPublisherError();
                     BeginShutdown();
                 }
-            })
+            }, cancellationToken)
             .Forget();
     }
 
@@ -585,20 +586,20 @@ internal sealed partial class Instance
         object Request
     );
 
-    private Task<T?> SendEventBusRequest<T>(string type, object obj, bool returnResponse)
+    private Task<T?> SendEventBusRequest<T>(string type, object obj, bool returnResponse, CancellationToken cancellationToken = default)
     {
         var request = new RequestWithInstanceId(InstanceId.ToString(), obj);
 
-        return SendEventBusRequestRaw<T>(type, request, returnResponse);
+        return SendEventBusRequestRaw<T>(type, request, returnResponse, cancellationToken);
     }
 
-    private async Task<T?> SendEventBusRequestRaw<T>(string type, object obj, bool returnResponse)
+    private async Task<T?> SendEventBusRequestRaw<T>(string type, object obj, bool returnResponse, CancellationToken cancellationToken = default)
     {
         Debug.Assert(_requestSender is not null);
 
         try
         {
-            var response = await _requestSender.RequestAsync("buildplates", type, Json.Serialize(obj));
+            var response = await _requestSender.RequestAsync("buildplates", type, Json.Serialize(obj), cancellationToken);
 
             if (response is null)
             {
@@ -728,7 +729,7 @@ internal sealed partial class Instance
             return null;
         }
 
-        TagCompound levelDatTag = CreateLevelDat(_survival, _night);
+        var levelDatTag = LevelDatUtils.Create(_survival, _night, 3);
         using (var fs = new FileStream(Path.Combine(worldDir.FullName, "level.dat"), FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read))
         using (var gzs = new GZipStream(fs, CompressionLevel.Optimal))
         {
@@ -780,71 +781,6 @@ internal sealed partial class Instance
         }
 
         return true;
-    }
-
-    private static TagCompound CreateLevelDat(bool survival, bool night)
-    {
-        TagCompound dataTag = new NbtBuilder.Compound()
-            .Add("GameType", survival ? 0 : 1)
-            .Add("Difficulty", 1)
-            .Add("DayTime", !night ? 6000 : 18000)
-            .Add("GameRules", new NbtBuilder.Compound()
-                .Add("doDaylightCycle", "false")
-                .Add("doWeatherCycle", "false")
-                .Add("doMobSpawning", "false")
-                .Add("fountain:doMobDespawn", "false")
-                .Add("keepInventory", "true")
-            )
-            .Add("WorldGenSettings", new NbtBuilder.Compound()
-                .Add("seed", (long)0)    // TODO
-                .Add("generate_features", (byte)0)
-                .Add("dimensions", new NbtBuilder.Compound()
-                    .Add("minecraft:overworld", new NbtBuilder.Compound()
-                        .Add("type", "minecraft:overworld")
-                        .Add("generator", new NbtBuilder.Compound()
-                            .Add("type", "fountain:wrapper")
-                            .Add("buildplate", new NbtBuilder.Compound()
-                                .Add("ground_level", 63))
-                            .Add("inner", new NbtBuilder.Compound()
-                                .Add("type", "minecraft:noise")
-                                .Add("settings", "minecraft:overworld")
-                                .Add("biome_source", new NbtBuilder.Compound()
-                                    .Add("type", "minecraft:multi_noise")
-                                    .Add("preset", "minecraft:overworld")
-                                )
-                            )
-                        )
-                    )
-                    .Add("minecraft:the_nether", new NbtBuilder.Compound()
-                        .Add("type", "minecraft:the_nether")
-                        .Add("generator", new NbtBuilder.Compound()
-                            .Add("type", "fountain:wrapper")
-                            .Add("buildplate", new NbtBuilder.Compound()
-                                .Add("ground_level", 32))
-                            .Add("inner", new NbtBuilder.Compound()
-                                .Add("type", "minecraft:noise")
-                                .Add("settings", "minecraft:nether")
-                                .Add("biome_source", new NbtBuilder.Compound()
-                                    .Add("type", "minecraft:fixed")
-                                    .Add("biome", "minecraft:nether_wastes")
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-            .Add("DataVersion", 3700)
-            .Add("version", 19133)
-            .Add("Version", new NbtBuilder.Compound()
-                .Add("Id", 3700)
-                .Add("Name", "1.20.4")
-                .Add("Series", "main")
-                .Add("Snapshot", (byte)0)
-            )
-            .Add("initialized", (byte)1)
-            .Build("Data");
-
-        return dataTag;
     }
 
 #pragma warning disable IDE0060 // Remove unused parameter

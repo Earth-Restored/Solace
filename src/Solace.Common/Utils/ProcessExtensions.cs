@@ -9,7 +9,7 @@ public static partial class ProcessExtensions
 {
     extension(Process process)
     {
-        public async Task StopGracefullyOrKillAsync(int timeout, ILogger logger, CancellationToken cancellationToken)
+        public async Task StopGracefullyOrKillAsync(TimeSpan timeout, ILogger logger, CancellationToken cancellationToken)
         {
             if (!await process.TryStopGracefullyAsync(timeout, logger, cancellationToken))
             {
@@ -17,14 +17,14 @@ public static partial class ProcessExtensions
             }
         }
 
-        public async Task StopGracefullyOrKillAndWaitAsync(int timeout, ILogger logger, CancellationToken cancellationToken)
+        public async Task StopGracefullyOrKillAndWaitAsync(TimeSpan timeout, ILogger logger, CancellationToken cancellationToken)
         {
             await process.StopGracefullyOrKillAsync(timeout, logger, cancellationToken);
 
             await process.WaitForExitAsync(timeout, cancellationToken);
         }
 
-        public async Task<bool> TryStopGracefullyAsync(int timeout, ILogger logger, CancellationToken cancellationToken)
+        public async Task<bool> TryStopGracefullyAsync(TimeSpan timeout, ILogger logger, CancellationToken cancellationToken)
         {
             try
             {
@@ -72,12 +72,24 @@ public static partial class ProcessExtensions
             return process.HasExited;
         }
 
-        public Task WaitForExitAsync(int timeout, CancellationToken cancellationToken)
-            => Task.WhenAny(process.WaitForExitAsync(cancellationToken), Task.Delay(timeout, cancellationToken));
+        public async Task WaitForExitAsync(TimeSpan timeout, CancellationToken cancellationToken)
+        {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(timeout);
+
+            try
+            {
+                await process.WaitForExitAsync(timeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new TimeoutException($"Process '{process.ProcessName}' failed to exit within {timeout.TotalSeconds} seconds.");
+            }
+        }
 
         #region Async
         [SupportedOSPlatform("windows")]
-        private async Task<bool> WindowsTrySendCtrlCAsync(int timeout, ILogger logger, CancellationToken cancellationToken)
+        private async Task<bool> WindowsTrySendCtrlCAsync(TimeSpan timeout, ILogger logger, CancellationToken cancellationToken)
         {
             var exePath = Path.GetFullPath("Solace.KillHelper.exe");
 
@@ -110,14 +122,14 @@ public static partial class ProcessExtensions
             }
         }
 
-        private async Task<bool> UnixTrySendShutdownSignalAsync(int timeout, CancellationToken cancellationToken)
+        private async Task<bool> UnixTrySendShutdownSignalAsync(TimeSpan timeout, CancellationToken cancellationToken)
         {
             try
             {
                 var signal = await process.UnixGetSignalAsync(cancellationToken);
 
                 var killProc = Process.Start("kill", $"-s {signal} {process.Id}");
-                await killProc.WaitForExitAsync(1000, cancellationToken);
+                await killProc.WaitForExitAsync(TimeSpan.FromSeconds(1), cancellationToken);
                 Debug.Assert(killProc.HasExited);
 
                 await process.WaitForExitAsync(timeout, cancellationToken);
@@ -173,7 +185,7 @@ public static partial class ProcessExtensions
             return "TERM";
         }
 
-        private async Task<bool> TryCloseMainWindowAsync(int timeout, CancellationToken cancellationToken)
+        private async Task<bool> TryCloseMainWindowAsync(TimeSpan timeout, CancellationToken cancellationToken)
         {
             try
             {

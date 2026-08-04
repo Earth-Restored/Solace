@@ -108,16 +108,4 @@ public partial class UpdateTriggers : Migration
             END;
             $$ LANGUAGE plpgsql;
             """);
-
-    private static void CreateAccountVersionTrigger(
-        MigrationBuilder migrationBuilder,
-        string tableName,
-        string triggerName,
-        string functionName)
-        => migrationBuilder.Sql($"""
-            CREATE TRIGGER {triggerName}
-            AFTER INSERT OR UPDATE OR DELETE ON "{tableName}"
-            FOR EACH ROW
-            EXECUTE FUNCTION {functionName}();
-            """);
 }

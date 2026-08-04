@@ -21,13 +21,11 @@ internal sealed class InventoryController : SolaceControllerBase
 {
     private readonly EarthDbContext _earthDb;
     private readonly Catalog _catalog;
-    private readonly ILogger<InventoryController> _logger;
 
-    public InventoryController(EarthDbContext earthDB, StaticData.StaticDataProvider staticData, ILogger<InventoryController> logger)
+    public InventoryController(EarthDbContext earthDB, StaticData.StaticDataProvider staticData)
     {
         _earthDb = earthDB;
         _catalog = staticData.Catalog;
-        _logger = logger;
     }
 
     [HttpGet]
@@ -129,7 +127,7 @@ internal sealed class InventoryController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        SetHotbarRequestItem[]? setHotbarRequestItems = await Request.Body.AsJsonAsync(AppJsonContext.Default.SetHotbarRequestItemArray, cancellationToken);
+        var setHotbarRequestItems = await Request.Body.AsJsonAsync(AppJsonContext.Default.SetHotbarRequestItemArray, cancellationToken);
         if (setHotbarRequestItems is null or { Length: not 7, })
         {
             return TypedResults.BadRequest();
@@ -171,7 +169,7 @@ internal sealed class InventoryController : SolaceControllerBase
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        Catalog.ItemsCatalogR.Item? item = _catalog.ItemsCatalog.GetItem(itemId);
+        var item = _catalog.ItemsCatalog.GetItem(itemId);
 
         if (item is null || item.ConsumeInfo is null)
         {

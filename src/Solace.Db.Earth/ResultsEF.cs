@@ -7,31 +7,31 @@ namespace Solace.Db.Earth;
 public sealed class ResultsEF
 {
     [DisallowNull]
-    public int? Profile { get => field; set => field = field is null || value > field ? value : field; }
+    public int? Profile { get; set => field = field is null || value > field ? value : field; }
 
     [DisallowNull]
-    public int? Inventory { get => field; set => field = field is null || value > field ? value : field; }
+    public int? Inventory { get; set => field = field is null || value > field ? value : field; }
 
     [DisallowNull]
-    public int? Crafting { get => field; set => field = field is null || value > field ? value : field; }
+    public int? Crafting { get; set => field = field is null || value > field ? value : field; }
 
     [DisallowNull]
-    public int? Smelting { get => field; set => field = field is null || value > field ? value : field; }
+    public int? Smelting { get; set => field = field is null || value > field ? value : field; }
 
     [DisallowNull]
-    public int? Boosts { get => field; set => field = field is null || value > field ? value : field; }
+    public int? Boosts { get; set => field = field is null || value > field ? value : field; }
 
     [DisallowNull]
-    public int? Buildplates { get => field; set => field = field is null || value > field ? value : field; }
+    public int? Buildplates { get; set => field = field is null || value > field ? value : field; }
 
     [DisallowNull]
-    public int? Journal { get => field; set => field = field is null || value > field ? value : field; }
+    public int? Journal { get; set => field = field is null || value > field ? value : field; }
 
     [DisallowNull]
-    public int? Challenges { get => field; set => field = field is null || value > field ? value : field; }
+    public int? Challenges { get; set => field = field is null || value > field ? value : field; }
 
     [DisallowNull]
-    public int? Tokens { get => field; set => field = field is null || value > field ? value : field; }
+    public int? Tokens { get; set => field = field is null || value > field ? value : field; }
 
     public sealed class Builder
     {
@@ -116,7 +116,7 @@ public sealed class ResultsEF
         }
 
         public ResultsEF Build(ProfileVersions versions)
-            => new ResultsEF
+            => new()
             {
                 Profile = _profile ? versions.Profile : null,
                 Inventory = _inventory ? versions.Inventory : null,
