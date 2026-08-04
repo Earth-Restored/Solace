@@ -945,7 +945,7 @@ internal sealed partial class Instance
                     "-serverAddress", "127.0.0.1",
                     "-serverPort", _serverInternalPort.ToString(CultureInfo.InvariantCulture),
                     "-connectorPluginJar", _connectorPluginJar.FullName,
-                    "-connectorPluginClass", "micheal65536.vienna.buildplate.connector.plugin.ViennaConnectorPlugin",
+                    "-connectorPluginClass", "earthrestored.solace.buildplate.connector.plugin.ViennaConnectorPlugin",
                     "-connectorPluginArg", _connectorPluginArgString,
                     "-useUUIDAsUsername",
                 ]);
