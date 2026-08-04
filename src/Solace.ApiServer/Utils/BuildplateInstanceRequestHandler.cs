@@ -40,138 +40,140 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
             {
                 try
                 {
+                    var requestData = (string)request.Data.Value!;
+
                     switch (request.Type)
                     {
                         case "load":
                             {
-                                var buildplateLoadRequest = ReadRawRequest<BuildplateLoadRequest>(request.Data, _logger);
+                                var buildplateLoadRequest = ReadRawRequest<BuildplateLoadRequest>(requestData, _logger);
                                 if (buildplateLoadRequest is null)
                                 {
                                     return null;
                                 }
 
                                 var buildplateLoadResponse = await HandleLoadAsync(buildplateLoadRequest.PlayerId, buildplateLoadRequest.BuildplateId, cancellationToken);
-                                return buildplateLoadResponse is not null ? Json.Serialize(buildplateLoadResponse) : null;
+                                return buildplateLoadResponse is not null ? Json.Serialize(buildplateLoadResponse) : (MessagePayload?)null;
                             }
                         case "loadShared":
                             {
-                                var sharedBuildplateLoadRequest = ReadRawRequest<SharedBuildplateLoadRequest>(request.Data, _logger);
+                                var sharedBuildplateLoadRequest = ReadRawRequest<SharedBuildplateLoadRequest>(requestData, _logger);
                                 if (sharedBuildplateLoadRequest is null)
                                 {
                                     return null;
                                 }
 
                                 var buildplateLoadResponse = await HandleLoadSharedAsync(sharedBuildplateLoadRequest.SharedBuildplateId, cancellationToken);
-                                return buildplateLoadResponse is not null ? Json.Serialize(buildplateLoadResponse) : null;
+                                return buildplateLoadResponse is not null ? Json.Serialize(buildplateLoadResponse) : (MessagePayload?)null;
                             }
                         case "loadEncounter":
 
                             {
-                                var encounterBuildplateLoadRequest = ReadRawRequest<EncounterBuildplateLoadRequest>(request.Data, _logger);
+                                var encounterBuildplateLoadRequest = ReadRawRequest<EncounterBuildplateLoadRequest>(requestData, _logger);
                                 if (encounterBuildplateLoadRequest is null)
                                 {
                                     return null;
                                 }
 
                                 var buildplateLoadResponse = await HandleLoadEncounterAsync(encounterBuildplateLoadRequest.EncounterBuildplateId, cancellationToken);
-                                return buildplateLoadResponse is not null ? Json.Serialize(buildplateLoadResponse) : null;
+                                return buildplateLoadResponse is not null ? Json.Serialize(buildplateLoadResponse) : (MessagePayload?)null;
                             }
                         case "saved":
                             {
-                                var requestWithInstanceId = ReadRequest<WorldSavedMessage>(request.Data, _logger);
+                                var requestWithInstanceId = ReadRequest<WorldSavedMessage>(requestData, _logger);
                                 return requestWithInstanceId is null
                                     ? null
-                                    : await HandleSavedAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request.DataBase64, request.Timestamp, cancellationToken) ? "" : null;
+                                    : await HandleSavedAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request.DataBase64, request.Timestamp, cancellationToken) ? "" : (MessagePayload?)null;
                             }
                         case "playerConnected":
                             {
                                 // Log.Debug("RequestHandler playerConnected");
-                                var requestWithInstanceId = ReadRequest<PlayerConnectedRequest>(request.Data, _logger);
+                                var requestWithInstanceId = ReadRequest<PlayerConnectedRequest>(requestData, _logger);
                                 if (requestWithInstanceId is null)
                                 {
                                     return null;
                                 }
 
                                 var playerConnectedResponse = await HandlePlayerConnectedAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, cancellationToken);
-                                return playerConnectedResponse is not null ? Json.Serialize(playerConnectedResponse) : null;
+                                return playerConnectedResponse is not null ? Json.Serialize(playerConnectedResponse) : (MessagePayload?)null;
                             }
                         case "playerDisconnected":
                             {
-                                var requestWithInstanceId = ReadRequest<PlayerDisconnectedRequest>(request.Data, _logger);
+                                var requestWithInstanceId = ReadRequest<PlayerDisconnectedRequest>(requestData, _logger);
                                 if (requestWithInstanceId is null)
                                 {
                                     return null;
                                 }
 
                                 var playerDisconnectedResponse = await HandlePlayerDisconnectedAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, request.Timestamp, cancellationToken);
-                                return playerDisconnectedResponse is not null ? Json.Serialize(playerDisconnectedResponse) : null;
+                                return playerDisconnectedResponse is not null ? Json.Serialize(playerDisconnectedResponse) : (MessagePayload?)null;
                             }
                         case "playerDead":
                             {
-                                var requestWithInstanceId = ReadRequest<Guid>(request.Data, _logger);
+                                var requestWithInstanceId = ReadRequest<Guid>(requestData, _logger);
                                 if (requestWithInstanceId is null)
                                 {
                                     return null;
                                 }
 
                                 var respawn = HandlePlayerDead(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, request.Timestamp);
-                                return respawn is not null ? Json.Serialize(respawn.Value) : null;
+                                return respawn is not null ? Json.Serialize(respawn.Value) : (MessagePayload?)null;
                             }
                         case "getInitialPlayerState":
                             {
-                                var requestWithInstanceId = ReadRequest<Guid>(request.Data, _logger);
+                                var requestWithInstanceId = ReadRequest<Guid>(requestData, _logger);
                                 if (requestWithInstanceId is null)
                                 {
                                     return null;
                                 }
 
                                 var initialPlayerStateResponse = await HandleGetInitialPlayerStateAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, request.Timestamp, cancellationToken);
-                                return initialPlayerStateResponse is not null ? Json.Serialize(initialPlayerStateResponse) : null;
+                                return initialPlayerStateResponse is not null ? Json.Serialize(initialPlayerStateResponse) : (MessagePayload?)null;
                             }
                         case "getInventory":
                             {
-                                var requestWithInstanceId = ReadRequest<Guid>(request.Data, _logger);
+                                var requestWithInstanceId = ReadRequest<Guid>(requestData, _logger);
                                 if (requestWithInstanceId is null)
                                 {
                                     return null;
                                 }
 
                                 var inventoryResponse = await HandleGetInventoryAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, cancellationToken);
-                                return inventoryResponse is not null ? Json.Serialize(inventoryResponse) : null;
+                                return inventoryResponse is not null ? Json.Serialize(inventoryResponse) : (MessagePayload?)null;
                             }
                         case "inventoryAdd":
                             {
-                                var requestWithInstanceId = ReadRequest<InventoryAddItemMessage>(request.Data, _logger);
+                                var requestWithInstanceId = ReadRequest<InventoryAddItemMessage>(requestData, _logger);
                                 return requestWithInstanceId is null
                                     ? null
-                                    : await HandleInventoryAddAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, request.Timestamp, cancellationToken) ? "" : null;
+                                    : await HandleInventoryAddAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, request.Timestamp, cancellationToken) ? "" : (MessagePayload?)null;
                             }
                         case "inventoryRemove":
                             {
-                                var requestWithBuildplateId = ReadRequest<InventoryRemoveItemRequest>(request.Data, _logger);
+                                var requestWithBuildplateId = ReadRequest<InventoryRemoveItemRequest>(requestData, _logger);
                                 if (requestWithBuildplateId is null)
                                 {
                                     return null;
                                 }
 
                                 var response = await HandleInventoryRemoveAsync(requestWithBuildplateId.InstanceId, requestWithBuildplateId.Request, cancellationToken);
-                                return response is not null ? Json.Serialize(response) : null;
+                                return response is not null ? Json.Serialize(response) : (MessagePayload?)null;
                             }
                         case "inventoryUpdateWear":
                             {
-                                var requestWithInstanceId = ReadRequest<InventoryUpdateItemWearMessage>(request.Data, _logger);
+                                var requestWithInstanceId = ReadRequest<InventoryUpdateItemWearMessage>(requestData, _logger);
 
                                 return requestWithInstanceId is null
                                     ? null
-                                    : await HandleInventoryUpdateWearAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, cancellationToken) ? "" : null;
+                                    : await HandleInventoryUpdateWearAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, cancellationToken) ? "" : (MessagePayload?)null;
                             }
                         case "inventorySetHotbar":
                             {
-                                var requestWithInstanceId = ReadRequest<InventorySetHotbarMessage>(request.Data, _logger);
+                                var requestWithInstanceId = ReadRequest<InventorySetHotbarMessage>(requestData, _logger);
 
                                 return requestWithInstanceId is null
                                     ? null
-                                    : await HandleInventorySetHotbarAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, cancellationToken) ? "" : null;
+                                    : await HandleInventorySetHotbarAsync(requestWithInstanceId.InstanceId, requestWithInstanceId.Request, cancellationToken) ? "" : (MessagePayload?)null;
                             }
                         default:
                             return null;

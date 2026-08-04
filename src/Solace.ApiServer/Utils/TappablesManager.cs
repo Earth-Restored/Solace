@@ -187,6 +187,8 @@ internal sealed partial class TappablesManager : IAsyncDisposable
 
     private Task HandleEvent(SubscriberEvent @event, CancellationToken cancellationToken)
     {
+        var eventData = (string)@event.Data.Value!;
+
         switch (@event.Type)
         {
             case "tappableSpawn":
@@ -194,7 +196,7 @@ internal sealed partial class TappablesManager : IAsyncDisposable
                     Tappable[]? tappables;
                     try
                     {
-                        tappables = Json.Deserialize<Tappable[]>(@event.Data);
+                        tappables = Json.Deserialize<Tappable[]>(eventData);
                     }
                     catch (Exception exception)
                     {
@@ -223,7 +225,7 @@ internal sealed partial class TappablesManager : IAsyncDisposable
 
                     try
                     {
-                        encounters = Json.Deserialize<Encounter[]>(@event.Data);
+                        encounters = Json.Deserialize<Encounter[]>(eventData);
                     }
                     catch (Exception exception)
                     {

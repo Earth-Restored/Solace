@@ -35,7 +35,7 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
                 ActiveTileNotification activeTileNotification;
                 try
                 {
-                    activeTileNotification = JsonSerializer.Deserialize(request.Data, AppJsonContext.Default.ActiveTileNotification)!;
+                    activeTileNotification = JsonSerializer.Deserialize((string)request.Data.Value!, AppJsonContext.Default.ActiveTileNotification)!;
                 }
                 catch (Exception exception)
                 {

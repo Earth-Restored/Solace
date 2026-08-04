@@ -96,7 +96,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
 
         Debug.Assert(_requestSender is not null);
 
-        var instanceIdString = await _requestSender.RequestAsync("buildplates", "start", Json.Serialize(new StartRequest(playerId, encounterId, buildplateId, night, type, shutdownTime)), cancellationToken);
+        var instanceIdString = (await _requestSender.RequestAsync("buildplates", "start", Json.Serialize(new StartRequest(playerId, encounterId, buildplateId, night, type, shutdownTime)), cancellationToken))?.Value as string;
         if (!Guid.TryParse(instanceIdString, out var instanceId))
         {
             LogBuildplateStartRequestWasRejectedIgnored();
@@ -142,7 +142,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
 
         Debug.Assert(_requestSender is not null);
 
-        var preview = await _requestSender.RequestAsync("buildplates", "preview", Json.Serialize(new PreviewRequest(Convert.ToBase64String(serverData), night)), cancellationToken);
+        var preview = (await _requestSender.RequestAsync("buildplates", "preview", Json.Serialize(new PreviewRequest(Convert.ToBase64String(serverData), night)), cancellationToken))?.Value as string;
         if (preview is null)
         {
             LogPreviewRequestWasRejectedIgnored();
@@ -166,6 +166,8 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
 
     private Task HandleEvent(SubscriberEvent @event, CancellationToken cancellationToken)
     {
+        var eventData = (string)@event.Data.Value!;
+
         switch (@event.Type)
         {
             case "started":
@@ -173,7 +175,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
                     StartNotification startNotification;
                     try
                     {
-                        startNotification = Json.Deserialize<StartNotification>(@event.Data)!;
+                        startNotification = Json.Deserialize<StartNotification>(eventData)!;
                         if (startNotification.PlayerId is null && startNotification.Type is not InstanceType.ENCOUNTER)
                         {
                             // Log.Warning("Bad start notification");
@@ -215,7 +217,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
                 break;
             case "ready":
                 {
-                    if (!Guid.TryParse(@event.Data, out var instanceId))
+                    if (!Guid.TryParse(eventData, out var instanceId))
                     {
                         // Log.Warning($"Failed to parse instance guid for 'ready': '{@event.Data}'");
                         break;
@@ -245,7 +247,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
                 break;
             case "shuttingDown":
                 {
-                    if (!Guid.TryParse(@event.Data, out var instanceId))
+                    if (!Guid.TryParse(eventData, out var instanceId))
                     {
                         // Log.Warning($"Failed to parse instance guid for 'shuttingDown': '{@event.Data}'");
                         break;
@@ -275,7 +277,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
                 break;
             case "stopped":
                 {
-                    if (!Guid.TryParse(@event.Data, out var instanceId))
+                    if (!Guid.TryParse(eventData, out var instanceId))
                     {
                         // Log.Warning($"Failed to parse instance guid for 'stopped': '{@event.Data}'");
                         break;

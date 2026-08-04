@@ -30,7 +30,7 @@ internal static partial class TileUtils
 
         LogRenderingTile(logger);
         await using var requestSender = await eventBus.AddRequestSenderAsync();
-        var tilePng64 = await requestSender.RequestAsync("tile", "renderTile", JsonSerializer.Serialize(new RenderTileRequest(tileX, tileY, zoom), AppJsonContext.Default.RenderTileRequest), cancellationToken);
+        var tilePng64 = (await requestSender.RequestAsync("tile", "renderTile", JsonSerializer.Serialize(new RenderTileRequest(tileX, tileY, zoom), AppJsonContext.Default.RenderTileRequest), cancellationToken))?.Value as string;
 
         if (string.IsNullOrEmpty(tilePng64))
         {

@@ -12,13 +12,13 @@ public sealed class SafeStreamWriter<T> : IDisposable
         _writer = writer;
     }
 
-    public async Task WriteAsync(T message)
+    public async Task WriteAsync(T message, CancellationToken cancellationToken = default)
     {
-        await _semaphore.WaitAsync();
+        await _semaphore.WaitAsync(cancellationToken);
 
         try
         {
-            await _writer.WriteAsync(message);
+            await _writer.WriteAsync(message, cancellationToken);
         }
         finally
         {

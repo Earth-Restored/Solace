@@ -43,7 +43,7 @@ public sealed partial class EventBusClient : IAsyncDisposable
     public async Task<RequestSender> AddRequestSenderAsync()
         => new(_client); // todo: single instance, Lazy<>?, handle dispose somehow
 
-    public async Task<RequestHandler> AddRequestHandlerAsync(string queueName, Func<RequestHandlerRequest, CancellationToken, Task<string?>> onRequest, Func<Exception?, Task> onError)
+    public async Task<RequestHandler> AddRequestHandlerAsync(string queueName, Func<RequestHandlerRequest, CancellationToken, Task<MessagePayload?>> onRequest, Func<Exception?, Task> onError)
     {
         var handler = new RequestHandler(_client, queueName, onRequest, onError);
         await handler.StartAsync();

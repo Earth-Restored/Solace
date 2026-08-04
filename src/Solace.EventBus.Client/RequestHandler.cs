@@ -1,4 +1,8 @@
+using System.Collections.Concurrent;
+using System.Threading.Channels;
+using Google.Protobuf;
 using Grpc.Core;
+using Solace.EventBus.Client.Utils;
 
 namespace Solace.EventBus.Client;
 
@@ -6,7 +10,7 @@ public sealed class RequestHandler : IAsyncDisposable
 {
     private readonly EventBusService.EventBusServiceClient _client;
     private readonly string _queueName;
-    private readonly Func<RequestHandlerRequest, CancellationToken, Task<string?>> _onRequest;
+    private readonly Func<RequestHandlerRequest, CancellationToken, Task<MessagePayload?>> _onRequest;
     private readonly Func<Exception?, Task> _onError;
     private AsyncDuplexStreamingCall<ClientMessage, ServerMessage>? _call;
 
@@ -16,7 +20,13 @@ public sealed class RequestHandler : IAsyncDisposable
     private SemaphoreSlim? _semaphore;
     private const int MaxDegreeOfParallelism = 4;
 
-    public RequestHandler(EventBusService.EventBusServiceClient client, string queueName, Func<RequestHandlerRequest, CancellationToken, Task<string?>> onRequest, Func<Exception?, Task> onError)
+    private readonly ConcurrentDictionary<ulong, ChannelWriter<ReadOnlyMemory<byte>>> _activeRequestStreams = new();
+
+    public RequestHandler(
+        EventBusService.EventBusServiceClient client,
+        string queueName,
+        Func<RequestHandlerRequest, CancellationToken, Task<MessagePayload?>> onRequest,
+        Func<Exception?, Task> onError)
     {
         _client = client;
         _queueName = queueName;
@@ -30,7 +40,6 @@ public sealed class RequestHandler : IAsyncDisposable
         _semaphore = new SemaphoreSlim(MaxDegreeOfParallelism);
 
         _call = _client.HandleRequests(cancellationToken: _cts.Token);
-
         var safeStream = new SafeStreamWriter<ClientMessage>(_call.RequestStream);
 
         await safeStream.WriteAsync(new ClientMessage { RegisterQueue = _queueName, });
@@ -39,19 +48,121 @@ public sealed class RequestHandler : IAsyncDisposable
         {
             try
             {
-                await foreach (var serverMsg in _call.ResponseStream.ReadAllAsync(_cts.Token))
+                await foreach (var serverMessage in _call.ResponseStream.ReadAllAsync(_cts.Token))
                 {
-                    await _semaphore.WaitAsync(_cts.Token);
+                    if (_activeRequestStreams.TryGetValue(serverMessage.CorrelationId, out var existingWriter))
+                    {
+                        if (serverMessage.PayloadCase is ServerMessage.PayloadOneofCase.BinaryData && !serverMessage.BinaryData.IsEmpty)
+                        {
+                            await existingWriter.WriteAsync(serverMessage.BinaryData.Memory, _cts.Token);
+                        }
+
+                        if (serverMessage.IsLastChunk)
+                        {
+                            _activeRequestStreams.TryRemove(serverMessage.CorrelationId, out _);
+                            existingWriter.TryComplete();
+                        }
+
+                        continue;
+                    }
+
+                    ChannelReader<ReadOnlyMemory<byte>>? streamReader = null;
+                    if (serverMessage.IsStream)
+                    {
+                        var channel = Channel.CreateUnbounded<ReadOnlyMemory<byte>>(new UnboundedChannelOptions
+                        {
+                            SingleWriter = false,
+                            SingleReader = true
+                        });
+
+                        if (serverMessage.PayloadCase is ServerMessage.PayloadOneofCase.BinaryData && !serverMessage.BinaryData.IsEmpty)
+                        {
+                            channel.Writer.TryWrite(serverMessage.BinaryData.Memory);
+                        }
+
+                        if (serverMessage.IsLastChunk)
+                        {
+                            channel.Writer.TryComplete();
+                        }
+                        else
+                        {
+                            _activeRequestStreams[serverMessage.CorrelationId] = channel.Writer;
+                        }
+
+                        streamReader = channel.Reader;
+                    }
 
                     _ = Task.Run(async () =>
                     {
+                        await _semaphore.WaitAsync(_cts.Token);
+
                         try
                         {
-                            var outData = await _onRequest(new RequestHandlerRequest(serverMsg.Timestamp.ToDateTimeOffset(), serverMsg.Type, serverMsg.Data), _cts.Token);
-                            await safeStream.WriteAsync(new ClientMessage
+                            var payload = streamReader is not null
+                                ? new MessagePayload(new ChannelStream(streamReader))
+                                : serverMessage.PayloadCase == ServerMessage.PayloadOneofCase.BinaryData
+                                    ? new MessagePayload(serverMessage.BinaryData.Memory)
+                                    : new MessagePayload(serverMessage.StringData);
+
+                            var timestamp = serverMessage.Timestamp?.ToDateTimeOffset() ?? DateTimeOffset.UtcNow;
+
+                            var outData = await _onRequest(new RequestHandlerRequest(timestamp, serverMessage.Type, payload), _cts.Token);
+
+                            if (outData is null || outData.Value.Value is null)
                             {
-                                Response = new HandlerResponse { CorrelationId = serverMsg.CorrelationId, Data = outData ?? "", Status = outData is null ? HandlerResponse.Types.Status.NotHandled : HandlerResponse.Types.Status.Success, }
-                            });
+                                await safeStream.WriteAsync(new ClientMessage
+                                {
+                                    Response = new HandlerResponse
+                                    {
+                                        CorrelationId = serverMessage.CorrelationId,
+                                        Status = HandlerResponse.Types.Status.NotHandled
+                                    }
+                                });
+                            }
+                            else
+                            {
+                                switch (outData.Value.Value)
+                                {
+                                    case string valueString:
+                                        await safeStream.WriteAsync(new ClientMessage
+                                        {
+                                            Response = new HandlerResponse
+                                            {
+                                                CorrelationId = serverMessage.CorrelationId,
+                                                Status = HandlerResponse.Types.Status.Success,
+                                                StringData = valueString
+                                            }
+                                        });
+                                        break;
+                                    case ReadOnlyMemory<byte> valueByte:
+                                        await safeStream.WriteAsync(new ClientMessage
+                                        {
+                                            Response = new HandlerResponse
+                                            {
+                                                CorrelationId = serverMessage.CorrelationId,
+                                                Status = HandlerResponse.Types.Status.Success,
+                                                BinaryData = UnsafeByteOperations.UnsafeWrap(valueByte)
+                                            }
+                                        });
+                                        break;
+                                    case Stream streamValue:
+                                        await StreamUtils.SendStreamChunksAsync(streamValue, async (chunkMemory, isLast, cancellationToken) =>
+                                        {
+                                            await safeStream.WriteAsync(new ClientMessage
+                                            {
+                                                Response = new HandlerResponse
+                                                {
+                                                    CorrelationId = serverMessage.CorrelationId,
+                                                    Status = HandlerResponse.Types.Status.Success,
+                                                    IsStream = true,
+                                                    IsLastChunk = isLast,
+                                                    BinaryData = UnsafeByteOperations.UnsafeWrap(chunkMemory)
+                                                }
+                                            }, cancellationToken);
+                                        }, _cts.Token);
+                                        break;
+                                }
+                            }
                         }
                         catch (Exception exception) when (exception is not (OperationCanceledException or RpcException { StatusCode: StatusCode.Cancelled, }))
                         {
@@ -61,7 +172,11 @@ public sealed class RequestHandler : IAsyncDisposable
                             {
                                 await safeStream.WriteAsync(new ClientMessage
                                 {
-                                    Response = new HandlerResponse { CorrelationId = serverMsg.CorrelationId, Status = HandlerResponse.Types.Status.Error, }
+                                    Response = new HandlerResponse
+                                    {
+                                        CorrelationId = serverMessage.CorrelationId,
+                                        Status = HandlerResponse.Types.Status.Error,
+                                    }
                                 });
                             }
                             catch
@@ -78,6 +193,15 @@ public sealed class RequestHandler : IAsyncDisposable
             catch (Exception exception) when (exception is not (OperationCanceledException or RpcException { StatusCode: StatusCode.Cancelled, }))
             {
                 await _onError(exception);
+            }
+            finally
+            {
+                foreach (var writer in _activeRequestStreams.Values)
+                {
+                    writer.TryComplete(new InvalidOperationException("Connection lost before stream completed."));
+                }
+
+                _activeRequestStreams.Clear();
             }
         });
     }
@@ -112,5 +236,5 @@ public sealed class RequestHandler : IAsyncDisposable
 }
 
 #pragma warning disable MA0048 // File name must match type name
-public readonly record struct RequestHandlerRequest(DateTimeOffset Timestamp, string Type, string Data);
+public readonly record struct RequestHandlerRequest(DateTimeOffset Timestamp, string Type, MessagePayload Data);
 #pragma warning restore MA0048 // File name must match type name

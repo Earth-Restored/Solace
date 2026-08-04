@@ -133,7 +133,7 @@ internal sealed partial class BuildplateUpdater : IDisposable
     [SupportedOSPlatform("android")]
     [SupportedOSPlatform("linux")]
     [SupportedOSPlatform("windows")]
-    public async Task<byte[]?> UpdateAsync(Stream worldZipData, CancellationToken cancellationToken = default)
+    public async Task<Stream?> UpdateAsync(Stream worldZipData, CancellationToken cancellationToken = default)
     {
         // todo: detect if any updates are queued, and if so, reuse the server - https://modrinth.com/mod/multiworld
 
@@ -244,7 +244,7 @@ internal sealed partial class BuildplateUpdater : IDisposable
 
             LogServerStopped();
 
-            using var resultFs = new MemoryStream();
+            var resultFs = new MemoryStream();
             using (var result = new ZipArchive(resultFs, ZipArchiveMode.Create, leaveOpen: true))
             {
 
@@ -261,7 +261,8 @@ internal sealed partial class BuildplateUpdater : IDisposable
                 }
             }
 
-            return resultFs.ToArray();
+            resultFs.Position = 0;
+            return resultFs;
 
             async Task SendCommandAsync(string command)
             {

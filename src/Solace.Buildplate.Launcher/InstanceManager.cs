@@ -80,7 +80,7 @@ internal sealed partial class InstanceManager
                     StartRequest startRequest;
                     try
                     {
-                        startRequest = Json.Deserialize<StartRequest>(request.Data)!;
+                        startRequest = Json.Deserialize<StartRequest>((string)request.Data.Value!)!;
                     }
                     catch (Exception exception)
                     {
@@ -205,7 +205,7 @@ internal sealed partial class InstanceManager
                     byte[] serverData;
                     try
                     {
-                        previewRequest = Json.Deserialize<PreviewRequest>(request.Data)!;
+                        previewRequest = Json.Deserialize<PreviewRequest>((string)request.Data.Value!)!;
                         serverData = Convert.FromBase64String(previewRequest.ServerDataBase64);
                     }
                     catch (Exception exception)
@@ -222,7 +222,7 @@ internal sealed partial class InstanceManager
                         LogCouldNotGeneratePreviewForBuildplate();
                     }
 
-                    return preview;
+                    return preview ?? (MessagePayload?)null;
                 }
                 else
                 {

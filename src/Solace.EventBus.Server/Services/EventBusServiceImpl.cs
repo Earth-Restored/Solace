@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Threading.Channels;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.Extensions.ObjectPool;
@@ -23,16 +24,20 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
         public ObjectPool<HashSet<HandlerConnection>> HashSetHandlerConnectionPool { get; } = ObjectPool.Create(new HashSetPooledObjectPolicy<HandlerConnection>() { InitialCapacity = 4, });
 
         private ulong _requestCounter;
+        private ulong _streamIdCounter;
 
         public ulong GetAndIncrementRequestCounter()
             => Interlocked.Increment(ref _requestCounter);
+
+        public ulong GetAndIncrementStreamId()
+            => Interlocked.Increment(ref _streamIdCounter);
     }
 
     internal sealed class HandlerConnection : IDisposable
     {
         public required SafeStreamWriter<ServerMessage> Writer { get; init; }
 
-        public ConcurrentDictionary<ulong, TaskCompletionSource<HandlerResponse>> PendingRequests { get; } = [];
+        public ConcurrentDictionary<ulong, Channel<HandlerResponse>> PendingRequests { get; } = [];
 
         public void Dispose()
             => Writer.Dispose();
@@ -54,36 +59,80 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
 
         if (_state.Subscribers.TryGetValue(request.QueueName, out var queueSubscribers))
         {
-            var tasks = _state.TaskListPool.Get();
-
-            try
+            var message = new EventMessage
             {
-                var message = new EventMessage { Type = request.Type, Data = request.Data, Timestamp = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow), };
+                Type = request.Type,
+                Timestamp = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
+            };
 
-                foreach (var kvp in queueSubscribers)
-                {
-                    tasks.Add(SendEventAsync(_logger, queueSubscribers, kvp, message));
-                }
-
-                await Task.WhenAll(tasks);
-            }
-            finally
+            switch (request.PayloadCase)
             {
-                _state.TaskListPool.Return(tasks);
+                case PublishRequest.PayloadOneofCase.StringData:
+                    message.StringData = request.StringData;
+                    break;
+                case PublishRequest.PayloadOneofCase.BinaryData:
+                    message.BinaryData = request.BinaryData;
+                    break;
             }
 
-            static async Task SendEventAsync(ILogger logger, ConcurrentDictionary<Guid, SafeStreamWriter<EventMessage>> queue, KeyValuePair<Guid, SafeStreamWriter<EventMessage>> kvp, EventMessage message)
+            await DispatchToSubscribersAsync(queueSubscribers, message);
+        }
+
+        return new PublishResponse { Success = true, };
+    }
+
+    public override async Task<PublishResponse> PublishStream(IAsyncStreamReader<PublishChunk> requestStream, ServerCallContext context)
+    {
+        PublishMetadata? metadata = null;
+        var streamId = _state.GetAndIncrementStreamId();
+        string? queueName = null;
+
+        while (await requestStream.MoveNext(context.CancellationToken))
+        {
+            var chunk = requestStream.Current;
+
+            switch (chunk.PayloadCase)
             {
-                try
-                {
-                    await kvp.Value.WriteAsync(message);
-                }
-                catch (Exception exception)
-                {
-                    LogSubscriberWriteFailed(logger, kvp.Key, exception);
-                    queue.TryRemove(kvp.Key, out _);
-                }
+                case PublishChunk.PayloadOneofCase.Metadata:
+                    {
+                        metadata = chunk.Metadata;
+                        queueName = metadata.QueueName;
+                        LogPublishingMessage(_logger, queueName, metadata.Type);
+                    }
+
+                    break;
+                case PublishChunk.PayloadOneofCase.ChunkData when metadata is not null:
+                    {
+                        if (_state.Subscribers.TryGetValue(queueName!, out var queueSubscribers))
+                        {
+                            var message = new EventMessage
+                            {
+                                Type = metadata.Type,
+                                Timestamp = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
+                                StreamId = streamId,
+                                IsLastChunk = false,
+                                BinaryData = chunk.ChunkData
+                            };
+
+                            await DispatchToSubscribersAsync(queueSubscribers, message);
+                        }
+                    }
+
+                    break;
             }
+        }
+
+        if (metadata is not null && queueName is not null && _state.Subscribers.TryGetValue(queueName, out var subs))
+        {
+            var message = new EventMessage
+            {
+                Type = metadata.Type,
+                Timestamp = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
+                StreamId = streamId,
+                IsLastChunk = true
+            };
+
+            await DispatchToSubscribersAsync(subs, message);
         }
 
         return new PublishResponse { Success = true, };
@@ -129,8 +178,8 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
                 }
                 else
                 {
-                    int startIndex = Random.Shared.Next(registeredHandlers.Length);
-                    for (int i = 0; i < registeredHandlers.Length; i++)
+                    var startIndex = Random.Shared.Next(registeredHandlers.Length);
+                    for (var i = 0; i < registeredHandlers.Length; i++)
                     {
                         var handler = registeredHandlers[(startIndex + i) % registeredHandlers.Length];
                         if (!triedHandlers.Contains(handler))
@@ -159,22 +208,33 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
 
             var correlationId = _state.GetAndIncrementRequestCounter();
 
-            var tcs = new TaskCompletionSource<HandlerResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-            targetHandler.PendingRequests[correlationId] = tcs;
+            var responseChannel = Channel.CreateUnbounded<HandlerResponse>(new UnboundedChannelOptions { SingleWriter = false, SingleReader = true });
+            targetHandler.PendingRequests[correlationId] = responseChannel;
 
             try
             {
                 LogSendingRequestToHandler(_logger, request.QueueName, correlationId);
 
-                await targetHandler.Writer.WriteAsync(new ServerMessage
+                var serverMessage = new ServerMessage
                 {
                     CorrelationId = correlationId,
                     Type = request.Type,
-                    Data = request.Data,
                     Timestamp = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
-                });
+                };
 
-                var response = await tcs.Task.WaitAsync(context.CancellationToken);
+                switch (request.PayloadCase)
+                {
+                    case RequestMessage.PayloadOneofCase.StringData:
+                        serverMessage.StringData = request.StringData;
+                        break;
+                    case RequestMessage.PayloadOneofCase.BinaryData:
+                        serverMessage.BinaryData = request.BinaryData;
+                        break;
+                }
+
+                await targetHandler.Writer.WriteAsync(serverMessage);
+
+                var response = await responseChannel.Reader.ReadAsync(context.CancellationToken);
 
                 if (response.Status is HandlerResponse.Types.Status.NotHandled)
                 {
@@ -188,16 +248,27 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
                     _state.HashSetHandlerConnectionPool.Return(triedHandlers);
                 }
 
-                return new ResponseMessage
+                var responseMessage = new ResponseMessage
                 {
                     Status = response.Status switch
                     {
                         HandlerResponse.Types.Status.Success => ResponseMessage.Types.Status.Success,
                         HandlerResponse.Types.Status.Error => ResponseMessage.Types.Status.HandlerError,
                         _ => throw new UnreachableException(),
-                    },
-                    Data = response.Data,
+                    }
                 };
+
+                switch (response.PayloadCase)
+                {
+                    case HandlerResponse.PayloadOneofCase.StringData:
+                        responseMessage.StringData = response.StringData;
+                        break;
+                    case HandlerResponse.PayloadOneofCase.BinaryData:
+                        responseMessage.BinaryData = response.BinaryData;
+                        break;
+                }
+
+                return responseMessage;
             }
             catch (OperationCanceledException)
             {
@@ -227,6 +298,201 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
         throw new RpcException(Status.DefaultCancelled);
     }
 
+    public override async Task RequestStream(IAsyncStreamReader<RequestChunk> requestStream, IServerStreamWriter<ResponseChunk> responseStream, ServerCallContext context)
+    {
+        if (!await requestStream.MoveNext(context.CancellationToken))
+        {
+            return;
+        }
+
+        var firstChunk = requestStream.Current;
+        if (firstChunk.PayloadCase is not RequestChunk.PayloadOneofCase.Metadata)
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "First chunk must contain metadata."));
+        }
+
+        var metadata = firstChunk.Metadata;
+        var queueName = metadata.QueueName;
+
+        HashSet<HandlerConnection>? triedHandlers = null;
+        using var safeResponseStream = new SafeStreamWriter<ResponseChunk>(responseStream);
+
+        while (!context.CancellationToken.IsCancellationRequested)
+        {
+            HandlerConnection? targetHandler = null;
+
+            if (_state.Handlers.TryGetValue(queueName, out var registeredHandlers) && !registeredHandlers.IsDefaultOrEmpty)
+            {
+                if (triedHandlers is null or { Count: 0, })
+                {
+                    targetHandler = registeredHandlers[Random.Shared.Next(registeredHandlers.Length)];
+                }
+                else
+                {
+                    var startIndex = Random.Shared.Next(registeredHandlers.Length);
+                    for (var i = 0; i < registeredHandlers.Length; i++)
+                    {
+                        var handler = registeredHandlers[(startIndex + i) % registeredHandlers.Length];
+                        if (!triedHandlers.Contains(handler))
+                        {
+                            targetHandler = handler;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (targetHandler is null)
+            {
+                if (triedHandlers is not null)
+                {
+                    _state.HashSetHandlerConnectionPool.Return(triedHandlers);
+                }
+
+                await safeResponseStream.WriteAsync(new ResponseChunk
+                {
+                    Status = ResponseMessage.Types.Status.NoHandlers,
+                    ErrorMessage = "No active handlers.",
+                });
+
+                return;
+            }
+
+            var correlationId = _state.GetAndIncrementRequestCounter();
+            var responseChannel = Channel.CreateUnbounded<HandlerResponse>(new UnboundedChannelOptions { SingleWriter = false, });
+            targetHandler.PendingRequests[correlationId] = responseChannel;
+
+            try
+            {
+                var isStreamRequest = metadata.PayloadCase == RequestMetadata.PayloadOneofCase.IsStream && metadata.IsStream;
+                var serverMsg = new ServerMessage
+                {
+                    CorrelationId = correlationId,
+                    Type = metadata.Type,
+                    Timestamp = Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow),
+                    IsStream = isStreamRequest,
+                };
+
+                switch (metadata.PayloadCase)
+                {
+                    case RequestMetadata.PayloadOneofCase.StringData:
+                        serverMsg.StringData = metadata.StringData;
+                        break;
+                    case RequestMetadata.PayloadOneofCase.BinaryData:
+                        serverMsg.BinaryData = metadata.BinaryData;
+                        break;
+                }
+
+                if (!isStreamRequest)
+                {
+                    await targetHandler.Writer.WriteAsync(serverMsg);
+                }
+                else
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await targetHandler.Writer.WriteAsync(serverMsg);
+
+                            while (await requestStream.MoveNext(context.CancellationToken))
+                            {
+                                var chunk = requestStream.Current;
+                                if (chunk.PayloadCase is RequestChunk.PayloadOneofCase.ChunkData)
+                                {
+                                    await targetHandler.Writer.WriteAsync(new ServerMessage
+                                    {
+                                        CorrelationId = correlationId,
+                                        IsStream = true,
+                                        IsLastChunk = chunk.IsLastChunk,
+                                        BinaryData = chunk.ChunkData,
+                                    });
+                                }
+
+                                if (chunk.IsLastChunk)
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                        }
+                    }, context.CancellationToken);
+                }
+
+                while (await responseChannel.Reader.WaitToReadAsync(context.CancellationToken))
+                {
+                    while (responseChannel.Reader.TryRead(out var response))
+                    {
+                        if (response.Status is HandlerResponse.Types.Status.NotHandled)
+                        {
+                            triedHandlers ??= _state.HashSetHandlerConnectionPool.Get();
+                            triedHandlers.Add(targetHandler);
+                            goto RetryHandler;
+                        }
+
+                        var responseChunk = new ResponseChunk
+                        {
+                            Status = response.Status switch
+                            {
+                                HandlerResponse.Types.Status.Success => ResponseMessage.Types.Status.Success,
+                                HandlerResponse.Types.Status.Error => ResponseMessage.Types.Status.HandlerError,
+                                _ => ResponseMessage.Types.Status.ServerError,
+                            },
+                            IsStream = response.IsStream,
+                            IsLastChunk = response.IsLastChunk
+                        };
+
+                        switch (response.PayloadCase)
+                        {
+                            case HandlerResponse.PayloadOneofCase.StringData:
+                                responseChunk.StringData = response.StringData;
+                                break;
+                            case HandlerResponse.PayloadOneofCase.BinaryData:
+                                responseChunk.BinaryData = response.BinaryData;
+                                break;
+                        }
+
+                        await safeResponseStream.WriteAsync(responseChunk);
+
+                        if (!response.IsStream || response.IsLastChunk)
+                        {
+                            if (triedHandlers is not null)
+                            {
+                                _state.HashSetHandlerConnectionPool.Return(triedHandlers);
+                            }
+
+                            return;
+                        }
+                    }
+                }
+
+            RetryHandler:;
+            }
+            catch (OperationCanceledException)
+            {
+                if (triedHandlers is not null)
+                {
+                    _state.HashSetHandlerConnectionPool.Return(triedHandlers);
+                }
+
+                throw new RpcException(Status.DefaultCancelled);
+            }
+            catch
+            {
+                triedHandlers ??= _state.HashSetHandlerConnectionPool.Get();
+                triedHandlers.Add(targetHandler);
+            }
+            finally
+            {
+                targetHandler.PendingRequests.TryRemove(correlationId, out _);
+            }
+        }
+
+        throw new RpcException(Status.DefaultCancelled);
+    }
+
     public override async Task HandleRequests(IAsyncStreamReader<ClientMessage> requestStream, IServerStreamWriter<ServerMessage> responseStream, ServerCallContext context)
     {
         var registeredQueues = new HashSet<string>(StringComparer.Ordinal);
@@ -241,32 +507,44 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
             {
                 var message = requestStream.Current;
 
-                if (message.PayloadCase == ClientMessage.PayloadOneofCase.RegisterQueue)
+                switch (message.PayloadCase)
                 {
-                    var queue = message.RegisterQueue;
-
-                    lock (_state.HandlersLock)
-                    {
-                        var current = _state.Handlers.GetValueOrDefault(queue, []);
-                        if (!current.Contains(connection))
+                    case ClientMessage.PayloadOneofCase.RegisterQueue:
                         {
-                            _state.Handlers[queue] = current.Add(connection);
-                            LogRegisteringHandlerQueue(_logger, queue);
-                        }
-                    }
+                            var queue = message.RegisterQueue;
 
-                    registeredQueues.Add(queue);
-                }
-                else if (message.PayloadCase == ClientMessage.PayloadOneofCase.Response)
-                {
-                    if (connection.PendingRequests.TryRemove(message.Response.CorrelationId, out var tcs))
-                    {
-                        tcs.SetResult(message.Response);
-                    }
-                    else
-                    {
-                        LogUnknownCorrelationId(_logger, message.Response.CorrelationId);
-                    }
+                            lock (_state.HandlersLock)
+                            {
+                                var current = _state.Handlers.GetValueOrDefault(queue, []);
+                                if (!current.Contains(connection))
+                                {
+                                    _state.Handlers[queue] = current.Add(connection);
+                                    LogRegisteringHandlerQueue(_logger, queue);
+                                }
+                            }
+
+                            registeredQueues.Add(queue);
+                        }
+
+                        break;
+                    case ClientMessage.PayloadOneofCase.Response:
+                        {
+                            if (connection.PendingRequests.TryGetValue(message.Response.CorrelationId, out var channel))
+                            {
+                                channel.Writer.TryWrite(message.Response);
+
+                                if (!message.Response.IsStream || message.Response.IsLastChunk || message.Response.Status != HandlerResponse.Types.Status.Success)
+                                {
+                                    channel.Writer.TryComplete();
+                                }
+                            }
+                            else
+                            {
+                                LogUnknownCorrelationId(_logger, message.Response.CorrelationId);
+                            }
+                        }
+
+                        break;
                 }
             }
         }
@@ -290,7 +568,6 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
                     if (_state.Handlers.TryGetValue(queue, out var current))
                     {
                         var updated = current.Remove(connection);
-
                         if (updated.IsEmpty)
                         {
                             _state.Handlers.TryRemove(queue, out _);
@@ -303,9 +580,41 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
                 }
             }
 
-            foreach (var tcs in connection.PendingRequests.Values)
+            foreach (var channel in connection.PendingRequests.Values)
             {
-                tcs.TrySetException(new RpcException(new Status(StatusCode.Unavailable, "Handler lost connection.")));
+                channel.Writer.TryComplete(new RpcException(new Status(StatusCode.Unavailable, "Handler lost connection.")));
+            }
+        }
+    }
+
+    private async Task DispatchToSubscribersAsync(ConcurrentDictionary<Guid, SafeStreamWriter<EventMessage>> queueSubscribers, EventMessage message)
+    {
+        var tasks = _state.TaskListPool.Get();
+
+        try
+        {
+            foreach (var kvp in queueSubscribers)
+            {
+                tasks.Add(SendEventAsync(_logger, queueSubscribers, kvp, message));
+            }
+
+            await Task.WhenAll(tasks);
+        }
+        finally
+        {
+            _state.TaskListPool.Return(tasks);
+        }
+
+        static async Task SendEventAsync(ILogger logger, ConcurrentDictionary<Guid, SafeStreamWriter<EventMessage>> queue, KeyValuePair<Guid, SafeStreamWriter<EventMessage>> kvp, EventMessage message)
+        {
+            try
+            {
+                await kvp.Value.WriteAsync(message);
+            }
+            catch (Exception exception)
+            {
+                LogSubscriberWriteFailed(logger, kvp.Key, exception);
+                queue.TryRemove(kvp.Key, out _);
             }
         }
     }

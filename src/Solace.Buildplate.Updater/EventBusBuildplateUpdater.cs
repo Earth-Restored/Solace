@@ -1,4 +1,5 @@
 using System.Buffers.Text;
+using System.Diagnostics;
 using System.Runtime.Versioning;
 using Microsoft.Extensions.Logging;
 using Solace.EventBus.Client;
@@ -31,21 +32,27 @@ internal sealed partial class EventBusBuildplateUpdater : IAsyncDisposable
             if (request.Type is "updateBuildplate")
             {
                 LogUpdating();
-
-                var worldZip = Base64.DecodeFromChars(request.Data);
-
-                byte[]? updateWorldZip;
-                using (var worldZipStream = new MemoryStream(worldZip))
+                var worldZipStream = request.Data switch
                 {
-                    try
-                    {
-                        updateWorldZip = await _updater.UpdateAsync(worldZipStream, cancellationToken);
-                    }
-                    catch (Exception exception)
-                    {
-                        LogUpdateError(exception);
-                        throw;
-                    }
+                    string stringData => new MemoryStream(Base64.DecodeFromChars(stringData)),
+                    ReadOnlyMemory<byte> byteData => new ReadOnlyMemoryStream(byteData),
+                    Stream streamData => streamData,
+                    _ => throw new UnreachableException(),
+                };
+
+                Stream? updateWorldZip;
+                try
+                {
+                    updateWorldZip = await _updater.UpdateAsync(worldZipStream, cancellationToken);
+                }
+                catch (Exception exception)
+                {
+                    LogUpdateError(exception);
+                    throw;
+                }
+                finally
+                {
+                    await worldZipStream.DisposeAsync();
                 }
 
                 if (updateWorldZip is null)
@@ -55,7 +62,7 @@ internal sealed partial class EventBusBuildplateUpdater : IAsyncDisposable
 
                 LogUpdateDone();
 
-                return Base64.EncodeToString(updateWorldZip);
+                return updateWorldZip;
             }
             else
             {

@@ -31,7 +31,7 @@ internal sealed partial class EventBusTileRenderer : IAsyncDisposable
                 RenderTileRequest getTile;
                 try
                 {
-                    getTile = JsonSerializer.Deserialize(request.Data, AppJsonContext.Default.RenderTileRequest)!;
+                    getTile = JsonSerializer.Deserialize((string)request.Data.Value!, AppJsonContext.Default.RenderTileRequest)!;
                 }
                 catch (Exception exception)
                 {

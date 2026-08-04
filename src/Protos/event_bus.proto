@@ -8,16 +8,35 @@ package eventbus;
 
 service EventBusService {
     rpc Publish (PublishRequest) returns (PublishResponse);
+    rpc PublishStream (stream PublishChunk) returns (PublishResponse);
+    
     rpc Subscribe (SubscribeRequest) returns (stream EventMessage);
     
     rpc Request (RequestMessage) returns (ResponseMessage);
+    rpc RequestStream (stream RequestChunk) returns (stream ResponseChunk);
+    
     rpc HandleRequests (stream ClientMessage) returns (stream ServerMessage);
 }
 
 message PublishRequest {
     string queue_name = 1;
     string type = 2;
-    string data = 3;
+    oneof payload {
+        string string_data = 3;
+        bytes binary_data = 4;
+    }
+}
+
+message PublishChunk {
+    oneof payload {
+        PublishMetadata metadata = 1;
+        bytes chunk_data = 2;
+    }
+}
+
+message PublishMetadata {
+    string queue_name = 1;
+    string type = 2;
 }
 
 message PublishResponse {
@@ -30,20 +49,34 @@ message SubscribeRequest {
 
 message EventMessage {
     string type = 1;
-    string data = 2;
     google.protobuf.Timestamp timestamp = 3;
+    
+    uint64 stream_id = 4;
+    bool is_last_chunk = 5;
+
+    oneof payload {
+        string string_data = 2;
+        bytes binary_data = 6;
+    }
 }
 
 message RequestMessage {
     string queue_name = 1;
     string type = 2;
-    string data = 3;
+    oneof payload {
+        string string_data = 3;
+        bytes binary_data = 4;
+    }
 }
 
 message ResponseMessage {
-    string data = 1;
     Status status = 2;
     string error_message = 3;
+
+    oneof payload {
+        string string_data = 1;
+        bytes binary_data = 4;
+    }
 
     enum Status
     {
@@ -51,6 +84,36 @@ message ResponseMessage {
         NoHandlers = 1;
         HandlerError = 2;
         ServerError = 3;
+    }
+}
+
+message RequestChunk {
+    bool is_last_chunk = 1;
+    oneof payload {
+        RequestMetadata metadata = 2;
+        bytes chunk_data = 3;
+    }
+}
+
+message RequestMetadata {
+    string queue_name = 1;
+    string type = 2;
+    oneof payload {
+        string string_data = 3;
+        bytes binary_data = 4;
+        bool is_stream = 5;
+    }
+}
+
+message ResponseChunk {
+    ResponseMessage.Status status = 1;
+    string error_message = 2;
+    bool is_stream = 3;
+    bool is_last_chunk = 4;
+
+    oneof payload {
+        string string_data = 5;
+        bytes binary_data = 6;
     }
 }
 
@@ -63,8 +126,14 @@ message ClientMessage {
 
 message HandlerResponse {
     uint64 correlation_id = 1;
-    string data = 2;
     Status status = 3;
+    bool is_stream = 4;
+    bool is_last_chunk = 5;
+
+    oneof payload {
+        string string_data = 2;
+        bytes binary_data = 6;
+    }
 
     enum Status {
         Success = 0;
@@ -76,6 +145,12 @@ message HandlerResponse {
 message ServerMessage {
     uint64 correlation_id = 1;
     string type = 2;
-    string data = 3;
     google.protobuf.Timestamp timestamp = 4;
+    bool is_stream = 6;
+    bool is_last_chunk = 7;
+
+    oneof payload {
+        string string_data = 3;
+        bytes binary_data = 5;
+    }
 }

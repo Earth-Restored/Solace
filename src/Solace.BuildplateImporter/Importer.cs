@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Solace.Db.Earth;
 using System.Buffers.Text;
+using System.Diagnostics;
 
 namespace Solace.BuildplateImporter;
 
@@ -45,18 +46,25 @@ public sealed partial class Importer : IAsyncDisposable
 
             await using var sender = await EventBusClient.AddRequestSenderAsync();
 
-            using var memoryStream = new MemoryStream();
-            await stream.CopyToAsync(memoryStream, cancellationToken);
+            var fixedUpData = await sender.RequestAsync("buildplate-update", "updateBuildplate", stream, cancellationToken);
 
-            // Convert buffer directly to Base64 string
-            var dataBase64 = Base64.EncodeToString(memoryStream.GetBuffer().AsSpan(0, (int)memoryStream.Length));
+            if (fixedUpData is null)
+            {
+                LogBuildplateUpdateNoResponse();
+                return false;
+            }
 
-            var fixedUpData = await sender.RequestAsync("buildplate-update", "updateBuildplate", dataBase64, cancellationToken);
-
-            stream = new MemoryStream(Base64.DecodeFromChars(fixedUpData));
+            stream = fixedUpData.Value.Value switch
+            {
+                string stringData => new MemoryStream(Base64.DecodeFromChars(stringData)),
+                ReadOnlyMemory<byte> byteData => new ReadOnlyMemoryStream(byteData),
+                Stream streamData => streamData,
+                _ => throw new UnreachableException(),
+            };
         }
 
         var worldData = await WorldData.LoadFromZipAsync(stream, Logger, cancellationToken);
+        await stream.DisposeAsync();
 
         if (worldData is null)
         {
@@ -445,7 +453,7 @@ public sealed partial class Importer : IAsyncDisposable
         {
             LogGeneratingPreview();
             await using var requestSender = await EventBusClient.AddRequestSenderAsync();
-            preview = await requestSender.RequestAsync("buildplates", "preview", JsonSerializer.Serialize(new PreviewRequest(Convert.ToBase64String(worldData.ServerData), worldData.Night)), cancellationToken);
+            preview = (await requestSender.RequestAsync("buildplates", "preview", JsonSerializer.Serialize(new PreviewRequest(Convert.ToBase64String(worldData.ServerData), worldData.Night)), cancellationToken))?.Value as string;
 
             if (preview is null)
             {
@@ -641,6 +649,9 @@ public sealed partial class Importer : IAsyncDisposable
             return false;
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Buildplate update did not respond to event bus request.")]
+    private partial void LogBuildplateUpdateNoResponse();
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to fetch template '{TemplateId}' from db")]
     private partial void LogTemplateFetchError(Exception exception, Guid TemplateId);
