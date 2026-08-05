@@ -1,4 +1,4 @@
-﻿#define KEEP_WINDOW_OPEN
+﻿// #define KEEP_WINDOW_OPEN
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
