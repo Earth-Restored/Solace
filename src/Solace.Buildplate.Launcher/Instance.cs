@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json.Serialization;
 using Cyotek.Data.Nbt;
@@ -20,6 +21,9 @@ internal sealed partial class Instance
 {
     private const long HOST_PLAYER_CONNECT_TIMEOUT = 120_000;
 
+    [SupportedOSPlatform("android")]
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("windows")]
     public static Instance Run(EventBusClient eventBusClient, Guid? playerId, Guid buildplateId, BuildplateSource buildplateSource, Guid instanceId, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, DateTimeOffset? shutdownTime, string publicAddress, int port, int serverInternalPort, string javaCmd, FileInfo fountainBridgeJar, DirectoryInfo serverTemplateDir, string fabricJarName, FileInfo connectorPluginJar, DirectoryInfo baseDir, string eventBusConnectionString, ILoggerFactory loggerFactory, ILogger logger)
     {
         if (playerId is null && buildplateSource is BuildplateSource.PLAYER)
@@ -121,6 +125,9 @@ internal sealed partial class Instance
         _logger = logger;
     }
 
+    [SupportedOSPlatform("android")]
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("windows")]
     private async Task RunAsync()
     {
         await Task.Yield();
@@ -308,6 +315,9 @@ internal sealed partial class Instance
         }
     }
 
+    [SupportedOSPlatform("android")]
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("windows")]
     private async Task HandleConnectorEvent(SubscriberEvent @event, CancellationToken cancellationToken)
     {
         var eventData = (string)@event.Data.Value!;
@@ -821,6 +831,9 @@ internal sealed partial class Instance
         }
     }
 
+    [SupportedOSPlatform("android")]
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("windows")]
     private async Task StartServerProcessAsync()
     {
         await using (await _subprocessLock.LockAsync(CancellationToken.None))
@@ -877,6 +890,9 @@ internal sealed partial class Instance
         }
     }
 
+    [SupportedOSPlatform("android")]
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("windows")]
     private async Task StartBridgeProcessAsync()
     {
         await using (await _subprocessLock.LockAsync(CancellationToken.None))

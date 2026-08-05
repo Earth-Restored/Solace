@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.Versioning;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Solace.Buildplate.Connector.Model;
@@ -58,6 +59,9 @@ internal sealed partial class InstanceManager
         _logger = logger;
     }
 
+    [SupportedOSPlatform("android")]
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("windows")]
     public async Task InitializeAsync(EventBusClient eventBusClient)
     {
         _publisher = await eventBusClient.AddPublisherAsync();

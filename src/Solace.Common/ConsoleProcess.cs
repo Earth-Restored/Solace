@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.Versioning;
 using Microsoft.Extensions.Logging;
 using Solace.Common.Utils;
 
@@ -97,6 +98,9 @@ public sealed partial class ConsoleProcess : IDisposable
         }
     }
 
+    [SupportedOSPlatform("android")]
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("windows")]
     public ConsoleProcess(string appName, ILogger logger, bool useShellExecute, bool redirect, bool openInNewWindow = false)
     {
         if (openInNewWindow && redirect)
@@ -134,6 +138,7 @@ public sealed partial class ConsoleProcess : IDisposable
             RedirectStandardOutput = redirect,
             UseShellExecute = useShellExecute,
             CreateNoWindow = !useShellExecute && !openInNewWindow,
+            KillOnParentExit = true,
         };
 
         Process.EnableRaisingEvents = true;

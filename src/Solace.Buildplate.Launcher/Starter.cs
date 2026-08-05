@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.Versioning;
 using Microsoft.Extensions.Logging;
 using Solace.Buildplate.Common;
 using Solace.Buildplate.Connector.Model;
@@ -48,6 +49,9 @@ internal sealed partial class Starter
         _loggerFactory = loggerFactory;
     }
 
+    [SupportedOSPlatform("android")]
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("windows")]
     public async Task<Instance?> StartInstanceAsync(Guid instanceId, Guid? playerId, Guid buildplateId, Instance.BuildplateSource buildplateSource, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, DateTimeOffset? shutdownTime, CancellationToken cancellationToken = default)
     {
         await ServerUtils.WaitForSetup(App.StaticDataPath, _logger, cancellationToken);

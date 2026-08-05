@@ -70,6 +70,13 @@ internal static partial class App
             };
         }
 
+        // ProcessStartInfo.KillOnParentExit currently only supported on these
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux() && !OperatingSystem.IsAndroid())
+        {
+            Console.WriteLine("Unsupported OS, supported: windows, linux, android");
+            return 8;
+        }
+
         var builder = Host.CreateApplicationBuilder(args);
 
         if (!builder.Configuration.GetValue<bool>("AcceptMinecraftEula"))
