@@ -40,11 +40,18 @@ public final class SolaceConnectorPlugin implements ConnectorPlugin {
 			throw new ConnectorPluginException("Invalid connector plugin arg string");
 		}
 
+		ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
 		try {
+			Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
+
 			this.eventBusClient = EventBusClient.connectAsync(connectorPluginArg.eventBusAddress());
+
 		} catch (Exception exception) {
 			throw new ConnectorPluginException(exception);
+		} finally {
+			Thread.currentThread().setContextClassLoader(originalClassLoader);
 		}
+
 		this.queueName = connectorPluginArg.eventBusQueueName();
 		this.publisher = this.eventBusClient.addPublisher();
 		this.requestSender = this.eventBusClient.addRequestSender();
