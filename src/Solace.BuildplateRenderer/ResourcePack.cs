@@ -321,7 +321,20 @@ public sealed class ResourcePack
                 };
             }
 
-            Debug.Assert(json.Texture.StartsWith('#'));
+            var texture = json.Texture;
+
+            // todo: should we do something when the # is missing?
+            if (!texture.StartsWith('#'))
+            {
+                if (texture is "all")
+                {
+                    texture = "#all";
+                }
+                else
+                {
+                    Debug.Assert(json.Texture.StartsWith('#'));
+                }
+            }
 
             return new BlockFace()
             {
