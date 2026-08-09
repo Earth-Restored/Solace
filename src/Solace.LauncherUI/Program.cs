@@ -77,11 +77,13 @@ public partial class Program
         if (isLegacyDb)
         {
             Log.Information("Detected legacy db format, backing up db");
-            legacyDbPath = Path.GetUniqueFilePath(Path.GetFullPath(Path.Combine(DataDirRelative, "earth.db.old")));
+            string dbDirectory = Path.GetDirectoryName(Path.GetFullPath(Settings.Instance.EarthDatabaseConnectionString!))!;
+            Directory.CreateDirectory(dbDirectory);
+            legacyDbPath = Path.GetUniqueFilePath(Path.Combine(dbDirectory, "earth.db.old"));
             File.Move(Settings.Instance.EarthDatabaseConnectionString!, legacyDbPath);
             Log.Debug($"Moved legacy earth db to '{legacyDbPath}'");
 
-            liveDbPath = Path.GetUniqueFilePath(Path.GetFullPath(Path.Combine(DataDirRelative, "live.db.old")));
+            liveDbPath = Path.GetUniqueFilePath(Path.Combine(dbDirectory, "live.db.old"));
             File.Move(Settings.Instance.LiveDatabaseConnectionString!, liveDbPath);
             Log.Debug($"Moved legacy live db to '{liveDbPath}'");
         }
