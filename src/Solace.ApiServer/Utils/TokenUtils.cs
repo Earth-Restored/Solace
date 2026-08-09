@@ -4,6 +4,7 @@ using Solace.ApiServer.Controllers.EarthApi;
 using Solace.DB;
 using Solace.DB.Models.Player;
 using Solace.DB.Utils;
+using System.Globalization;
 
 namespace Solace.ApiServer.Utils;
 
@@ -17,22 +18,31 @@ public static class TokenUtils
         StaticData.StaticData staticData,
         CancellationToken cancellationToken = default)
     {
-        await using var transaction = await results.EarthDb.Database.BeginTransactionAsync(cancellationToken);
-        var tokens = await results.EarthDb.Tokens
-            .AsTracking()
-            .FirstOrNewAsync(tokens => tokens.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
-        if (!tokens.Tokens.TryGetValue(tokenId, out TokensEF.Token? token) || token is TokensEF.ChallengeProgressToken)
+        try
+        {
+            await using var transaction = await results.EarthDb.Database.BeginTransactionAsync(cancellationToken);
+            var tokens = await results.EarthDb.Tokens
+                .AsTracking()
+                .FirstOrNewAsync(tokens => tokens.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            if (!tokens.Tokens.TryGetValue(tokenId, out TokensEF.Token? token) ||
+                token is TokensEF.ChallengeProgressToken or TokensEF.DailyLoginToken { Claimed: true } ||
+                token is TokensEF.DailyLoginToken dailyLogin && dailyLogin.Date != UtcDate(currentTime))
+            {
+                return null;
+            }
+
+            TokensEF.Token removedToken = tokens.RemoveToken(tokenId)!;
+
+            await results.EarthDb.SaveChangesAsync(cancellationToken);
+            results.Tokens = tokens.Version;
+            await DoActionsOnRedeemedTokenAsync(results, removedToken, accountId, currentTime, staticData);
+            await transaction.CommitAsync(cancellationToken);
+            return removedToken;
+        }
+        catch (DbUpdateConcurrencyException)
         {
             return null;
         }
-
-        TokensEF.Token removedToken = tokens.RemoveToken(tokenId)!;
-
-        await results.EarthDb.SaveChangesAsync(cancellationToken);
-        results.Tokens = tokens.Version;
-        await DoActionsOnRedeemedTokenAsync(results, removedToken, accountId, currentTime, staticData);
-        await transaction.CommitAsync(cancellationToken);
-        return removedToken;
     }
 
     public static async Task<string> AddTokenAsync(EarthDbContext.Results results, Guid accountId, TokensEF.Token token)
@@ -103,4 +113,7 @@ public static class TokenUtils
 
         return token;
     }
+
+    private static string UtcDate(long timestamp)
+        => DateTimeOffset.FromUnixTimeMilliseconds(timestamp).UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 }

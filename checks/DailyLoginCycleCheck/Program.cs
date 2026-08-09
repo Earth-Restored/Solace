@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using Solace.ApiServer.Utils;
 using Solace.DB.Models.Player;
+using DBRewards = Solace.DB.Models.Common.Rewards;
 
 namespace DailyLoginCycleCheck;
 
@@ -68,6 +69,18 @@ internal static class Program
         object wrappedGoodies = buildGoodies.Invoke(null, ["2026-08-16", Day(7), wrappedProgress, null])!;
         using var wrappedGoodiesJson = JsonDocument.Parse(JsonSerializer.Serialize(wrappedGoodies, JsonOptions));
         Expect(wrappedGoodiesJson.RootElement.GetProperty("streak").GetInt32() == 1, "day 8 reports cycle day 1");
+
+        MethodInfo ensureDailyLoginToken = controller.GetMethod("EnsureDailyLoginToken", BindingFlags.NonPublic | BindingFlags.Static)!;
+        MethodInfo dailyLoginRewards = controller.GetMethod("DailyLoginRewards", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var legacyRewards = (DBRewards)dailyLoginRewards.Invoke(null, null)!;
+        var legacyTokens = new TokensEF();
+        legacyTokens.AddToken("gap", new TokensEF.DailyLoginToken("2026-08-12", legacyRewards, true, Day(3)));
+        legacyTokens.AddToken("day-1", new TokensEF.DailyLoginToken("2026-08-14", legacyRewards, true, Day(5)));
+        legacyTokens.AddToken("day-2", new TokensEF.DailyLoginToken("2026-08-15", legacyRewards, true, Day(6)));
+        var migratedProgress = new ChallengeProgressVersion();
+        ensureDailyLoginToken.Invoke(null, [legacyTokens, migratedProgress, Day(7)]);
+        Expect(migratedProgress.DailyLoginStreak == 2 && migratedProgress.GetDailyLoginDay(Day(7)) == 3, "legacy consecutive claims migrate to day 3");
+        Expect(legacyTokens.GetTokens().Single().Token is TokensEF.DailyLoginToken { Date: "2026-08-16", Claimed: false }, "legacy tokens are replaced by today's token");
 
         Console.WriteLine("Daily login cycle and response checks passed.");
     }

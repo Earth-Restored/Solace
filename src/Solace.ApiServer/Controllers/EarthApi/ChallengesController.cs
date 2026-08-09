@@ -347,10 +347,48 @@ internal sealed class ChallengesController : ControllerBase
 
     internal static TokensEF.TokenWithId? EnsureDailyLoginToken(TokensEF tokens, ChallengeProgressVersion progress, long now)
     {
-        string today = DateTimeOffset.FromUnixTimeMilliseconds(now).UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var todayDate = DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeMilliseconds(now).UtcDateTime);
+        string today = todayDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         TokensEF.TokenWithId? current = null;
+        TokensEF.TokenWithId[] dailyTokens = [.. tokens.GetTokens().Where(token => token.Token is TokensEF.DailyLoginToken)];
 
-        foreach (TokensEF.TokenWithId token in tokens.GetTokens().Where(token => token.Token is TokensEF.DailyLoginToken))
+        if (progress.LastDailyLoginDateUtc is null)
+        {
+            HashSet<DateOnly> claimedDates = [];
+            foreach (TokensEF.TokenWithId token in dailyTokens)
+            {
+                var dailyLogin = (TokensEF.DailyLoginToken)token.Token;
+                if (dailyLogin.Claimed &&
+                    DateOnly.TryParseExact(dailyLogin.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly date) &&
+                    date <= todayDate)
+                {
+                    claimedDates.Add(date);
+                }
+            }
+
+            if (claimedDates.Count > 0)
+            {
+                DateOnly latest = claimedDates.Max();
+                DateOnly date = latest;
+                int streak = 0;
+                while (claimedDates.Contains(date))
+                {
+                    streak++;
+                    if (date == DateOnly.MinValue)
+                    {
+                        break;
+                    }
+
+                    date = date.AddDays(-1);
+                }
+
+                progress.LastDailyLoginDateUtc = latest.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                progress.DailyLoginStreak = streak;
+                progress.UpdatedAt = now;
+            }
+        }
+
+        foreach (TokensEF.TokenWithId token in dailyTokens)
         {
             var dailyLogin = (TokensEF.DailyLoginToken)token.Token;
             if (dailyLogin.Date == today && dailyLogin.Claimed)
