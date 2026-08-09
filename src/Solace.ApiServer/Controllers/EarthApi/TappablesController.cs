@@ -130,6 +130,15 @@ internal sealed class TappablesController : SolaceControllerBase
             .AsNoTracking()
             .FirstOrNewAsync(boosts => boosts.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
 
+        var tokens = await _earthDB.Tokens
+            .AsTracking()
+            .FirstOrNewAsync(tokens => tokens.Id == accountId, cancellationToken: cancellationToken);
+        TokensEF.ChallengeProgressToken storedProgress = tokens.Tokens.TryGetValue(ChallengesController.ProgressTokenId, out TokensEF.Token? rawProgress) &&
+            rawProgress is TokensEF.ChallengeProgressToken challengeToken
+            ? challengeToken
+            : new TokensEF.ChallengeProgressToken();
+        var challengeProgress = ChallengeProgressVersion.FromToken(storedProgress);
+
         if (redeemedTappables.IsRedeemed(tappable.Id))
         {
             return TypedResults.BadRequest();
@@ -157,9 +166,11 @@ internal sealed class TappablesController : SolaceControllerBase
         }
 
         var rewards = new Utils.Rewards();
+        HashSet<string> collectedItemIds = [];
 
         foreach (TappablesManager.Tappable.Item item in tappable.Items)
         {
+            collectedItemIds.Add(item.Id);
             rewards.AddItem(item.Id, item.Count);
             int experiencePoints = _staticData.Catalog.ItemsCatalog.GetItem(item.Id)!.Experience.Tappable;
             int experiencePointsMultiplier = experiencePointsGlobalMultiplier + experiencePointsPerItemMultiplier.GetValueOrDefault(item.Id);
@@ -172,6 +183,30 @@ internal sealed class TappablesController : SolaceControllerBase
         }
 
         rewards.AddRubies(1); // TODO
+
+        challengeProgress.RecordTappable(requestStartedOn);
+        challengeProgress.AddObjectiveProgress(requestStartedOn, "6b0655aa-cc63-4876-a1e1-afb319403c1c");
+        string icon = tappable.Icon.ToString();
+        if (icon.Contains("chest", StringComparison.OrdinalIgnoreCase))
+        {
+            challengeProgress.AddObjectiveProgress(requestStartedOn, "2b64c950-f80b-4491-b81d-bf90cee88db1");
+            challengeProgress.AddObjectiveProgress(requestStartedOn, "d5cbfe47-504a-4e8a-a7b8-481de901c20f");
+        }
+
+        if (icon.Contains("cow", StringComparison.OrdinalIgnoreCase) ||
+            icon.Contains("sheep", StringComparison.OrdinalIgnoreCase) ||
+            icon.Contains("chicken", StringComparison.OrdinalIgnoreCase) ||
+            icon.Contains("pig", StringComparison.OrdinalIgnoreCase))
+        {
+            challengeProgress.AddObjectiveProgress(requestStartedOn, "1d981b84-a03a-451d-82a6-9bfe0fc885fb");
+        }
+
+        if (collectedItemIds.Contains("a1bf49f9-1f1f-2a4d-5f7b-c0c5ba833068"))
+        {
+            challengeProgress.AddObjectiveProgress(requestStartedOn, "bd9d3fd7-12ef-49e0-91fa-c971795f8e35");
+        }
+
+        tokens.AddToken(ChallengesController.ProgressTokenId, challengeProgress.ToToken());
 
         redeemedTappables.Add(tappable.Id, tappable.SpawnTime + tappable.ValidFor);
         redeemedTappables.Prune(requestStartedOn);

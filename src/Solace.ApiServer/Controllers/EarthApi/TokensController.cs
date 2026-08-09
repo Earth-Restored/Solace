@@ -47,7 +47,7 @@ internal sealed class TokensController : SolaceControllerBase
             {
                 "tokens",
                 tokens.GetTokens()
-                    .Where(token => token.Token is not TokensEF.DailyLoginToken { Claimed: true })
+                    .Where(token => token.Token is not TokensEF.ChallengeProgressToken and not TokensEF.DailyLoginToken { Claimed: true })
                     .Select(token => new KeyValuePair<string, Token>(token.Id, TokenToApiResponse(token.Token)))
                     .ToDictionary()
             }
@@ -65,18 +65,8 @@ internal sealed class TokensController : SolaceControllerBase
         // request.timestamp
         long requestStartedOn = HttpContext.GetTimestamp();
 
-        var tokens = await _earthDb.Tokens
-            .AsTracking()
-            .FirstOrNewAsync(tokens => tokens.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
-
-        var removedToken = tokens.RemoveToken(tokenId);
-
-        if (removedToken is not null)
-        {
-            await _earthDb.SaveChangesAsync(cancellationToken);
-
-            await TokenUtils.DoActionsOnRedeemedTokenAsync(new EarthDbContext.Results(_earthDb), removedToken, accountId, requestStartedOn, _staticData);
-        }
+        var removedToken = await TokenUtils.RedeemTokenAsync(
+            new EarthDbContext.Results(_earthDb), accountId, tokenId, requestStartedOn, _staticData, cancellationToken);
 
         if (removedToken is not null)
         {
