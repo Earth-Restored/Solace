@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Solace.Common.Utils;
+using Solace.ApiServer.Controllers.EarthApi;
 using Solace.DB;
 using Solace.DB.Models.Player;
 using Solace.DB.Utils;
@@ -8,6 +9,32 @@ namespace Solace.ApiServer.Utils;
 
 public static class TokenUtils
 {
+    public static async Task<TokensEF.Token?> RedeemTokenAsync(
+        EarthDbContext.Results results,
+        Guid accountId,
+        string tokenId,
+        long currentTime,
+        StaticData.StaticData staticData,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await results.EarthDb.Database.BeginTransactionAsync(cancellationToken);
+        var tokens = await results.EarthDb.Tokens
+            .AsTracking()
+            .FirstOrNewAsync(tokens => tokens.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+        if (!tokens.Tokens.TryGetValue(tokenId, out TokensEF.Token? token) || token is TokensEF.ChallengeProgressToken)
+        {
+            return null;
+        }
+
+        TokensEF.Token removedToken = tokens.RemoveToken(tokenId)!;
+
+        await results.EarthDb.SaveChangesAsync(cancellationToken);
+        results.Tokens = tokens.Version;
+        await DoActionsOnRedeemedTokenAsync(results, removedToken, accountId, currentTime, staticData);
+        await transaction.CommitAsync(cancellationToken);
+        return removedToken;
+    }
+
     public static async Task<string> AddTokenAsync(EarthDbContext.Results results, Guid accountId, TokensEF.Token token)
     {
         var tokens = await results.EarthDb.Tokens
@@ -51,6 +78,23 @@ public static class TokenUtils
                 break;
             case TokensEF.DailyLoginToken { Claimed: false } dailyLoginToken:
                 {
+                    var tokens = await results.EarthDb.Tokens
+                        .AsTracking()
+                        .FirstOrNewAsync(tokens => tokens.Id == accountId);
+                    TokensEF.ChallengeProgressToken stored = tokens.Tokens.TryGetValue(ChallengesController.ProgressTokenId, out TokensEF.Token? raw) &&
+                        raw is TokensEF.ChallengeProgressToken progressToken
+                        ? progressToken
+                        : new TokensEF.ChallengeProgressToken();
+                    var progress = ChallengeProgressVersion.FromToken(stored);
+                    if (progress.IsDailyLoginClaimed(currentTime))
+                    {
+                        break;
+                    }
+
+                    progress.ClaimDailyLogin(currentTime);
+                    tokens.AddToken(ChallengesController.ProgressTokenId, progress.ToToken());
+                    await results.EarthDb.SaveChangesAsync();
+                    results.Tokens = tokens.Version;
                     await Rewards.FromDBRewardsModel(dailyLoginToken.Rewards).ToRedeemQueryAsync(results, accountId, currentTime, staticData);
                 }
 

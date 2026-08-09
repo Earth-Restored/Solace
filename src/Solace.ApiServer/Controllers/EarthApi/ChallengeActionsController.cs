@@ -18,10 +18,12 @@ namespace Solace.ApiServer.Controllers.EarthApi;
 internal sealed class ChallengeActionsController : SolaceControllerBase
 {
     private readonly EarthDbContext _earthDb;
+    private readonly StaticData.StaticData _staticData;
 
-    public ChallengeActionsController(EarthDbContext earthDb)
+    public ChallengeActionsController(EarthDbContext earthDb, StaticData.StaticData staticData)
     {
         _earthDb = earthDb;
+        _staticData = staticData;
     }
 
     [HttpPost("{challengeId}/modifyState")]
@@ -37,37 +39,47 @@ internal sealed class ChallengeActionsController : SolaceControllerBase
         var tokens = await _earthDb.Tokens
             .AsTracking()
             .FirstOrNewAsync(tokens => tokens.Id == accountId, cancellationToken: cancellationToken);
-        TokensEF.ChallengeProgressToken stored = tokens.Tokens.TryGetValue("__challenge_progress", out TokensEF.Token? raw) &&
+        TokensEF.ChallengeProgressToken stored = tokens.Tokens.TryGetValue(ChallengesController.ProgressTokenId, out TokensEF.Token? raw) &&
             raw is TokensEF.ChallengeProgressToken progressToken
             ? progressToken
             : new TokensEF.ChallengeProgressToken();
-        var progress = new ChallengeProgressVersion
-        {
-            UpdatedAt = stored.UpdatedAt,
-            DailyDateUtc = stored.DailyDateUtc,
-            ActiveSeasonId = stored.ActiveSeasonId,
-            ActiveSeasonChallengeId = stored.ActiveSeasonChallengeId,
-            TappablesRedeemed = stored.TappablesRedeemed,
-            ObjectiveCounts = new(stored.ObjectiveCounts),
-            ClaimedChallengeIds = [.. stored.ClaimedChallengeIds],
-            RemovedContinuousChallengeIds = [.. stored.RemovedContinuousChallengeIds]
-        };
+        var progress = ChallengeProgressVersion.FromToken(stored);
         progress.EnsureDate(now);
+        if (ChallengesController.TryGetDailyLoginDay(challengeId, out int requestedDay))
+        {
+            TokensEF.TokenWithId? token = ChallengesController.EnsureDailyLoginToken(tokens, progress, now);
+            if (requestedDay != progress.GetDailyLoginDay(now) ||
+                progress.IsDailyLoginClaimed(now) ||
+                token?.Token is not TokensEF.DailyLoginToken dailyLoginToken)
+            {
+                return TypedResults.BadRequest();
+            }
+
+            tokens.AddToken(ChallengesController.ProgressTokenId, progress.ToToken());
+            var results = new EarthDbContext.Results(_earthDb);
+            TokensEF.Token? redeemed = await TokenUtils.RedeemTokenAsync(
+                results, accountId, token.Id, now, _staticData, cancellationToken);
+            if (redeemed is null)
+            {
+                return TypedResults.BadRequest();
+            }
+
+            var dailyUpdates = new EarthApiResponse.UpdatesResponse(results);
+            dailyUpdates.Map["challenges"] = (int)(now / 1000);
+            return EarthJson(new Dictionary<string, object?>
+            {
+                ["challengeId"] = challengeId,
+                ["state"] = "Claimed",
+                ["rewards"] = RedeemRewards.FromDBRewardsModel(dailyLoginToken.Rewards).ToApiResponse(),
+                ["updates"] = new Dictionary<string, object>(),
+            }, dailyUpdates);
+        }
+
         progress.ClaimedChallengeIds.Add(challengeId);
         progress.ActiveSeasonId = ChallengesController.ActiveSeasonId;
         progress.ActiveSeasonChallengeId = ChallengesController.SelectActiveSeasonChallengeId(progress, progress.ActiveSeasonChallengeId);
         progress.UpdatedAt = now;
-        tokens.AddToken("__challenge_progress", new TokensEF.ChallengeProgressToken
-        {
-            UpdatedAt = progress.UpdatedAt,
-            DailyDateUtc = progress.DailyDateUtc,
-            ActiveSeasonId = progress.ActiveSeasonId,
-            ActiveSeasonChallengeId = progress.ActiveSeasonChallengeId,
-            TappablesRedeemed = progress.TappablesRedeemed,
-            ObjectiveCounts = new(progress.ObjectiveCounts),
-            ClaimedChallengeIds = [.. progress.ClaimedChallengeIds],
-            RemovedContinuousChallengeIds = [.. progress.RemovedContinuousChallengeIds]
-        });
+        tokens.AddToken(ChallengesController.ProgressTokenId, progress.ToToken());
         await _earthDb.SaveChangesAsync(cancellationToken);
 
         var updates = new EarthApiResponse.UpdatesResponse(new EarthDbContext.Results(_earthDb));

@@ -15,6 +15,7 @@ using Solace.Common.Utils;
 using Solace.DB;
 using Solace.DB.Models.Player;
 using Solace.DB.Utils;
+using DBRewards = Solace.DB.Models.Common.Rewards;
 using Rewards = Solace.ApiServer.Types.Common.Rewards;
 
 namespace Solace.ApiServer.Controllers.EarthApi;
@@ -32,7 +33,9 @@ internal sealed class ChallengesController : ControllerBase
     }
 
     private const int DailyChallengeCount = 3;
+    internal const string ProgressTokenId = "__challenge_progress";
     private const string DailyGroupId = "c1a1beef-0d01-4b1a-8d1e-000000000001";
+    private const string DailyLoginGroupId = "d4111000-0000-4000-8000-000000000000";
     private const string DailyReferenceId = "2619913d-6504-4c74-9fc9-e03649a70efc";
     private const string TreasureHuntReferenceId = "2b64c950-f80b-4491-b81d-bf90cee88db1";
     private const string BestDefenseReferenceId = "06eb0e50-b18d-43e8-9aad-422203ffdf28";
@@ -46,6 +49,17 @@ internal sealed class ChallengesController : ControllerBase
     internal const string ActiveSeasonId = "season_17";
     internal const string DefaultActiveSeasonChallengeId = "f0532069-a70a-4a01-8611-f770bb46d9cd";
 
+    private static readonly string[] DailyLoginChallengeIds =
+    [
+        "d4111000-0000-4000-8000-000000000001",
+        "d4111000-0000-4000-8000-000000000002",
+        "d4111000-0000-4000-8000-000000000003",
+        "d4111000-0000-4000-8000-000000000004",
+        "d4111000-0000-4000-8000-000000000005",
+        "d4111000-0000-4000-8000-000000000006",
+        "d4111000-0000-4000-8000-000000000007",
+    ];
+
     private sealed record ChallengeRecord(
         string ReferenceId,
         string? ParentId,
@@ -53,7 +67,7 @@ internal sealed class ChallengesController : ControllerBase
         string Duration,
         string Type,
         string Category,
-        Rarity? Rarity,
+        string? Rarity,
         int Order,
         string EndTimeUtc,
         string State,
@@ -151,38 +165,18 @@ internal sealed class ChallengesController : ControllerBase
             return TypedResults.BadRequest();
         }
 
-        const string progressTokenId = "__challenge_progress";
         TokensEF tokens = await _earthDb.Tokens
             .AsTracking()
             .FirstOrNewAsync(tokens => tokens.Id == accountId, cancellationToken: cancellationToken);
-        TokensEF.ChallengeProgressToken stored = tokens.Tokens.TryGetValue(progressTokenId, out TokensEF.Token? raw) &&
+        TokensEF.ChallengeProgressToken stored = tokens.Tokens.TryGetValue(ProgressTokenId, out TokensEF.Token? raw) &&
             raw is TokensEF.ChallengeProgressToken progressToken
             ? progressToken
             : new TokensEF.ChallengeProgressToken();
 
-        ChallengeProgressVersion progress = new()
-        {
-            UpdatedAt = stored.UpdatedAt,
-            DailyDateUtc = stored.DailyDateUtc,
-            ActiveSeasonId = stored.ActiveSeasonId,
-            ActiveSeasonChallengeId = stored.ActiveSeasonChallengeId,
-            TappablesRedeemed = stored.TappablesRedeemed,
-            ObjectiveCounts = new(stored.ObjectiveCounts),
-            ClaimedChallengeIds = [.. stored.ClaimedChallengeIds],
-            RemovedContinuousChallengeIds = [.. stored.RemovedContinuousChallengeIds]
-        };
+        var progress = ChallengeProgressVersion.FromToken(stored);
         progress.EnsureDate(now);
-        tokens.AddToken(progressTokenId, new TokensEF.ChallengeProgressToken
-        {
-            UpdatedAt = progress.UpdatedAt,
-            DailyDateUtc = progress.DailyDateUtc,
-            ActiveSeasonId = progress.ActiveSeasonId,
-            ActiveSeasonChallengeId = progress.ActiveSeasonChallengeId,
-            TappablesRedeemed = progress.TappablesRedeemed,
-            ObjectiveCounts = new(progress.ObjectiveCounts),
-            ClaimedChallengeIds = [.. progress.ClaimedChallengeIds],
-            RemovedContinuousChallengeIds = [.. progress.RemovedContinuousChallengeIds]
-        });
+        EnsureDailyLoginToken(tokens, progress, now);
+        tokens.AddToken(ProgressTokenId, progress.ToToken());
         await _earthDb.SaveChangesAsync(cancellationToken);
 
         DailyChallengeDefinition[] dailyChallenges = SelectDailyChallenges(playerId, progress.DailyDateUtc!);
@@ -198,6 +192,7 @@ internal sealed class ChallengesController : ControllerBase
         string activeSeasonChallengeId = SelectActiveSeasonChallengeId(progress, progress.ActiveSeasonChallengeId);
 
         var challenges = BuildSeasonChallenges(seasonEndTime, progress, activeSeasonChallengeId);
+        AddDailyLoginChallenges(challenges, dailyEndTime, progress, now);
         if (!dailyClaimed)
         {
             challenges[DailyGroupId] = new ChallengeRecord(
@@ -241,7 +236,7 @@ internal sealed class ChallengesController : ControllerBase
                 "PersonalTimed",
                 "Regular",
                 "retention",
-                Rarity.COMMON,
+                "Common",
                 index + 1,
                 dailyEndTime,
                 "Active",
@@ -280,7 +275,7 @@ internal sealed class ChallengesController : ControllerBase
                 "PersonalContinuous",
                 "Regular",
                 "retention",
-                Rarity.COMMON,
+                "Common",
                 index + 1,
                 dailyEndTime,
                 "Active",
@@ -311,6 +306,98 @@ internal sealed class ChallengesController : ControllerBase
         }));
         return TypedResults.Content(resp, "application/json");
     }
+
+    private static void AddDailyLoginChallenges(Dictionary<string, object> challenges, string endTimeUtc, ChallengeProgressVersion progress, long now)
+    {
+        int currentDay = progress.GetDailyLoginDay(now);
+        bool claimedToday = progress.IsDailyLoginClaimed(now);
+        var rewards = Utils.Rewards.FromDBRewardsModel(DailyLoginRewards()).ToApiResponse();
+
+        for (int index = 0; index < DailyLoginChallengeIds.Length; index++)
+        {
+            int day = index + 1;
+            bool claimed = day < currentDay || day == currentDay && claimedToday;
+            string state = claimed ? "Claimed" : day == currentDay ? "Active" : "Locked";
+
+            challenges[DailyLoginChallengeIds[index]] = new ChallengeRecord(
+                DailyLoginChallengeIds[index],
+                null,
+                DailyLoginGroupId,
+                "SignIn",
+                "Regular",
+                "retention",
+                "common",
+                index,
+                endTimeUtc,
+                state,
+                claimed,
+                claimed ? 100 : 0,
+                claimed ? 1 : 0,
+                1,
+                index == 0 ? [] : [DailyLoginChallengeIds[index - 1]],
+                "And",
+                rewards,
+                new Dictionary<string, object>
+                {
+                    ["day"] = day,
+                    ["isFinalReward"] = day == 7,
+                });
+        }
+    }
+
+    internal static TokensEF.TokenWithId? EnsureDailyLoginToken(TokensEF tokens, ChallengeProgressVersion progress, long now)
+    {
+        string today = DateTimeOffset.FromUnixTimeMilliseconds(now).UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        TokensEF.TokenWithId? current = null;
+
+        foreach (TokensEF.TokenWithId token in tokens.GetTokens().Where(token => token.Token is TokensEF.DailyLoginToken))
+        {
+            var dailyLogin = (TokensEF.DailyLoginToken)token.Token;
+            if (dailyLogin.Date == today && dailyLogin.Claimed)
+            {
+                progress.ClaimDailyLogin(now);
+                tokens.RemoveToken(token.Id);
+            }
+            else if (dailyLogin.Date == today && current is null)
+            {
+                current = token;
+            }
+            else
+            {
+                tokens.RemoveToken(token.Id);
+            }
+        }
+
+        if (progress.IsDailyLoginClaimed(now))
+        {
+            if (current is not null)
+            {
+                tokens.RemoveToken(current.Id);
+            }
+
+            return null;
+        }
+
+        if (current is not null)
+        {
+            return current;
+        }
+
+        string tokenId = Guid.NewGuid().ToString();
+        var dailyLoginToken = new TokensEF.DailyLoginToken(today, DailyLoginRewards());
+        tokens.AddToken(tokenId, dailyLoginToken);
+        return new TokensEF.TokenWithId(tokenId, dailyLoginToken);
+    }
+
+    internal static bool TryGetDailyLoginDay(string challengeId, out int day)
+    {
+        int index = Array.IndexOf(DailyLoginChallengeIds, challengeId);
+        day = index + 1;
+        return index >= 0;
+    }
+
+    internal static DBRewards DailyLoginRewards()
+        => new(0, 25, null, new Dictionary<string, int?> { [CommonAdventureCrystalId] = 1 }, [], []);
 
     private static Dictionary<string, object> BuildSeasonChallenges(string seasonEndTime, ChallengeProgressVersion progress, string activeSeasonChallengeId)
     {

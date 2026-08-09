@@ -42,15 +42,17 @@ internal sealed class DailyGoodiesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        string today = TodayUtc();
+        long now = HttpContext.GetTimestamp();
         var tokens = await _earthDB.Tokens
             .AsTracking()
             .FirstOrNewAsync(tokens => tokens.Id == accountId, cancellationToken: cancellationToken);
-        TokensEF.TokenWithId token = EnsureDailyLoginToken(tokens, today);
+        var progress = GetProgress(tokens);
+        progress.EnsureDate(now);
+        TokensEF.TokenWithId? token = ChallengesController.EnsureDailyLoginToken(tokens, progress, now);
+        tokens.AddToken(ChallengesController.ProgressTokenId, progress.ToToken());
         await _earthDB.SaveChangesAsync(cancellationToken);
 
-        var dailyLoginToken = (TokensEF.DailyLoginToken)token.Token;
-        return EarthJson(BuildDailyGoodiesResponse(today, dailyLoginToken, token.Id));
+        return EarthJson(BuildDailyGoodiesResponse(UtcDate(now), now, progress, token?.Id));
     }
 
     [HttpPost("player/dailygoodies/claim")]
@@ -67,60 +69,53 @@ internal sealed class DailyGoodiesController : SolaceControllerBase
         }
 
         long requestStartedOn = HttpContext.GetTimestamp();
-        string today = TodayUtc();
+        string today = UtcDate(requestStartedOn);
 
         var tokens = await _earthDB.Tokens
             .AsTracking()
             .FirstOrNewAsync(tokens => tokens.Id == accountId, cancellationToken: cancellationToken);
 
-        TokensEF.TokenWithId? token = FindDailyLoginToken(tokens, today);
+        var progress = GetProgress(tokens);
+        progress.EnsureDate(requestStartedOn);
+        TokensEF.TokenWithId? token = ChallengesController.EnsureDailyLoginToken(tokens, progress, requestStartedOn);
         if (token?.Token is not TokensEF.DailyLoginToken dailyLoginToken || dailyLoginToken.Claimed)
         {
             return TypedResults.BadRequest();
         }
 
-        var claimedToken = new TokensEF.DailyLoginToken(dailyLoginToken.Date, dailyLoginToken.Rewards.DeepCopy(), true, requestStartedOn);
-        tokens.AddToken(token.Id, claimedToken);
-
-        await _earthDB.SaveChangesAsync(cancellationToken);
-
-        var results = new EarthDbContext.Results(_earthDB) { Tokens = tokens.Version };
-        await TokenUtils.DoActionsOnRedeemedTokenAsync(results, dailyLoginToken, accountId, requestStartedOn, _staticData);
-
-        var updates = new EarthApiResponse.UpdatesResponse(results);
-        return EarthJson(BuildDailyGoodiesResponse(today, claimedToken, null), updates);
-    }
-
-    private static string TodayUtc()
-        => DateTimeOffset.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-
-    private static TokensEF.TokenWithId EnsureDailyLoginToken(TokensEF tokens, string today)
-    {
-        TokensEF.TokenWithId? token = FindDailyLoginToken(tokens, today);
-        if (token is not null)
+        tokens.AddToken(ChallengesController.ProgressTokenId, progress.ToToken());
+        var results = new EarthDbContext.Results(_earthDB);
+        TokensEF.Token? redeemed = await TokenUtils.RedeemTokenAsync(
+            results, accountId, token.Id, requestStartedOn, _staticData, cancellationToken);
+        if (redeemed is null)
         {
-            return token;
+            return TypedResults.BadRequest();
         }
 
-        string tokenId = Guid.NewGuid().ToString();
-        var dailyLoginToken = new TokensEF.DailyLoginToken(today, DailyLoginRewards());
-        tokens.AddToken(tokenId, dailyLoginToken);
-        return new TokensEF.TokenWithId(tokenId, dailyLoginToken);
+        progress.ClaimDailyLogin(requestStartedOn);
+        var updates = new EarthApiResponse.UpdatesResponse(results);
+        return EarthJson(BuildDailyGoodiesResponse(today, requestStartedOn, progress, null), updates);
     }
 
-    private static TokensEF.TokenWithId? FindDailyLoginToken(TokensEF tokens, string today)
-        => tokens.GetTokens()
-            .FirstOrDefault(token => token.Token is TokensEF.DailyLoginToken dailyLoginToken && dailyLoginToken.Date == today)
-            is { Token: not null } token ? token : null;
+    private static string UtcDate(long timestamp)
+        => DateTimeOffset.FromUnixTimeMilliseconds(timestamp).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-    private static Dictionary<string, object> BuildDailyGoodiesResponse(string today, TokensEF.DailyLoginToken dailyLoginToken, string? tokenId)
+    private static ChallengeProgressVersion GetProgress(TokensEF tokens)
     {
-        DBRewards rewards = dailyLoginToken.Rewards;
+        TokensEF.ChallengeProgressToken stored = tokens.Tokens.TryGetValue(ChallengesController.ProgressTokenId, out TokensEF.Token? raw) &&
+            raw is TokensEF.ChallengeProgressToken progress
+            ? progress
+            : new TokensEF.ChallengeProgressToken();
+        return ChallengeProgressVersion.FromToken(stored);
+    }
 
+    private static Dictionary<string, object> BuildDailyGoodiesResponse(string today, long now, ChallengeProgressVersion progress, string? tokenId)
+    {
+        DBRewards rewards = ChallengesController.DailyLoginRewards();
         var rewardResponse = Utils.Rewards.FromDBRewardsModel(rewards).ToApiResponse();
-        int streak = 1;
-        int currentDay = ((streak - 1) % 7) + 1;
-        bool claimed = dailyLoginToken.Claimed;
+        int currentDay = progress.GetDailyLoginDay(now);
+        int streak = currentDay;
+        bool claimed = progress.IsDailyLoginClaimed(now);
         bool hasToken = !claimed;
         string state = claimed ? "Completed" : hasToken ? "Available" : "Locked";
 
@@ -171,6 +166,4 @@ internal sealed class DailyGoodiesController : SolaceControllerBase
             };
         })];
 
-    private static DBRewards DailyLoginRewards()
-        => new(0, 25, null, new Dictionary<string, int?> { [AdventuresConfig.CommonAdventureCrystalId] = 1 }, [], []);
 }

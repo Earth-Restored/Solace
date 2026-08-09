@@ -170,6 +170,8 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
         public string? DailyDateUtc { get; init; }
         public string? ActiveSeasonId { get; init; }
         public string? ActiveSeasonChallengeId { get; init; }
+        public string? LastDailyLoginDateUtc { get; init; }
+        public int DailyLoginStreak { get; init; }
         public int TappablesRedeemed { get; init; }
         public Dictionary<string, int> ObjectiveCounts { get; init; } = [];
         public HashSet<string> ClaimedChallengeIds { get; init; } = [];
@@ -180,9 +182,15 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
         public override int GetHashCode() => HashCode.Combine(UpdatedAt, DailyDateUtc);
         public override ChallengeProgressToken DeepCopy() => new()
         {
-            UpdatedAt = UpdatedAt, DailyDateUtc = DailyDateUtc, ActiveSeasonId = ActiveSeasonId,
-            ActiveSeasonChallengeId = ActiveSeasonChallengeId, TappablesRedeemed = TappablesRedeemed,
-            ObjectiveCounts = new(ObjectiveCounts), ClaimedChallengeIds = [.. ClaimedChallengeIds],
+            UpdatedAt = UpdatedAt,
+            DailyDateUtc = DailyDateUtc,
+            ActiveSeasonId = ActiveSeasonId,
+            ActiveSeasonChallengeId = ActiveSeasonChallengeId,
+            TappablesRedeemed = TappablesRedeemed,
+            LastDailyLoginDateUtc = LastDailyLoginDateUtc,
+            DailyLoginStreak = DailyLoginStreak,
+            ObjectiveCounts = new(ObjectiveCounts),
+            ClaimedChallengeIds = [.. ClaimedChallengeIds],
             RemovedContinuousChallengeIds = [.. RemovedContinuousChallengeIds]
         };
     }
