@@ -49,6 +49,7 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
     [JsonDerivedType(typeof(LevelUpToken), "LEVEL_UP")]
     [JsonDerivedType(typeof(JournalItemUnlockedToken), "JOURNAL_ITEM_UNLOCKED")]
     [JsonDerivedType(typeof(DailyLoginToken), "DAILY_LOGIN")]
+    [JsonDerivedType(typeof(ChallengeProgressToken), "CHALLENGE_PROGRESS")]
     public abstract class Token : IEquatable<Token>, ICloneable<Token>
     {
         [JsonIgnore]
@@ -65,7 +66,8 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
 #pragma warning disable CA1707 // Identifiers should not contain underscores
             LEVEL_UP,
             JOURNAL_ITEM_UNLOCKED,
-            DAILY_LOGIN
+            DAILY_LOGIN,
+            CHALLENGE_PROGRESS
 #pragma warning restore CA1707 // Identifiers should not contain underscores
         }
 
@@ -160,6 +162,29 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
 
         public override DailyLoginToken DeepCopy()
             => new DailyLoginToken(Date, Rewards.DeepCopy(), Claimed, ClaimedOn);
+    }
+
+    public sealed class ChallengeProgressToken : Token
+    {
+        public long UpdatedAt { get; init; }
+        public string? DailyDateUtc { get; init; }
+        public string? ActiveSeasonId { get; init; }
+        public string? ActiveSeasonChallengeId { get; init; }
+        public int TappablesRedeemed { get; init; }
+        public Dictionary<string, int> ObjectiveCounts { get; init; } = [];
+        public HashSet<string> ClaimedChallengeIds { get; init; } = [];
+        public HashSet<string> RemovedContinuousChallengeIds { get; init; } = [];
+
+        public ChallengeProgressToken() : base(TypeE.CHALLENGE_PROGRESS) { }
+        public override bool Equals(Token? other) => other is ChallengeProgressToken token && UpdatedAt == token.UpdatedAt && DailyDateUtc == token.DailyDateUtc;
+        public override int GetHashCode() => HashCode.Combine(UpdatedAt, DailyDateUtc);
+        public override ChallengeProgressToken DeepCopy() => new()
+        {
+            UpdatedAt = UpdatedAt, DailyDateUtc = DailyDateUtc, ActiveSeasonId = ActiveSeasonId,
+            ActiveSeasonChallengeId = ActiveSeasonChallengeId, TappablesRedeemed = TappablesRedeemed,
+            ObjectiveCounts = new(ObjectiveCounts), ClaimedChallengeIds = [.. ClaimedChallengeIds],
+            RemovedContinuousChallengeIds = [.. RemovedContinuousChallengeIds]
+        };
     }
 
     public sealed class Legacy : IEquatable<Legacy>
