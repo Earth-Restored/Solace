@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 using Solace.ApiServer.Utils;
+using Solace.DB;
 using Solace.DB.Models.Player;
 using DBRewards = Solace.DB.Models.Common.Rewards;
 
@@ -81,6 +82,24 @@ internal static class Program
         ensureDailyLoginToken.Invoke(null, [legacyTokens, migratedProgress, Day(7)]);
         Expect(migratedProgress.DailyLoginStreak == 2 && migratedProgress.GetDailyLoginDay(Day(7)) == 3, "legacy consecutive claims migrate to day 3");
         Expect(legacyTokens.GetTokens().Single().Token is TokensEF.DailyLoginToken { Date: "2026-08-16", Claimed: false }, "legacy tokens are replaced by today's token");
+
+        using var db = EarthDbContext.CreateFromConnection("Data Source=:memory:");
+        var trackedTokens = new TokensEF { Id = Guid.NewGuid() };
+        trackedTokens.AddToken("progress", new TokensEF.ChallengeProgressToken
+        {
+            UpdatedAt = Day(7),
+            DailyDateUtc = "2026-08-16"
+        });
+        db.Attach(trackedTokens);
+        trackedTokens.AddToken("progress", new TokensEF.ChallengeProgressToken
+        {
+            UpdatedAt = Day(7),
+            DailyDateUtc = "2026-08-16",
+            LastDailyLoginDateUtc = "2026-08-16",
+            DailyLoginStreak = 3
+        });
+        db.ChangeTracker.DetectChanges();
+        Expect(db.Entry(trackedTokens).Property(tokens => tokens.Tokens).IsModified, "EF detects daily-login-only progress changes");
 
         Console.WriteLine("Daily login cycle and response checks passed.");
     }

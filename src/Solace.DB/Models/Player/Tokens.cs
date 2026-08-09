@@ -178,8 +178,50 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable
         public HashSet<string> RemovedContinuousChallengeIds { get; init; } = [];
 
         public ChallengeProgressToken() : base(TypeE.CHALLENGE_PROGRESS) { }
-        public override bool Equals(Token? other) => other is ChallengeProgressToken token && UpdatedAt == token.UpdatedAt && DailyDateUtc == token.DailyDateUtc;
-        public override int GetHashCode() => HashCode.Combine(UpdatedAt, DailyDateUtc);
+
+        public override bool Equals(Token? other)
+            => other is ChallengeProgressToken token &&
+            UpdatedAt == token.UpdatedAt &&
+            DailyDateUtc == token.DailyDateUtc &&
+            ActiveSeasonId == token.ActiveSeasonId &&
+            ActiveSeasonChallengeId == token.ActiveSeasonChallengeId &&
+            LastDailyLoginDateUtc == token.LastDailyLoginDateUtc &&
+            DailyLoginStreak == token.DailyLoginStreak &&
+            TappablesRedeemed == token.TappablesRedeemed &&
+            ObjectiveCounts.OrderBy(static item => item.Key, StringComparer.Ordinal).SequenceEqual(token.ObjectiveCounts.OrderBy(static item => item.Key, StringComparer.Ordinal)) &&
+            ClaimedChallengeIds.Order(StringComparer.Ordinal).SequenceEqual(token.ClaimedChallengeIds.Order(StringComparer.Ordinal)) &&
+            RemovedContinuousChallengeIds.Order(StringComparer.Ordinal).SequenceEqual(token.RemovedContinuousChallengeIds.Order(StringComparer.Ordinal));
+
+        public override int GetHashCode()
+        {
+            var hash = new HashCode();
+            hash.Add(UpdatedAt);
+            hash.Add(DailyDateUtc);
+            hash.Add(ActiveSeasonId);
+            hash.Add(ActiveSeasonChallengeId);
+            hash.Add(LastDailyLoginDateUtc);
+            hash.Add(DailyLoginStreak);
+            hash.Add(TappablesRedeemed);
+
+            foreach (var item in ObjectiveCounts.OrderBy(static item => item.Key, StringComparer.Ordinal))
+            {
+                hash.Add(item.Key);
+                hash.Add(item.Value);
+            }
+
+            foreach (string challengeId in ClaimedChallengeIds.Order(StringComparer.Ordinal))
+            {
+                hash.Add(challengeId);
+            }
+
+            foreach (string challengeId in RemovedContinuousChallengeIds.Order(StringComparer.Ordinal))
+            {
+                hash.Add(challengeId);
+            }
+
+            return hash.ToHashCode();
+        }
+
         public override ChallengeProgressToken DeepCopy() => new()
         {
             UpdatedAt = UpdatedAt,
