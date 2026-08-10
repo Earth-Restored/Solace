@@ -44,7 +44,7 @@ internal sealed class EnvironmentSettingsController : ControllerBase
             ["player_journal_enabled"] = true,
             ["player_stats_enabled"] = true,
             ["activity_log_enabled"] = true,
-            ["seasons_enabled"] = false,
+            ["seasons_enabled"] = true,
             ["daily_login_enabled"] = true,
             ["store_pdp_enabled"] = true,
             ["hotbar_stacksplitting_enabled"] = true,
@@ -63,7 +63,6 @@ internal sealed class EnvironmentSettingsController : ControllerBase
 
         var sResp = Json.Serialize(resp, new JsonSerializerOptions()
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         });
         return TypedResults.Content(sResp, "application/json");
@@ -107,7 +106,6 @@ internal sealed class EnvironmentSettingsController : ControllerBase
 
         var sResp = Json.Serialize(resp, new JsonSerializerOptions()
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         });
         return TypedResults.Content(sResp, "application/json");
