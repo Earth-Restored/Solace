@@ -15,7 +15,6 @@
   <ItemGroup>
     <ProjectReference Include="../Solace.Analyzer/Solace.Analyzer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../Solace.BuildplateImporter/Solace.BuildplateImporter.csproj" />
-    <ProjectReference Include="../Solace.BuildplateRenderer/Solace.BuildplateRenderer.csproj" />
     <ProjectReference Include="../Solace.Common.Asp/Solace.Common.Asp.csproj" />
     <ProjectReference Include="../Solace.Common/Solace.Common.csproj" />
     <ProjectReference Include="../Solace.Db/Solace.Db.csproj" />
@@ -32,6 +31,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="BitcoderCZ.Minecraft.MeshGenerator" />
+    <PackageReference Include="BitcoderCZ.Minecraft.MeshGenerator.Gltf" />
     <PackageReference Include="Immediate.Apis" />
     <PackageReference Include="Net.Codecrete.QrCodeGenerator" />
     <PackageReference Include="MCeToJava" />

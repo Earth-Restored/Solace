@@ -1,13 +1,15 @@
 using System.Diagnostics;
 using System.Numerics;
+using BitcoderCZ.Utils;
+using BitcoderCZ.Minecraft.MeshGenerator;
 using Microsoft.EntityFrameworkCore;
 using Solace.Buildplate.Model;
 using Solace.BuildplateImporter;
-using Solace.BuildplateRenderer;
-using Solace.Common;
-using Solace.Common.Utils;
 using Solace.Db.Earth.Utils;
 using Solace.WebPortal.Data;
+using BitcoderCZ.Maths.Vectors;
+using System.IO.Compression;
+using BitcoderCZ.Minecraft.MeshGenerator.Gltf;
 
 namespace Solace.WebPortal.Features.Buildplates;
 
@@ -50,11 +52,19 @@ internal static class ImporterExtensions
 
             worldData = worldData with { Size = template.Size, Offset = template.Offset, Night = template.Night, };
 
-            var meshGenerator = new BuildplateMeshGenerator(resourcePackManager);
+            var meshGenerator = new WorldMeshGenerator(resourcePackManager);
 
             progress?.Report(new ProgressReport(0.11, "Generating mesh"));
 
-            var meshData = await meshGenerator.GenerateAsync(worldData, progress?.WrapRange(0.11, 0.91), cancellationToken);
+            var worldOffset = new int3(0, -worldData.Offset / 2, 0);
+
+            MeshData meshData;
+            using (var serverDataStream = new MemoryStream(worldData.ServerData))
+            using (var serverDataZip = new ZipArchive(serverDataStream, ZipArchiveMode.Read))
+            {
+                meshData = await meshGenerator.GenerateFromZipAsync(serverDataZip, worldOffset, progress?.WrapRange(0.11, 0.91), cancellationToken);
+            }
+
             if (meshData is null)
             {
                 return null;
@@ -63,7 +73,8 @@ internal static class ImporterExtensions
             progress?.Report(new ProgressReport(0.91, "Finalizing mesh"));
 
             using var ms = new MemoryStream();
-            await meshData.ToGlbAsync(resourcePackManager, ms);
+            using var glbConverter = new GltfConverter(resourcePackManager);
+            (await glbConverter.ConvertAsync(meshData)).WriteGLB(ms);
             var getBufferSuccess = ms.TryGetBuffer(out var buffer);
             Debug.Assert(getBufferSuccess);
 
@@ -116,11 +127,19 @@ internal static class ImporterExtensions
 
             worldData = worldData with { Size = buildplate.Size, Offset = buildplate.Offset, Night = buildplate.Night, };
 
-            var meshGenerator = new BuildplateMeshGenerator(resourcePackManager);
+            var meshGenerator = new WorldMeshGenerator(resourcePackManager);
 
             progress?.Report(new ProgressReport(0.11, "Generating mesh"));
 
-            var meshData = await meshGenerator.GenerateAsync(worldData, progress?.WrapRange(0.11, 0.91), cancellationToken);
+            var worldOffset = new int3(0, -worldData.Offset / 2, 0);
+
+            MeshData meshData;
+            using (var serverDataStream = new MemoryStream(worldData.ServerData))
+            using (var serverDataZip = new ZipArchive(serverDataStream, ZipArchiveMode.Read))
+            {
+                meshData = await meshGenerator.GenerateFromZipAsync(serverDataZip, worldOffset, progress?.WrapRange(0.11, 0.91), cancellationToken);
+            }
+
             if (meshData is null)
             {
                 return null;
@@ -129,7 +148,8 @@ internal static class ImporterExtensions
             progress?.Report(new ProgressReport(0.91, "Finalizing mesh"));
 
             using var ms = new MemoryStream();
-            await meshData.ToGlbAsync(resourcePackManager, ms);
+            using var glbConverter = new GltfConverter(resourcePackManager);
+            (await glbConverter.ConvertAsync(meshData)).WriteGLB(ms);
             var getBufferSuccess = ms.TryGetBuffer(out var buffer);
             Debug.Assert(getBufferSuccess);
 

@@ -56,6 +56,12 @@ internal sealed partial class Starter
     {
         await ServerUtils.WaitForSetup(App.StaticDataPath, _logger, cancellationToken);
 
+        var fabricJarName = App.ResolveVersionedFile(_fabricJarName, Buildplate.Common.Constants.GameVersion, _logger);
+        if (fabricJarName is null)
+        {
+            return null;
+        }
+
         var baseDir = CreateInstanceBaseDir(instanceId);
         if (baseDir is null)
         {
@@ -66,7 +72,7 @@ internal sealed partial class Starter
         var serverInternalPort = FindPort(_serverInternalPortsInUse, SERVER_INTERNAL_BASE_PORT);
 
         var instanceLogger = _loggerFactory.CreateLogger($"{nameof(Instance)}({port}/{serverInternalPort})");
-        var instance = Instance.Run(_eventBusClient, playerId, buildplateId, buildplateSource, instanceId, survival, night, saveEnabled, inventoryType, shutdownTime, _publicAddress, port, serverInternalPort, _javaCmd, _fountainBridgeJar, _serverTemplateDir, _fabricJarName, _connectorPluginJar, baseDir, _eventBusConnectionString, _loggerFactory, instanceLogger);
+        var instance = Instance.Run(_eventBusClient, playerId, buildplateId, buildplateSource, instanceId, survival, night, saveEnabled, inventoryType, shutdownTime, _publicAddress, port, serverInternalPort, _javaCmd, _fountainBridgeJar, _serverTemplateDir, fabricJarName, _connectorPluginJar, baseDir, _eventBusConnectionString, _loggerFactory, instanceLogger);
 
         Task.Run(async () =>
         {

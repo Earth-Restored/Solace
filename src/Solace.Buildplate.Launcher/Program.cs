@@ -41,7 +41,6 @@ internal static partial class App
 {
     internal static string StaticDataPath = "./staticdata";
 
-    public static readonly Version MinimumServerVersion = Buildplate.Common.Constants.GameVersion;
     public static readonly Version MinimumFountainBridgeVersion = new(0, 0, 2);
     public static readonly Version MinimumBuildplateConnectorPluginVersion = new(0, 1, 0);
 
@@ -133,14 +132,7 @@ internal static partial class App
 
         var baseInstancePublicPort = checked((ushort)builder.Configuration.GetValue<int>("BaseInstancePublicPort"));
 
-        var fabricJarName = Path.Combine(StaticDataPath, "server_template_dir", builder.Configuration["FabricJarName"]!);
-
-        if ((fabricJarName = ResolveVersionedFile(fabricJarName, MinimumServerVersion)) is null)
-        {
-            return 5;
-        }
-
-        fabricJarName = Path.GetFileName(fabricJarName);
+        var fabricJarName = builder.Configuration["FabricJarName"]!;
 
         var serverJarsDir = Path.Combine(StaticDataPath, "server_jars");
 
@@ -152,7 +144,7 @@ internal static partial class App
             fountainBridgeJarName = Path.GetFullPath(Path.Combine(serverJarsDir, fountainBridgeJarName));
         }
 
-        if ((fountainBridgeJarName = ResolveVersionedFile(fountainBridgeJarName, MinimumFountainBridgeVersion)) is null)
+        if ((fountainBridgeJarName = ResolveVersionedFile(fountainBridgeJarName, MinimumFountainBridgeVersion, programLogger)) is null)
         {
             return 6;
         }
@@ -165,7 +157,7 @@ internal static partial class App
             connectorPluginJarName = Path.GetFullPath(Path.Combine(serverJarsDir, connectorPluginJarName));
         }
 
-        if ((connectorPluginJarName = ResolveVersionedFile(connectorPluginJarName, MinimumBuildplateConnectorPluginVersion)) is null)
+        if ((connectorPluginJarName = ResolveVersionedFile(connectorPluginJarName, MinimumBuildplateConnectorPluginVersion, programLogger)) is null)
         {
             return 7;
         }
@@ -197,35 +189,34 @@ internal static partial class App
         {
             await Task.Delay(1000);
         }
+    }
 
-        string? ResolveVersionedFile(string? path, Version minimumVersion)
+    public static string? ResolveVersionedFile(string? path, Version minimumVersion, ILogger logger)
+    {
+        if (path is null)
         {
-            if (path is null)
+            LogStaticDataNotSpecified(logger);
+            return null;
+        }
+
+        if (path.Contains("{{version}}", StringComparison.Ordinal))
+        {
+            var fileName = Path.GetFileName(path);
+            var directory = Path.GetDirectoryName(path)!;
+
+            if (!File.TryFindCompatibleFile(directory, minimumVersion, fileName, out var matchingFile))
             {
-                LogStaticDataNotSpecified(programLogger);
+                LogVersionedStaticDataNotFoundError(logger, Path.GetFullPath(Path.Combine(StaticDataPath, path)), minimumVersion);
                 return null;
             }
-
-            if (path.Contains("{{version}}", StringComparison.Ordinal))
+            else
             {
-                var fileName = Path.GetFileName(path);
-                var directory = Path.GetDirectoryName(path)!;
-
-                if (!File.TryFindCompatibleFile(directory, minimumVersion, fileName, out var matchingFile))
-                {
-                    LogVersionedStaticDataNotFoundError(programLogger, Path.GetFullPath(Path.Combine(StaticDataPath, path)), minimumVersion);
-                    loggerFactory.Dispose();
-                    return null;
-                }
-                else
-                {
-                    path = matchingFile;
-                    LogVersionedStaticFileFound(programLogger, path);
-                }
+                path = matchingFile;
+                LogVersionedStaticFileFound(logger, path);
             }
-
-            return path;
         }
+
+        return path;
     }
 
     internal sealed class StartupDependencies

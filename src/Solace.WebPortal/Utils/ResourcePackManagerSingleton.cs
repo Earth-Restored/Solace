@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using Solace.BuildplateRenderer;
+using BitcoderCZ.Minecraft.MeshGenerator;
 using Solace.Common;
 
 namespace Solace.WebPortal.Utils;
@@ -37,11 +37,11 @@ internal static partial class ResourcePackManagerSingleton
                 if (dir.Exists)
                 {
                     resourcePackManager = await ResourcePackManager.LoadAllAsync(dir);
-                    if (resourcePackManager.LoadedPackCount < 2)
+                    if (resourcePackManager.Count < 2)
                     {
                         var logger = GlobalLoggerFactory.CreateLogger(nameof(ResourcePackManagerSingleton));
 
-                        LogNotLoadedAllResourcepacks(logger, resourcePackManager.LoadedPackCount);
+                        LogNotLoadedAllResourcepacks(logger, resourcePackManager.Count);
                         resourcePackManager = null;
                     }
                 }

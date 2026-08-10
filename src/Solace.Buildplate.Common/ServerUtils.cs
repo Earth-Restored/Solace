@@ -7,7 +7,7 @@ public static partial class ServerUtils
 {
     public static async Task WaitForSetup(string staticDataPath, ILogger logger, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken); // give time to server setup to start and lock the file
+        await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken); // give time to server setup to start and lock the file
 
         var fileLock = new FileLock(new FileInfo(Path.Combine(staticDataPath, "server_template_dir", ".setupLock")));
 
