@@ -38,7 +38,8 @@ internal sealed class TokensController : SolaceControllerBase
             .Where(token => token.ProfileId == accountId)
             .AsAsyncEnumerable();
 
-        var tokensResponse = await tokens.Where(token => token is not DailyLoginTokenEF { Claimed: true, })
+        var tokensResponse = await tokens
+            .Where(token => token is not DailyLoginTokenEF { Claimed: true })
             .Select(token => new KeyValuePair<Guid, Token>(token.TokenId, TokenToApiResponse(token)))
             .ToDictionaryAsync(cancellationToken: cancellationToken);
 
@@ -62,12 +63,7 @@ internal sealed class TokensController : SolaceControllerBase
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        var removedToken = await TokenUtils.RemoveTokenAsync(_earthDb, ResultsEF.Builder.Null, accountId, tokenId, cancellationToken);
-
-        if (removedToken is not null)
-        {
-            await TokenUtils.DoActionsOnRedeemedTokenAsync(_earthDb, ResultsEF.Builder.Null, removedToken, accountId, requestStartedOn, _staticData);
-        }
+        var removedToken = await TokenUtils.RedeemTokenAsync(_earthDb, ResultsEF.Builder.Null, accountId, tokenId, requestStartedOn, _staticData, cancellationToken);
 
         if (removedToken is not null)
         {

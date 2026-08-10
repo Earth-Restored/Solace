@@ -1,11 +1,41 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Solace.Db.Earth;
 using Solace.Db.Earth.Models.Player;
+using Solace.StaticData;
 
 namespace Solace.ApiServer.Utils;
 
 internal static class TokenUtils
 {
+    public static async Task<TokenEF?> RedeemTokenAsync(EarthDbContext earthDb, ResultsEF.Builder results, Guid accountId, Guid tokenId, DateTimeOffset currentTime, StaticDataProvider staticData, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await using var transaction = await earthDb.Database.BeginTransactionAsync(cancellationToken);
+            var token = await earthDb.Tokens
+                .AsTracking()
+                .FirstOrDefaultAsync(token => token.ProfileId == accountId && token.TokenId == tokenId, cancellationToken: cancellationToken);
+
+            if (token is null or DailyLoginTokenEF { Claimed: true } ||
+                token is DailyLoginTokenEF dailyLogin && dailyLogin.Date != DateOnly.FromDateTime(currentTime.UtcDateTime))
+            {
+                return null;
+            }
+
+            earthDb.Tokens.Remove(token);
+            await earthDb.SaveChangesAsync(cancellationToken);
+            results.Tokens();
+
+            await DoActionsOnRedeemedTokenAsync(earthDb, results, token, accountId, currentTime, staticData);
+            await transaction.CommitAsync(cancellationToken);
+            return token;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return null;
+        }
+    }
+
     public static async Task<Guid> AddTokenAsync(EarthDbContext earthDb, ResultsEF.Builder results, TokenEF token, CancellationToken cancellationToken = default)
     {
         earthDb.Tokens.Add(token);

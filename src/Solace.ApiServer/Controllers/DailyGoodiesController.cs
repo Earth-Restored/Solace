@@ -7,8 +7,8 @@ using Solace.Db.Earth;
 using Solace.Db.Earth.Models.Player;
 using Microsoft.EntityFrameworkCore;
 using Solace.StaticData;
-using DBRewards = Solace.Db.Earth.Models.Common.Rewards;
 using System.Text.Json.Serialization;
+using DBRewards = Solace.Db.Earth.Models.Common.Rewards;
 
 namespace Solace.ApiServer.Controllers;
 
@@ -18,9 +18,9 @@ namespace Solace.ApiServer.Controllers;
 internal sealed class DailyGoodiesController : SolaceControllerBase
 {
     private readonly EarthDbContext _earthDb;
-    private readonly StaticData.StaticDataProvider _staticData;
+    private readonly StaticDataProvider _staticData;
 
-    public DailyGoodiesController(EarthDbContext earthDB, StaticData.StaticDataProvider staticData)
+    public DailyGoodiesController(EarthDbContext earthDB, StaticDataProvider staticData)
     {
         _earthDb = earthDB;
         _staticData = staticData;
