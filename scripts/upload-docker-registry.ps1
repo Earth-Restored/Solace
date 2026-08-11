@@ -56,7 +56,9 @@ function Push-Project {
         [Parameter(Mandatory = $true)][string]$PackageName,
         [Parameter(Mandatory = $true)][bool]$AOT,
         [string]$Username = $script:Username,
-        [string]$Registry = $script:Registry
+        [string]$Registry = $script:Registry,
+        [int]$MaxRetries = 3,
+        [int]$WaitSeconds = 10
     )
 
     $arguments = @(
@@ -85,7 +87,29 @@ function Push-Project {
         )
     }
 
-    dotnet @arguments
+    for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+        if ($attempt -eq 1) {
+            Write-Information "Publishing $ProjectName..."
+        }
+        else {
+            Write-Information "Publishing $ProjectName (Attempt $attempt of $MaxRetries)..."
+        }
+        
+        dotnet @arguments
+
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Successfully published $ProjectName!" -ForegroundColor Green
+            return
+        }
+
+        if ($attempt -lt $MaxRetries) {
+            Write-Warning "Publish failed for $ProjectName. Waiting $WaitSeconds seconds before retry..."
+            Start-Sleep -Seconds $WaitSeconds
+        }
+    }
+
+    Write-Error "Failed to publish $ProjectName after $MaxRetries attempts."
+    exit 1
 }
 
 Write-Information "Checking existing Docker authentication for $Registry..."
