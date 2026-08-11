@@ -330,6 +330,8 @@ var tileRenderer = builder.AddProject<Projects.Solace_TileRenderer>("tile-render
 var locatorPublicEndPoint = builder.AddConfigParameter("Shared:PublicEndpoints:Locator");
 var authServerPublicEndPoint = builder.AddConfigParameter("Shared:PublicEndpoints:AuthServer");
 
+var adminAccountPassword = builder.AddConfigParameter("WebPortal:AdminAccountPassword", isSecret: true);
+
 var buildplatePreviewEnabled = builder.AddConfigParameter("WebPortal:BuildplatePreview:Enabled");
 var buildplatePreviewGenerationMaxConcurrency = builder.AddConfigParameter("WebPortal:BuildplatePreview:GenerationMaxConcurrency");
 
@@ -366,6 +368,7 @@ var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
     .WithEnvironmentParameter(webPortalPublicEndPoint, prefixToRemove: "Shared:")
     .WithEnvironmentParameter(locatorPublicEndPoint, prefixToRemove: "Shared:")
     .WithEnvironmentParameter(authServerPublicEndPoint, prefixToRemove: "Shared:")
+    .WithEnvironmentParameter(adminAccountPassword, prefixToRemove: "WebPortal:")
     .WithEnvironmentParameter(buildplatePreviewEnabled, prefixToRemove: "WebPortal:")
     .WithEnvironmentParameter(buildplatePreviewGenerationMaxConcurrency, prefixToRemove: "WebPortal:")
     .WithEnvironmentParameter(fixUpBuildplatesOnImport, prefixToRemove: "Shared:")

@@ -353,7 +353,7 @@ internal sealed partial class Program2
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             await EnsureBuiltInRolesAsync(roleManager, userManager);
 
-            await EnsureOwnerAccountExists(userManager, programLogger);
+            await EnsureOwnerAccountExists(userManager, builder.Configuration["AdminAccountPassword"], programLogger);
         }
 
         app.Run();
@@ -432,14 +432,14 @@ internal sealed partial class Program2
         }
     }
 
-    private static async Task EnsureOwnerAccountExists(UserManager<ApplicationUser> userManager, ILogger logger)
+    private static async Task EnsureOwnerAccountExists(UserManager<ApplicationUser> userManager, string? newPassword, ILogger logger)
     {
         const string OwnerEmail = "admin@solace.com";
         var ownerUser = await userManager.FindByEmailAsync(OwnerEmail);
 
         if (ownerUser is null)
         {
-            var temporaryPassword = GenerateSecurePassword(32);
+            var temporaryPassword = string.IsNullOrWhiteSpace(newPassword) ? GenerateSecurePassword(32) : newPassword;
 
             ownerUser = new ApplicationUser
             {
@@ -456,7 +456,7 @@ internal sealed partial class Program2
 
 #pragma warning disable CA1848 // Use the LoggerMessage delegates
                 logger.LogWarning("==================================================");
-                logger.LogWarning("SETUP: Initial Owner Account Created!");
+                logger.LogWarning("SETUP: Initial owner account created!");
                 logger.LogWarning("Email: {Email}", OwnerEmail);
                 logger.LogWarning("Password: {Password}", temporaryPassword);
                 logger.LogWarning("PLEASE CHANGE THIS PASSWORD IMMEDIATELY AFTER LOGGING IN.");
@@ -465,6 +465,30 @@ internal sealed partial class Program2
             else
             {
                 var errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
+                logger.LogError("Failed to create initial owner user: {Errors}", errors);
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(newPassword))
+        {
+            if (await userManager.HasPasswordAsync(ownerUser))
+            {
+                await userManager.RemovePasswordAsync(ownerUser);
+            }
+
+            var updateResult = await userManager.AddPasswordAsync(ownerUser, newPassword);
+
+            if (updateResult.Succeeded)
+            {
+                logger.LogWarning("==================================================");
+                logger.LogWarning("Initial owner account password updated!");
+                logger.LogWarning("Email: {Email}", OwnerEmail);
+                logger.LogWarning("Password: {Password}", newPassword);
+                logger.LogWarning("PLEASE CHANGE THIS PASSWORD IMMEDIATELY AFTER LOGGING IN.");
+                logger.LogWarning("==================================================");
+            }
+            else
+            {
+                var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
                 logger.LogError("Failed to create initial owner user: {Errors}", errors);
 #pragma warning restore CA1848 // Use the LoggerMessage delegates
             }
