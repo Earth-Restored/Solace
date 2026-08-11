@@ -63,6 +63,7 @@ internal sealed class EnvironmentSettingsController : ControllerBase
 
         var sResp = Json.Serialize(resp, new JsonSerializerOptions()
         {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         });
         return TypedResults.Content(sResp, "application/json");
@@ -106,6 +107,7 @@ internal sealed class EnvironmentSettingsController : ControllerBase
 
         var sResp = Json.Serialize(resp, new JsonSerializerOptions()
         {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         });
         return TypedResults.Content(sResp, "application/json");

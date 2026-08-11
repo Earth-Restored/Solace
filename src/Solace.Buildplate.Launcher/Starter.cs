@@ -56,11 +56,13 @@ internal sealed partial class Starter
     {
         await ServerUtils.WaitForSetup(App.StaticDataPath, _logger, cancellationToken);
 
-        var fabricJarName = App.ResolveVersionedFile(_fabricJarName, Buildplate.Common.Constants.GameVersion, _logger);
+        var fabricJarName = App.ResolveVersionedFile(Path.Combine(App.StaticDataPath, "server_template_dir", _fabricJarName), Buildplate.Common.Constants.GameVersion, _logger);
         if (fabricJarName is null)
         {
             return null;
         }
+
+        fabricJarName = Path.GetFileName(fabricJarName);
 
         var baseDir = CreateInstanceBaseDir(instanceId);
         if (baseDir is null)

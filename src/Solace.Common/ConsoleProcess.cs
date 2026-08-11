@@ -146,6 +146,9 @@ public sealed partial class ConsoleProcess : IDisposable
         Process.Exited += ProcessOnExited;
     }
 
+    [SupportedOSPlatform("android")]
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("windows")]
     public async Task ExecuteAsync(string? workingDir, params string[] args)
     {
         if (running)
@@ -164,6 +167,7 @@ public sealed partial class ConsoleProcess : IDisposable
             if (OperatingSystem.IsWindows())
             {
                 Process.StartInfo.UseShellExecute = true;
+                Process.StartInfo.KillOnParentExit = false;
                 Process.StartInfo.FileName = "cmd.exe";
                 Process.StartInfo.Arguments = $"/k \"\"{_filePath}\" {FormatStandardArguments(args)}\"";
             }
@@ -256,9 +260,13 @@ public sealed partial class ConsoleProcess : IDisposable
     public async Task StopAndWaitAsync(ILogger logger, int timeout = 15 * 1000, CancellationToken cancellationToken = default)
         => await ActualProcess.StopGracefullyOrKillAndWaitAsync(TimeSpan.FromMilliseconds(timeout), logger, cancellationToken);
 
+    [SupportedOSPlatform("android")]
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("windows")]
     private void ApplyTerminalWrapper(IEnumerable<string> args)
     {
         Process.StartInfo.UseShellExecute = true;
+        Process.StartInfo.KillOnParentExit = false;
 
         if (OperatingSystem.IsLinux())
         {

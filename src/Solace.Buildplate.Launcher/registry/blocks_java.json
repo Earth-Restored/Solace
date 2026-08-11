@@ -94847,6 +94847,20 @@
     }
   },
   {
+    "name": "minecraft:heavy_core[waterlogged=false]",
+    "id": 26683,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:heavy_core[waterlogged=true]",
+    "id": 26682,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
     "name": "minecraft:heavy_weighted_pressure_plate[power=0]",
     "id": 9159,
     "bedrock": {
@@ -226166,6 +226180,90 @@
     }
   },
   {
+    "name": "minecraft:trial_spawner[ominous=false,trial_spawner_state=active]",
+    "id": 26646,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:trial_spawner[ominous=false,trial_spawner_state=cooldown]",
+    "id": 26649,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:trial_spawner[ominous=false,trial_spawner_state=ejecting_reward]",
+    "id": 26648,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:trial_spawner[ominous=false,trial_spawner_state=inactive]",
+    "id": 26644,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:trial_spawner[ominous=false,trial_spawner_state=waiting_for_players]",
+    "id": 26645,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:trial_spawner[ominous=false,trial_spawner_state=waiting_for_reward_ejection]",
+    "id": 26647,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:trial_spawner[ominous=true,trial_spawner_state=active]",
+    "id": 26640,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:trial_spawner[ominous=true,trial_spawner_state=cooldown]",
+    "id": 26643,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:trial_spawner[ominous=true,trial_spawner_state=ejecting_reward]",
+    "id": 26642,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:trial_spawner[ominous=true,trial_spawner_state=inactive]",
+    "id": 26638,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:trial_spawner[ominous=true,trial_spawner_state=waiting_for_players]",
+    "id": 26639,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:trial_spawner[ominous=true,trial_spawner_state=waiting_for_reward_ejection]",
+    "id": 26641,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
     "name": "minecraft:trial_spawner[trial_spawner_state=active]",
     "id": 26640,
     "bedrock": {
@@ -234289,6 +234387,230 @@
   {
     "name": "minecraft:twisting_vines_plant",
     "id": 18664,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=east,ominous=false,vault_state=active]",
+    "id": 26679,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=east,ominous=false,vault_state=ejecting]",
+    "id": 26681,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=east,ominous=false,vault_state=inactive]",
+    "id": 26678,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=east,ominous=false,vault_state=unlocking]",
+    "id": 26680,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=east,ominous=true,vault_state=active]",
+    "id": 26675,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=east,ominous=true,vault_state=ejecting]",
+    "id": 26677,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=east,ominous=true,vault_state=inactive]",
+    "id": 26674,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=east,ominous=true,vault_state=unlocking]",
+    "id": 26676,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=north,ominous=false,vault_state=active]",
+    "id": 26655,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=north,ominous=false,vault_state=ejecting]",
+    "id": 26657,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=north,ominous=false,vault_state=inactive]",
+    "id": 26654,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=north,ominous=false,vault_state=unlocking]",
+    "id": 26656,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=north,ominous=true,vault_state=active]",
+    "id": 26651,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=north,ominous=true,vault_state=ejecting]",
+    "id": 26653,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=north,ominous=true,vault_state=inactive]",
+    "id": 26650,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=north,ominous=true,vault_state=unlocking]",
+    "id": 26652,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=south,ominous=false,vault_state=active]",
+    "id": 26663,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=south,ominous=false,vault_state=ejecting]",
+    "id": 26665,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=south,ominous=false,vault_state=inactive]",
+    "id": 26662,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=south,ominous=false,vault_state=unlocking]",
+    "id": 26664,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=south,ominous=true,vault_state=active]",
+    "id": 26659,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=south,ominous=true,vault_state=ejecting]",
+    "id": 26661,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=south,ominous=true,vault_state=inactive]",
+    "id": 26658,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=south,ominous=true,vault_state=unlocking]",
+    "id": 26660,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=west,ominous=false,vault_state=active]",
+    "id": 26671,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=west,ominous=false,vault_state=ejecting]",
+    "id": 26673,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=west,ominous=false,vault_state=inactive]",
+    "id": 26670,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=west,ominous=false,vault_state=unlocking]",
+    "id": 26672,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=west,ominous=true,vault_state=active]",
+    "id": 26667,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=west,ominous=true,vault_state=ejecting]",
+    "id": 26669,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=west,ominous=true,vault_state=inactive]",
+    "id": 26666,
+    "bedrock": {
+      "ignore": true
+    }
+  },
+  {
+    "name": "minecraft:vault[facing=west,ominous=true,vault_state=unlocking]",
+    "id": 26668,
     "bedrock": {
       "ignore": true
     }
