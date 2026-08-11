@@ -1,6 +1,6 @@
 # TODO
 
-- Launcher buildplate preview - liquid rendering, genoa specific blocks, entities
+- Launcher buildplate preview - genoa specific blocks, entities
 - Shop management
 - Encounter generation and AR
 - Use tiles when spawning tappables - don't spawn on water/forbidden areas, spawn more trees in forest?
