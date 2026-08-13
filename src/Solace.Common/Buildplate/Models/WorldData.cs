@@ -191,7 +191,7 @@ public sealed partial record class WorldData(
             return null;
         }
 
-        if (size != 8 && size != 16 && size != 32)
+        if (size is not 8 and not 16 and not 32)
         {
             LogInvalidBuildplateSite(logger, size);
             return null;

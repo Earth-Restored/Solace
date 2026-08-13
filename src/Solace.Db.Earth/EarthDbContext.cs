@@ -65,7 +65,9 @@ public sealed class EarthDbContext : DbContext
 
     public static void ConfigureBuilder(DbContextOptionsBuilder optionsBuilder, string connectionString)
     {
+#pragma warning disable IDE0022 // Use expression body for method
         optionsBuilder.UseNpgsql(connectionString);
+#pragma warning restore IDE0022 // Use expression body for method
 
         // optionsBuilder.UseModel(CompiledModels.EarthDbContextModel.Instance);
     }

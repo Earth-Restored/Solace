@@ -7,6 +7,8 @@ namespace Solace.StaticData;
 
 public sealed class Playfab
 {
+    public readonly Version Version;
+
     public readonly FrozenDictionary<Guid, Item> Items;
 
     public readonly ImmutableArray<Tab> ShopTabs;
@@ -17,6 +19,8 @@ public sealed class Playfab
     {
         try
         {
+            Version = Version.Parse(File.ReadAllText(Path.Combine(dir, "version.txt")));
+
             var shopTabs = ImmutableArray.CreateBuilder<Tab>(2);
             foreach (var file in Directory.EnumerateFiles(Path.Combine(dir, "shop_tabs"))
                 .OrderBy(file => Path.GetFileName(file), StringComparer.Ordinal))
@@ -62,8 +66,8 @@ public sealed class Playfab
             items.Add(new Item(
                 true,
                 new Item.QueryManifestData(
-                    "0.25.0",
-                    "1.0.20",
+                    new Version(0, 25, 0),
+                    new Version(1, 0, 20),
                     ShopTabs,
                     ShopNotSearchQueryTags
                 ),
@@ -82,10 +86,10 @@ public sealed class Playfab
                 [new Item.QueryManifestContent(
                    "f3f2b4fc-f144-4357-9e41-198db3a47957",
                     "/playfab/master_loc_contents.json",
-                     "6555.6555.6555",
-                     "1.2.0",
-                     [],
-                     "resourcebinary"
+                    new Version(6555, 6555, 6555),
+                    new Version(1, 2, 0),
+                    [],
+                    "resourcebinary"
                 )],
                 [],
                 new Dictionary<string, string>(StringComparer.Ordinal) { ["en-US"] = "Home L1" },
@@ -160,8 +164,8 @@ public sealed class Playfab
         public sealed record QueryManifestContent(
             string Id,
             string Url,
-            string MaxClientVersion,
-            string MinClientVersion,
+            Version MaxClientVersion,
+            Version MinClientVersion,
             IReadOnlyList<string> Tags,
             string Type
         );
@@ -169,7 +173,6 @@ public sealed class Playfab
         [JsonPolymorphic(TypeDiscriminatorPropertyName = "Type")]
         [JsonDerivedType(typeof(BuildplateData), "Buildplate")]
         [JsonDerivedType(typeof(InventoryItemData), "InventoryItem")]
-        [JsonDerivedType(typeof(RubyData), "Ruby")]
         public abstract record ItemData
         {
         }
@@ -180,7 +183,7 @@ public sealed class Playfab
             BuidplateSize Size,
             int UnlockLevel,
             Rarity Rarity,
-            string Version
+            Version Version
         ) : ItemData;
 
         public sealed record InventoryItemData(
@@ -188,20 +191,13 @@ public sealed class Playfab
             int Cost,
             int Amount,
             Rarity Rarity,
-            string Version
-        ) : ItemData;
-
-        public sealed record RubyData(
-            int CoinCount,
-            int? BonusCoinCount,
-            string Sku,
-            string OriginalCreatorId
+            Version Version
         ) : ItemData;
 
         // does not have type discriminator, so cannot be loaded from items, instead created manually from shop tabs
         public sealed record QueryManifestData(
-            string MinClientVersion,
-            string MaxClientVersion,
+            Version MinClientVersion,
+            Version MaxClientVersion,
             IReadOnlyList<Tab> Tabs,
             IReadOnlyList<string> GlobalNotSearchQueryTags
         ) : ItemData;

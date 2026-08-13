@@ -1,0 +1,147 @@
+@page "/tabs/create"
+@page "/tabs/edit/{TabId}"
+@inject HttpClient Http
+@inject NavigationManager NavManager
+
+<h3>@(string.IsNullOrEmpty(TabId) ? "Create New Tab" : $"Edit Tab: {Model.TabTitle}")</h3>
+
+<EditForm Model="Model" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+
+    <div class="row mb-3">
+        <div class="col">
+            <label>Tab ID</label>
+            <InputText @bind-Value="Model.TabId" class="form-control" />
+        </div>
+        <div class="col">
+            <label>Tab Title</label>
+            <InputText @bind-Value="Model.TabTitle" class="form-control" />
+        </div>
+        <div class="col">
+            <label>Tab Icon</label>
+            <InputText @bind-Value="Model.TabIcon" class="form-control" placeholder="textures/ui/icons/..." />
+        </div>
+    </div>
+
+    <hr />
+    <h4>Layout Queries</h4>
+    <button type="button" class="btn btn-sm btn-secondary mb-3" @onclick="AddLayout">Add Layout Column</button>
+
+    @foreach (var layout in Model.ScreenLayoutQueries)
+    {
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <span><strong>Component ID:</strong> @(layout.ComponentId)</span>
+                <button type="button" class="btn btn-sm btn-danger" @onclick="() => Model.ScreenLayoutQueries.Remove(layout)">Remove Layout</button>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label>Column Type</label>
+                    <InputSelect @bind-Value="layout.ColumnType" class="form-select w-25">
+                        <option value="@ColumnType.Rectangle">Rectangle</option>
+                        <option value="@ColumnType.Square">Square</option>
+                        <option value="@ColumnType.Grid">Grid</option>
+                    </InputSelect>
+                </div>
+
+                <h5>Queries</h5>
+                <button type="button" class="btn btn-sm btn-outline-primary mb-2" @onclick="() => layout.Queries.Add(new QueryViewModel())">Add Query</button>
+
+                @foreach (var query in layout.Queries)
+                {
+                    <div class="border p-3 mb-3 bg-white rounded">
+                        <div class="mb-2">
+                            <label>Top Count</label>
+                            <InputNumber @bind-Value="query.TopCount" class="form-control w-25" />
+                        </div>
+                        
+                        <label><strong>Select Products for this Query:</strong></label>
+                        <div class="row border rounded p-2 m-0" style="max-height: 200px; overflow-y: auto;">
+                            @if (AvailableItems == null)
+                            {
+                                <em>Loading items...</em>
+                            }
+                            else
+                            {
+                                @foreach (var item in AvailableItems)
+                                {
+                                    <div class="col-12 col-md-4">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" 
+                                                   id="@($"chk_{layout.ComponentId}_{item.Id}")"
+                                                   checked="@query.ProductIds.Contains(item.Id)"
+                                                   @onchange="(e) => ToggleProduct(query, item.Id, e.Value)" />
+                                            <label class="form-check-label" for="@($"chk_{layout.ComponentId}_{item.Id}")">
+                                                @item.Title <small class="text-muted">(@item.ItemDataType)</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger mt-3" @onclick="() => layout.Queries.Remove(query)">Remove Query</button>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <button type="submit" class="btn btn-success mt-4">Save Tab</button>
+</EditForm>
+
+@code {
+    [Parameter] public string? TabId { get; set; }
+    private TabViewModel Model { get; set; } = new();
+    
+    // We fetch a lightweight list of items so the user can select them by Name, not GUID.
+    private List<ItemViewModel>? AvailableItems; 
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Fetch available items to populate our intuitive checkboxes
+        AvailableItems = await Http.GetFromJsonAsync<List<ItemViewModel>>("api/items");
+
+        // 2. Fetch the Tab if editing
+        if (!string.IsNullOrEmpty(TabId))
+        {
+            Model = await Http.GetFromJsonAsync<TabViewModel>($"api/tabs/{TabId}") ?? new();
+        }
+    }
+
+    private void AddLayout()
+    {
+        Model.ScreenLayoutQueries.Add(new ScreenLayoutQueryViewModel());
+    }
+
+    private void ToggleProduct(QueryViewModel query, Guid productId, object? isChecked)
+    {
+        bool checkStatus = isChecked is bool b && b;
+        
+        if (checkStatus && !query.ProductIds.Contains(productId))
+        {
+            query.ProductIds.Add(productId);
+        }
+        else if (!checkStatus && query.ProductIds.Contains(productId))
+        {
+            query.ProductIds.Remove(productId);
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        HttpResponseMessage response;
+        if (!string.IsNullOrEmpty(TabId))
+        {
+            response = await Http.PutAsJsonAsync($"api/tabs/{TabId}", Model);
+        }
+        else
+        {
+            response = await Http.PostAsJsonAsync("api/tabs", Model);
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            NavManager.NavigateTo("/tabs");
+        }
+    }
+}

@@ -18,6 +18,7 @@ using Solace.Common;
 using Solace.Common.Asp;
 using Solace.Db;
 using Solace.Db.Earth;
+using Solace.Db.Playfab;
 
 [assembly: Behaviors(
     typeof(ValidationBehavior<,>)
@@ -72,6 +73,13 @@ internal sealed partial class Program2
 
         builder.Services.AddDbContextFactory<EarthDbContext>(options =>
             EarthDbContext.ConfigureBuilder(options, earthDbConnectionString));
+
+        var playfabDbConnectionString = builder.Configuration.GetConnectionString("PlayfabDb");
+
+        Debug.Assert(playfabDbConnectionString is not null);
+
+        builder.Services.AddDbContextFactory<PlayfabDbContext>(options =>
+            PlayfabDbContext.ConfigureBuilder(options, playfabDbConnectionString));
 
         builder.AddServiceDefaults();
         builder.WebHost.UseKestrelHttpsConfiguration();
@@ -184,11 +192,15 @@ internal sealed partial class Program2
 
         using (var scope = app.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<EarthDbContext>();
+            var earthDb = scope.ServiceProvider.GetRequiredService<EarthDbContext>();
 
-            await db.Database.MigrateAsyncWithLock();
+            await earthDb.Database.MigrateAsyncWithLock();
 
-            startupDeps.Secrets = await db.GetOrInitializeSecretsAsync();
+            var playfabDb = scope.ServiceProvider.GetRequiredService<PlayfabDbContext>();
+
+            await playfabDb.Database.MigrateAsyncWithLock();
+
+            startupDeps.Secrets = await earthDb.GetOrInitializeSecretsAsync();
         }
 
         LogLoadingStaticData(programLogger);

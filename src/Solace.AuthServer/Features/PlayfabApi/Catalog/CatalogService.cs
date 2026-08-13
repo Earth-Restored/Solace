@@ -63,12 +63,11 @@ public sealed class CatalogService
                     new(PlayfabApiUtils.RubyCurrencyId, PlayfabApiUtils.RubyCurrencyId, PlayfabApiUtils.RubyCurrencyId, data.Cost),
                 ]),
             ], []),
-            StaticData.Playfab.Item.RubyData => null,
             StaticData.Playfab.Item.QueryManifestData => null,
             _ => throw new UnreachableException(),
         };
 
-        var creatorEntityType = item.Data is StaticData.Playfab.Item.RubyData ? "master_player_account" : "title_player_account";
+        var creatorEntityType = "title_player_account";
 
         return new CatalogItem(
             new CatalogItem.Entity(item.SourceEntityId, "namespace", "namespace"),
@@ -78,7 +77,6 @@ public sealed class CatalogService
             {
                 StaticData.Playfab.Item.BuildplateData => "bundle",
                 StaticData.Playfab.Item.InventoryItemData => "bundle",
-                StaticData.Playfab.Item.RubyData => "catalogItem",
                 StaticData.Playfab.Item.QueryManifestData => "catalogItem",
                 _ => throw new UnreachableException(),
             },
@@ -93,18 +91,16 @@ public sealed class CatalogService
             {
                 StaticData.Playfab.Item.BuildplateData => "BuildplateOffer",
                 StaticData.Playfab.Item.InventoryItemData => "InventoryItemOffer",
-                StaticData.Playfab.Item.RubyData => "RubyOffer",
                 StaticData.Playfab.Item.QueryManifestData => "GenoaQueryManifest_V0.0.3",
                 _ => throw new UnreachableException(),
             },
             new CatalogItem.Entity(item.CreatorEntityId, creatorEntityType, creatorEntityType),
             new CatalogItem.Entity(item.CreatorEntityId, creatorEntityType, creatorEntityType),
-            item.Data is StaticData.Playfab.Item.RubyData ? false : null, // IsStackable
+            null, // IsStackable
             item.Data switch
             {
                 StaticData.Playfab.Item.BuildplateData => ["android.amazonappstore", "android.googleplay", "b.store", "ios.store", "nx.store", "oculus.store.gearvr", "oculus.store.rift", "uwp.store", "uwp.store.mobile", "xboxone.store", "title.bedrockvanilla", "title.earth"],
                 StaticData.Playfab.Item.InventoryItemData => ["android.googleplay", "ios.store", "uwp.store", "title.earth"],
-                StaticData.Playfab.Item.RubyData => ["android.googleplay", "ios.store", "uwp.store", "title.bedrockvanilla", "title.earth"],
                 StaticData.Playfab.Item.QueryManifestData => ["android.googleplay", "ios.store", "uwp.store", "title.earth"],
                 _ => throw new UnreachableException(),
             },
@@ -140,12 +136,6 @@ public sealed class CatalogService
                     [new("entitlement_InventoryItemOffer", data.Id, data.Version)],
                     data.Id,
                     data.Amount
-                ),
-                StaticData.Playfab.Item.RubyData data => CatalogItem.DisplayPropertiesR.CreateRuby(
-                    data.BonusCoinCount,
-                    data.CoinCount,
-                    data.OriginalCreatorId,
-                    data.Sku
                 ),
                 StaticData.Playfab.Item.QueryManifestData data => CatalogItem.DisplayPropertiesR.CreateQueryManifest(
                     data.MinClientVersion,
@@ -222,7 +212,7 @@ public sealed class CatalogService
                     0,
                     true,
                     "rare",
-                    [new("persona_piece", Guid.Parse("4f7cdadd-a33c-489d-8969-752ca689f567"), "1.1.0"),],
+                    [new("persona_piece", Guid.Parse("4f7cdadd-a33c-489d-8969-752ca689f567"), new Version(1, 1, 0)),],
                     Guid.Parse("53bee6fe-c9d9-43c9-b3af-4c5438fba4b7"),
                     "persona_feet"
                 )

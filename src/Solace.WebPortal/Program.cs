@@ -9,6 +9,7 @@ using Solace.Common;
 using Solace.Common.Asp.Oidc;
 using Solace.Db;
 using Solace.Db.Earth;
+using Solace.Db.Playfab;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 using Solace.WebPortal.Common;
@@ -100,9 +101,11 @@ internal sealed partial class Program2
 
         var appDbconnectionString = builder.Configuration.GetConnectionString("WebPortalDb") ?? (EF.IsDesignTime ? "Host=localhost;Database=dummy;" : throw new InvalidOperationException("Connection string 'WebPortalDb' not found."));
         var earthDbConnectionString = builder.Configuration.GetConnectionString("EarthDb") ?? (EF.IsDesignTime ? "Host=localhost;Database=dummy;" : throw new InvalidOperationException("Connection string 'EarthDb' not found."));
+        var playfabDbConnectionString = builder.Configuration.GetConnectionString("PlayfabDb") ?? (EF.IsDesignTime ? "Host=localhost;Database=dummy;" : throw new InvalidOperationException("Connection string 'PlayfabDb' not found."));
 
         builder.Services.AddDbContextFactory<ApplicationDbContext>(options => options.UseNpgsql(appDbconnectionString));
         builder.Services.AddDbContextFactory<EarthDbContext>(options => EarthDbContext.ConfigureBuilder(options, earthDbConnectionString));
+        builder.Services.AddDbContextFactory<PlayfabDbContext>(options => PlayfabDbContext.ConfigureBuilder(options, playfabDbConnectionString));
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
         builder.Services.AddIdentityCore<ApplicationUser>(options =>

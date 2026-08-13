@@ -45,6 +45,7 @@ var postgres = builder.AddPostgres("postgres")
     .WithDataVolume()
     .WithPgAdmin();
 var earthDb = postgres.AddDatabase("EarthDb");
+var playfabDb = postgres.AddDatabase("PlayfabDb");
 var webPortalDb = postgres.AddDatabase("WebPortalDb");
 
 var eventBus = builder.AddProject<Projects.Solace_EventBus_Server>("event-bus")
@@ -153,6 +154,8 @@ var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
     })
     .WithReference(earthDb)
     .WaitFor(earthDb)
+    .WithReference(playfabDb)
+    .WaitFor(playfabDb)
     .WithReference(eventBus)
     .WaitFor(eventBus)
     .WithReference(objectStore)
@@ -223,6 +226,7 @@ var captchaProvider = builder.AddConfigParameter("Shared:Captcha:Provider", defa
 var captchaCloudflareTurnstileSiteKey = builder.AddConfigParameter("Shared:Captcha:CloudflareTurnstileSiteKey");
 var captchaCloudflareTurnstileSecretKey = builder.AddConfigParameter("Shared:Captcha:CloudflareTurnstileSecretKey", isSecret: true);
 
+// todo: seperate playfab into it's own project
 var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
     .WithHttpEndpoint(port: authServerPort, name: "http")
     .WithEndpoint("http", endpoint =>
@@ -231,6 +235,8 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
     })
     .WithReference(earthDb)
     .WaitFor(earthDb)
+    .WithReference(playfabDb)
+    .WaitFor(playfabDb)
     .WithEnvironmentSection(builder.Configuration, "AuthServer:Authentication", prefixToRemove: "AuthServer:")
     .WithEnvironmentSection(builder.Configuration, "Shared:Oidc:WebPortal:AuthServer",
         prefixToRemove: "Shared:Oidc:WebPortal:AuthServer:",
@@ -348,6 +354,8 @@ var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
     .WaitFor(authServer)
     .WithReference(earthDb)
     .WaitFor(earthDb)
+    .WithReference(playfabDb)
+    .WaitFor(playfabDb)
     .WithReference(webPortalDb)
     .WaitFor(webPortalDb)
     .WithReference(eventBus)

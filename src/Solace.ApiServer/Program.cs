@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using System.Reflection;
 using Solace.Common.Asp;
 using Solace.Db;
+using Solace.Db.Playfab;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
@@ -80,9 +81,9 @@ internal static partial class App
 
         builder.AddServiceDefaults();
 
-        var earthDbConnectionString = builder.Configuration.GetConnectionString("EarthDb");
+        var isEFTooling = EF.IsDesignTime;
 
-        var isEFTooling = Assembly.GetEntryAssembly()?.GetName().Name == "ef";
+        var earthDbConnectionString = builder.Configuration.GetConnectionString("EarthDb");
 
         if (isEFTooling)
         {
@@ -90,6 +91,15 @@ internal static partial class App
         }
 
         Debug.Assert(earthDbConnectionString is not null);
+
+        var playfabDbConnectionString = builder.Configuration.GetConnectionString("PlayfabDb");
+
+        if (isEFTooling)
+        {
+            playfabDbConnectionString ??= "Host=localhost;Database=dummy;";
+        }
+
+        Debug.Assert(playfabDbConnectionString is not null);
 
         builder.Services.AddSingleton<StartupDependencies>();
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
@@ -129,6 +139,9 @@ internal static partial class App
 
         builder.Services.AddDbContextFactory<EarthDbContext>(options =>
             EarthDbContext.ConfigureBuilder(options, earthDbConnectionString));
+
+        builder.Services.AddDbContextFactory<PlayfabDbContext>(options =>
+            PlayfabDbContext.ConfigureBuilder(options, playfabDbConnectionString));
 
         await using var app = builder.Build();
 
@@ -234,15 +247,19 @@ internal static partial class App
 
         using (var scope = app.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<EarthDbContext>();
+            var earthDb = scope.ServiceProvider.GetRequiredService<EarthDbContext>();
 
-            await db.Database.MigrateAsyncWithLock();
+            await earthDb.Database.MigrateAsyncWithLock();
 
-            startupDeps.Secrets = await db.GetOrInitializeSecretsAsync();
+            var playfabDb = scope.ServiceProvider.GetRequiredService<PlayfabDbContext>();
+
+            await playfabDb.Database.MigrateAsyncWithLock();
+
+            startupDeps.Secrets = await earthDb.GetOrInitializeSecretsAsync();
 
             var fixUpBuildplates = builder.Configuration.GetValue<bool>("FixUpBuildplatesOnImport", false);
 
-            await ImportShopBuildplates(db, eventBus, objectStore, staticData, fixUpBuildplates, programLogger);
+            await ImportShopBuildplates(earthDb, eventBus, objectStore, staticData, fixUpBuildplates, programLogger);
         }
 
         // init stuff that needs async initialization

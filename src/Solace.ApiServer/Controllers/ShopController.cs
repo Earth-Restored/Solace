@@ -170,6 +170,11 @@ internal sealed partial class ShopController : SolaceControllerBase
             return null;
         }
 
+        if (!itemToPurchase.Purchasable)
+        {
+            return null;
+        }
+
         int? playfabPrice = itemToPurchase.Data switch
         {
             Playfab.Item.BuildplateData data => data.Cost,
