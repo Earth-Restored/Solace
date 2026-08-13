@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections.Frozen;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
@@ -509,7 +510,7 @@ public sealed class Catalog
             NFCBoost[] MiniFigs
         );
 
-        public readonly NFCBoost[] MiniFigs;
+        public readonly FrozenDictionary<string, NFCBoost> MiniFigs;
 
         internal NFCBoostsCatalogR(string file)
         {
@@ -519,7 +520,9 @@ public sealed class Catalog
                 nfcBoostsCatalogFile = JsonSerializer.Deserialize(stream, AppJsonContext.Default.NFCBoostsCatalogFile);
             }
 
-            MiniFigs = nfcBoostsCatalogFile?.MiniFigs ?? [];
+            Debug.Assert(nfcBoostsCatalogFile is not null);
+
+            MiniFigs = nfcBoostsCatalogFile.MiniFigs.ToFrozenDictionary(item => item.Id);
         }
 
         public sealed record NFCBoost(

@@ -14,6 +14,7 @@ namespace Solace.ApiServer;
 [JsonSerializable(typeof(InventoryController.SetHotbarRequestItem[]))]
 [JsonSerializable(typeof(BuildplatesController.EncounterInstanceRequest))]
 [JsonSerializable(typeof(BuildplatesController.SharedBuildplateInstanceRequest))]
+[JsonSerializable(typeof(ProductsController.GetProductInfoRequest))]
 [JsonSerializable(typeof(ExpectedPurchasePriceR))]
 [JsonSerializable(typeof(Dictionary<string, object>))]
 internal sealed partial class AppJsonContext : JsonSerializerContext
