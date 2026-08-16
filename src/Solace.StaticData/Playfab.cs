@@ -1,6 +1,7 @@
 ﻿using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 namespace Solace.StaticData;
@@ -23,7 +24,7 @@ public sealed class Playfab
 
             var shopTabs = ImmutableArray.CreateBuilder<Tab>(2);
             foreach (var file in Directory.EnumerateFiles(Path.Combine(dir, "shop_tabs"))
-                .OrderBy(file => Path.GetFileName(file), StringComparer.Ordinal))
+                .OrderBy(file => Path.GetFileName(file), StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering)))
             {
                 if (Path.GetExtension(file) != ".json")
                 {
@@ -122,7 +123,7 @@ public sealed class Playfab
         Item.ItemData Data,
         string Title,
         string Description,
-        string? ThumbnailImageId,
+        Guid? ThumbnailImageId,
         DateTime CreationDate,
         DateTime LastModifiedDate,
         DateTime StartDate,

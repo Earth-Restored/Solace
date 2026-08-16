@@ -55,7 +55,7 @@ public static partial class GetPlayer
             return TypedResults.Forbid();
         }
 
-        var maxHealth = BoostUtils.GetMaxPlayerHealth(profile.Boosts!, utcNow, staticData.Catalog.ItemsCatalog);
+        var maxHealth = BoostUtils.GetMaxPlayerHealth(profile.Boosts!, utcNow, staticData.Catalog);
 
         var buildplateCount = await earthDb.PlayerBuildplates
             .CountAsync(buildplate => buildplate.ProfileId == query.ProfileId, cancellationToken);

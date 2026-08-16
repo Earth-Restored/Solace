@@ -22,7 +22,7 @@ public partial class InitialMigration : Migration
                 Purchasable = table.Column<bool>(type: "boolean", nullable: false),
                 Title = table.Column<string>(type: "text", nullable: false),
                 Description = table.Column<string>(type: "text", nullable: false),
-                ThumbnailImageId = table.Column<string>(type: "text", nullable: true),
+                ThumbnailImageId = table.Column<Guid>(type: "uuid", nullable: true),
                 CreationDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                 LastModifiedDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                 StartDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),

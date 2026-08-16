@@ -69,7 +69,6 @@ function Push-Project {
         "/p:EnableUnsafeUTF7Encoding=false",
         "/p:EventSourceSupport=false",
         "/p:HttpActivityPropagationSupport=false",
-        "/p:InvariantGlobalization=true",
         "/p:MetadataUpdaterSupport=false",
         "/t:PublishContainer",
         "-p:ContainerRegistry=$Registry",

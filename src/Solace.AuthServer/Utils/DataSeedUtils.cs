@@ -31,6 +31,7 @@ internal static class DataSeedUtils
 
             await playfabDb.Tabs.ExecuteDeleteAsync(cancellationToken);
             await playfabDb.Items.ExecuteDeleteAsync(cancellationToken);
+            await playfabDb.ItemData.ExecuteDeleteAsync(cancellationToken);
 
             await InternalSeedPlayfabDataAsync(playfabDb, staticData, cancellationToken);
 
@@ -133,9 +134,11 @@ internal static class DataSeedUtils
             };
 
             data.Item = itemEF;
-        }
 
-        await playfabDb.SaveChangesAsync(cancellationToken);
+            playfabDb.Items.Add(itemEF);
+
+            await playfabDb.SaveChangesAsync(cancellationToken);
+        }
 
         static IEnumerable<TabEF> SeedTabs(PlayfabDbContext playfabDb, Playfab staticData)
         {
@@ -145,7 +148,7 @@ internal static class DataSeedUtils
 
                 var tabEF = new TabEF()
                 {
-                    TabIndex = i,
+                    TabIndex = i + 1,
                     TabId = tab.TabId,
                     TabTitle = tab.TabTitle,
                     TabIcon = tab.TabIcon,

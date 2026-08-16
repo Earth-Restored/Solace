@@ -58,7 +58,7 @@ public sealed partial class GetPreview(
             // return TypedResults.Unauthorized();
         }
 
-        if (!httpUser.HasPermission(Permissions.CreateProfile) && !httpUser.HasPermission(Permissions.ViewBuildplates) && !httpUser.HasPermission(Permissions.ViewPlayers))
+        if (!httpUser.HasPermission(Permissions.CreateProfile) && !httpUser.HasPermission(Permissions.ViewBuildplates) && !httpUser.HasPermission(Permissions.ViewPlayers) && !httpUser.HasPermission(Permissions.ViewShop))
         {
             yield break;
             // return TypedResults.Forbid();

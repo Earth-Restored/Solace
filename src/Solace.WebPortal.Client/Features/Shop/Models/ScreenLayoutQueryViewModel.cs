@@ -1,4 +1,4 @@
-namespace Solace.WebPortal.Client.Features.Shop;
+namespace Solace.WebPortal.Client.Features.Shop.Models;
 
 public sealed class ScreenLayoutQueryViewModel
 {

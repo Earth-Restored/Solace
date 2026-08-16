@@ -181,6 +181,8 @@ internal sealed partial class Program2
 
         builder.Services.AddCascadingAuthenticationState();
 
+        builder.Services.AddHostedService<PlayfabDataSeeder>();
+
         using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();

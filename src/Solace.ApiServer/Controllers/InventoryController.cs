@@ -223,13 +223,13 @@ internal sealed class InventoryController : SolaceControllerBase
 
         var healing = item.ConsumeInfo.Heal;
 
-        var healingMultiplier = Common.Utils.BoostUtils.GetActiveStatModifiers(boosts, requestStartedOn, _catalog.ItemsCatalog).FoodMultiplier;
+        var healingMultiplier = Common.Utils.BoostUtils.GetActiveStatModifiers(boosts, requestStartedOn, _catalog).FoodMultiplier;
         if (healingMultiplier > 0)
         {
             healing = healing * (healingMultiplier + 100) / 100;
         }
 
-        var maxPlayerHealth = Common.Utils.BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _catalog.ItemsCatalog);
+        var maxPlayerHealth = Common.Utils.BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _catalog);
         profile.Health += healing;
         if (profile.Health > maxPlayerHealth)
         {

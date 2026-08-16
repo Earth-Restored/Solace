@@ -41,12 +41,19 @@
         <div @ref="_threeJsContainer" class="w-100 h-100"></div>
     }
 
-    <span class="position-absolute top-0 start-0 m-2 badge bg-info">
-        @DisplayScale
-    </span>
-    <span class="position-absolute top-0 end-0 m-2 badge @(IsNight ? "bg-secondary" : "bg-info")">
-        @(IsNight ? "Night" : "Day")
-    </span>
+    @if (DisplayScale is not null)
+    {
+        <span class="position-absolute top-0 start-0 m-2 badge bg-info">
+            @DisplayScale
+        </span>
+    }
+
+    @if (IsNight is { } isNight)
+    {
+        <span class="position-absolute top-0 end-0 m-2 badge @(isNight ? "bg-secondary" : "bg-info")">
+            @(isNight ? "Night" : "Day")
+        </span>
+    }
 
     @if (!_isPreviewLoading)
     {
@@ -87,9 +94,8 @@
     [Parameter, EditorRequired] public required Guid BuildplateId { get; set; }
     [Parameter, EditorRequired] public required bool IsTemplate { get; set; }
     [Parameter] public Guid? PlayerId { get; set; }
-    [Parameter] public int Size { get; set; }
-    [Parameter] public int BlocksPerMeter { get; set; }
-    [Parameter] public bool IsNight { get; set; }
+    [Parameter] public int? BlocksPerMeter { get; set; }
+    [Parameter] public bool? IsNight { get; set; }
 
     private ElementReference _previewContainer;
     private ElementReference _threeJsContainer;
@@ -109,11 +115,16 @@
     private string? _progressStatus;
     private CancellationTokenSource? _progressCts;
 
-    private string DisplayScale
+    private string? DisplayScale
     {
         get
         {
-            float scaleVal = 1f / BlocksPerMeter;
+            if (BlocksPerMeter is null)
+            {
+                return null;
+            }
+
+            float scaleVal = 1f / BlocksPerMeter.Value;
             return scaleVal >= 1 ? $"1:{scaleVal:0.##}" : $"{(1 / scaleVal):0.##}:1";
         }
     }

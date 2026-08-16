@@ -170,7 +170,7 @@ internal sealed partial class ShopController : SolaceControllerBase
             return null;
         }
 
-        if (!itemToPurchase.Purchasable)
+        if (!itemToPurchase.Purchasable || (/*itemToPurchase.StartDate is not null && */itemToPurchase.StartDate < DateTimeOffset.UtcNow))
         {
             return null;
         }

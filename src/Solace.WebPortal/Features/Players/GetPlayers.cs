@@ -68,7 +68,7 @@ public static partial class GetPlayers
         var playerDtos = new List<PlayerDto>(query.PageSize);
         foreach (var player in players)
         {
-            var maxHealth = BoostUtils.GetMaxPlayerHealth(player.Boosts!, utcNow, staticData.Catalog.ItemsCatalog);
+            var maxHealth = BoostUtils.GetMaxPlayerHealth(player.Boosts!, utcNow, staticData.Catalog);
 
             playerDtos.Add(new PlayerDto(
                 player.Id,

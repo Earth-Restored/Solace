@@ -55,7 +55,7 @@ public sealed record CatalogItem(
 
     [ForcePascalCase]
     public sealed record Image(
-        string Id,
+        Guid Id,
         string Tag,
         string Type,
         string Url

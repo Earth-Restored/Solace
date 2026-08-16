@@ -12,7 +12,7 @@ public sealed class ItemEF
 
     public string Description { get; set; } = string.Empty;
 
-    public string? ThumbnailImageId { get; set; }
+    public Guid? ThumbnailImageId { get; set; }
 
     public DateTimeOffset CreationDate { get; set; }
 

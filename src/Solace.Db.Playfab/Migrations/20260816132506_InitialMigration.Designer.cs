@@ -13,7 +13,7 @@ using Solace.Db.Playfab;
 namespace Solace.Db.Playfab.Migrations
 {
     [DbContext(typeof(PlayfabDbContext))]
-    [Migration("20260812160253_InitialMigration")]
+    [Migration("20260816132506_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -94,8 +94,8 @@ namespace Solace.Db.Playfab.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("ThumbnailImageId")
-                        .HasColumnType("text");
+                    b.Property<Guid?>("ThumbnailImageId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Title")
                         .IsRequired()

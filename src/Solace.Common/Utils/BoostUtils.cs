@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Solace.Db.Earth.Models.Player;
 using Solace.StaticData;
 
@@ -9,7 +9,53 @@ namespace Solace.Common.Utils;
 
 internal static class BoostUtils
 {
-    public static IEnumerable<Catalog.ItemsCatalogR.Item.BoostEffect> GetActiveEffects(BoostsEF boosts, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
+    // public static IEnumerable<Catalog.ItemsCatalogR.Item.BoostEffect> GetActiveEffects(BoostsEF boosts, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
+    // {
+    //     Dictionary<string, Catalog.ItemsCatalogR.Item.BoostInfoR> activeBoostsInfo = [];
+    //     foreach (var activeBoost in boosts.ActiveBoosts)
+    //     {
+    //         if (activeBoost is null)
+    //         {
+    //             continue;
+    //         }
+
+    //         if (activeBoost.StartTime + activeBoost.Duration < currentTime)
+    //         {
+    //             continue;
+    //         }
+
+    //         var item = itemsCatalog.GetItem(activeBoost.ItemId);
+    //         if (item is null || item.BoostInfo is null)
+    //         {
+    //             continue;
+    //         }
+
+    //         var existingBoostInfo = activeBoostsInfo.GetValueOrDefault(item.BoostInfo.Name);
+    //         if (existingBoostInfo is not null && existingBoostInfo.Level > item.BoostInfo.Level)
+    //         {
+    //             continue;
+    //         }
+
+    //         activeBoostsInfo[item.BoostInfo.Name] = item.BoostInfo;
+    //     }
+
+    //     foreach (var boostInfo in activeBoostsInfo.Values)
+    //     {
+    //         foreach (var effect in boostInfo.Effects
+    //             .Where(effect => effect.Activation switch
+    //             {
+    //                 CICIBIEActivation.INSTANT => false,
+    //                 CICIBIEActivation.TRIGGERED => true,
+    //                 CICIBIEActivation.TIMED => true, // already filtered for expiry time above
+    //                 _ => throw new UnreachableException(),
+    //             }))
+    //         {
+    //             yield return effect;
+    //         }
+    //     }
+    // }
+
+    public static IEnumerable<Catalog.ItemsCatalogR.Item.BoostEffect> GetActiveEffects(BoostsEF boosts, DateTimeOffset currentTime, Catalog catalog)
     {
         Dictionary<string, Catalog.ItemsCatalogR.Item.BoostInfoR> activeBoostsInfo = [];
         foreach (var activeBoost in boosts.ActiveBoosts)
@@ -24,19 +70,53 @@ internal static class BoostUtils
                 continue;
             }
 
-            var item = itemsCatalog.GetItem(activeBoost.ItemId);
-            if (item is null || item.BoostInfo is null)
+            var item = catalog.ItemsCatalog.GetItem(activeBoost.ItemId);
+            if (item is not null && item.BoostInfo is not null)
             {
-                continue;
-            }
+                var existingBoostInfo = activeBoostsInfo.GetValueOrDefault(item.BoostInfo.Name);
+                if (existingBoostInfo is not null && existingBoostInfo.Level > item.BoostInfo.Level)
+                {
+                    continue;
+                }
 
-            var existingBoostInfo = activeBoostsInfo.GetValueOrDefault(item.BoostInfo.Name);
-            if (existingBoostInfo is not null && existingBoostInfo.Level > item.BoostInfo.Level)
+                activeBoostsInfo[item.BoostInfo.Name] = item.BoostInfo;
+            }
+            else
             {
-                continue;
-            }
+                var nfcBoost = catalog.NfcBoostsCatalog.MiniFigs.Values.FirstOrDefault(m => IdTranslator.ToGuid(m.Id) == activeBoost.ItemId);
+                if (nfcBoost is not null && nfcBoost.BoostMetadata is not null)
+                {
+                    var effects = nfcBoost.BoostMetadata.Effects.Select(effect =>
+                    {
+                        _ = Enum.TryParse<CICIBIEType>(effect.Type, true, out var effectType);
+                        _ = Enum.TryParse<CICIBIEActivation>(effect.Activation, true, out var effectActivation);
+                        return new Catalog.ItemsCatalogR.Item.BoostEffect(
+                            effectType,
+                            effect.Value is null ? 0 : (int)double.Round(effect.Value.Value),
+                            effect.Items ?? [],
+                            effectActivation
+                        );
+                    }).ToArray();
 
-            activeBoostsInfo[item.BoostInfo.Name] = item.BoostInfo;
+                    var boostInfo = new Catalog.ItemsCatalogR.Item.BoostInfoR(
+                        nfcBoost.BoostMetadata.Name,
+                        nfcBoost.BoostMetadata.Level,
+                        Catalog.ItemsCatalogR.Item.BoostInfoType.POTION,
+                        nfcBoost.BoostMetadata.CanBeRemoved,
+                        0,
+                        false,
+                        effects
+                    );
+
+                    var existingBoostInfo = activeBoostsInfo.GetValueOrDefault(boostInfo.Name);
+                    if (existingBoostInfo is not null && existingBoostInfo.Level > boostInfo.Level)
+                    {
+                        continue;
+                    }
+
+                    activeBoostsInfo[boostInfo.Name] = boostInfo;
+                }
+            }
         }
 
         foreach (var boostInfo in activeBoostsInfo.Values)
@@ -46,7 +126,7 @@ internal static class BoostUtils
                 {
                     CICIBIEActivation.INSTANT => false,
                     CICIBIEActivation.TRIGGERED => true,
-                    CICIBIEActivation.TIMED => true, // already filtered for expiry time above
+                    CICIBIEActivation.TIMED => true,
                     _ => throw new UnreachableException(),
                 }))
             {
@@ -69,7 +149,7 @@ internal static class BoostUtils
         bool KeepXp
     );
 
-    public static StatModiferValues GetActiveStatModifiers(BoostsEF boosts, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
+    public static StatModiferValues GetActiveStatModifiers(BoostsEF boosts, DateTimeOffset currentTime, Catalog catalog)
     {
         var maxPlayerHealth = 0;
         var attackMultiplier = 0;
@@ -83,7 +163,7 @@ internal static class BoostUtils
         var keepInventory = false;
         var keepXp = false;
 
-        foreach (var effect in BoostUtils.GetActiveEffects(boosts, currentTime, itemsCatalog))
+        foreach (var effect in BoostUtils.GetActiveEffects(boosts, currentTime, catalog))
         {
             switch (effect.Type)
             {
@@ -138,6 +218,6 @@ internal static class BoostUtils
         );
     }
 
-    public static int GetMaxPlayerHealth(BoostsEF boosts, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
-        => 20 + (20 * BoostUtils.GetActiveStatModifiers(boosts, currentTime, itemsCatalog).MaxPlayerHealthMultiplier) / 100;
+    public static int GetMaxPlayerHealth(BoostsEF boosts, DateTimeOffset currentTime, Catalog catalog)
+        => 20 + 20 * BoostUtils.GetActiveStatModifiers(boosts, currentTime, catalog).MaxPlayerHealthMultiplier / 100;
 }

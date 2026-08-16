@@ -12,17 +12,37 @@ public sealed class QueryEF : IEquatable<QueryEF>, ICloneable<QueryEF>
 
     public List<ContentTypeEF> QueryContentTypes { get; set; } = [];
 
-    public QueryEF DeepCopy() => throw new NotImplementedException();
+    public QueryEF DeepCopy()
+        => new()
+        {
+            Id = Id,
+            TopCount = TopCount,
+            ProductIds = [.. ProductIds],
+            QueryContentTypes = [.. QueryContentTypes],
+        };
 
-    public bool Equals(QueryEF? other) => throw new NotImplementedException();
+    public bool Equals(QueryEF? other)
+        => other is not null && Id == other.Id && TopCount == other.TopCount && ProductIds.SequenceEqual(other.ProductIds) && QueryContentTypes.SequenceEqual(other.QueryContentTypes);
 
-    public override bool Equals(object obj)
-    {
-        return Equals(obj as QueryEF);
-    }
+    public override bool Equals(object? obj)
+        => Equals(obj as QueryEF);
 
     public override int GetHashCode()
     {
-        throw new NotImplementedException();
+        var hash = new HashCode();
+        hash.Add(Id);
+        hash.Add(TopCount);
+
+        foreach (var item in ProductIds)
+        {
+            hash.Add(item);
+        }
+
+        foreach (var item in QueryContentTypes)
+        {
+            hash.Add(item);
+        }
+
+        return hash.ToHashCode();
     }
 }

@@ -1,10 +1,10 @@
-﻿using Solace.ApiServer.Types.Common;
+using Solace.ApiServer.Types.Common;
 
 namespace Solace.ApiServer.Types.Boost;
 
 internal sealed record Boosts(
     Boosts.Potion?[] Potions,
-    Boosts.MiniFig[] MiniFigs,
+    Boosts.MiniFig?[] MiniFigs,
     Boosts.ActiveEffect[] ActiveEffects,
     Dictionary<string, Boosts.ScenarioBoost[]> ScenarioBoosts,
     Boosts.StatusEffectsR StatusEffects,
@@ -20,7 +20,10 @@ internal sealed record Boosts(
     );
 
     internal sealed record MiniFig(
-    // TODO
+        bool Enabled,
+        string ProductId,
+        Guid InstanceId,
+        string Expiration
     );
 
     internal sealed record ActiveEffect(

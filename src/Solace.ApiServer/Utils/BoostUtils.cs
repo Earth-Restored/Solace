@@ -41,7 +41,7 @@ internal static class BoostUtils
         return new Effect(
             effectTypeString,
             effect.Activation == CICIBIEActivation.TIMED ? TimeFormatter.FormatDuration(boostDuration) : null,
-            effect.Type == CICIBIEType.RETENTION_BACKPACK || effect.Type == CICIBIEType.RETENTION_HOTBAR || effect.Type == CICIBIEType.RETENTION_XP ? null : effect.Value,
+            effect.Type is CICIBIEType.RETENTION_BACKPACK or CICIBIEType.RETENTION_HOTBAR or CICIBIEType.RETENTION_XP ? null : effect.Value,
             effect.Type switch
             {
                 CICIBIEType.HEALING or CICIBIEType.TAPPABLE_RADIUS => "Increment",
@@ -49,7 +49,7 @@ internal static class BoostUtils
                 CICIBIEType.RETENTION_BACKPACK or CICIBIEType.RETENTION_HOTBAR or CICIBIEType.RETENTION_XP => null,
                 _ => throw new UnreachableException(),
             },
-            effect.Type == CICIBIEType.CRAFTING || effect.Type == CICIBIEType.SMELTING ? "UtilityBlock" : "Player",
+            effect.Type is CICIBIEType.CRAFTING or CICIBIEType.SMELTING ? "UtilityBlock" : "Player",
             effect.ApplicableItemIds,
             effect.Type switch
             {

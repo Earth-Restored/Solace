@@ -15,13 +15,13 @@ public sealed class PlayfabDbContext : DbContext
     {
     }
 
-    public DbSet<SeedingHistory> SeedingHistory { get; }
+    public DbSet<SeedingHistory> SeedingHistory { get; set; }
 
-    public DbSet<ItemEF> Items { get; }
+    public DbSet<ItemEF> Items { get; set; }
 
-    public DbSet<ItemDataEF> ItemData { get; }
+    public DbSet<ItemDataEF> ItemData { get; set; }
 
-    public DbSet<TabEF> Tabs { get; }
+    public DbSet<TabEF> Tabs { get; set; }
 
     public static PlayfabDbContext CreateFromConnection(string connectionString)
     {

@@ -1,0 +1,119 @@
+.preview-container {
+    max-width: 400px;
+    margin: 0 auto;
+    border-radius: 0;
+}
+
+.layout-square {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+}
+
+.layout-rectangle {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+}
+
+.layout-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.preview-box {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    border-radius: 0px;
+    width: 100%;
+}
+
+.preview-box.rectangle {
+    aspect-ratio: 2 / 1;
+}
+
+.preview-box.square {
+    aspect-ratio: 3 / 2;
+}
+
+.preview-box.grid-item {
+    aspect-ratio: 1 / 1;
+}
+
+.preview-content-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem;
+    min-height: 0;
+    overflow: hidden;
+    border-style: solid;
+    border-width: 2px;
+    border-radius: 0;
+}
+
+.preview-title {
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 2px 4px;
+}
+
+.preview-media {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.preview-media img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.preview-media>* {
+    width: 100%;
+    height: 100%;
+}
+
+.preview-price-bar {
+    background-color: #28a745;
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 2px 8px;
+    flex-shrink: 0;
+}
+
+.preview-media ::deep .preview-container,
+.preview-media .preview-container {
+    height: 100% !important;
+    width: 100% !important;
+}
+
+.preview-media ::deep canvas,
+.preview-media canvas,
+.preview-media ::deep .w-100.h-100 {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
+}

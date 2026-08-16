@@ -91,8 +91,8 @@ namespace Solace.Db.Playfab.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("ThumbnailImageId")
-                        .HasColumnType("text");
+                    b.Property<Guid?>("ThumbnailImageId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Title")
                         .IsRequired()
