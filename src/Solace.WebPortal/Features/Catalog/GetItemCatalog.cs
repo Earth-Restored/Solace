@@ -29,7 +29,7 @@ public static partial class GetItemCatalog
             return TypedResults.Unauthorized();
         }
 
-        if (!httpUser.HasPermission(Permissions.CreateProfile) && !httpUser.HasPermission(Permissions.ViewPlayers) && !httpUser.HasPermission(Permissions.ViewShop))
+        if (!httpUser.HasPermission(Permissions.CreateProfile) && !httpUser.HasPermission(Permissions.ViewPlayers) && !httpUser.HasPermission(Permissions.ViewStore))
         {
             return TypedResults.Forbid();
         }

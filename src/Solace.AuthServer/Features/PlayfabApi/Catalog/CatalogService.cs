@@ -307,7 +307,7 @@ public sealed class CatalogService : IDisposable
                     tab.TabTitle,
                     tab.TabId
                 )),
-                staticData.ShopNotSearchQueryTags
+                staticData.StoreNotSearchQueryTags
             )
         ));
 

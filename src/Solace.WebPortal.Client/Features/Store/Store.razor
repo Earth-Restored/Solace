@@ -1,0 +1,300 @@
+@page "/Store"
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Authorization
+@using Solace.WebPortal.Common
+@using Solace.WebPortal.Common.Features.Store
+@attribute [Authorize(Policy = Permissions.ViewStore)]
+@rendermode InteractiveWebAssembly
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Store Management</h2>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" @onclick='() => Navigation.NavigateTo("/Store/Tabs/Create")'>
+                + Create Tab
+            </button>
+            <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/Store/Items/Create")'>
+                + Create Item
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex align-items-center gap-2">
+            <div class="spinner-border text-primary" role="status"></div>
+            <span>Loading store data...</span>
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="alert alert-danger" role="alert">
+            @errorMessage
+        </div>
+    }
+    else
+    {
+        @if (tabs == null || !tabs.Any())
+        {
+            <div class="alert alert-info">No tabs available.</div>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-4">
+                @for (int i = 0; i < tabs.Count; i++)
+                {
+                    var tabIndex = i + 1;
+                    var tab = tabs[i];
+                    var tabItems = items?.Where(x => tab.Items != null && tab.Items.Contains(x.Id)).ToList() ?? new List<ItemSummaryDto>();
+                    var isExpanded = expandedTabIndices.Contains(tabIndex);
+
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center" style="cursor: pointer;" @onclick="() => ToggleTab(tabIndex)">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi @(isExpanded ? "bi-chevron-down" : "bi-chevron-right")"></i>
+                                <span class="badge bg-secondary">#@tabIndex</span>
+                                <h5 class="mb-0">@tab.TabId</h5>
+                            </div>
+                            <div class="d-flex gap-2" @onclick:stopPropagation="true">
+                                <button class="btn btn-sm btn-outline-primary" @onclick='() => Navigation.NavigateTo($"/Store/Tabs/Edit/{tabIndex}")'>
+                                    Edit
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick='() => OpenDeleteTabModal(tab, tabIndex)'>
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+
+                        @if (isExpanded)
+                        {
+                            <ul class="list-group list-group-flush">
+                                @if (!tabItems.Any())
+                                {
+                                    <li class="list-group-item text-muted fst-italic ps-4">
+                                        No items in this tab.
+                                    </li>
+                                }
+                                else
+                                {
+                                    @foreach (var item in tabItems)
+                                    {
+                                        <li class="list-group-item d-flex justify-content-between align-items-center ps-4 @(item.Purchasable ? "" : "opacity-50")" style="cursor: pointer;" @onclick='() => Navigation.NavigateTo($"/Store/Items/Edit/{item.Id}")'>
+                                            <div>
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    <strong class="@(item.Purchasable ? "" : "text-decoration-line-through")">
+                                                        @item.Title
+                                                    </strong>
+                                                    <span class="badge bg-info">@item.ItemDataType</span>
+                                                    @if (!item.Purchasable)
+                                                    {
+                                                        <small class="text-muted fst-italic">(Not Purchasable)</small>
+                                                    }
+                                                </div>
+                                                @if (item.StartDate > DateTimeOffset.UtcNow)
+                                                {
+                                                    <small class="text-muted d-block">
+                                                        @GetRelativeTimeString(item.StartDate)
+                                                    </small>
+                                                }
+                                            </div>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick:stopPropagation="true" @onclick='() => OpenDeleteItemModal(item)'>
+                                                Delete
+                                            </button>
+                                        </li>
+                                    }
+                                }
+                            </ul>
+                        }
+                    </div>
+                }
+
+                @{
+                    var unassignedItems = items?.Where(x => tabs.All(t => t.Items == null || !t.Items.Contains(x.Id))).ToList();
+                }
+                @if (unassignedItems is not null && unassignedItems.Any())
+                {
+                    <div class="card shadow-sm border-warning">
+                        <div class="card-header bg-warning-subtle">
+                            <h5 class="mb-0">Unassigned Items</h5>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            @foreach (var item in unassignedItems)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center ps-4 @(item.Purchasable ? "" : "opacity-50")" style="cursor: pointer;" @onclick='() => Navigation.NavigateTo($"/Store/Items/Edit/{item.Id}")'>
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <strong class="@(item.Purchasable ? "" : "text-decoration-line-through")">
+                                                @item.Title
+                                            </strong>
+                                            <span class="badge bg-info">@item.ItemDataType</span>
+                                            @if (!item.Purchasable)
+                                            {
+                                                <small class="text-muted fst-italic">(Not Purchasable)</small>
+                                            }
+                                        </div>
+                                        @if (item.StartDate > DateTimeOffset.UtcNow)
+                                        {
+                                            <small class="text-muted d-block">
+                                                @GetRelativeTimeString(item.StartDate)
+                                            </small>
+                                        }
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick:stopPropagation="true" @onclick='() => OpenDeleteItemModal(item)'>
+                                        Delete
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+<Solace.WebPortal.Client.Features.Common.DeleteConfirmModal Visible="showDeleteModal" IsBusy="isDeleting" ItemName="@deleteTargetName" ErrorMessage="@deleteErrorMessage" OnCancel="CloseDeleteModal" OnConfirm="ConfirmDelete" />
+
+@code {
+    private List<TabSummaryDto>? tabs;
+    private List<ItemSummaryDto>? items;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    // Track expanded tab indices (empty by default = all collapsed)
+    private HashSet<int> expandedTabIndices = new();
+
+    // Modal state
+    private bool showDeleteModal;
+    private bool isDeleting;
+    private string? deleteTargetName;
+    private string? deleteErrorMessage;
+    private Func<Task>? pendingDeleteAction;
+
+    private void ToggleTab(int index)
+    {
+        if (!expandedTabIndices.Remove(index))
+        {
+            expandedTabIndices.Add(index);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var tabsTask = Http.GetFromJsonAsync<List<TabSummaryDto>>("api/store/tabs/summary?includeItems=true");
+                var itemsTask = Http.GetFromJsonAsync<List<ItemSummaryDto>>("api/store/items/summary");
+
+                await Task.WhenAll(tabsTask, itemsTask);
+
+                tabs = await tabsTask ?? new();
+                items = await itemsTask ?? new();
+            }
+            catch
+            {
+                errorMessage = "Failed to load store summary data. Please try again.";
+            }
+            finally
+            {
+                isLoading = false;
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private void OpenDeleteTabModal(TabSummaryDto tab, int index)
+    {
+        deleteTargetName = $"Tab #{index} ({tab.TabId})";
+        deleteErrorMessage = null;
+        pendingDeleteAction = async () =>
+        {
+            var response = await Http.DeleteAsync($"api/store/tabs/{tab.TabId}");
+            if (response.IsSuccessStatusCode)
+            {
+                tabs?.Remove(tab);
+            }
+            else
+            {
+                throw new Exception("Failed to delete tab.");
+            }
+        };
+        showDeleteModal = true;
+    }
+
+    private void OpenDeleteItemModal(ItemSummaryDto item)
+    {
+        deleteTargetName = item.Title;
+        deleteErrorMessage = null;
+        pendingDeleteAction = async () =>
+        {
+            var response = await Http.DeleteAsync($"api/store/items/{item.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                items?.Remove(item);
+            }
+            else
+            {
+                throw new Exception("Failed to delete item.");
+            }
+        };
+        showDeleteModal = true;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (pendingDeleteAction == null) return;
+
+        try
+        {
+            isDeleting = true;
+            deleteErrorMessage = null;
+            await pendingDeleteAction();
+            showDeleteModal = false;
+        }
+        catch (Exception ex)
+        {
+            deleteErrorMessage = ex.Message;
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        deleteErrorMessage = null;
+        pendingDeleteAction = null;
+    }
+
+    private string GetRelativeTimeString(DateTimeOffset startDate)
+    {
+        var timeSpan = startDate - DateTimeOffset.UtcNow;
+
+        if (timeSpan.TotalMinutes < 1)
+        {
+            return "Starts in less than a minute";
+        }
+
+        if (timeSpan.TotalHours < 1)
+        {
+            var minutes = (int)Math.Ceiling(timeSpan.TotalMinutes);
+            return $"Starts in {minutes} minute{(minutes == 1 ? "" : "s")}";
+        }
+
+        if (timeSpan.TotalDays < 1)
+        {
+            var hours = (int)Math.Floor(timeSpan.TotalHours);
+            return $"Starts in {hours} hour{(hours == 1 ? "" : "s")}";
+        }
+
+        var days = (int)Math.Floor(timeSpan.TotalDays);
+        return $"Starts in {days} day{(days == 1 ? "" : "s")}";
+    }
+}

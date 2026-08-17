@@ -36,11 +36,11 @@ public static class Permissions
     [PermissionInfo("Data", "Upload and delete all server data")]
     public const string EditData = "data.edit";
 
-    [PermissionInfo("Shop", "View shop layout and items")]
-    public const string ViewShop = "shop.view";
+    [PermissionInfo("Store", "View store layout and items")]
+    public const string ViewStore = "store.view";
 
-    [PermissionInfo("Shop", "Edit shop layout and items")]
-    public const string EditShop = "shop.edit";
+    [PermissionInfo("Store", "Edit store layout and items")]
+    public const string EditStore = "store.edit";
 
     public static ImmutableArray<string> All { get; }
 

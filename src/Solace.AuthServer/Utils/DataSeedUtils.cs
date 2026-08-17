@@ -138,9 +138,9 @@ internal static class DataSeedUtils
             await playfabDb.SaveChangesAsync(cancellationToken);
         }
 
-        for (var i = 0; i < staticData.ShopTabs.Length; i++)
+        for (var i = 0; i < staticData.StoreTabs.Length; i++)
         {
-            var tab = staticData.ShopTabs[i];
+            var tab = staticData.StoreTabs[i];
 
             var tabEF = new TabEF()
             {

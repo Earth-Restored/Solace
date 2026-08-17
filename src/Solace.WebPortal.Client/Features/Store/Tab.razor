@@ -1,0 +1,404 @@
+@page "/Store/Tabs/Create"
+@page "/Store/Tabs/Edit/{TabIndex:int}"
+@using Microsoft.AspNetCore.Authorization
+@using Solace.WebPortal.Client.Features.Store.Models
+@using Solace.WebPortal.Common
+@using Solace.WebPortal.Common.Features.Store
+@using Solace.WebPortal.Common.Features.Catalog
+@using System.Diagnostics
+@attribute [Authorize(Policy = Permissions.ViewStore)]
+@rendermode InteractiveWebAssembly
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IServiceProvider ServiceProvider
+
+@if (!DataLoaded)
+{
+    <div class="d-flex justify-content-center my-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="Cancel">
+                <i class="bi bi-arrow-left me-1"></i> Back
+            </button>
+            <h3 class="mb-0">@(TabIndex is null ? "Create New Tab" : $"Edit Tab: {Model.TabTitle}")</h3>
+        </div>
+
+        <button type="button" class="btn @(IsPreviewMode ? "btn-primary" : "btn-outline-primary")" @onclick="TogglePreview">
+            <i class="bi @(IsPreviewMode ? "bi-pencil-square" : "bi-eye") me-1"></i>
+            @(IsPreviewMode ? "Edit Mode" : "Preview Mode")
+        </button>
+    </div>
+
+    @if (IsPreviewMode)
+    {
+        <div class="preview-container bg-light p-4 border rounded">
+            @if (Model.ScreenLayoutQueries.Count is 0)
+            {
+                <p class="text-muted mb-0"><em>No layout queries to preview.</em></p>
+            }
+
+            @foreach (var layoutQuery in Model.ScreenLayoutQueries)
+            {
+                <div class="mb-4">
+                    @if (layoutQuery.ColumnType is ColumnType.Grid)
+                    {
+                        <div class="layout-grid">
+                            @foreach (var query in layoutQuery.Queries)
+                            {
+                                @foreach (var productId in query.ProductIds)
+                                {
+                                    <div class="preview-box grid-item shadow-sm bg-white">
+                                        @RenderPreviewCard(productId)
+                                    </div>
+                                }
+                            }
+                        </div>
+                    }
+                    else if (layoutQuery.ColumnType is ColumnType.Square)
+                    {
+                        <div class="layout-square">
+                            @foreach (var query in layoutQuery.Queries)
+                            {
+                                @foreach (var productId in query.ProductIds)
+                                {
+                                    <div class="preview-box square shadow-sm bg-white">
+                                        @RenderPreviewCard(productId)
+                                    </div>
+                                }
+                            }
+                        </div>
+                    }
+                    else if (layoutQuery.ColumnType is ColumnType.Rectangle)
+                    {
+                        <div class="layout-rectangle">
+                            @foreach (var query in layoutQuery.Queries)
+                            {
+                                @foreach (var productId in query.ProductIds)
+                                {
+                                    <div class="preview-box rectangle shadow-sm bg-white">
+                                        @RenderPreviewCard(productId)
+                                    </div>
+                                }
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <EditForm Model="Model" OnValidSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="card mb-3 shadow-sm">
+                <div class="card-body py-2 px-3 bg-light">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold mb-1">Tab ID</label>
+                            <InputText @bind-Value="Model.TabId" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold mb-1">Tab Title</label>
+                            <InputText @bind-Value="Model.TabTitle" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold mb-1">Tab Icon</label>
+                            <InputText @bind-Value="Model.TabIcon" class="form-control form-control-sm" placeholder="textures/ui/icons/..." />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Layout Columns</h5>
+                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddLayout">
+                    <i class="bi bi-plus-lg me-1"></i> Add Layout Column
+                </button>
+            </div>
+
+            @foreach (var (layout, layoutIndex) in Model.ScreenLayoutQueries.Select((l, i) => (l, i)))
+            {
+                <div class="card mb-3 shadow-sm">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center py-2 px-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold small text-muted me-2">#@(layoutIndex + 1)</span>
+                            <label class="form-label small fw-bold mb-0 me-1">Column Type:</label>
+                            <InputSelect @bind-Value="layout.ColumnType" class="form-select form-select-sm w-auto">
+                                <option value="@ColumnType.Rectangle">Rectangle</option>
+                                <option value="@ColumnType.Square">Square</option>
+                                <option value="@ColumnType.Grid">Grid</option>
+                            </InputSelect>
+                        </div>
+
+                        <div class="d-flex gap-2 align-items-center">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => layout.Queries.Add(new QueryViewModel())">
+                                + Add Query
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => Model.ScreenLayoutQueries.Remove(layout)">
+                                Remove Layout
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-2">
+                        @if (layout.Queries.Count == 0)
+                        {
+                            <p class="text-muted small mb-0 p-2"><em>No queries added yet. Click "+ Add Query" above.</em></p>
+                        }
+
+                        @foreach (var (query, qIndex) in layout.Queries.Select((q, i) => (q, i)))
+                        {
+                            <div class="border rounded p-2 mb-2 bg-white">
+                                <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-1">
+                                    <span class="fw-bold small text-primary">Query @(qIndex + 1)</span>
+                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 text-decoration-none" @onclick="() => layout.Queries.Remove(query)">
+                                        Remove Query
+                                    </button>
+                                </div>
+
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    @if (AvailableItems is null)
+                                    {
+                                        <span class="small text-muted"><em>Loading items...</em></span>
+                                    }
+                                    else
+                                    {
+                                        @for (int i = 0; i < query.ProductIds.Count; i++)
+                                        {
+                                            var index = i;
+                                            var currentProductId = query.ProductIds[index];
+
+                                            <div class="input-group input-group-sm flex-grow-1" style="min-width: 260px; max-width: 100%;">
+                                                <select class="form-select form-select-sm" value="@currentProductId" @onchange="(e) => UpdateProductId(query, index, e.Value)">
+                                                    @foreach (var item in AvailableItems)
+                                                    {
+                                                        <option value="@item.Id">@item.Title (@item.ItemDataType)</option>
+                                                    }
+                                                </select>
+                                                <button type="button" class="btn btn-outline-danger" @onclick="() => query.ProductIds.RemoveAt(index)">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            </div>
+                                        }
+
+                                        <button type="button" class="btn btn-sm btn-outline-success" @onclick="() => AddProduct(query)">
+                                            <i class="bi bi-plus me-1"></i>Product
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary">Save Tab</button>
+                <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">Cancel</button>
+            </div>
+        </EditForm>
+    }
+}
+
+@code {
+    [Parameter] public int? TabIndex { get; set; }
+    private TabViewModel Model { get; set; } = new();
+    private bool DataLoaded;
+
+    private Uri? authServerUri;
+
+    private List<ItemViewModel>? AvailableItems;
+    private bool IsPreviewMode = false;
+    private Catalog.CatalogCacheService? CatalogService { get; set; }
+    private Catalog.CatalogCacheService.SyncAccessor? Catalog;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // cannot inject, bcs it's not available when prerendering
+            CatalogService = ServiceProvider.GetRequiredService<Catalog.CatalogCacheService>();
+            Catalog = await CatalogService.GetSyncAccessorAsync();
+
+            var publicEndpoints = await Http.GetFromJsonAsync<PublicEndpointInfo>("api/config/public-endpoints");
+            authServerUri = publicEndpoints is { AuthServer: not null } ? new Uri(publicEndpoints.AuthServer) : null;
+
+            AvailableItems = (await Http.GetFromJsonAsync<List<Solace.WebPortal.Common.Features.Store.ItemDto>>("api/store/items"))!
+                .Select(ItemViewModel.FromDto)
+                .ToList();
+
+            if (TabIndex is not null)
+            {
+                Model = TabViewModel.FromDto((await Http.GetFromJsonAsync<TabDto>($"api/store/tabs/{TabIndex}"))!);
+            }
+
+            DataLoaded = true;
+
+            StateHasChanged();
+        }
+    }
+
+    private void TogglePreview()
+    {
+        IsPreviewMode = !IsPreviewMode;
+    }
+
+    private void Cancel()
+    {
+        NavManager.NavigateTo("/Store");
+    }
+
+    private RenderFragment RenderPreviewCard(Guid productId) => __builder =>
+    {
+        var storeItem = AvailableItems?.FirstOrDefault(i => i.Id == productId);
+        var rarityColor = GetRarityColor(storeItem);
+        var title = storeItem?.Title ?? "Unknown Item";
+        var price = GetPrice(storeItem);
+
+        <div class="preview-content-body" style="border-color: @rarityColor;">
+            <div class="preview-title" title="@title">
+                @title
+            </div>
+            <div class="preview-media">
+                @RenderPreviewMedia(storeItem)
+            </div>
+        </div>
+        <div class="preview-price-bar">
+            <i class="bi bi-gem"></i>
+            <span>@price</span>
+        </div>
+    };
+
+    private RenderFragment RenderPreviewMedia(ItemViewModel? storeItem) => __builder =>
+    {
+        if (storeItem is not null)
+        {
+            if (storeItem.ItemDataType is ItemDataType.Buildplate)
+            {
+                <Solace.WebPortal.Client.Features.Buildplates.BuildplatePreview BuildplateId="@storeItem.Buildplate.BuildplateId" IsTemplate="true" />
+                return;
+            }
+
+            if (storeItem.ThumbnailImageId is not null && authServerUri is not null)
+            {
+                <img src="@authServerUri/playfab/images/@(storeItem.ThumbnailImageId).png" onerror="this.onerror=null; this.src='/static/missing_texture.png';" alt="@storeItem.Title" title="@storeItem.Title" />
+                return;
+            }
+
+            if (Catalog is not null && Catalog.Value.TryGetItem(storeItem.InventoryItem.ItemId, out var catItem))
+            {
+                <img src="/static/genoa-textures/ui/items/@(GetTextureName(catItem)).png" onerror="this.onerror=null; this.src='/static/missing_texture.png';" alt="@catItem.Name" title="@catItem.Name" />
+                return;
+            }
+        }
+
+        <img src="/static/missing_texture.png" alt="Missing Item" title="Item not found in catalog" />
+    };
+
+    private static string GetRarityColor(ItemViewModel? storeItem)
+    {
+        if (storeItem is null)
+        {
+            return "#808080";
+        }
+
+        var rarity = storeItem.ItemDataType switch
+        {
+            ItemDataType.Buildplate => storeItem.Buildplate.Rarity,
+            ItemDataType.InventoryItem => storeItem.InventoryItem.Rarity,
+            _ => throw new UnreachableException(),
+        };
+
+        return rarity switch
+        {
+            Rarity.Uncommon => "#28a745",
+            Rarity.Rare => "#007bff",
+            Rarity.Epic => "#6f42c1",
+            Rarity.Legendary => "#ffc107",
+            Rarity.Common or Rarity.Uncommon or _ => "#808080",
+        };
+    }
+
+    private static object GetPrice(ItemViewModel? storeItem)
+    {
+        if (storeItem is null)
+        {
+            return 0;
+        }
+
+        if (storeItem.ItemDataType is ItemDataType.Buildplate)
+        {
+            return storeItem.Buildplate.Cost;
+        }
+
+        if (storeItem.InventoryItem is not null)
+        {
+            return storeItem.InventoryItem.Cost;
+        }
+
+        return 0;
+    }
+
+    private static string GetTextureName(Solace.WebPortal.Common.Features.Catalog.ItemDto item)
+    {
+        if (item.Category is ItemDtoCategory.BoostAdventureXP or ItemDtoCategory.BoostCrafting or
+            ItemDtoCategory.BoostDefense or ItemDtoCategory.BoostEating or ItemDtoCategory.BoostHealth or
+            ItemDtoCategory.BoostHoarding or ItemDtoCategory.BoostItemXP or ItemDtoCategory.BoostMiningSpeed or
+            ItemDtoCategory.BoostRetention or ItemDtoCategory.BoostSmelting or ItemDtoCategory.BoostStrength or
+            ItemDtoCategory.BoostTappableRadius)
+        {
+            return item.Id.ToString();
+        }
+
+        return item.Name + "_" + item.Aux;
+    }
+
+    private void AddLayout()
+    {
+        Model.ScreenLayoutQueries.Add(new ScreenLayoutQueryViewModel());
+    }
+
+    private void AddProduct(QueryViewModel query)
+    {
+        var firstAvailable = AvailableItems?.FirstOrDefault(i => !query.ProductIds.Contains(i.Id)) ?? AvailableItems?.FirstOrDefault();
+
+        if (firstAvailable is not null)
+        {
+            query.ProductIds.Add(firstAvailable.Id);
+        }
+    }
+
+    private void UpdateProductId(QueryViewModel query, int index, object? value)
+    {
+        if (Guid.TryParse(value?.ToString(), out Guid newId))
+        {
+            query.ProductIds[index] = newId;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        HttpResponseMessage response;
+        if (TabIndex is not null)
+        {
+            response = await Http.PutAsJsonAsync($"api/tabs/{TabIndex}", Model);
+        }
+        else
+        {
+            response = await Http.PostAsJsonAsync("api/tabs", Model);
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            NavManager.NavigateTo("/Store");
+        }
+    }
+}

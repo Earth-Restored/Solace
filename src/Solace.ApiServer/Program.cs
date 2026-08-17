@@ -259,7 +259,7 @@ internal static partial class App
 
             var fixUpBuildplates = builder.Configuration.GetValue<bool>("FixUpBuildplatesOnImport", false);
 
-            await ImportShopBuildplates(earthDb, eventBus, objectStore, staticData, fixUpBuildplates, programLogger);
+            await ImportStoreBuildplates(earthDb, eventBus, objectStore, staticData, fixUpBuildplates, programLogger);
         }
 
         // init stuff that needs async initialization
@@ -272,11 +272,11 @@ internal static partial class App
         return 0;
     }
 
-    private static async Task ImportShopBuildplates(EarthDbContext earthDbContext, EventBusClient eventBus, ObjectStoreClient objectStore, SData staticData, bool fixUpBuildplates, ILogger logger)
+    private static async Task ImportStoreBuildplates(EarthDbContext earthDbContext, EventBusClient eventBus, ObjectStoreClient objectStore, SData staticData, bool fixUpBuildplates, ILogger logger)
     {
-        LogImportingShopBuildplates(logger);
+        LogImportingStoreBuildplates(logger);
 
-        var currentShopBuildplates = await earthDbContext.TemplateBuildplates
+        var currentStoreBuildplates = await earthDbContext.TemplateBuildplates
             .AsNoTracking()
             .ToListAsync();
 
@@ -287,17 +287,17 @@ internal static partial class App
             OwnsObjectStoreClient = false,
         };
 
-        foreach (var buildplate in staticData.Buildplates.ShopBuildplates)
+        foreach (var buildplate in staticData.Buildplates.StoreBuildplates)
         {
             if (earthDbContext.TemplateBuildplates.Any(bp => bp.Id == buildplate.Id))
             {
-                LogShopBuildplateAlreadyExists(logger, buildplate.Id);
+                LogStoreBuildplateAlreadyExists(logger, buildplate.Id);
                 continue;
             }
 
             try
             {
-                LogImportingShopBuildplate(logger, buildplate.Id);
+                LogImportingStoreBuildplate(logger, buildplate.Id);
 
                 var name = "unknown buildplate";
                 var bpPlayfabItem = staticData.Playfab.Items.Values.FirstOrDefault(item => item.Data is Playfab.Item.BuildplateData bpData && bpData.Id == buildplate.Id);
@@ -308,16 +308,16 @@ internal static partial class App
 
                 await using (var buidplateData = buildplate.OpenRead())
                 {
-                    await importer.ImportTemplateAsync(buildplate.Id, $"[SHOP] {name}", buidplateData, fixUpBuildplates);
+                    await importer.ImportTemplateAsync(buildplate.Id, $"[STORE] {name}", buidplateData, fixUpBuildplates);
                 }
             }
             catch (Exception exception)
             {
-                LogFailedToImportShopBuidplate(logger, exception, buildplate.Id);
+                LogFailedToImportStoreBuidplate(logger, exception, buildplate.Id);
             }
         }
 
-        LogImportedShopBuildplates(logger);
+        LogImportedStoreBuildplates(logger);
     }
 
     internal sealed class StartupDependencies
@@ -364,19 +364,19 @@ internal static partial class App
     [LoggerMessage(Level = LogLevel.Information, Message = "Loaded static data")]
     private static partial void LogLoadedStaticData(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Importing shop buildplates")]
-    private static partial void LogImportingShopBuildplates(ILogger logger);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Importing store buildplates")]
+    private static partial void LogImportingStoreBuildplates(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Shop buildplate {BuildplateId} already exists")]
-    private static partial void LogShopBuildplateAlreadyExists(ILogger logger, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Store buildplate {BuildplateId} already exists")]
+    private static partial void LogStoreBuildplateAlreadyExists(ILogger logger, Guid BuildplateId);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Importing shop buildplate {BuildplateId}")]
-    private static partial void LogImportingShopBuildplate(ILogger logger, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Importing store buildplate {BuildplateId}")]
+    private static partial void LogImportingStoreBuildplate(ILogger logger, Guid BuildplateId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to import shop buidplate {BuildplateId}")]
-    private static partial void LogFailedToImportShopBuidplate(ILogger logger, Exception exception, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to import store buidplate {BuildplateId}")]
+    private static partial void LogFailedToImportStoreBuidplate(ILogger logger, Exception exception, Guid BuildplateId);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Imported shop buildplates")]
-    private static partial void LogImportedShopBuildplates(ILogger logger);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Imported store buildplates")]
+    private static partial void LogImportedStoreBuildplates(ILogger logger);
 }
 

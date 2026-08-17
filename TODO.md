@@ -1,7 +1,6 @@
 # TODO
 
 - Launcher buildplate preview - genoa specific blocks, entities
-- Shop management
 - Encounter generation and AR
 - Use tiles when spawning tappables - don't spawn on water/forbidden areas, spawn more trees in forest?
 - Allow setting maximum cache size for tiles

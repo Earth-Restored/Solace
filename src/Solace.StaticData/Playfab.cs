@@ -12,9 +12,9 @@ public sealed class Playfab
 
     public readonly FrozenDictionary<Guid, Item> Items;
 
-    public readonly ImmutableArray<Tab> ShopTabs;
+    public readonly ImmutableArray<Tab> StoreTabs;
 
-    public readonly ImmutableArray<string> ShopNotSearchQueryTags;
+    public readonly ImmutableArray<string> StoreNotSearchQueryTags;
 
     internal Playfab(string dir)
     {
@@ -22,8 +22,8 @@ public sealed class Playfab
         {
             Version = Version.Parse(File.ReadAllText(Path.Combine(dir, "version.txt")));
 
-            var shopTabs = ImmutableArray.CreateBuilder<Tab>(2);
-            foreach (var file in Directory.EnumerateFiles(Path.Combine(dir, "shop_tabs"))
+            var storeTabs = ImmutableArray.CreateBuilder<Tab>(2);
+            foreach (var file in Directory.EnumerateFiles(Path.Combine(dir, "store_tabs"))
                 .OrderBy(file => Path.GetFileName(file), StringComparer.Create(CultureInfo.InvariantCulture, CompareOptions.NumericOrdering)))
             {
                 if (Path.GetExtension(file) != ".json")
@@ -37,13 +37,13 @@ public sealed class Playfab
 
                     Debug.Assert(tab is not null);
 
-                    shopTabs.Add(tab);
+                    storeTabs.Add(tab);
                 }
             }
 
-            ShopTabs = shopTabs.DrainToImmutable();
+            StoreTabs = storeTabs.DrainToImmutable();
 
-            ShopNotSearchQueryTags = [.. File.ReadLines(Path.Combine(dir, "shop_not_search_query_tags.txt"))
+            StoreNotSearchQueryTags = [.. File.ReadLines(Path.Combine(dir, "store_not_search_query_tags.txt"))
                 .Where(line => !string.IsNullOrWhiteSpace(line) && line.Length > 0)];
 
             List<Item> items = [];
@@ -69,8 +69,8 @@ public sealed class Playfab
                 new Item.QueryManifestData(
                     new Version(0, 25, 0),
                     new Version(1, 0, 20),
-                    ShopTabs,
-                    ShopNotSearchQueryTags
+                    StoreTabs,
+                    StoreNotSearchQueryTags
                 ),
                 "Home L1",
                 "Home L1",
@@ -195,7 +195,7 @@ public sealed class Playfab
             Version Version
         ) : ItemData;
 
-        // does not have type discriminator, so cannot be loaded from items, instead created manually from shop tabs
+        // does not have type discriminator, so cannot be loaded from items, instead created manually from store tabs
         public sealed record QueryManifestData(
             Version MinClientVersion,
             Version MaxClientVersion,
