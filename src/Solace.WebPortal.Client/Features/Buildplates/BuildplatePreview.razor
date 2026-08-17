@@ -107,12 +107,13 @@
     private bool _isModelImported = false;
     private bool _isCurrentlyLoadingTask = false;
     private bool _isFirstPerson = false;
+    private bool _hasStartedLoading = false;
 
     private IJSObjectReference? _jsModule;
     private DotNetObjectReference<BuildplatePreview>? _dotNetRef;
 
     private double _currentProgress = 0;
-    private string? _progressStatus;
+    private string? _progressStatus = "Queued...";
     private CancellationTokenSource? _progressCts;
 
     private string? DisplayScale
@@ -140,24 +141,7 @@
         {
             _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Features/Buildplates/BuildplatePreview.razor.js");
 
-            if (_previewDataUri is null && !_isPreviewFailed && _isPreviewLoading && !_isCurrentlyLoadingTask)
-            {
-                ResetProgress();
-                _isCurrentlyLoadingTask = true;
-
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await LoadPreviewAsync();
-                    }
-                    finally
-                    {
-                        _isCurrentlyLoadingTask = false;
-                        await InvokeAsync(StateHasChanged);
-                    }
-                });
-            }
+            await _jsModule.InvokeVoidAsync("setupLazyLoad", _previewContainer, _dotNetRef);
         }
 
         if (_previewDataUri is not null && !_isModelImported && _jsModule is not null)
@@ -175,6 +159,37 @@
                 _isPreviewFailed = true;
                 StateHasChanged();
             }
+        }
+    }
+
+    [JSInvokable]
+    public async Task StartLoadingAsync()
+    {
+        if (_hasStartedLoading)
+        {
+            return;
+        }
+
+        _hasStartedLoading = true;
+
+        if (_previewDataUri is null && !_isPreviewFailed && _isPreviewLoading && !_isCurrentlyLoadingTask)
+        {
+            ResetProgress();
+            _isCurrentlyLoadingTask = true;
+            StateHasChanged();
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await LoadPreviewAsync();
+                }
+                finally
+                {
+                    _isCurrentlyLoadingTask = false;
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
         }
     }
 
@@ -334,6 +349,7 @@
 
             if (_jsModule is not null)
             {
+                await _jsModule.InvokeVoidAsync("cleanupLazyLoad", _previewContainer);
                 await _jsModule.InvokeVoidAsync("dispose", _threeJsContainer);
                 await _jsModule.DisposeAsync();
             }
