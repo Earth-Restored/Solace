@@ -50,18 +50,19 @@ else
             <button type="button" class="btn btn-link p-0 text-decoration-none text-dark d-flex align-items-center gap-2 fw-bold fs-5" @onclick="() => _showTranslations = !_showTranslations">
                 <i class="bi @(_showTranslations ? "bi-chevron-down" : "bi-chevron-right")"></i>
                 <span>Translations</span>
+                @if (ActiveTranslationCodes.Any())
+                {
+                    <span class="badge bg-secondary ms-1" style="font-size: 0.75rem;">@ActiveTranslationCodes.Count</span>
+                }
             </button>
 
             @if (_showTranslations)
             {
                 <div class="mt-3">
                     <div class="row g-2 align-items-center mb-3">
-                        <div class="col-auto">
-                            <label class="col-form-label fw-semibold">Select Language:</label>
-                        </div>
-                        <div class="col-sm-6 col-md-5">
-                            <select class="form-select" @bind="_selectedLanguageToAdd">
-                                <option value="">-- Select Language --</option>
+                        <div class="col-sm-6 col-md-4">
+                            <select class="form-select form-select-sm" @bind="_selectedLanguageToAdd">
+                                <option value="">-- Add Language --</option>
                                 @foreach (var lang in AvailableLanguages)
                                 {
                                     if (!ActiveTranslationCodes.Contains(lang.Code))
@@ -72,43 +73,51 @@ else
                             </select>
                         </div>
                         <div class="col-auto">
-                            <button type="button" class="btn btn-outline-primary" @onclick="AddLanguageTranslation" disabled="@string.IsNullOrEmpty(_selectedLanguageToAdd)">
-                                <i class="bi bi-plus-lg me-1"></i> Add Translation
+                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddLanguageTranslation" disabled="@string.IsNullOrEmpty(_selectedLanguageToAdd)">
+                                <i class="bi bi-plus-lg me-1"></i> Add
                             </button>
                         </div>
                     </div>
 
                     @if (!ActiveTranslationCodes.Any())
                     {
-                        <div class="text-muted fst-italic p-2 border rounded bg-light">No translations added yet.</div>
+                        <div class="text-muted fst-italic p-2 border rounded bg-light small">No translations added yet.</div>
                     }
                     else
                     {
-                        <div class="d-flex flex-column gap-3">
-                            @foreach (var langCode in ActiveTranslationCodes)
-                            {
-                                <div class="card p-3 bg-light border">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <h6 class="m-0 fw-bold">
-                                            @GetLanguageDisplayName(langCode)
-                                            <span class="badge bg-secondary ms-1">@langCode</span>
-                                        </h6>
-                                        <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => RemoveLanguageTranslation(langCode)">
-                                            <i class="bi bi-trash me-1"></i> Remove
-                                        </button>
-                                    </div>
-                                    <div class="row g-2">
-                                        <div class="col-md-6">
-                                            <label class="form-label small text-muted">Title Translation</label>
-                                            <input type="text" class="form-control" value="@GetTranslation(Model.TitleTranslations, langCode)" @onchange="@(e => SetTranslation(Model.TitleTranslations, langCode, e.Value?.ToString()))" placeholder="Title in @GetLanguageDisplayName(langCode)" />
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label small text-muted">Description Translation</label>
-                                            <textarea class="form-control" rows="2" value="@GetTranslation(Model.DescriptionTranslations, langCode)" @onchange="@(e => SetTranslation(Model.DescriptionTranslations, langCode, e.Value?.ToString()))" placeholder="Description in @GetLanguageDisplayName(langCode)"></textarea>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
+                        <div class="table-responsive border rounded bg-light p-2">
+                            <table class="table table-sm table-borderless align-middle mb-0">
+                                <thead>
+                                    <tr class="text-muted small border-bottom">
+                                        <th style="width: 25%;">Language</th>
+                                        <th style="width: 35%;">Title</th>
+                                        <th style="width: 35%;">Description</th>
+                                        <th style="width: 5%;" class="text-center"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var langCode in ActiveTranslationCodes)
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold small">
+                                                @GetLanguageDisplayName(langCode)
+                                                <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">@langCode</span>
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control form-control-sm" value="@GetTranslation(Model.TitleTranslations, langCode)" @onchange="@(e => SetTranslation(Model.TitleTranslations, langCode, e.Value?.ToString()))" placeholder="Title..." />
+                                            </td>
+                                            <td>
+                                                <input type="text" class="form-control form-control-sm" value="@GetTranslation(Model.DescriptionTranslations, langCode)" @onchange="@(e => SetTranslation(Model.DescriptionTranslations, langCode, e.Value?.ToString()))" placeholder="Description..." />
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-outline-danger btn-sm p-1" @onclick="() => RemoveLanguageTranslation(langCode)" title="Remove Translation">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
                         </div>
                     }
                 </div>

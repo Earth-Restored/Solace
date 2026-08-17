@@ -28,7 +28,7 @@
             <span>Loading store data...</span>
         </div>
     }
-    else if (errorMessage != null)
+    else if (errorMessage is not null)
     {
         <div class="alert alert-danger" role="alert">
             @errorMessage
@@ -162,10 +162,8 @@
     private bool isLoading = true;
     private string? errorMessage;
 
-    // Track expanded tab indices (empty by default = all collapsed)
     private HashSet<int> expandedTabIndices = new();
 
-    // Modal state
     private bool showDeleteModal;
     private bool isDeleting;
     private string? deleteTargetName;
@@ -247,7 +245,10 @@
 
     private async Task ConfirmDelete()
     {
-        if (pendingDeleteAction == null) return;
+        if (pendingDeleteAction is null)
+        {
+            return;
+        }
 
         try
         {
@@ -256,9 +257,9 @@
             await pendingDeleteAction();
             showDeleteModal = false;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            deleteErrorMessage = ex.Message;
+            deleteErrorMessage = exception.Message;
         }
         finally
         {
@@ -284,17 +285,17 @@
 
         if (timeSpan.TotalHours < 1)
         {
-            var minutes = (int)Math.Ceiling(timeSpan.TotalMinutes);
+            var minutes = (int)double.Ceiling(timeSpan.TotalMinutes);
             return $"Starts in {minutes} minute{(minutes == 1 ? "" : "s")}";
         }
 
         if (timeSpan.TotalDays < 1)
         {
-            var hours = (int)Math.Floor(timeSpan.TotalHours);
+            var hours = (int)double.Floor(timeSpan.TotalHours);
             return $"Starts in {hours} hour{(hours == 1 ? "" : "s")}";
         }
 
-        var days = (int)Math.Floor(timeSpan.TotalDays);
+        var days = (int)double.Floor(timeSpan.TotalDays);
         return $"Starts in {days} day{(days == 1 ? "" : "s")}";
     }
 }
