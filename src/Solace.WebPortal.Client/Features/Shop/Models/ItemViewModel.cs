@@ -20,7 +20,7 @@ public sealed class ItemViewModel
 
     public bool Discount { get; set; }
 
-    public DateTimeOffset? StartDate { get; set; }
+    public DateTimeOffset StartDate { get; set; }
 
     public Guid? ThumbnailImageId { get; set; }
 

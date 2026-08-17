@@ -84,14 +84,14 @@ public sealed class Playfab
                 "3C0BE9326354CBB7",
                 ["mctestdefault"],
                 new Dictionary<string, Item.KeywordValues>(StringComparer.Ordinal) { ["en-US"] = new([]), ["NEUTRAL"] = new([]), ["neutral"] = new([]), },
-                [new Item.QueryManifestContent(
-                   "f3f2b4fc-f144-4357-9e41-198db3a47957",
+                new Item.QueryManifestContent(
+                    Guid.Parse("f3f2b4fc-f144-4357-9e41-198db3a47957"),
                     "/playfab/master_loc_contents.json",
                     new Version(6555, 6555, 6555),
                     new Version(1, 2, 0),
                     [],
                     "resourcebinary"
-                )],
+                ),
                 [],
                 new Dictionary<string, string>(StringComparer.Ordinal) { ["en-US"] = "Home L1" },
                 new Dictionary<string, string>(StringComparer.Ordinal) { ["en-US"] = "Home L1" }
@@ -133,7 +133,7 @@ public sealed class Playfab
         string CreatorEntityId,
         IReadOnlyList<string> Tags,
         IReadOnlyDictionary<string, Item.KeywordValues> Keywords,
-        IReadOnlyList<object> Contents,
+        Item.QueryManifestContent? ManifestContent,
         IReadOnlyList<Item.ItemReference> ItemReferences,
         IReadOnlyDictionary<string, string> TitleTranslations,
         IReadOnlyDictionary<string, string> DescriptionTranslations
@@ -163,7 +163,7 @@ public sealed class Playfab
         }
 
         public sealed record QueryManifestContent(
-            string Id,
+            Guid Id,
             string Url,
             Version MaxClientVersion,
             Version MinClientVersion,

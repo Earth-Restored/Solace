@@ -89,7 +89,7 @@ public sealed record CatalogItem(
 
     [ForcePascalCase]
     public sealed record QueryManifestContent(
-        string Id,
+        Guid Id,
         string Url,
         Version MaxClientVersion,
         Version MinClientVersion,
@@ -168,7 +168,7 @@ public sealed record CatalogItem(
             {
                 [JsonNamingPolicy(JsonKnownNamingPolicy.CamelCase)]
                 public sealed record Query(
-                    [property: JsonPropertyName("productIds")] IEnumerable<string> ProductIds,
+                    [property: JsonPropertyName("productIds")] IEnumerable<Guid> ProductIds,
                     IEnumerable<string> QueryContentTypes,
                     int TopCount
                 );

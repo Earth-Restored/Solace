@@ -109,9 +109,7 @@ public sealed class PlayfabDbContext : DbContext
 
             builder.HasDiscriminator<string>("DataType")
                 .HasValue<BuildplateDataEF>("Buildplate")
-                .HasValue<InventoryItemDataEF>("InventoryItem")
-                .HasValue<RubyDataEF>("Ruby")
-                .HasValue<QueryManifestDataEF>("QueryManifest");
+                .HasValue<InventoryItemDataEF>("InventoryItem");
         });
 
         modelBuilder.Entity<BuildplateDataEF>()
@@ -127,21 +125,6 @@ public sealed class PlayfabDbContext : DbContext
                     v => v.ToString(),
                     v => Version.Parse(v)
                 );
-
-        modelBuilder.Entity<QueryManifestDataEF>(builder =>
-        {
-            builder.Property(e => e.MinClientVersion)
-                .HasConversion(
-                    v => v.ToString(),
-                    v => Version.Parse(v)
-                );
-
-            builder.Property(e => e.MaxClientVersion)
-                .HasConversion(
-                    v => v.ToString(),
-                    v => Version.Parse(v)
-                );
-        });
 
         modelBuilder.Entity<TabEF>(builder =>
         {

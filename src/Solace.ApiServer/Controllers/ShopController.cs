@@ -15,6 +15,8 @@ using Solace.StaticData;
 using Solace.EventBus.Client;
 using Microsoft.EntityFrameworkCore;
 using Solace.ApiServer.Utils;
+using Solace.Db.Playfab;
+using Solace.Db.Playfab.Models.Items;
 
 namespace Solace.ApiServer.Controllers;
 
@@ -23,16 +25,16 @@ namespace Solace.ApiServer.Controllers;
 [Route("1/api/v{version:apiVersion}/commerce")]
 internal sealed partial class ShopController : SolaceControllerBase
 {
-    private readonly StaticData.StaticDataProvider _staticData;
     private readonly EarthDbContext _earthDb;
+    private readonly PlayfabDbContext _playfabDb;
     private readonly EventBusClient _eventBus;
     private readonly ObjectStoreClient _objectStore;
     private readonly ILogger<ShopController> _logger;
 
-    public ShopController(StaticData.StaticDataProvider staticData, EarthDbContext earthDB, EventBusClient eventBus, ObjectStoreClient objectStore, ILogger<ShopController> logger)
+    public ShopController(EarthDbContext earthDb, PlayfabDbContext playfabDb, EventBusClient eventBus, ObjectStoreClient objectStore, ILogger<ShopController> logger)
     {
-        _staticData = staticData;
-        _earthDb = earthDB;
+        _earthDb = earthDb;
+        _playfabDb = playfabDb;
         _eventBus = eventBus;
         _objectStore = objectStore;
         _logger = logger;
@@ -164,21 +166,26 @@ internal sealed partial class ShopController : SolaceControllerBase
 
     private async Task<(int Purchased, int Earned)?> ProcessPurchase(Guid accountId, Guid itemId, int expectedPurchasePrice, CancellationToken cancellationToken)
     {
-        if (!_staticData.Playfab.Items.TryGetValue(itemId, out var itemToPurchase))
+        var itemToPurchase = await _playfabDb.Items
+            .AsNoTracking()
+            .Include(item => item.Data)
+            .FirstOrDefaultAsync(item => item.Id == itemId, cancellationToken);
+
+        if (itemToPurchase is null)
         {
             LogPurchaseUnknownItem(accountId, itemId);
             return null;
         }
 
-        if (!itemToPurchase.Purchasable || (/*itemToPurchase.StartDate is not null && */itemToPurchase.StartDate < DateTimeOffset.UtcNow))
+        if (!itemToPurchase.Purchasable || itemToPurchase.StartDate > DateTimeOffset.UtcNow)
         {
             return null;
         }
 
         int? playfabPrice = itemToPurchase.Data switch
         {
-            Playfab.Item.BuildplateData data => data.Cost,
-            Playfab.Item.InventoryItemData data => data.Cost,
+            BuildplateDataEF data => data.Cost,
+            InventoryItemDataEF data => data.Cost,
             _ => null,
         };
 
@@ -204,7 +211,7 @@ internal sealed partial class ShopController : SolaceControllerBase
 
         switch (itemToPurchase.Data)
         {
-            case Playfab.Item.BuildplateData data:
+            case BuildplateDataEF data:
                 {
                     using var transaction = await _earthDb.Database.BeginTransactionAsync(cancellationToken);
 
@@ -244,7 +251,7 @@ internal sealed partial class ShopController : SolaceControllerBase
                 }
 
                 break;
-            case Playfab.Item.InventoryItemData data:
+            case InventoryItemDataEF data:
                 {
                     using var transaction = await _earthDb.Database.BeginTransactionAsync(cancellationToken);
 

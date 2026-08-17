@@ -47,7 +47,9 @@ public sealed partial class GetPublishedItem(
             ));
         }
 
-        if (!catalog.TryGetItem(itemId, out var item))
+        var item = await catalog.TryGetItemAsync(itemId, cancellationToken);
+
+        if (item is null)
         {
             // TODO: fake not found
             return TypedResults.NotFound();

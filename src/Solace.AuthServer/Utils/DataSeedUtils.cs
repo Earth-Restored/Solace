@@ -67,6 +67,11 @@ internal static class DataSeedUtils
     {
         foreach (var (itemId, item) in staticData.Items)
         {
+            if (item.Data is Playfab.Item.QueryManifestData)
+            {
+                continue;
+            }
+
             ItemDataEF data = item.Data switch
             {
                 Playfab.Item.BuildplateData buildplateData => new BuildplateDataEF()
@@ -93,13 +98,6 @@ internal static class DataSeedUtils
                     Amount = inventoryData.Amount,
                     Rarity = ConvertRarity(inventoryData.Rarity),
                     Version = inventoryData.Version,
-                },
-                Playfab.Item.QueryManifestData queryData => new QueryManifestDataEF()
-                {
-                    MinClientVersion = queryData.MinClientVersion,
-                    MaxClientVersion = queryData.MaxClientVersion,
-                    Tabs = [.. SeedTabs(playfabDb, staticData)],
-                    GlobalNotSearchQueryTags = [.. queryData.GlobalNotSearchQueryTags],
                 },
                 _ => throw new UnreachableException(),
             };
@@ -140,50 +138,47 @@ internal static class DataSeedUtils
             await playfabDb.SaveChangesAsync(cancellationToken);
         }
 
-        static IEnumerable<TabEF> SeedTabs(PlayfabDbContext playfabDb, Playfab staticData)
+        for (var i = 0; i < staticData.ShopTabs.Length; i++)
         {
-            for (var i = 0; i < staticData.ShopTabs.Length; i++)
+            var tab = staticData.ShopTabs[i];
+
+            var tabEF = new TabEF()
             {
-                var tab = staticData.ShopTabs[i];
-
-                var tabEF = new TabEF()
+                TabIndex = i + 1,
+                TabId = tab.TabId,
+                TabTitle = tab.TabTitle,
+                TabIcon = tab.TabIcon,
+                ScreenLayoutQueries = [.. tab.ScreenLayoutQueries.Select(sq => new ScreenLayoutQueryEF()
                 {
-                    TabIndex = i + 1,
-                    TabId = tab.TabId,
-                    TabTitle = tab.TabTitle,
-                    TabIcon = tab.TabIcon,
-                    ScreenLayoutQueries = [.. tab.ScreenLayoutQueries.Select(sq => new ScreenLayoutQueryEF()
-                    {
-                        ColumnType = sq.ColumnType switch{
-                            Playfab.Tab.ColumnType.Rectangle => ColumnTypeEF.Rectangle,
-                            Playfab.Tab.ColumnType.Square => ColumnTypeEF.Square,
-                            Playfab.Tab.ColumnType.Grid => ColumnTypeEF.Grid,
+                    ColumnType = sq.ColumnType switch{
+                        Playfab.Tab.ColumnType.Rectangle => ColumnTypeEF.Rectangle,
+                        Playfab.Tab.ColumnType.Square => ColumnTypeEF.Square,
+                        Playfab.Tab.ColumnType.Grid => ColumnTypeEF.Grid,
+                        _ => throw new UnreachableException(),
+                    },
+                    ComponentId = sq.ComponentId,
+                    Queries = [.. sq.Queries.Select(q => new QueryEF() {
+                        TopCount = q.TopCount,
+                        ProductIds = [..q.ProductIds.Select(Guid.Parse)],
+                        QueryContentTypes = [..q.QueryContentTypes.Select(ct => ct switch
+                        {
+                            Playfab.ContentType.Durable => ContentTypeEF.Durable,
+                            Playfab.ContentType.Collection => ContentTypeEF.Collection,
+                            Playfab.ContentType.Bundle => ContentTypeEF.Bundle,
+                            Playfab.ContentType.Persona => ContentTypeEF.Persona,
+                            Playfab.ContentType.Genoa => ContentTypeEF.Genoa,
+                            Playfab.ContentType.BuildplateOffer => ContentTypeEF.BuildplateOffer,
+                            Playfab.ContentType.RubyOffer => ContentTypeEF.RubyOffer,
+                            Playfab.ContentType.InventoryItemOffer => ContentTypeEF.InventoryItemOffer,
                             _ => throw new UnreachableException(),
-                        },
-                        ComponentId = sq.ComponentId,
-                        Queries = [.. sq.Queries.Select(q => new QueryEF() {
-                            TopCount = q.TopCount,
-                            ProductIds = [..q.ProductIds.Select(Guid.Parse)],
-                            QueryContentTypes = [..q.QueryContentTypes.Select(ct => ct switch
-                            {
-                                Playfab.ContentType.Durable => ContentTypeEF.Durable,
-                                Playfab.ContentType.Collection => ContentTypeEF.Collection,
-                                Playfab.ContentType.Bundle => ContentTypeEF.Bundle,
-                                Playfab.ContentType.Persona => ContentTypeEF.Persona,
-                                Playfab.ContentType.Genoa => ContentTypeEF.Genoa,
-                                Playfab.ContentType.BuildplateOffer => ContentTypeEF.BuildplateOffer,
-                                Playfab.ContentType.RubyOffer => ContentTypeEF.RubyOffer,
-                                Playfab.ContentType.InventoryItemOffer => ContentTypeEF.InventoryItemOffer,
-                                _ => throw new UnreachableException(),
-                            })]
-                        })],
+                        })]
                     })],
-                };
+                })],
+            };
 
-                playfabDb.Tabs.Add(tabEF);
+            playfabDb.Tabs.Add(tabEF);
 
-                yield return tabEF;
-            }
+            await playfabDb.SaveChangesAsync(cancellationToken);
         }
 
         static RarityEF ConvertRarity(Playfab.Item.Rarity rarity)

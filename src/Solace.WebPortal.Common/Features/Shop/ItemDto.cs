@@ -8,7 +8,7 @@ public sealed record ItemDto(
     IReadOnlyDictionary<string, string> DescriptionTranslations,
     bool Purchasable,
     bool Discount,
-    DateTimeOffset? StartDate,
+    DateTimeOffset StartDate,
     Guid? ThumbnailImageId,
     ItemDataTypeDto ItemDataType,
     BuildplateDto? BuildplateData,

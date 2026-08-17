@@ -1,38 +1,98 @@
 using System.Collections.Frozen;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OData.Edm;
 using Microsoft.OData.ModelBuilder;
 using OData2Linq;
+using Solace.Db.Playfab;
+using Solace.Db.Playfab.Models.Items;
+using Solace.Db.Playfab.Models.Tabs;
+using Solace.StaticData;
 
 namespace Solace.AuthServer.Features.PlayfabApi.Catalog;
 
-public sealed class CatalogService
+public sealed class CatalogService : IDisposable
 {
-    private readonly CatalogItem[] _itemData;
-    private readonly FrozenDictionary<Guid, CatalogItem> _itemById;
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(30);
+
+    private readonly IDbContextFactory<PlayfabDbContext> _playfabDbFactory;
+    private readonly StaticData.Playfab _staticData;
     private readonly IEdmModel _edmModel;
+    private readonly SemaphoreSlim _lock = new(1, 1);
 
-    public CatalogService(StaticData.StaticDataProvider staticData)
+    private CatalogItem[]? _itemData;
+    private FrozenDictionary<Guid, CatalogItem>? _itemById;
+    private DateTimeOffset _cacheExpiration = DateTimeOffset.MinValue;
+
+    public CatalogService(IDbContextFactory<PlayfabDbContext> playfabDbFactory, StaticDataProvider staticData)
     {
-        _itemData = CreateItemData(staticData);
-
-        _itemById = _itemData.ToFrozenDictionary(item => item.Id);
-
+        _playfabDbFactory = playfabDbFactory;
+        _staticData = staticData.Playfab;
         _edmModel = CreateCatalogItemEdmModel();
     }
 
-    public ODataQuery<CatalogItem> CreateItemsQuery()
-        => _itemData
-        .AsQueryable()
-        .OData(settings =>
+    public void ClearCache()
+    {
+        lock (_lock)
         {
-            settings.EnableCaseInsensitive = true;
-            settings.ValidationSettings.MaxNodeCount = 10000;
-        }, _edmModel);
+            _itemData = null;
+            _itemById = null;
+            _cacheExpiration = DateTimeOffset.MinValue;
+        }
+    }
 
-    public bool TryGetItem(Guid id, [MaybeNullWhen(false)] out CatalogItem catalogItem)
-        => _itemById.TryGetValue(id, out catalogItem);
+    private async Task<(CatalogItem[] ItemData, FrozenDictionary<Guid, CatalogItem> ItemById)> GetCachedData(CancellationToken cancellationToken = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+
+        if (_itemData is not null && _itemById is not null && _cacheExpiration > now)
+        {
+            return (_itemData, _itemById);
+        }
+
+        await _lock.WaitAsync(cancellationToken);
+
+        try
+        {
+            if (_itemData is not null && _itemById is not null && _cacheExpiration > now)
+            {
+                return (_itemData, _itemById);
+            }
+
+            await using var playfabDb = await _playfabDbFactory.CreateDbContextAsync(cancellationToken);
+            var itemData = await CreateItemData(playfabDb, _staticData, cancellationToken);
+            var itemById = itemData.ToFrozenDictionary(item => item.Id);
+
+            _itemData = itemData;
+            _itemById = itemById;
+            _cacheExpiration = now.Add(CacheDuration);
+
+            return (itemData, itemById);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    public async Task<ODataQuery<CatalogItem>> CreateItemsQueryAsync(CancellationToken cancellationToken = default)
+    {
+        var (itemData, _) = await GetCachedData(cancellationToken);
+
+        return itemData
+            .AsQueryable()
+            .OData(settings =>
+            {
+                settings.EnableCaseInsensitive = true;
+                settings.ValidationSettings.MaxNodeCount = 10000;
+            }, _edmModel);
+    }
+
+    public async Task<CatalogItem?> TryGetItemAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var (_, itemById) = await GetCachedData(cancellationToken);
+        return itemById.TryGetValue(id, out var catalogItem) ? catalogItem : null;
+    }
 
     public CatalogItem FixItemUrls(CatalogItem item, HttpRequest request)
     {
@@ -49,25 +109,24 @@ public sealed class CatalogService
         };
     }
 
-    public CatalogItem StaticDataItemToCatalogItem(StaticData.Playfab.Item item)
+    public CatalogItem ItemEFToCatalogItem(ItemEF item)
     {
         var price = item.Data switch
         {
-            StaticData.Playfab.Item.BuildplateData data => new CatalogItem.PriceR([
+            BuildplateDataEF data => new CatalogItem.PriceR([
                 new([
                     new(PlayfabApiUtils.RubyCurrencyId, PlayfabApiUtils.RubyCurrencyId, PlayfabApiUtils.RubyCurrencyId, data.Cost),
                 ]),
             ], []),
-            StaticData.Playfab.Item.InventoryItemData data => new CatalogItem.PriceR([
+            InventoryItemDataEF data => new CatalogItem.PriceR([
                 new([
                     new(PlayfabApiUtils.RubyCurrencyId, PlayfabApiUtils.RubyCurrencyId, PlayfabApiUtils.RubyCurrencyId, data.Cost),
                 ]),
             ], []),
-            StaticData.Playfab.Item.QueryManifestData => null,
             _ => throw new UnreachableException(),
         };
 
-        var creatorEntityType = "title_player_account";
+        const string creatorEntityType = "title_player_account";
 
         return new CatalogItem(
             new CatalogItem.Entity(item.SourceEntityId, "namespace", "namespace"),
@@ -75,9 +134,8 @@ public sealed class CatalogService
             item.Id,
             item.Data switch
             {
-                StaticData.Playfab.Item.BuildplateData => "bundle",
-                StaticData.Playfab.Item.InventoryItemData => "bundle",
-                StaticData.Playfab.Item.QueryManifestData => "catalogItem",
+                BuildplateDataEF => "bundle",
+                InventoryItemDataEF => "bundle",
                 _ => throw new UnreachableException(),
             },
             item.FriendlyId is null ? [] : [new("FriendlyId", item.FriendlyId.Value)],
@@ -89,9 +147,8 @@ public sealed class CatalogService
             item.Keywords.ToDictionary(item => item.Key, item => new CatalogItem.KeywordValues(item.Value.Values), StringComparer.Ordinal),
             item.Data switch
             {
-                StaticData.Playfab.Item.BuildplateData => "BuildplateOffer",
-                StaticData.Playfab.Item.InventoryItemData => "InventoryItemOffer",
-                StaticData.Playfab.Item.QueryManifestData => "GenoaQueryManifest_V0.0.3",
+                BuildplateDataEF => "BuildplateOffer",
+                InventoryItemDataEF => "InventoryItemOffer",
                 _ => throw new UnreachableException(),
             },
             new CatalogItem.Entity(item.CreatorEntityId, creatorEntityType, creatorEntityType),
@@ -99,20 +156,15 @@ public sealed class CatalogService
             null, // IsStackable
             item.Data switch
             {
-                StaticData.Playfab.Item.BuildplateData => ["android.amazonappstore", "android.googleplay", "b.store", "ios.store", "nx.store", "oculus.store.gearvr", "oculus.store.rift", "uwp.store", "uwp.store.mobile", "xboxone.store", "title.bedrockvanilla", "title.earth"],
-                StaticData.Playfab.Item.InventoryItemData => ["android.googleplay", "ios.store", "uwp.store", "title.earth"],
-                StaticData.Playfab.Item.QueryManifestData => ["android.googleplay", "ios.store", "uwp.store", "title.earth"],
+                BuildplateDataEF => ["android.amazonappstore", "android.googleplay", "b.store", "ios.store", "nx.store", "oculus.store.gearvr", "oculus.store.rift", "uwp.store", "uwp.store.mobile", "xboxone.store", "title.bedrockvanilla", "title.earth"],
+                InventoryItemDataEF => ["android.googleplay", "ios.store", "uwp.store", "title.earth"],
                 _ => throw new UnreachableException(),
             },
             item.Tags,
-            item.CreationDate,
-            item.LastModifiedDate,
-            item.StartDate,
-            item.Contents.Select(content => content switch
-            {
-                StaticData.Playfab.Item.QueryManifestContent qmContent => new CatalogItem.QueryManifestContent(qmContent.Id, qmContent.Url, qmContent.MaxClientVersion, qmContent.MinClientVersion, qmContent.Tags, qmContent.Type),
-                _ => content,
-            }),
+            item.CreationDate.UtcDateTime,
+            item.LastModifiedDate.UtcDateTime,
+            item.StartDate.UtcDateTime,
+            [],
             item.ThumbnailImageId is null ? [] : [new(item.ThumbnailImageId.Value, "Thumbnail", "Thumbnail", $"/playfab/images/{item.ThumbnailImageId}.png")],
             item.ItemReferences.Select(reference => new CatalogItem.ItemReference(reference.Id, reference.Amount)),
             price,
@@ -120,51 +172,32 @@ public sealed class CatalogService
             [],
             item.Data switch
             {
-                StaticData.Playfab.Item.BuildplateData data => CatalogItem.DisplayPropertiesR.CreateBuildplate(
+                BuildplateDataEF data => CatalogItem.DisplayPropertiesR.CreateBuildplate(
                     "Minecraft",
                     data.Cost,
                     item.Purchasable,
                     data.Rarity.ToString().ToLowerInvariant(),
                     [new("entitlement_EarthBuildPlate", data.Id, data.Version)],
-                    data.Id,
+                    data.BuildplateId,
                     data.Size.ToString().ToLowerInvariant(),
                     data.UnlockLevel
                 ),
-                StaticData.Playfab.Item.InventoryItemData data => CatalogItem.DisplayPropertiesR.CreateInventoryItem(
+                InventoryItemDataEF data => CatalogItem.DisplayPropertiesR.CreateInventoryItem(
                     data.Cost,
                     data.Rarity.ToString(),
                     [new("entitlement_InventoryItemOffer", data.Id, data.Version)],
-                    data.Id,
+                    data.ItemId,
                     data.Amount
-                ),
-                StaticData.Playfab.Item.QueryManifestData data => CatalogItem.DisplayPropertiesR.CreateQueryManifest(
-                    data.MinClientVersion,
-                    data.MaxClientVersion,
-                    data.Tabs.Select(tab => new CatalogItem.DisplayPropertiesR.Tab(
-                        tab.ScreenLayoutQueries.Select(layoutQuery => new CatalogItem.DisplayPropertiesR.Tab.ScreenLayoutQuery(
-                            // TODO: haven't seen it yet, but it's possible these can have properties
-                            layoutQuery.ColumnType is Solace.StaticData.Playfab.Tab.ColumnType.Rectangle ? new object() : null,
-                            layoutQuery.ColumnType is Solace.StaticData.Playfab.Tab.ColumnType.Square ? new object() : null,
-                            layoutQuery.ColumnType is Solace.StaticData.Playfab.Tab.ColumnType.Grid ? new object() : null,
-                            layoutQuery.Queries.Select(query => new CatalogItem.DisplayPropertiesR.Tab.ScreenLayoutQuery.Query(
-                                query.ProductIds,
-                                query.QueryContentTypes.Select(type => type.ToString()),
-                                query.TopCount
-                            )),
-                            layoutQuery.ComponentId
-                        )),
-                        tab.TabIcon,
-                        tab.TabTitle,
-                        tab.TabId
-                    )),
-                    data.GlobalNotSearchQueryTags
                 ),
                 _ => throw new UnreachableException(),
             }
         );
     }
 
-    private CatalogItem[] CreateItemData(StaticData.StaticDataProvider staticData)
+    public void Dispose()
+        => _lock.Dispose();
+
+    private async Task<CatalogItem[]> CreateItemData(PlayfabDbContext playfabDb, StaticData.Playfab staticData, CancellationToken cancellationToken = default)
     {
         var someCurrencyId = Guid.Parse("0113e233-7637-48e7-91b0-349fdc74713d");
 
@@ -173,8 +206,9 @@ public sealed class CatalogService
             new([new(someCurrencyId, someCurrencyId, someCurrencyId, 0)])
         ], []);
 
-        return [
-            // required for shop to load for some reason...
+        List<CatalogItem> result = [];
+
+        result.Add(
             new CatalogItem(
                 new("B63A0803D3653643", "namespace", "namespace"),
                 new("B63A0803D3653643", "namespace", "namespace"),
@@ -189,12 +223,12 @@ public sealed class CatalogService
                 new("301F442C3B63DC20", "master_player_account", "master_player_account"),
                 new("301F442C3B63DC20", "master_player_account", "master_player_account"),
                 false, // IsStackable
-                ["android.amazonappstore", "android.googleplay",  "b.store",  "ios.store",  "nx.store",  "oculus.store.gearvr", "oculus.store.rift", "uwp.store",  "uwp.store.mobile",  "xboxone.store", "title.bedrockvanilla", "title.earth"],
+                ["android.amazonappstore", "android.googleplay", "b.store", "ios.store", "nx.store", "oculus.store.gearvr", "oculus.store.rift", "uwp.store", "uwp.store.mobile", "xboxone.store", "title.bedrockvanilla", "title.earth"],
                 ["230f5996-04b2-4f0e-83e5-4056c7f1d946", "4f7cdadd-a33c-489d-8969-752ca689f567", "is_achievement", "earth_achievement", "tag.animal", "1P"],
                 new(2020, 12, 7, 22, 46, 33, 066, DateTimeKind.Utc),
                 new(2023, 8, 10, 14, 11, 19, 81, DateTimeKind.Utc),
                 null,
-                [new Dictionary<string,object>(StringComparer.Ordinal) {
+                [new Dictionary<string, object>(StringComparer.Ordinal) {
                     ["Id"] = "f4a2cf48-45c1-4fda-86d0-9d24c069f0a9",
                     ["Url"] = "https://xforgeassets001.xboxlive.com/pf-title-b63a0803d3653643-20ca2/f4a2cf48-45c1-4fda-86d0-9d24c069f0a9/primary.zip",
                     ["MaxClientVersion"] = "65535.65535.65535",
@@ -216,9 +250,77 @@ public sealed class CatalogService
                     Guid.Parse("53bee6fe-c9d9-43c9-b3af-4c5438fba4b7"),
                     "persona_feet"
                 )
-            ),
-            .. staticData.Playfab.Items.Select(item => StaticDataItemToCatalogItem(item.Value)),
-        ];
+            )
+        );
+
+        const string creatorEntityType = "title_player_account";
+
+        var tabsData = await playfabDb.Tabs
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        result.Add(new CatalogItem(
+            new CatalogItem.Entity("B63A0803D3653643", "namespace", "namespace"),
+            new CatalogItem.Entity("B63A0803D3653643", "namespace", "namespace"),
+            Guid.Parse("06e44b91-e7f5-46b6-9986-ca755890f3bf"),
+            "catalogItem",
+            [],
+            null,
+            ((IEnumerable<KeyValuePair<string, string>>)[new("NEUTRAL", "Home L1"), .. new Dictionary<string, string>(StringComparer.Ordinal) { ["en-US"] = "Home L1" }, new("neutral", "Home L1")])
+                .ToDictionary(StringComparer.Ordinal),
+            ((IEnumerable<KeyValuePair<string, string>>)[new("NEUTRAL", "Home L1"), .. new Dictionary<string, string>(StringComparer.Ordinal) { ["en-US"] = "Home L1" }, new("neutral", "Home L1")])
+                .ToDictionary(StringComparer.Ordinal),
+            new Dictionary<string, CatalogItem.KeywordValues>(StringComparer.Ordinal) { ["en-US"] = new([]), ["NEUTRAL"] = new([]), ["neutral"] = new([]), },
+            "GenoaQueryManifest_V0.0.3",
+            new CatalogItem.Entity("3C0BE9326354CBB7", creatorEntityType, creatorEntityType),
+            new CatalogItem.Entity("3C0BE9326354CBB7", creatorEntityType, creatorEntityType),
+            null, // IsStackable
+            ["android.googleplay", "ios.store", "uwp.store", "title.earth"],
+            ["mctestdefault"],
+            new(2020, 12, 10, 18, 59, 39, 396, DateTimeKind.Utc),
+            new(2021, 1, 4, 19, 42, 53, 773, DateTimeKind.Utc),
+            new(2021, 1, 5, 17, 0, 0, DateTimeKind.Utc),
+            [new CatalogItem.QueryManifestContent(Guid.Parse("f3f2b4fc-f144-4357-9e41-198db3a47957"), "/playfab/master_loc_contents.json", new Version(6555, 6555, 6555), new Version(1, 2, 0), [], "resourcebinary")],
+            [],
+            [],
+            null,
+            null,
+            [],
+            CatalogItem.DisplayPropertiesR.CreateQueryManifest(
+                new Version(0, 25, 0),
+                new Version(1, 0, 20),
+                tabsData
+                    .Select(tab => new CatalogItem.DisplayPropertiesR.Tab(
+                    tab.ScreenLayoutQueries.Select(layoutQuery => new CatalogItem.DisplayPropertiesR.Tab.ScreenLayoutQuery(
+                        // TODO: haven't seen it yet, but it's possible these can have properties
+                        layoutQuery.ColumnType is ColumnTypeEF.Rectangle ? new object() : null,
+                        layoutQuery.ColumnType is ColumnTypeEF.Square ? new object() : null,
+                        layoutQuery.ColumnType is ColumnTypeEF.Grid ? new object() : null,
+                        layoutQuery.Queries.Select(query => new CatalogItem.DisplayPropertiesR.Tab.ScreenLayoutQuery.Query(
+                            query.ProductIds,
+                            query.QueryContentTypes.Select(type => type.ToString()),
+                            query.TopCount
+                        )),
+                        layoutQuery.ComponentId
+                    )),
+                    tab.TabIcon,
+                    tab.TabTitle,
+                    tab.TabId
+                )),
+                staticData.ShopNotSearchQueryTags
+            )
+        ));
+
+        await foreach (var item in playfabDb.Items
+            .AsNoTracking()
+            .Include(item => item.Data)
+            .AsAsyncEnumerable()
+            .WithCancellation(cancellationToken))
+        {
+            result.Add(ItemEFToCatalogItem(item));
+        }
+
+        return [.. result];
     }
 
     private static IEdmModel CreateCatalogItemEdmModel()
