@@ -6,9 +6,11 @@
 @using Solace.WebPortal.Common.Features.Store
 @using Solace.WebPortal.Common.Features.Catalog
 @using System.Diagnostics
+@using System.Security.Claims
 @attribute [Authorize(Policy = Permissions.ViewStore)]
 @rendermode InteractiveWebAssembly
 @inject HttpClient Http
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavManager
 @inject IServiceProvider ServiceProvider
 
@@ -29,7 +31,7 @@ else
             <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="Cancel">
                 <i class="bi bi-arrow-left me-1"></i> Back
             </button>
-            <h3 class="mb-0">@(TabIndex is null ? "Create New Tab" : $"Edit Tab: {Model.TabTitle}")</h3>
+            <h3 class="mb-0">@(TabIndex is null ? "Create New Tab" : HasPermission(Permissions.EditStore) ? $"Edit Tab {TabIndex}" : $"View Tab {TabIndex}")</h3>
         </div>
 
         <button type="button" class="btn @(IsPreviewMode ? "btn-primary" : "btn-outline-primary")" @onclick="TogglePreview">
@@ -105,15 +107,15 @@ else
                     <div class="row g-2 align-items-center">
                         <div class="col-md-4">
                             <label class="form-label small fw-bold mb-1">Tab ID</label>
-                            <InputText @bind-Value="Model.TabId" class="form-control form-control-sm" />
+                            <InputText @bind-Value="Model.TabId" class="form-control form-control-sm" readonly="@(!HasPermission(Permissions.EditStore))" />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold mb-1">Tab Title</label>
-                            <InputText @bind-Value="Model.TabTitle" class="form-control form-control-sm" />
+                            <InputText @bind-Value="Model.TabTitle" class="form-control form-control-sm" readonly="@(!HasPermission(Permissions.EditStore))" />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-bold mb-1">Tab Icon</label>
-                            <InputText @bind-Value="Model.TabIcon" class="form-control form-control-sm" placeholder="textures/ui/icons/..." />
+                            <InputText @bind-Value="Model.TabIcon" class="form-control form-control-sm" placeholder="textures/ui/icons/..." readonly="@(!HasPermission(Permissions.EditStore))" />
                         </div>
                     </div>
                 </div>
@@ -121,9 +123,12 @@ else
 
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h5 class="mb-0">Layout Columns</h5>
-                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddLayout">
-                    <i class="bi bi-plus-lg me-1"></i> Add Layout Column
-                </button>
+                @if (HasPermission(Permissions.EditStore))
+                {
+                    <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddLayout">
+                        <i class="bi bi-plus-lg me-1"></i> Add Layout Column
+                    </button>
+                }
             </div>
 
             @foreach (var (layout, layoutIndex) in Model.ScreenLayoutQueries.Select((l, i) => (l, i)))
@@ -133,7 +138,7 @@ else
                         <div class="d-flex align-items-center gap-2">
                             <span class="fw-bold small text-muted me-2">#@(layoutIndex + 1)</span>
                             <label class="form-label small fw-bold mb-0 me-1">Column Type:</label>
-                            <InputSelect @bind-Value="layout.ColumnType" class="form-select form-select-sm w-auto">
+                            <InputSelect @bind-Value="layout.ColumnType" class="form-select form-select-sm w-auto" disabled="@(!HasPermission(Permissions.EditStore))">
                                 <option value="@ColumnType.Rectangle">Rectangle</option>
                                 <option value="@ColumnType.Square">Square</option>
                                 <option value="@ColumnType.Grid">Grid</option>
@@ -141,17 +146,20 @@ else
                         </div>
 
                         <div class="d-flex gap-2 align-items-center">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => layout.Queries.Add(new QueryViewModel())">
-                                + Add Query
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => Model.ScreenLayoutQueries.Remove(layout)">
-                                Remove Layout
-                            </button>
+                            @if (HasPermission(Permissions.EditStore))
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => layout.Queries.Add(new QueryViewModel())">
+                                    + Add Query
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => Model.ScreenLayoutQueries.Remove(layout)">
+                                    Remove Layout
+                                </button>
+                            }
                         </div>
                     </div>
 
                     <div class="card-body p-2">
-                        @if (layout.Queries.Count == 0)
+                        @if (layout.Queries.Count is 0)
                         {
                             <p class="text-muted small mb-0 p-2"><em>No queries added yet. Click "+ Add Query" above.</em></p>
                         }
@@ -161,9 +169,12 @@ else
                             <div class="border rounded p-2 mb-2 bg-white">
                                 <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-1">
                                     <span class="fw-bold small text-primary">Query @(qIndex + 1)</span>
-                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 text-decoration-none" @onclick="() => layout.Queries.Remove(query)">
-                                        Remove Query
-                                    </button>
+                                    @if (HasPermission(Permissions.EditStore))
+                                    {
+                                        <button type="button" class="btn btn-sm btn-link text-danger p-0 text-decoration-none" @onclick="() => layout.Queries.Remove(query)">
+                                            Remove Query
+                                        </button>
+                                    }
                                 </div>
 
                                 <div class="d-flex flex-wrap align-items-center gap-2">
@@ -179,21 +190,27 @@ else
                                             var currentProductId = query.ProductIds[index];
 
                                             <div class="input-group input-group-sm flex-grow-1" style="min-width: 260px; max-width: 100%;">
-                                                <select class="form-select form-select-sm" value="@currentProductId" @onchange="(e) => UpdateProductId(query, index, e.Value)">
+                                                <select class="form-select form-select-sm" value="@currentProductId" @onchange="(e) => UpdateProductId(query, index, e.Value)" disabled="@(!HasPermission(Permissions.EditStore))">
                                                     @foreach (var item in AvailableItems)
                                                     {
                                                         <option value="@item.Id">@item.Title (@item.ItemDataType)</option>
                                                     }
                                                 </select>
-                                                <button type="button" class="btn btn-outline-danger" @onclick="() => query.ProductIds.RemoveAt(index)">
-                                                    <i class="bi bi-x-lg"></i>
-                                                </button>
+                                                @if (HasPermission(Permissions.EditStore))
+                                                {
+                                                    <button type="button" class="btn btn-outline-danger" @onclick="() => query.ProductIds.RemoveAt(index)">
+                                                        <i class="bi bi-x-lg"></i>
+                                                    </button>
+                                                }
                                             </div>
                                         }
 
-                                        <button type="button" class="btn btn-sm btn-outline-success" @onclick="() => AddProduct(query)">
-                                            <i class="bi bi-plus me-1"></i>Product
-                                        </button>
+                                        @if (HasPermission(Permissions.EditStore))
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-success" @onclick="() => AddProduct(query)">
+                                                <i class="bi bi-plus me-1"></i>Product
+                                            </button>
+                                        }
                                     }
                                 </div>
                             </div>
@@ -202,16 +219,20 @@ else
                 </div>
             }
 
-            <div class="d-flex gap-2 mt-3">
-                <button type="submit" class="btn btn-primary">Save Tab</button>
-                <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">Cancel</button>
-            </div>
+            @if (HasPermission(Permissions.EditStore))
+            {
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" class="btn btn-primary">Save Tab</button>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">Cancel</button>
+                </div>
+            }
         </EditForm>
     }
 }
 
 @code {
     [Parameter] public int? TabIndex { get; set; }
+    private ClaimsPrincipal? _user;
     private TabViewModel Model { get; set; } = new();
     private bool DataLoaded;
 
@@ -221,6 +242,12 @@ else
     private bool IsPreviewMode = false;
     private Catalog.CatalogCacheService? CatalogService { get; set; }
     private Catalog.CatalogCacheService.SyncAccessor? Catalog;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _user = authState.User;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -397,4 +424,7 @@ else
             NavManager.NavigateTo("/Store");
         }
     }
+
+    private bool HasPermission(string permission)
+        => _user?.HasPermission(permission) ?? false;
 }

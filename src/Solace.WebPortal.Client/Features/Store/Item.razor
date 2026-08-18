@@ -6,12 +6,13 @@
 @using Solace.WebPortal.Common
 @using Solace.WebPortal.Common.Features.Common
 @using Solace.WebPortal.Common.Features.Store
-@using System.Globalization
+@using System.Security.Claims
 @using CatalogItemDto = Solace.WebPortal.Common.Features.Catalog.ItemDto
 @using CatalogItemDtoCategory = Solace.WebPortal.Common.Features.Catalog.ItemDtoCategory
 @attribute [Authorize(Policy = Permissions.ViewStore)]
 @rendermode InteractiveWebAssembly
 @inject HttpClient Http
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavManager
 @inject IServiceProvider ServiceProvider
 
@@ -21,7 +22,7 @@
     <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="Cancel">
         <i class="bi bi-arrow-left me-1"></i> Back
     </button>
-    <h3>@(Id is null ? "Create New Item" : $"Edit '{Model.Title}'")</h3>
+    <h3>@(Id is null ? "Create New Item" : HasPermission(Permissions.EditStore) ? $"Edit {Model.Title}" : $"View {Model.Title}")</h3>
 </div>
 
 @if (!DataLoaded)
@@ -39,12 +40,12 @@ else
 
         <div class="mb-3">
             <label>Title</label>
-            <InputText @bind-Value="Model.Title" class="form-control" />
+            <InputText @bind-Value="Model.Title" class="form-control" readonly="@(!HasPermission(Permissions.EditStore))" />
         </div>
 
         <div class="mb-3">
             <label>Description</label>
-            <InputTextArea @bind-Value="Model.Description" class="form-control" />
+            <InputTextArea @bind-Value="Model.Description" class="form-control" readonly="@(!HasPermission(Permissions.EditStore))" />
         </div>
 
         <div class="mb-3 border p-3 rounded bg-white">
@@ -61,23 +62,26 @@ else
             {
                 <div class="mt-3">
                     <div class="row g-2 align-items-center mb-3">
-                        <div class="col-sm-6 col-md-4">
-                            <select class="form-select form-select-sm" @bind="_selectedLanguageToAdd">
-                                <option value="">-- Add Language --</option>
-                                @foreach (var lang in AvailableLanguages)
-                                {
-                                    if (!ActiveTranslationCodes.Contains(lang.Code))
+                        @if (HasPermission(Permissions.EditStore))
+                        {
+                            <div class="col-sm-6 col-md-4">
+                                <select class="form-select form-select-sm" @bind="_selectedLanguageToAdd">
+                                    <option value="">-- Add Language --</option>
+                                    @foreach (var lang in AvailableLanguages)
                                     {
-                                        <option value="@lang.Code">@lang.DisplayName</option>
+                                        if (!ActiveTranslationCodes.Contains(lang.Code))
+                                        {
+                                            <option value="@lang.Code">@lang.DisplayName</option>
+                                        }
                                     }
-                                }
-                            </select>
-                        </div>
-                        <div class="col-auto">
-                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddLanguageTranslation" disabled="@string.IsNullOrEmpty(_selectedLanguageToAdd)">
-                                <i class="bi bi-plus-lg me-1"></i> Add
-                            </button>
-                        </div>
+                                </select>
+                            </div>
+                            <div class="col-auto">
+                                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddLanguageTranslation" disabled="@string.IsNullOrEmpty(_selectedLanguageToAdd)">
+                                    <i class="bi bi-plus-lg me-1"></i> Add
+                                </button>
+                            </div>
+                        }
                     </div>
 
                     @if (!ActiveTranslationCodes.Any())
@@ -93,7 +97,10 @@ else
                                         <th style="width: 25%;">Language</th>
                                         <th style="width: 35%;">Title</th>
                                         <th style="width: 35%;">Description</th>
-                                        <th style="width: 5%;" class="text-center"></th>
+                                        @if (HasPermission(Permissions.EditStore))
+                                        {
+                                            <th style="width: 5%;" class="text-center"></th>
+                                        }
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -105,16 +112,19 @@ else
                                                 <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">@langCode</span>
                                             </td>
                                             <td>
-                                                <input type="text" class="form-control form-control-sm" value="@GetTranslation(Model.TitleTranslations, langCode)" @onchange="@(e => SetTranslation(Model.TitleTranslations, langCode, e.Value?.ToString()))" placeholder="Title..." />
+                                                <input type="text" class="form-control form-control-sm" value="@GetTranslation(Model.TitleTranslations, langCode)" @onchange="@(e => SetTranslation(Model.TitleTranslations, langCode, e.Value?.ToString()))" placeholder="Title..." readonly="@(!HasPermission(Permissions.EditStore))" />
                                             </td>
                                             <td>
-                                                <input type="text" class="form-control form-control-sm" value="@GetTranslation(Model.DescriptionTranslations, langCode)" @onchange="@(e => SetTranslation(Model.DescriptionTranslations, langCode, e.Value?.ToString()))" placeholder="Description..." />
+                                                <input type="text" class="form-control form-control-sm" value="@GetTranslation(Model.DescriptionTranslations, langCode)" @onchange="@(e => SetTranslation(Model.DescriptionTranslations, langCode, e.Value?.ToString()))" placeholder="Description..." readonly="@(!HasPermission(Permissions.EditStore))" />
                                             </td>
-                                            <td class="text-center">
-                                                <button type="button" class="btn btn-outline-danger btn-sm p-1" @onclick="() => RemoveLanguageTranslation(langCode)" title="Remove Translation">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </td>
+                                            @if (HasPermission(Permissions.EditStore))
+                                            {
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-outline-danger btn-sm p-1" @onclick="() => RemoveLanguageTranslation(langCode)" title="Remove Translation">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </td>
+                                            }
                                         </tr>
                                     }
                                 </tbody>
@@ -126,25 +136,25 @@ else
         </div>
 
         <div class="mb-3 form-check">
-            <InputCheckbox @bind-Value="Model.Purchasable" class="form-check-input" id="purchasableCheck" />
+            <InputCheckbox @bind-Value="Model.Purchasable" class="form-check-input" id="purchasableCheck" disabled="@(!HasPermission(Permissions.EditStore))" />
             <label class="form-check-label" for="purchasableCheck">Purchasable</label>
         </div>
 
         <div class="mb-3 form-check">
-            <InputCheckbox @bind-Value="Model.Discount" class="form-check-input" id="discountCheck" />
+            <InputCheckbox @bind-Value="Model.Discount" class="form-check-input" id="discountCheck" disabled="@(!HasPermission(Permissions.EditStore))" />
             <label class="form-check-label" for="discountCheck">Discount</label>
         </div>
 
         <div class="mb-3">
             <label class="form-label" for="startDateInput">Start Date</label>
-            <InputDate Type="InputDateType.DateTimeLocal" @bind-Value="Model.StartDate" class="form-control" id="startDateInput" />
+            <InputDate Type="InputDateType.DateTimeLocal" @bind-Value="Model.StartDate" class="form-control" id="startDateInput" disabled="@(!HasPermission(Permissions.EditStore))" />
         </div>
 
         <div class="mb-3 border p-3 rounded">
             <h4>Item Data</h4>
             <div class="mb-3">
                 <label>Data Type</label>
-                <InputSelect @bind-Value="Model.ItemDataType" class="form-select">
+                <InputSelect @bind-Value="Model.ItemDataType" class="form-select" disabled="@(!HasPermission(Permissions.EditStore))">
                     <option value="Buildplate">Buildplate</option>
                     <option value="InventoryItem">Inventory Item</option>
                 </InputSelect>
@@ -156,11 +166,14 @@ else
                     <div class="col-12 mb-2">
                         <label>Target Buildplate</label>
                         <div class="input-group">
-                            <InputText @bind-Value="SelectedBuildplateDisplay" class="form-control" disabled placeholder="No Buildplate Selected..." />
-                            <button type="button" class="btn btn-secondary" @onclick="() => _showBuildplatePicker = true">
-                                <i class="bi bi-search"></i> Select
-                            </button>
-                            @if (Model.Buildplate.BuildplateId != Guid.Empty)
+                            <InputText @bind-Value="SelectedBuildplateDisplay" class="form-control" disabled placeholder="No Buildplate Selected..." readonly="@(!HasPermission(Permissions.EditStore))" />
+                            @if (HasPermission(Permissions.EditStore))
+                            {
+                                <button type="button" class="btn btn-secondary" @onclick="() => _showBuildplatePicker = true">
+                                    <i class="bi bi-search"></i> Select
+                                </button>
+                            }
+                            @if (Model.Buildplate.BuildplateId != Guid.Empty && HasPermission(Permissions.ViewBuildplates))
                             {
                                 <a class="btn btn-outline-secondary" href="/BuildplateTemplates?q=@Model.Buildplate.BuildplateId" target="_blank">
                                     <i class="bi bi-box-arrow-up-right me-1"></i> View
@@ -172,13 +185,13 @@ else
                 </div>
                 <div class="row">
                     <div class="col"><label>Cost</label>
-                        <InputNumber @bind-Value="Model.Buildplate.Cost" class="form-control" />
+                        <InputNumber @bind-Value="Model.Buildplate.Cost" class="form-control" readonly="@(!HasPermission(Permissions.EditStore))" />
                     </div>
                     <div class="col"><label>Unlock Level</label>
-                        <InputNumber @bind-Value="Model.Buildplate.UnlockLevel" class="form-control" />
+                        <InputNumber @bind-Value="Model.Buildplate.UnlockLevel" class="form-control" readonly="@(!HasPermission(Permissions.EditStore))" />
                     </div>
                     <div class="col"><label>Rarity</label>
-                        <InputSelect @bind-Value="Model.Buildplate.Rarity" class="form-select">
+                        <InputSelect @bind-Value="Model.Buildplate.Rarity" class="form-select" disabled="@(!HasPermission(Permissions.EditStore))">
                             <option value="@Rarity.None">None</option>
                             <option value="@Rarity.Common">Common</option>
                             <option value="@Rarity.Uncommon">Uncommon</option>
@@ -195,23 +208,26 @@ else
                     <div class="col-12 mb-2">
                         <label>Target Item</label>
                         <div class="input-group">
-                            <InputText @bind-Value="SelectedItemDisplay" class="form-control" disabled placeholder="No Item Selected..." />
-                            <button type="button" class="btn btn-secondary" @onclick="ShowItemPicker">
-                                <i class="bi bi-search"></i> Select
-                            </button>
+                            <InputText @bind-Value="SelectedItemDisplay" class="form-control" disabled placeholder="No Item Selected..." readonly="@(!HasPermission(Permissions.EditStore))" />
+                            @if (HasPermission(Permissions.EditStore))
+                            {
+                                <button type="button" class="btn btn-secondary" @onclick="ShowItemPicker">
+                                    <i class="bi bi-search"></i> Select
+                                </button>
+                            }
                         </div>
                         <ValidationMessage For="@(() => Model.InventoryItem.ItemId)" />
                     </div>
                 </div>
                 <div class="row">
                     <div class="col"><label>Cost</label>
-                        <InputNumber @bind-Value="Model.InventoryItem.Cost" class="form-control" />
+                        <InputNumber @bind-Value="Model.InventoryItem.Cost" class="form-control" readonly="@(!HasPermission(Permissions.EditStore))" />
                     </div>
                     <div class="col"><label>Amount</label>
-                        <InputNumber @bind-Value="Model.InventoryItem.Amount" class="form-control" />
+                        <InputNumber @bind-Value="Model.InventoryItem.Amount" class="form-control" readonly="@(!HasPermission(Permissions.EditStore))" />
                     </div>
                     <div class="col"><label>Rarity</label>
-                        <InputSelect @bind-Value="Model.Buildplate.Rarity" class="form-select">
+                        <InputSelect @bind-Value="Model.Buildplate.Rarity" class="form-select" disabled="@(!HasPermission(Permissions.EditStore))">
                             <option value="@Rarity.None">None</option>
                             <option value="@Rarity.Common">Common</option>
                             <option value="@Rarity.Uncommon">Uncommon</option>
@@ -224,10 +240,13 @@ else
             }
         </div>
 
-        <div class="d-flex gap-2 mt-3">
-            <button type="submit" class="btn btn-primary">Save Item</button>
-            <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">Cancel</button>
-        </div>
+        @if (HasPermission(Permissions.EditStore))
+        {
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary">Save Item</button>
+                <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">Cancel</button>
+            </div>
+        }
     </EditForm>
 }
 
@@ -317,6 +336,7 @@ else
 
 @code {
     [Parameter] public Guid? Id { get; set; }
+    private ClaimsPrincipal? _user;
     private ItemViewModel Model { get; set; } = new();
     private bool DataLoaded;
 
@@ -408,6 +428,12 @@ else
 
     private string _templateSearchTerm = string.Empty;
     private PagedDataView<List<Players.Buildplates.TemplateViewModel>>? _templatePagedView;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _user = authState.User;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -621,4 +647,7 @@ else
     private void HandleTemplateDataLoaded(PagedResult<List<Players.Buildplates.TemplateViewModel>> result)
     {
     }
+
+    private bool HasPermission(string permission)
+        => _user?.HasPermission(permission) ?? false;
 }
