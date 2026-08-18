@@ -76,7 +76,9 @@ internal static class DataSeedUtils
             {
                 Playfab.Item.BuildplateData buildplateData => new BuildplateDataEF()
                 {
+#pragma warning disable CS0618 // Type or member is obsolete
                     Id = itemId,
+#pragma warning restore CS0618 // Type or member is obsolete
                     BuildplateId = buildplateData.Id,
                     Cost = buildplateData.Cost,
                     Size = buildplateData.Size switch
@@ -92,7 +94,9 @@ internal static class DataSeedUtils
                 },
                 Playfab.Item.InventoryItemData inventoryData => new InventoryItemDataEF()
                 {
+#pragma warning disable CS0618 // Type or member is obsolete
                     Id = itemId,
+#pragma warning restore CS0618 // Type or member is obsolete
                     ItemId = inventoryData.Id,
                     Cost = inventoryData.Cost,
                     Amount = inventoryData.Amount,

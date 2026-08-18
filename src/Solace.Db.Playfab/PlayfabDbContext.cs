@@ -63,7 +63,9 @@ public sealed class PlayfabDbContext : DbContext
 
             builder.HasOne(a => a.Data)
                 .WithOne(b => b.Item)
+#pragma warning disable CS0618 // Type or member is obsolete - Id
                 .HasForeignKey<ItemDataEF>(a => a.Id)
+#pragma warning restore CS0618 // Type or member is obsolete
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired(false);
 
@@ -105,7 +107,9 @@ public sealed class PlayfabDbContext : DbContext
 
         modelBuilder.Entity<ItemDataEF>(builder =>
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             builder.HasKey(e => e.Id);
+#pragma warning restore CS0618 // Type or member is obsolete
 
             builder.HasDiscriminator<string>("DataType")
                 .HasValue<BuildplateDataEF>("Buildplate")

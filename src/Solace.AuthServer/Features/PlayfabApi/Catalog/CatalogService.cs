@@ -177,7 +177,7 @@ public sealed class CatalogService : IDisposable
                     data.Cost,
                     item.Purchasable,
                     data.Rarity.ToString().ToLowerInvariant(),
-                    [new("entitlement_EarthBuildPlate", data.Id, data.Version)],
+                    [new("entitlement_EarthBuildPlate", data.BuildplateId, data.Version)],
                     data.BuildplateId,
                     data.Size.ToString().ToLowerInvariant(),
                     data.UnlockLevel
@@ -185,7 +185,7 @@ public sealed class CatalogService : IDisposable
                 InventoryItemDataEF data => CatalogItem.DisplayPropertiesR.CreateInventoryItem(
                     data.Cost,
                     data.Rarity.ToString(),
-                    [new("entitlement_InventoryItemOffer", data.Id, data.Version)],
+                    [new("entitlement_InventoryItemOffer", data.ItemId, data.Version)],
                     data.ItemId,
                     data.Amount
                 ),

@@ -213,7 +213,7 @@ internal sealed partial class StoreController : SolaceControllerBase
         {
             case BuildplateDataEF data:
                 {
-                    using var transaction = await _earthDb.Database.BeginTransactionAsync(cancellationToken);
+                    await using var transaction = await _earthDb.Database.BeginTransactionAsync(cancellationToken);
 
                     try
                     {
@@ -227,11 +227,11 @@ internal sealed partial class StoreController : SolaceControllerBase
                             break;
                         }
 
-                        var buidplateId = await importer.AddBuidplateToPlayer(data.Id, accountId, cancellationToken);
+                        var buidplateId = await importer.AddBuidplateToPlayer(data.BuildplateId, accountId, cancellationToken);
 
                         if (buidplateId is null)
                         {
-                            LogBuildplateAddFail(accountId, data.Id);
+                            LogBuildplateAddFail(accountId, data.BuildplateId);
                             break;
                         }
 
@@ -253,7 +253,7 @@ internal sealed partial class StoreController : SolaceControllerBase
                 break;
             case InventoryItemDataEF data:
                 {
-                    using var transaction = await _earthDb.Database.BeginTransactionAsync(cancellationToken);
+                    await using var transaction = await _earthDb.Database.BeginTransactionAsync(cancellationToken);
 
                     try
                     {
@@ -267,8 +267,8 @@ internal sealed partial class StoreController : SolaceControllerBase
                             break;
                         }
 
-                        await InventoryUtils.AddStackableItemsAsync(_earthDb, ResultsEF.Builder.Null, accountId, data.Id, data.Amount, cancellationToken);
-                        await JournalUtils.AddCollectedItemAsync(_earthDb, ResultsEF.Builder.Null, accountId, data.Id, DateTimeOffset.UtcNow, data.Amount, cancellationToken);
+                        await InventoryUtils.AddStackableItemsAsync(_earthDb, ResultsEF.Builder.Null, accountId, data.ItemId, data.Amount, cancellationToken);
+                        await JournalUtils.AddCollectedItemAsync(_earthDb, ResultsEF.Builder.Null, accountId, data.ItemId, DateTimeOffset.UtcNow, data.Amount, cancellationToken);
 
                         // TODO: add to activity log?
 
