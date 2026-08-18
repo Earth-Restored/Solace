@@ -289,12 +289,6 @@ else
                 return;
             }
 
-            if (storeItem.ThumbnailImageId is not null && authServerUri is not null)
-            {
-                <img src="@authServerUri/playfab/images/@(storeItem.ThumbnailImageId).png" onerror="this.onerror=null; this.src='/static/missing_texture.png';" alt="@storeItem.Title" title="@storeItem.Title" />
-                return;
-            }
-
             if (Catalog is not null && Catalog.Value.TryGetItem(storeItem.InventoryItem.ItemId, out var catItem))
             {
                 <img src="/static/genoa-textures/ui/items/@(GetTextureName(catItem)).png" onerror="this.onerror=null; this.src='/static/missing_texture.png';" alt="@catItem.Name" title="@catItem.Name" />
