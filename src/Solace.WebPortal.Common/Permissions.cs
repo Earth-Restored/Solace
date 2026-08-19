@@ -5,6 +5,7 @@ namespace Solace.WebPortal.Common;
 
 public static class Permissions
 {
+    // DO NOT CHANGE VALUES, ok to rename and chage PermissionInfo
     [PermissionInfo("Profile", "Create in-game profile")]
     public const string CreateProfile = "profile.create";
 
@@ -24,9 +25,9 @@ public static class Permissions
     [PermissionInfo("Players", "Manage player accounts - edit, delete")]
     public const string ManagePlayers = "player.manage";
 
-    [PermissionInfo("Buildplates", "View the imported buildplates")]
+    [PermissionInfo("Buildplate Templates", "View the imported buildplate templates")]
     public const string ViewBuildplates = "buildplate.view";
-    [PermissionInfo("Buildplates", "Manage buildplates - import, edit, delete")]
+    [PermissionInfo("Buildplate Templates", "Manage buildplate templates - import, edit, delete")]
     public const string ManageBuildplates = "buildplate.manage";
 
     [PermissionInfo("Data", "View server data - space usage")]
@@ -35,6 +36,12 @@ public static class Permissions
     public const string ExportData = "data.export";
     [PermissionInfo("Data", "Upload and delete all server data")]
     public const string EditData = "data.edit";
+
+    [PermissionInfo("Store", "View store layout and items")]
+    public const string ViewStore = "store.view";
+
+    [PermissionInfo("Store", "Edit store layout and items")]
+    public const string EditStore = "store.edit";
 
     public static ImmutableArray<string> All { get; }
 

@@ -2,17 +2,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Primitives;
 using System.Diagnostics;
 using Solace.ApiServer.Utils;
 using Solace.Common.Exceptions;
 using Solace.Common.Utils;
-using Solace.StaticData;
 using BurnRate = Solace.ApiServer.Types.Common.BurnRate;
 using CraftingCalculator = Solace.ApiServer.Utils.CraftingCalculator;
 using CraftingSlot = Solace.Db.Earth.Models.Player.Workshop.CraftingSlotEF;
 using EarthApiResponse = Solace.ApiServer.Utils.EarthApiResponse;
-using ExpectedPurchasePriceR = Solace.ApiServer.Types.Common.ExpectedPurchasePriceR;
 using FinishPrice = Solace.ApiServer.Types.Workshop.FinishPrice;
 using InputItem = Solace.Db.Earth.Models.Player.Workshop.InputItem;
 using OutputItem = Solace.ApiServer.Types.Workshop.OutputItem;

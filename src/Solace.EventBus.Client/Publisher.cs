@@ -54,5 +54,5 @@ public sealed class Publisher : IAsyncDisposable
     }
 
     public ValueTask DisposeAsync()
-        => ValueTask.CompletedTask;
+        => ValueTask.CompletedTask; // if this needs an implementation, also change EventBusClient, since it uses a singleton
 }

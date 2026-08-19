@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using System.Globalization;
-using System.Security.Claims;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Authorization;
@@ -105,7 +103,7 @@ public static partial class UpdatePlayer
                 return TypedResults.Forbid();
             }
 
-            var maxHealth = BoostUtils.GetMaxPlayerHealth(profile.Boosts, DateTimeOffset.UtcNow, staticData.Catalog.ItemsCatalog);
+            var maxHealth = BoostUtils.GetMaxPlayerHealth(profile.Boosts, DateTimeOffset.UtcNow, staticData.Catalog);
 
             if (health > maxHealth)
             {

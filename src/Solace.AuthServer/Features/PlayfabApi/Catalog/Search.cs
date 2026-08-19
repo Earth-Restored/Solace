@@ -41,7 +41,7 @@ public sealed partial class Search(
             var filter = query.Filter
                 .Replace("platforms/any(tp: tp eq 'android.googleplay' and tp eq 'title.earth')", "platforms/any(tp: tp eq 'android.googleplay') and platforms/any(tp: tp eq 'title.earth')");
 
-            var itemsQueryOData = catalog.CreateItemsQuery();
+            var itemsQueryOData = await catalog.CreateItemsQueryAsync(cancellationToken);
 
             itemsQueryOData = itemsQueryOData.Filter(filter);
 

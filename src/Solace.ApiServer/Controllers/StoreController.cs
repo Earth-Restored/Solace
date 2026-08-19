@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Text;
 using Solace.ApiServer.Types.Buildplates;
-using Solace.ApiServer.Types.Shop;
+using Solace.ApiServer.Types.Store;
 using Solace.BuildplateImporter;
 using Solace.Common.Utils;
 using Solace.Db.Earth;
@@ -15,24 +15,26 @@ using Solace.StaticData;
 using Solace.EventBus.Client;
 using Microsoft.EntityFrameworkCore;
 using Solace.ApiServer.Utils;
+using Solace.Db.Playfab;
+using Solace.Db.Playfab.Models.Items;
 
 namespace Solace.ApiServer.Controllers;
 
 [Authorize]
 [ApiVersion("1.1")]
 [Route("1/api/v{version:apiVersion}/commerce")]
-internal sealed partial class ShopController : SolaceControllerBase
+internal sealed partial class StoreController : SolaceControllerBase
 {
-    private readonly StaticData.StaticDataProvider _staticData;
     private readonly EarthDbContext _earthDb;
+    private readonly PlayfabDbContext _playfabDb;
     private readonly EventBusClient _eventBus;
     private readonly ObjectStoreClient _objectStore;
-    private readonly ILogger<ShopController> _logger;
+    private readonly ILogger<StoreController> _logger;
 
-    public ShopController(StaticData.StaticDataProvider staticData, EarthDbContext earthDB, EventBusClient eventBus, ObjectStoreClient objectStore, ILogger<ShopController> logger)
+    public StoreController(EarthDbContext earthDb, PlayfabDbContext playfabDb, EventBusClient eventBus, ObjectStoreClient objectStore, ILogger<StoreController> logger)
     {
-        _staticData = staticData;
-        _earthDb = earthDB;
+        _earthDb = earthDb;
+        _playfabDb = playfabDb;
         _eventBus = eventBus;
         _objectStore = objectStore;
         _logger = logger;
@@ -164,16 +166,26 @@ internal sealed partial class ShopController : SolaceControllerBase
 
     private async Task<(int Purchased, int Earned)?> ProcessPurchase(Guid accountId, Guid itemId, int expectedPurchasePrice, CancellationToken cancellationToken)
     {
-        if (!_staticData.Playfab.Items.TryGetValue(itemId, out var itemToPurchase))
+        var itemToPurchase = await _playfabDb.Items
+            .AsNoTracking()
+            .Include(item => item.Data)
+            .FirstOrDefaultAsync(item => item.Id == itemId, cancellationToken);
+
+        if (itemToPurchase is null)
         {
             LogPurchaseUnknownItem(accountId, itemId);
             return null;
         }
 
+        if (!itemToPurchase.Purchasable || itemToPurchase.StartDate > DateTimeOffset.UtcNow)
+        {
+            return null;
+        }
+
         int? playfabPrice = itemToPurchase.Data switch
         {
-            Playfab.Item.BuildplateData data => data.Cost,
-            Playfab.Item.InventoryItemData data => data.Cost,
+            BuildplateDataEF data => data.Cost,
+            InventoryItemDataEF data => data.Cost,
             _ => null,
         };
 
@@ -199,9 +211,9 @@ internal sealed partial class ShopController : SolaceControllerBase
 
         switch (itemToPurchase.Data)
         {
-            case Playfab.Item.BuildplateData data:
+            case BuildplateDataEF data:
                 {
-                    using var transaction = await _earthDb.Database.BeginTransactionAsync(cancellationToken);
+                    await using var transaction = await _earthDb.Database.BeginTransactionAsync(cancellationToken);
 
                     try
                     {
@@ -215,11 +227,11 @@ internal sealed partial class ShopController : SolaceControllerBase
                             break;
                         }
 
-                        var buidplateId = await importer.AddBuidplateToPlayer(data.Id, accountId, cancellationToken);
+                        var buidplateId = await importer.AddBuidplateToPlayer(data.BuildplateId, accountId, cancellationToken);
 
                         if (buidplateId is null)
                         {
-                            LogBuildplateAddFail(accountId, data.Id);
+                            LogBuildplateAddFail(accountId, data.BuildplateId);
                             break;
                         }
 
@@ -239,9 +251,9 @@ internal sealed partial class ShopController : SolaceControllerBase
                 }
 
                 break;
-            case Playfab.Item.InventoryItemData data:
+            case InventoryItemDataEF data:
                 {
-                    using var transaction = await _earthDb.Database.BeginTransactionAsync(cancellationToken);
+                    await using var transaction = await _earthDb.Database.BeginTransactionAsync(cancellationToken);
 
                     try
                     {
@@ -255,8 +267,8 @@ internal sealed partial class ShopController : SolaceControllerBase
                             break;
                         }
 
-                        await InventoryUtils.AddStackableItemsAsync(_earthDb, ResultsEF.Builder.Null, accountId, data.Id, data.Amount, cancellationToken);
-                        await JournalUtils.AddCollectedItemAsync(_earthDb, ResultsEF.Builder.Null, accountId, data.Id, DateTimeOffset.UtcNow, data.Amount, cancellationToken);
+                        await InventoryUtils.AddStackableItemsAsync(_earthDb, ResultsEF.Builder.Null, accountId, data.ItemId, data.Amount, cancellationToken);
+                        await JournalUtils.AddCollectedItemAsync(_earthDb, ResultsEF.Builder.Null, accountId, data.ItemId, DateTimeOffset.UtcNow, data.Amount, cancellationToken);
 
                         // TODO: add to activity log?
 

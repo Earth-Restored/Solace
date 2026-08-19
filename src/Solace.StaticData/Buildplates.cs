@@ -2,7 +2,7 @@
 
 public sealed class Buildplates
 {
-    private const string ShopDirectory = "shop";
+    private const string StoreDirectory = "store";
 
     private readonly string _directory;
 
@@ -10,9 +10,9 @@ public sealed class Buildplates
     {
         _directory = dir;
 
-        Directory.CreateDirectory(Path.Combine(_directory, ShopDirectory));
+        Directory.CreateDirectory(Path.Combine(_directory, StoreDirectory));
     }
 
-    public IEnumerable<StaticBuidplate> ShopBuildplates => Directory.EnumerateFiles(Path.Combine(_directory, ShopDirectory))
+    public IEnumerable<StaticBuidplate> StoreBuildplates => Directory.EnumerateFiles(Path.Combine(_directory, StoreDirectory))
         .Select(path => new StaticBuidplate(path));
 }

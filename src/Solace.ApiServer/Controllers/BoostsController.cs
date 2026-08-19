@@ -1,4 +1,4 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +9,7 @@ using Solace.Db.Earth.Models.Player;
 using Solace.StaticData;
 using Effect = Solace.ApiServer.Types.Common.Effect;
 using Microsoft.EntityFrameworkCore;
+using Solace.Common;
 using Solace.Db.Earth.Models;
 
 namespace Solace.ApiServer.Controllers;
@@ -56,18 +57,47 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         var results = new ResultsEF.Builder();
 
-        if (PruneBoostsAndUpdateProfile(boosts, profile, requestStartedOn, _catalog.ItemsCatalog))
+        if (PruneBoostsAndUpdateProfile(boosts, profile, requestStartedOn, _catalog))
         {
             await _earthDb.SaveChangesAsync(cancellationToken);
             results.Profile();
         }
 
-        Types.Boost.Boosts.Potion?[] potions = [.. boosts.ActiveBoosts.Select(activeBoost =>
+        var potions = new Types.Boost.Boosts.Potion?[5];
+        var miniFigs = new Types.Boost.Boosts.MiniFig?[5];
+
+        for (var index = 0; index < boosts.ActiveBoosts.Length && index < 5; index++)
         {
-            return activeBoost is null
-                ? null
-                : new Types.Boost.Boosts.Potion(true, activeBoost.ItemId, activeBoost.InstanceId, TimeFormatter.FormatTime(activeBoost.StartTime + activeBoost.Duration));
-        })];
+            var activeBoost = boosts.ActiveBoosts[index];
+            if (activeBoost is null)
+            {
+                continue;
+            }
+
+            var item = _catalog.ItemsCatalog.GetItem(activeBoost.ItemId);
+            if (item is not null && item.BoostInfo is not null)
+            {
+                potions[index] = new Types.Boost.Boosts.Potion(
+                    true,
+                    activeBoost.ItemId,
+                    activeBoost.InstanceId,
+                    TimeFormatter.FormatTime(activeBoost.StartTime + activeBoost.Duration)
+                );
+            }
+            else
+            {
+                var nfcBoost = _catalog.NfcBoostsCatalog.MiniFigs.Values.FirstOrDefault(m => IdTranslator.ToGuid(m.Id) == activeBoost.ItemId);
+                if (nfcBoost is not null)
+                {
+                    miniFigs[index] = new Types.Boost.Boosts.MiniFig(
+                        true,
+                        nfcBoost.Id,
+                        activeBoost.InstanceId,
+                        TimeFormatter.FormatTime(activeBoost.StartTime + activeBoost.Duration)
+                    );
+                }
+            }
+        }
 
         Dictionary<string, ActiveBoostInfo> activeBoostsWithInfo = [];
         foreach (var activeBoost in boosts.ActiveBoosts)
@@ -133,11 +163,11 @@ internal sealed partial class BoostsController : SolaceControllerBase
             scenarioBoosts["death"] = [.. triggeredOnDeathBoosts];
         }
 
-        var statModiferValues = Common.Utils.BoostUtils.GetActiveStatModifiers(boosts, requestStartedOn, _catalog.ItemsCatalog);
+        var statModiferValues = Common.Utils.BoostUtils.GetActiveStatModifiers(boosts, requestStartedOn, _catalog);
 
         var boostsResponse = new Types.Boost.Boosts(
             potions,
-            new Types.Boost.Boosts.MiniFig[5],
+            miniFigs,
             [.. activeEffects],
             scenarioBoosts,
             new Types.Boost.Boosts.StatusEffectsR(
@@ -186,7 +216,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         var profileChanged = false;
 
-        if (PruneBoostsAndUpdateProfile(boosts, profile, requestStartedOn, _catalog.ItemsCatalog))
+        if (PruneBoostsAndUpdateProfile(boosts, profile, requestStartedOn, _catalog))
         {
             profileChanged = true;
         }
@@ -207,6 +237,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             if (boost is not null && boost.ItemId == itemId)
             {
                 newIndex = index;
+                extendExisting = true;
                 break;
             }
         }
@@ -257,6 +288,117 @@ internal sealed partial class BoostsController : SolaceControllerBase
         return EarthJson(null, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
+    [HttpPost("boosts/minifigs/{productId}/{id}/activate")]
+    public async Task<Results<ContentHttpResult, BadRequest>> ActivateMiniFig(string productId, string id, CancellationToken cancellationToken)
+    {
+        if (!TryGetAccountId(out var accountId))
+        {
+            return TypedResults.BadRequest();
+        }
+
+        if (string.IsNullOrWhiteSpace(productId) || string.IsNullOrWhiteSpace(id))
+        {
+            return TypedResults.BadRequest();
+        }
+
+        if (!_catalog.NfcBoostsCatalog.MiniFigs.TryGetValue(productId, out var miniFig) || miniFig is null || miniFig.BoostMetadata is null || miniFig.Deprecated)
+        {
+            return TypedResults.BadRequest();
+        }
+
+        var requestStartedOn = HttpContext.GetTimestamp();
+
+        TimeSpan duration = TimeSpan.Zero;
+        if (!string.IsNullOrEmpty(miniFig.BoostMetadata.ActiveDuration) && TimeSpan.TryParse(miniFig.BoostMetadata.ActiveDuration, out var parsedActiveDuration))
+        {
+            duration = parsedActiveDuration;
+        }
+        else if (miniFig.BoostMetadata.Effects.FirstOrDefault(e => !string.IsNullOrEmpty(e.Duration)) is { } effectWithDuration && TimeSpan.TryParse(effectWithDuration.Duration, out var parsedEffectDuration))
+        {
+            duration = parsedEffectDuration;
+        }
+
+        if (duration <= TimeSpan.Zero)
+        {
+            return TypedResults.BadRequest();
+        }
+
+        var itemId = IdTranslator.ToGuid(productId);
+
+        var boosts = await _earthDb.Boosts
+            .AsTracking()
+            .FirstAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
+
+        var profile = await _earthDb.Profiles
+            .AsTracking()
+            .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
+
+        var profileChanged = false;
+
+        if (PruneBoostsAndUpdateProfile(boosts, profile, requestStartedOn, _catalog))
+        {
+            profileChanged = true;
+        }
+
+        var newIndex = -1;
+        var extendExisting = false;
+        for (var index = 0; index < boosts.ActiveBoosts.Length; index++)
+        {
+            var boost = boosts.ActiveBoosts[index];
+
+            if (boost is not null && boost.ItemId == itemId)
+            {
+                newIndex = index;
+                extendExisting = true;
+                break;
+            }
+        }
+
+        if (!extendExisting)
+        {
+            for (var index = 0; index < boosts.ActiveBoosts.Length; index++)
+            {
+                if (boosts.ActiveBoosts[index] is null)
+                {
+                    newIndex = index;
+                    break;
+                }
+            }
+        }
+
+        if (newIndex == -1)
+        {
+            return EarthJson(null, null);
+        }
+
+        if (extendExisting)
+        {
+            var existingBoost = boosts.ActiveBoosts[newIndex];
+            Debug.Assert(existingBoost is not null);
+
+            boosts.ActiveBoosts[newIndex] = new BoostsEF.ActiveBoost(existingBoost.InstanceId, existingBoost.ItemId, existingBoost.StartTime, existingBoost.Duration + duration);
+        }
+        else
+        {
+            boosts.ActiveBoosts[newIndex] = new BoostsEF.ActiveBoost(Guid.NewGuid(), itemId, requestStartedOn, duration);
+            if (miniFig.BoostMetadata.Effects.Any(effect => string.Equals(effect.Type, "Health", StringComparison.OrdinalIgnoreCase)))
+            {
+                profileChanged = true;
+            }
+        }
+
+        var results = new ResultsEF.Builder();
+
+        await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new BoostActivatedEntryEF(accountId, requestStartedOn, itemId), cancellationToken);
+
+        await _earthDb.SaveChangesAsync(cancellationToken);
+
+        results.Boosts();
+        results.Profile(profileChanged);
+
+        return EarthJson(null, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
+    }
+
     [HttpDelete("boosts/{instanceId}")]
     public async Task<Results<ContentHttpResult, BadRequest>> DeactivateBoost(Guid instanceId, CancellationToken cancellationToken)
     {
@@ -277,7 +419,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         var profileChanged = false;
 
-        if (PruneBoostsAndUpdateProfile(boosts, profile, requestStartedOn, _catalog.ItemsCatalog))
+        if (PruneBoostsAndUpdateProfile(boosts, profile, requestStartedOn, _catalog))
         {
             profileChanged = true;
         }
@@ -307,7 +449,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
         if (item.BoostInfo.Effects.Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostEffectType.HEALTH))
         {
             profileChanged = true;
-            var maxPlayerHealth = Common.Utils.BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _catalog.ItemsCatalog);
+            var maxPlayerHealth = Common.Utils.BoostUtils.GetMaxPlayerHealth(boosts, requestStartedOn, _catalog);
             if (profile.Health > maxPlayerHealth)
             {
                 profile.Health = maxPlayerHealth;
@@ -323,16 +465,31 @@ internal sealed partial class BoostsController : SolaceControllerBase
         return EarthJson(null, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
     }
 
-    private static bool PruneBoostsAndUpdateProfile(BoostsEF boosts, ProfileEF profile, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
+    private static bool PruneBoostsAndUpdateProfile(BoostsEF boosts, ProfileEF profile, DateTimeOffset currentTime, Catalog catalog)
     {
         var profileChanged = false;
         var prunedBoosts = boosts.Prune(currentTime);
-        if (prunedBoosts.SelectMany(activeBoost => itemsCatalog.GetItem(activeBoost.ItemId)!.BoostInfo!.Effects).Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostEffectType.HEALTH))
+        if (prunedBoosts.Any(activeBoost =>
+        {
+            var item = catalog.ItemsCatalog.GetItem(activeBoost.ItemId);
+            if (item?.BoostInfo?.Effects.Any(effect => effect.Type is Catalog.ItemsCatalogR.Item.BoostEffectType.HEALTH) == true)
+            {
+                return true;
+            }
+
+            var nfcBoost = catalog.NfcBoostsCatalog.MiniFigs.Values.FirstOrDefault(m => IdTranslator.ToGuid(m.Id) == activeBoost.ItemId);
+            if (nfcBoost?.BoostMetadata?.Effects.Any(effect => string.Equals(effect.Type, "Health", StringComparison.OrdinalIgnoreCase)) == true)
+            {
+                return true;
+            }
+
+            return false;
+        }))
         {
             profileChanged = true;
         }
 
-        var maxPlayerHealth = Common.Utils.BoostUtils.GetMaxPlayerHealth(boosts, currentTime, itemsCatalog);
+        var maxPlayerHealth = Common.Utils.BoostUtils.GetMaxPlayerHealth(boosts, currentTime, catalog);
         if (profile.Health > maxPlayerHealth)
         {
             profile.Health = maxPlayerHealth;

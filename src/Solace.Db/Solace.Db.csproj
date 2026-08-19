@@ -8,4 +8,8 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../Solace.Common/Solace.Common.csproj" />
+  </ItemGroup>
+
 </Project>

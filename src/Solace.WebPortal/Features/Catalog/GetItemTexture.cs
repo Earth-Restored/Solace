@@ -28,7 +28,7 @@ public static partial class GetItemTexture
             return TypedResults.Unauthorized();
         }
 
-        if (!httpUser.HasPermission(Permissions.CreateProfile) && !httpUser.HasPermission(Permissions.ViewPlayers))
+        if (!httpUser.HasPermission(Permissions.CreateProfile) && !httpUser.HasPermission(Permissions.ViewPlayers) && !httpUser.HasPermission(Permissions.ViewStore))
         {
             return TypedResults.Forbid();
         }

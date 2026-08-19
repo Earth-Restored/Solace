@@ -4,9 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Solace.Common.Utils;
 using Solace.Db.Earth;
-using Solace.StaticData;
 using Solace.WebPortal.Common;
 using Solace.WebPortal.Common.Features.Players;
 

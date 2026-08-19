@@ -6,7 +6,7 @@
     <span class="input-group-text bg-white">
         <i class="@SearchIconClass"></i>
     </span>
-    <input type="text" class="form-control" placeholder="@Placeholder" value="@Value" @onchange="HandleChange" />
+    <input @ref="_inputElement" type="text" class="form-control" placeholder="@Placeholder" value="@Value" @onchange="HandleChange" />
 
     @if (!string.IsNullOrEmpty(Value))
     {
@@ -17,7 +17,10 @@
 </div>
 
 @code {
+    private ElementReference _inputElement;
+
     [Parameter] public string? QueryStringKey { get; set; }
+    [Parameter] public bool AutoFocus { get; set; } = false;
 
     [Parameter] public string Value { get; set; } = string.Empty;
     [Parameter] public EventCallback<string> ValueChanged { get; set; }
@@ -37,7 +40,7 @@
             var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
             var query = HttpUtility.ParseQueryString(uri.Query);
             var urlValue = query.Get(QueryStringKey);
-            
+
             if (urlValue != null)
             {
                 Value = urlValue;
@@ -46,6 +49,17 @@
             NavigationManager.LocationChanged += OnLocationChanged;
         }
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && AutoFocus)
+        {
+            await FocusAsync();
+        }
+    }
+
+    public ValueTask FocusAsync()
+        => _inputElement.FocusAsync();
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
@@ -59,8 +73,7 @@
             {
                 Value = urlValue;
                 StateHasChanged();
-                
-                // Notify parent components so they stay synced if wired up manually
+
                 InvokeAsync(() => ValueChanged.InvokeAsync(Value));
                 InvokeAsync(() => OnSearch.InvokeAsync(Value));
             }
@@ -78,7 +91,6 @@
 
         if (!string.IsNullOrEmpty(QueryStringKey))
         {
-            // Passing 'null' removes the parameter from the URL entirely
             var uri = NavigationManager.GetUriWithQueryParameter(QueryStringKey, string.IsNullOrEmpty(Value) ? null : Value);
             if (NavigationManager.Uri != uri)
             {

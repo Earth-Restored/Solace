@@ -33,7 +33,7 @@ public sealed class Subscriber : IAsyncDisposable
         _cts = new CancellationTokenSource();
         _semaphore = new SemaphoreSlim(MaxDegreeOfParallelism);
 
-        var streamCall = _client.Subscribe(new SubscribeRequest { QueueName = _queueName }, cancellationToken: _cts.Token);
+        var streamCall = _client.Subscribe(new SubscribeRequest { QueueName = _queueName, }, cancellationToken: _cts.Token);
 
         _loopTask = Task.Run(async () =>
         {
@@ -84,7 +84,8 @@ public sealed class Subscriber : IAsyncDisposable
                         var subscriberEvent = new SubscriberEvent(
                             msg.Timestamp.ToDateTimeOffset(),
                             msg.Type,
-                            new MessagePayload(new ChannelStream(channel.Reader)));
+                            new MessagePayload(new ChannelStream(channel.Reader))
+                        );
 
                         _ = Task.Run(async () =>
                         {
@@ -92,9 +93,9 @@ public sealed class Subscriber : IAsyncDisposable
                             {
                                 await _onEvent(subscriberEvent, _cts.Token);
                             }
-                            catch (Exception ex)
+                            catch (Exception exception)
                             {
-                                await _onError(ex);
+                                await _onError(exception);
                             }
                             finally
                             {
@@ -118,9 +119,9 @@ public sealed class Subscriber : IAsyncDisposable
                             {
                                 await _onEvent(subscriberEvent, _cts.Token);
                             }
-                            catch (Exception ex)
+                            catch (Exception exception)
                             {
-                                await _onError(ex);
+                                await _onError(exception);
                             }
                             finally
                             {
@@ -130,7 +131,7 @@ public sealed class Subscriber : IAsyncDisposable
                     }
                 }
             }
-            catch (Exception exception) when (exception is not (OperationCanceledException or RpcException { StatusCode: StatusCode.Cancelled }))
+            catch (Exception exception) when (exception is not (OperationCanceledException or RpcException { StatusCode: StatusCode.Cancelled, }))
             {
                 foreach (var writer in _activeStreams.Values)
                 {

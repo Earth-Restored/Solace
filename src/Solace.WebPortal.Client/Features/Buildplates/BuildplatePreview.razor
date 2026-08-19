@@ -41,12 +41,19 @@
         <div @ref="_threeJsContainer" class="w-100 h-100"></div>
     }
 
-    <span class="position-absolute top-0 start-0 m-2 badge bg-info">
-        @DisplayScale
-    </span>
-    <span class="position-absolute top-0 end-0 m-2 badge @(IsNight ? "bg-secondary" : "bg-info")">
-        @(IsNight ? "Night" : "Day")
-    </span>
+    @if (DisplayScale is not null)
+    {
+        <span class="position-absolute top-0 start-0 m-2 badge bg-info">
+            @DisplayScale
+        </span>
+    }
+
+    @if (IsNight is { } isNight)
+    {
+        <span class="position-absolute top-0 end-0 m-2 badge @(isNight ? "bg-secondary" : "bg-info")">
+            @(isNight ? "Night" : "Day")
+        </span>
+    }
 
     @if (!_isPreviewLoading)
     {
@@ -87,9 +94,8 @@
     [Parameter, EditorRequired] public required Guid BuildplateId { get; set; }
     [Parameter, EditorRequired] public required bool IsTemplate { get; set; }
     [Parameter] public Guid? PlayerId { get; set; }
-    [Parameter] public int Size { get; set; }
-    [Parameter] public int BlocksPerMeter { get; set; }
-    [Parameter] public bool IsNight { get; set; }
+    [Parameter] public int? BlocksPerMeter { get; set; }
+    [Parameter] public bool? IsNight { get; set; }
 
     private ElementReference _previewContainer;
     private ElementReference _threeJsContainer;
@@ -101,19 +107,25 @@
     private bool _isModelImported = false;
     private bool _isCurrentlyLoadingTask = false;
     private bool _isFirstPerson = false;
+    private bool _hasStartedLoading = false;
 
     private IJSObjectReference? _jsModule;
     private DotNetObjectReference<BuildplatePreview>? _dotNetRef;
 
     private double _currentProgress = 0;
-    private string? _progressStatus;
+    private string? _progressStatus = "Queued...";
     private CancellationTokenSource? _progressCts;
 
-    private string DisplayScale
+    private string? DisplayScale
     {
         get
         {
-            float scaleVal = 1f / BlocksPerMeter;
+            if (BlocksPerMeter is null)
+            {
+                return null;
+            }
+
+            float scaleVal = 1f / BlocksPerMeter.Value;
             return scaleVal >= 1 ? $"1:{scaleVal:0.##}" : $"{(1 / scaleVal):0.##}:1";
         }
     }
@@ -129,24 +141,7 @@
         {
             _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Features/Buildplates/BuildplatePreview.razor.js");
 
-            if (_previewDataUri is null && !_isPreviewFailed && _isPreviewLoading && !_isCurrentlyLoadingTask)
-            {
-                ResetProgress();
-                _isCurrentlyLoadingTask = true;
-
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await LoadPreviewAsync();
-                    }
-                    finally
-                    {
-                        _isCurrentlyLoadingTask = false;
-                        await InvokeAsync(StateHasChanged);
-                    }
-                });
-            }
+            await _jsModule.InvokeVoidAsync("setupLazyLoad", _previewContainer, _dotNetRef);
         }
 
         if (_previewDataUri is not null && !_isModelImported && _jsModule is not null)
@@ -164,6 +159,37 @@
                 _isPreviewFailed = true;
                 StateHasChanged();
             }
+        }
+    }
+
+    [JSInvokable]
+    public async Task StartLoadingAsync()
+    {
+        if (_hasStartedLoading)
+        {
+            return;
+        }
+
+        _hasStartedLoading = true;
+
+        if (_previewDataUri is null && !_isPreviewFailed && _isPreviewLoading && !_isCurrentlyLoadingTask)
+        {
+            ResetProgress();
+            _isCurrentlyLoadingTask = true;
+            StateHasChanged();
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await LoadPreviewAsync();
+                }
+                finally
+                {
+                    _isCurrentlyLoadingTask = false;
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
         }
     }
 
@@ -323,6 +349,7 @@
 
             if (_jsModule is not null)
             {
+                await _jsModule.InvokeVoidAsync("cleanupLazyLoad", _previewContainer);
                 await _jsModule.InvokeVoidAsync("dispose", _threeJsContainer);
                 await _jsModule.DisposeAsync();
             }

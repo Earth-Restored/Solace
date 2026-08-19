@@ -55,7 +55,7 @@ public sealed record CatalogItem(
 
     [ForcePascalCase]
     public sealed record Image(
-        string Id,
+        Guid Id,
         string Tag,
         string Type,
         string Url
@@ -89,10 +89,10 @@ public sealed record CatalogItem(
 
     [ForcePascalCase]
     public sealed record QueryManifestContent(
-        string Id,
+        Guid Id,
         string Url,
-        string MaxClientVersion,
-        string MinClientVersion,
+        Version MaxClientVersion,
+        Version MinClientVersion,
         IEnumerable<string> Tags,
         string Type
     );
@@ -101,15 +101,15 @@ public sealed record CatalogItem(
     public sealed record PackIdentity(
         string Type,
         Guid Uuid,
-        string Version
+        Version Version
     );
 
     [JsonNamingPolicy(JsonKnownNamingPolicy.CamelCase)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public sealed record DisplayPropertiesR(
         // query manifest
-        string? MinClientVersion = null,
-        string? MaxClientVersion = null,
+        Version? MinClientVersion = null,
+        Version? MaxClientVersion = null,
         IEnumerable<DisplayPropertiesR.Tab>? Tabs = null,
         IEnumerable<string>? GlobalNotSearchQueryTags = null,
 
@@ -131,18 +131,12 @@ public sealed record CatalogItem(
         Guid? ItemId = null,
         int? Amount = null,
 
-        // ruby
-        int? BonusCoinCount = null,
-        int? CoinCount = null,
-        string? OriginalCreatorId = null,
-        string? Sku = null,
-
         // persona
         Guid? OfferId = null,
         string? PieceType = null
     )
     {
-        public static DisplayPropertiesR CreateQueryManifest(string minClientVersion, string maxClientVersion, IEnumerable<Tab> tabs, IEnumerable<string> globalNotSearchQueryTags)
+        public static DisplayPropertiesR CreateQueryManifest(Version minClientVersion, Version maxClientVersion, IEnumerable<Tab> tabs, IEnumerable<string> globalNotSearchQueryTags)
             => new(MinClientVersion: minClientVersion, MaxClientVersion: maxClientVersion, Tabs: tabs, GlobalNotSearchQueryTags: globalNotSearchQueryTags);
 
         public static DisplayPropertiesR CreateBuildplate(string creatorName, int price, bool purchasable, string rarity, IEnumerable<PackIdentity> packIdentity, Guid buildPlateId, string buildPlateSize, int buildPlateUnlockLevel)
@@ -150,9 +144,6 @@ public sealed record CatalogItem(
 
         public static DisplayPropertiesR CreateInventoryItem(int price, string rarity, IEnumerable<PackIdentity> packIdentity, Guid itemId, int amount)
             => new(Price: price, Rarity: rarity, PackIdentity: packIdentity, ItemId: itemId, Amount: amount);
-
-        public static DisplayPropertiesR CreateRuby(int? bonusCoinCount, int coinCount, string originalCreatorId, string sku)
-            => new(BonusCoinCount: bonusCoinCount, CoinCount: coinCount, OriginalCreatorId: originalCreatorId, Sku: sku);
 
         public static DisplayPropertiesR CreatePersona(string creatorName, int price, bool purchasable, string rarity, IEnumerable<PackIdentity> packIdentity, Guid offerId, string pieceType)
             => new(CreatorName: creatorName, Price: price, Purchasable: purchasable, Rarity: rarity, PackIdentity: packIdentity, OfferId: offerId, PieceType: pieceType);
@@ -177,7 +168,7 @@ public sealed record CatalogItem(
             {
                 [JsonNamingPolicy(JsonKnownNamingPolicy.CamelCase)]
                 public sealed record Query(
-                    [property: JsonPropertyName("productIds")] IEnumerable<string> ProductIds,
+                    [property: JsonPropertyName("productIds")] IEnumerable<Guid> ProductIds,
                     IEnumerable<string> QueryContentTypes,
                     int TopCount
                 );

@@ -52,6 +52,10 @@
                                     <span>WebPortalDb</span>
                                     <span>@FormatBytes(_webPortalDbB)</span>
                                 </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center border-0 py-1 text-muted small">
+                                    <span>PlayfabDb</span>
+                                    <span>@FormatBytes(_playfabDbB)</span>
+                                </li>
                             </ul>
                         </li>
 
@@ -186,10 +190,11 @@
     // Sizes
     private long _earthDbB = -1;
     private long _webPortalDbB = -1;
+    private long _playfabDbB = -1;
     private long _objectStoreB = -1;
 
-    private long _totalDbB => (_earthDbB >= 0 && _webPortalDbB >= 0)
-        ? (_earthDbB + _webPortalDbB)
+    private long _totalDbB => (_earthDbB >= 0 && _webPortalDbB >= 0 && _playfabDbB >= 0)
+        ? (_earthDbB + _webPortalDbB + _playfabDbB)
         : -1;
 
     private long _totalSpaceB => (_totalDbB >= 0 && _objectStoreB >= 0)
@@ -230,6 +235,7 @@
                 {
                     _earthDbB = result.EarthDb;
                     _webPortalDbB = result.WebPortalDb;
+                    _playfabDbB = result.PlayfabDb;
                     _objectStoreB = result.ObjectStore;
                     return;
                 }

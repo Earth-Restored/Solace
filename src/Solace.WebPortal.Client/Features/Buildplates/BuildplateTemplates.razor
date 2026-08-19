@@ -13,7 +13,7 @@
 @inject IConfiguration Configuration
 @inject ILogger<BuildplateTemplates> Logger
 
-<PageTitle>Buildplate templates - Solace</PageTitle>
+<PageTitle>Buildplate Templates - Solace</PageTitle>
 
 <div class="container-fluid mt-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
@@ -40,7 +40,7 @@
             {
                 <div class="col-12 col-md-6 col-lg-4 col-xl-3" @key="buildplate.Id">
                     <div class="card h-100 shadow-sm @(buildplate.IsBusy ? "opacity-50" : "")">
-                        <BuildplatePreview BuildplateId="@buildplate.Id" IsTemplate=true Size="@buildplate.Size" BlocksPerMeter="@buildplate.BlocksPerMeter" IsNight="@buildplate.IsNight" />
+                        <BuildplatePreview BuildplateId="@buildplate.Id" IsTemplate=true BlocksPerMeter="@buildplate.BlocksPerMeter" IsNight="@buildplate.IsNight" />
 
                         <div class="card-body">
                             @if (!string.IsNullOrEmpty(buildplate.ErrorMessage))

@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using Solace.ApiServer.Types.Buildplates;
 
-namespace Solace.ApiServer.Types.Shop;
+namespace Solace.ApiServer.Types.Store;
 
 internal sealed record StoreItemInfo(
     Guid Id,

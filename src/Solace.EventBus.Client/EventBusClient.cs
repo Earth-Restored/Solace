@@ -8,6 +8,10 @@ public sealed partial class EventBusClient : IAsyncDisposable
     private readonly GrpcChannel _channel;
     private readonly EventBusService.EventBusServiceClient _client;
 
+    private RequestSender RequestSender => field ??= new RequestSender(_client);
+
+    private Publisher Publisher => field ??= new Publisher(_client);
+
     public EventBusClient(GrpcChannel channel, EventBusService.EventBusServiceClient client)
     {
         _channel = channel;
@@ -31,7 +35,7 @@ public sealed partial class EventBusClient : IAsyncDisposable
     }
 
     public async Task<Publisher> AddPublisherAsync()
-        => new(_client); // todo: single instance, Lazy<>?, handle dispose somehow
+        => Publisher;
 
     public async Task<Subscriber> AddSubscriberAsync(string queueName, Func<SubscriberEvent, CancellationToken, Task> onEvent, Func<Exception?, Task> onError)
     {
@@ -41,7 +45,7 @@ public sealed partial class EventBusClient : IAsyncDisposable
     }
 
     public async Task<RequestSender> AddRequestSenderAsync()
-        => new(_client); // todo: single instance, Lazy<>?, handle dispose somehow
+        => RequestSender;
 
     public async Task<RequestHandler> AddRequestHandlerAsync(string queueName, Func<RequestHandlerRequest, CancellationToken, Task<MessagePayload?>> onRequest, Func<Exception?, Task> onError)
     {
@@ -49,4 +53,22 @@ public sealed partial class EventBusClient : IAsyncDisposable
         await handler.StartAsync();
         return handler;
     }
+
+    public Task<bool> PublishAsync(string queueName, string type, string data, CancellationToken cancellationToken = default)
+        => Publisher.PublishAsync(queueName, type, data, cancellationToken);
+
+    public Task<bool> PublishAsync(string queueName, string type, byte[] data, CancellationToken cancellationToken = default)
+        => Publisher.PublishAsync(queueName, type, data, cancellationToken);
+
+    public Task<bool> PublishAsync(string queueName, string type, Stream stream, CancellationToken cancellationToken = default)
+        => Publisher.PublishAsync(queueName, type, stream, cancellationToken);
+
+    public Task<MessagePayload?> RequestAsync(string queueName, string type, string data, CancellationToken cancellationToken = default)
+        => RequestSender.RequestAsync(queueName, type, data, cancellationToken);
+
+    public Task<MessagePayload?> RequestAsync(string queueName, string type, byte[] data, CancellationToken cancellationToken = default)
+        => RequestSender.RequestAsync(queueName, type, data, cancellationToken);
+
+    public Task<MessagePayload?> RequestAsync(string queueName, string type, Stream stream, CancellationToken cancellationToken = default)
+        => RequestSender.RequestAsync(queueName, type, stream, cancellationToken);
 }

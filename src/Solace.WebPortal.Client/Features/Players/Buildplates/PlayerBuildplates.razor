@@ -64,7 +64,7 @@ else
 
                     <div class="col-12 col-md-6 col-lg-4 col-xl-3" @key="@bp.Id">
                         <div class="card h-100 shadow-sm @(bp.IsBusy ? "opacity-50" : "")">
-                            <Solace.WebPortal.Client.Features.Buildplates.BuildplatePreview BuildplateId="@bp.Id" IsTemplate=false PlayerId="@AccountId" Size="@bp.Size" BlocksPerMeter="@bp.BlocksPerMeter" IsNight="@bp.IsNight" />
+                            <Solace.WebPortal.Client.Features.Buildplates.BuildplatePreview BuildplateId="@bp.Id" IsTemplate=false PlayerId="@AccountId" BlocksPerMeter="@bp.BlocksPerMeter" IsNight="@bp.IsNight" />
 
                             <div class="card-body">
                                 @if (!string.IsNullOrEmpty(bp.ErrorMessage))
@@ -178,7 +178,7 @@ else
                                 {
                                     <div class="col-12 col-md-6 col-lg-4" @key="template.Id">
                                         <div class="card h-100 shadow-sm @(template.IsAdding ? "opacity-75" : "")">
-                                            <Solace.WebPortal.Client.Features.Buildplates.BuildplatePreview BuildplateId="@template.Id" IsTemplate=true Size="@template.Size" BlocksPerMeter="@template.BlocksPerMeter" IsNight="@template.IsNight" />
+                                            <Solace.WebPortal.Client.Features.Buildplates.BuildplatePreview BuildplateId="@template.Id" IsTemplate=true BlocksPerMeter="@template.BlocksPerMeter" IsNight="@template.IsNight" />
 
                                             <div class="card-body p-3 d-flex flex-column">
                                                 <h6 class="mb-1 fw-bold text-truncate" title="@template.Name">@template.Name</h6>
@@ -768,18 +768,5 @@ else
             _originalName = Name;
             _originalBlocksPerMeter = BlocksPerMeter;
         }
-    }
-
-    public sealed class TemplateViewModel
-    {
-        public required Guid Id { get; set; }
-        public required string Name { get; set; }
-        public int Size { get; set; }
-        public int BlocksPerMeter { get; set; }
-        public bool IsNight { get; set; }
-
-        public bool IsAdding { get; set; }
-        public string? ErrorMessage { get; set; }
-        public string? SuccessMessage { get; set; }
     }
 }

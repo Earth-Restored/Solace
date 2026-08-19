@@ -699,7 +699,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                 .AsNoTracking()
                 .FirstAsync(boosts => boosts.Id == accountId, cancellationToken: cancellationToken);
 
-            var maxHealth = (float)Common.Utils.BoostUtils.GetMaxPlayerHealth(boosts, currentTime, _catalog.ItemsCatalog);
+            var maxHealth = (float)Common.Utils.BoostUtils.GetMaxPlayerHealth(boosts, currentTime, _catalog);
 
             return new InitialPlayerStateResponse(
                 useHealth ? float.Min(profile.Health, maxHealth) : maxHealth,

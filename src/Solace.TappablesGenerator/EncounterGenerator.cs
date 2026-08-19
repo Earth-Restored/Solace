@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Solace.Common.Utils;
-using Solace.StaticData;
 
 namespace Solace.TappablesGenerator;
 
