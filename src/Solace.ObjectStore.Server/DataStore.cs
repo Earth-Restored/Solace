@@ -18,6 +18,11 @@ internal sealed class DataStore
 
     public long GetTotalSize(CancellationToken cancellationToken = default)
     {
+        if (!_rootDirectory.Exists)
+        {
+            return 0;
+        }
+
         long result = 0;
 
         foreach (var subDir in _rootDirectory.EnumerateDirectories())

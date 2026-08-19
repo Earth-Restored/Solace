@@ -25,7 +25,12 @@ internal static partial class TileUtils
 
         if (objectStoreId is not null)
         {
-            return await TryWriteTileFromObject(objectStoreId.Value, dest, objectStore, cancellationToken);
+            if (await TryWriteTileFromObject(objectStoreId.Value, dest, objectStore, cancellationToken))
+            {
+                return true;
+            }
+
+            // object does not exist
         }
 
         LogRenderingTile(logger);
@@ -50,13 +55,25 @@ internal static partial class TileUtils
 
         await using (var earthDb = await earthDbFactory.CreateDbContextAsync(cancellationToken))
         {
-            var newTile = new Db.Earth.Models.Global.Tile()
-            {
-                Id = dbPos,
-                ObjectStoreId = tileObjectId.Value,
-            };
+            var existingTile = await earthDb.Tiles
+                .AsTracking()
+                .FirstOrDefaultAsync(tile => tile.Id == dbPos, cancellationToken);
 
-            earthDb.Tiles.Add(newTile);
+            if (existingTile is not null)
+            {
+                existingTile.ObjectStoreId = tileObjectId.Value;
+            }
+            else
+            {
+                var newTile = new Db.Earth.Models.Global.Tile()
+                {
+                    Id = dbPos,
+                    ObjectStoreId = tileObjectId.Value,
+                };
+
+                earthDb.Tiles.Add(newTile);
+            }
+
             await earthDb.SaveChangesAsync(cancellationToken);
         }
 
