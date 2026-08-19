@@ -15,7 +15,7 @@ public sealed class NbtMapBuilder : IDictionary<string, object>, IReadOnlyDictio
         return builder;
     }
 
-    private readonly Dictionary<string, object> _map = [];
+    private readonly Dictionary<string, object> _map = [with(StringComparer.Ordinal)];
 
     public object this[string key] { get => _map[key]; set => _map[key] = value; }
 

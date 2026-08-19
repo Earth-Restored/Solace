@@ -10,11 +10,11 @@ public sealed class ItemViewModel
 
     [Required] public string Title { get; set; } = string.Empty;
 
-    public Dictionary<string, string> TitleTranslations = [];
+    public Dictionary<string, string> TitleTranslations = [with(StringComparer.Ordinal)];
 
     [Required] public string Description { get; set; } = string.Empty;
 
-    public Dictionary<string, string> DescriptionTranslations = [];
+    public Dictionary<string, string> DescriptionTranslations = [with(StringComparer.Ordinal)];
 
     public bool Purchasable { get; set; } = true;
 
@@ -62,7 +62,7 @@ public sealed class ItemViewModel
                 viewModel.Buildplate.Cost = buildplateData.Cost;
                 viewModel.Buildplate.UnlockLevel = buildplateData.UnlockLevel;
                 viewModel.Buildplate.Is1Player = buildplateData.Is1Player;
-                viewModel.Buildplate.Tags = [.. buildplateData.Tags];
+                viewModel.Buildplate.Tags = [with(StringComparer.Ordinal), .. buildplateData.Tags];
                 viewModel.Buildplate.Rarity = MapRarity(buildplateData.Rarity);
                 viewModel.Buildplate.Version = buildplateData.Version.ToString();
                 break;

@@ -8,6 +8,7 @@
 @using System.Diagnostics
 @using System.Security.Claims
 @attribute [Authorize(Policy = Permissions.ViewStore)]
+@implements IDisposable
 @rendermode InteractiveWebAssembly
 @inject HttpClient Http
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -320,8 +321,25 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await UpdateAuthenticationStateAsync(AuthenticationStateProvider.GetAuthenticationStateAsync());
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        await UpdateAuthenticationStateAsync(task);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UpdateAuthenticationStateAsync(Task<AuthenticationState> task)
+    {
+        var authState = await task;
         _user = authState.User;
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

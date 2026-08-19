@@ -83,7 +83,7 @@ public sealed class CraftingSlotEF : ICloneable<CraftingSlotEF>
         public override int GetHashCode()
         {
             var hash = new HashCode();
-            hash.Add(SessionId);
+            hash.Add(SessionId, StringComparer.Ordinal);
             hash.Add(RecipeId);
             hash.Add(StartTime);
             foreach (var item in Input)

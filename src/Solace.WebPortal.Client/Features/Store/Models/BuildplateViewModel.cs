@@ -15,7 +15,7 @@ public class BuildplateViewModel
 
     public bool Is1Player { get; set; } = true;
 
-    public HashSet<string> Tags = [];
+    public HashSet<string> Tags = [with(StringComparer.Ordinal)];
 
     public Rarity Rarity { get; set; } = Rarity.Common;
 

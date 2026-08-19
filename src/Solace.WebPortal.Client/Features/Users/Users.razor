@@ -6,9 +6,10 @@
 @using Solace.WebPortal.Common.Features.Common
 @using Solace.WebPortal.Common.Features.Users
 @attribute [Authorize(Policy = Permissions.ViewUsers)]
+@implements IDisposable
 @rendermode InteractiveWebAssembly
 @inject HttpClient Http
-@inject AuthenticationStateProvider AuthStateProvider
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 
 <PageTitle>Users - Solace</PageTitle>
@@ -162,7 +163,7 @@
 
 @if (_showDeleteConfirm && _userToDelete is not null)
 {
-    <DeleteConfirmModal Visible="true"  Message="Are you sure you want to delete user" ItemName="@_userToDelete.UserName" HelpText="This action cannot be undone and will remove all associated data." OnCancel="CloseDeleteConfirm" OnConfirm="DeleteConfirmed" />
+    <DeleteConfirmModal Visible="true" Message="Are you sure you want to delete user" ItemName="@_userToDelete.UserName" HelpText="This action cannot be undone and will remove all associated data." OnCancel="CloseDeleteConfirm" OnConfirm="DeleteConfirmed" />
 }
 
 @code {
@@ -191,18 +192,30 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadPermissions();
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await UpdateAuthenticationStateAsync(AuthenticationStateProvider.GetAuthenticationStateAsync());
     }
 
-    private async Task LoadPermissions()
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        await UpdateAuthenticationStateAsync(task);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UpdateAuthenticationStateAsync(Task<AuthenticationState> task)
+    {
+        var authState = await task;
         var user = authState.User;
 
         _currentUserId = user.GetIdLong();
         _canAssignRoles = user.HasPermission(Permissions.AssignRoles);
         _canDeleteUsers = user.HasPermission(Permissions.DeleteUsers);
         _canEditAccountInfo = user.HasPermission(Permissions.EditAcountInfo);
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 
     private async Task<PagedResult<GetUsersResponse>?> FetchDataAsync(PagedSearchQuery query)

@@ -8,6 +8,7 @@ namespace Solace.ApiServer.Controllers;
 //Wheres the resource pack?
 [ApiVersion("1.1")]
 [Route("api/v{version:apiVersion}/resourcepacks/2020.1217.02/default")]
+[ApiController]
 internal sealed class ResourcePackController : ControllerBase
 {
     internal sealed record ResourcePackResponse(int Order, int[] ParsedResourcePackVersion, string RelativePath, string ResourcePackVersion, string ResourcePackId);

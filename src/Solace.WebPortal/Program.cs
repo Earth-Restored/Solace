@@ -127,7 +127,6 @@ internal sealed partial class Program2
         });
 
         builder.Services.AddSolaceWebPortalHandlers();
-        builder.Services.AddSolaceWebPortalBehaviors();
 
         builder.Services.Configure<PublicEndpointInfo>(builder.Configuration.GetSection("PublicEndpoints"));
 
@@ -262,7 +261,6 @@ internal sealed partial class Program2
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
-            app.UseWebAssemblyDebugging();
             app.UseMigrationsEndPoint();
         }
         else

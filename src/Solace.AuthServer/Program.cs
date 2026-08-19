@@ -92,7 +92,6 @@ internal sealed partial class Program2
         builder.Services.AddRazorComponents();
 
         builder.Services.AddSolaceAuthServerHandlers();
-        builder.Services.AddSolaceAuthServerBehaviors();
 
         builder.Services.AddSingleton<StartupDependencies>();
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);

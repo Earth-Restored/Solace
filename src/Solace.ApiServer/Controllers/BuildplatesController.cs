@@ -579,7 +579,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
                 SurfaceOrientation.HORIZONTAL,
                 null,
                 null, // TODO
-                []
+                [with(StringComparer.Ordinal)]
             ),
             "776932eeeb69",
             //new Coordinate(50.99636722700025f, -0.7234904312500047f)

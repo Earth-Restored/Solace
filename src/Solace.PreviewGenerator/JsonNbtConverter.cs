@@ -8,7 +8,8 @@ internal sealed class JsonNbtConverter
 {
     public static JsonNbtTag Convert(NbtMap tag)
     {
-        Dictionary<string, JsonNbtTag> value = [];
+        Dictionary<string, JsonNbtTag> value = [with(StringComparer.Ordinal)];
+
         foreach (var entry in tag.EntrySet())
         {
             value[entry.Key] = Convert(entry.Value);

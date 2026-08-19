@@ -77,7 +77,7 @@ internal sealed class TokensController : SolaceControllerBase
 
     private static Token TokenToApiResponse(TokenEF token)
     {
-        Dictionary<string, string> properties = [];
+        Dictionary<string, string> properties = [with(StringComparer.Ordinal)];
         switch (token)
         {
             case JournalItemUnlockedTokenEF journalItemUnlocked:

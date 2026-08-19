@@ -99,7 +99,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             }
         }
 
-        Dictionary<string, ActiveBoostInfo> activeBoostsWithInfo = [];
+        Dictionary<string, ActiveBoostInfo> activeBoostsWithInfo = [with(StringComparer.Ordinal)];
         foreach (var activeBoost in boosts.ActiveBoosts)
         {
             if (activeBoost is null)
@@ -157,7 +157,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             }
         }
 
-        Dictionary<string, Types.Boost.Boosts.ScenarioBoost[]> scenarioBoosts = [];
+        Dictionary<string, Types.Boost.Boosts.ScenarioBoost[]> scenarioBoosts = [with(StringComparer.Ordinal)];
         if (triggeredOnDeathBoosts.Count > 0)
         {
             scenarioBoosts["death"] = [.. triggeredOnDeathBoosts];
@@ -182,7 +182,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
                 statModiferValues.SmeltingSpeedMultiplier > 0 ? statModiferValues.SmeltingSpeedMultiplier / 100 + 1 : null,
                 statModiferValues.FoodMultiplier > 0 ? (statModiferValues.FoodMultiplier + 100) / 100f : null
             ),
-            [],
+            [with(StringComparer.Ordinal)],
             activeBoostsWithInfo.Count != 0 ? TimeFormatter.FormatTime(activeBoostsWithInfo.Values.Min(activeBoostInfo => activeBoostInfo.ActiveBoost.StartTime + activeBoostInfo.ActiveBoost.Duration)) : null
         );
 

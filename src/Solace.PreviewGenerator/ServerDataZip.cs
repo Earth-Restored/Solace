@@ -9,7 +9,7 @@ internal sealed class ServerDataZip
     public static ServerDataZip Read(Stream inputStream)
         => new(inputStream);
 
-    private readonly Dictionary<string, byte[]> _files = [];
+    private readonly Dictionary<string, byte[]> _files = [with(StringComparer.Ordinal)];
 
     private ServerDataZip(Stream inputStream)
     {

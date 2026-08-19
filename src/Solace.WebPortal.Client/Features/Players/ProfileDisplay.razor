@@ -8,7 +8,7 @@
 @implements IAsyncDisposable
 @inject HttpClient Http
 @inject IJSRuntime JS
-@inject AuthenticationStateProvider AuthStateProvider
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 
 @if (PlayerAccount is null)
@@ -343,7 +343,19 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await UpdateAuthenticationStateAsync(AuthenticationStateProvider.GetAuthenticationStateAsync());
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        await UpdateAuthenticationStateAsync(task);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UpdateAuthenticationStateAsync(Task<AuthenticationState> task)
+    {
+        var authState = await task;
         _user = authState.User;
         CanEdit = HasPermission(Permissions.ManagePlayers);
     }
@@ -626,6 +638,8 @@ else
 
     public async ValueTask DisposeAsync()
     {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+
         if (skinViewerInstance is not null)
         {
             try

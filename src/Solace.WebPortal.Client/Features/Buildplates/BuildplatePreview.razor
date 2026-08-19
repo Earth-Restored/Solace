@@ -139,9 +139,13 @@
     {
         if (firstRender)
         {
+#pragma warning disable BL0016
             _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Features/Buildplates/BuildplatePreview.razor.js");
+#pragma warning restore BL0016
 
+#pragma warning disable BL0016
             await _jsModule.InvokeVoidAsync("setupLazyLoad", _previewContainer, _dotNetRef);
+#pragma warning restore BL0016
         }
 
         if (_previewDataUri is not null && !_isModelImported && _jsModule is not null)
@@ -198,7 +202,9 @@
         if (_jsModule is not null && _previewDataUri is not null)
         {
             _isFirstPerson = !_isFirstPerson;
+#pragma warning disable BL0016
             await _jsModule.InvokeVoidAsync("setControlMode", _threeJsContainer, _isFirstPerson);
+#pragma warning restore BL0016
         }
     }
 
@@ -212,7 +218,9 @@
 
             if (_jsModule is not null)
             {
+#pragma warning disable BL0016
                 await _jsModule.InvokeVoidAsync("setControlMode", _threeJsContainer, false);
+#pragma warning restore BL0016
             }
         }
     }
@@ -242,8 +250,6 @@
         _isPreviewFailed = false;
         _isModelImported = false;
         _previewDataUri = null;
-
-        StateHasChanged();
 
         _ = Task.Run(async () =>
         {
@@ -335,7 +341,9 @@
     {
         if (_jsModule is not null)
         {
+#pragma warning disable BL0016
             await _jsModule.InvokeVoidAsync("toggleFullscreen", _previewContainer);
+#pragma warning restore BL0016
         }
     }
 

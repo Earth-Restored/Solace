@@ -245,14 +245,12 @@
         }
 
         isImporting = true;
-        StateHasChanged();
 
         int successCount = 0;
 
         foreach (var fileState in filesToImport)
         {
             fileState.IsUploading = true;
-            StateHasChanged();
 
             try
             {
@@ -319,14 +317,11 @@
             {
                 fileState.IsUploading = false;
                 fileState.IsProcessing = false;
-                StateHasChanged();
             }
         }
 
         int totalAttempted = filesToImport.Count;
         isImporting = false;
-
-        StateHasChanged();
 
         if (successCount == totalAttempted)
         {

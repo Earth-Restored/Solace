@@ -7,8 +7,9 @@
 @using Solace.WebPortal.Common.Features.Players.Buildplates
 @using Solace.WebPortal.Client.Features.Common
 @attribute [Authorize]
+@implements IDisposable
 @rendermode InteractiveWebAssembly
-@inject AuthenticationStateProvider AuthStateProvider
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject IConfiguration Configuration
@@ -228,7 +229,7 @@ else
 
     @if (_showDeleteModal)
     {
-        <DeleteConfirmModal Visible="true" IsBusy="_isDeleting" LoadingButtonText="Removing..." Message="Are you sure you want to remove this buildplate from the player?" ItemName="@_nameToDelete"  ErrorMessage="@_deleteErrorMessage" ModalSizeClass="modal-md" OnCancel="CloseDeleteModal" OnConfirm="ConfirmDelete" />
+        <DeleteConfirmModal Visible="true" IsBusy="_isDeleting" LoadingButtonText="Removing..." Message="Are you sure you want to remove this buildplate from the player?" ItemName="@_nameToDelete" ErrorMessage="@_deleteErrorMessage" ModalSizeClass="modal-md" OnCancel="CloseDeleteModal" OnConfirm="ConfirmDelete" />
     }
 
     @if (_showExportModal)
@@ -323,8 +324,25 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await UpdateAuthenticationStateAsync(AuthenticationStateProvider.GetAuthenticationStateAsync());
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        await UpdateAuthenticationStateAsync(task);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UpdateAuthenticationStateAsync(Task<AuthenticationState> task)
+    {
+        var authState = await task;
         _user = authState.User;
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -712,7 +730,6 @@ else
         for (int i = 0; i <= 100; i += 20)
         {
             _exportProgress = i;
-            StateHasChanged();
             await Task.Delay(400);
         }
 

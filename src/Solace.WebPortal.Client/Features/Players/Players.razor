@@ -7,10 +7,11 @@
 @using System.Security.Claims
 @using System.Globalization
 @attribute [Authorize(Policy = Permissions.ViewPlayers)]
+@implements IDisposable
 @rendermode InteractiveWebAssembly
 @inject IJSRuntime JS
 @inject HttpClient Http
-@inject AuthenticationStateProvider AuthStateProvider
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ILogger<Players> Logger
 
 <PageTitle>Players - Solace</PageTitle>
@@ -171,7 +172,7 @@
 
 @if (_showDeleteConfirm && _playerToDeleteId.HasValue)
 {
-    <DeleteConfirmModal Visible="true" IsBusy="_isDeletingPlayer" Message="Are you sure you want to permanently delete player" ItemName="@(string.IsNullOrWhiteSpace(_playerToDeleteUsername) ? $"with id '{_playerToDeleteId}'" : _playerToDeleteUsername)"  LoadingButtonText="Deleting..." ErrorMessage="@_deletePlayerErrorMessage" ModalSizeClass="modal-md" OnCancel="CloseDeletePlayerModal" OnConfirm="ConfirmDeletePlayerAsync" />
+    <DeleteConfirmModal Visible="true" IsBusy="_isDeletingPlayer" Message="Are you sure you want to permanently delete player" ItemName="@(string.IsNullOrWhiteSpace(_playerToDeleteUsername) ? $"with id '{_playerToDeleteId}'" : _playerToDeleteUsername)" LoadingButtonText="Deleting..." ErrorMessage="@_deletePlayerErrorMessage" ModalSizeClass="modal-md" OnCancel="CloseDeletePlayerModal" OnConfirm="ConfirmDeletePlayerAsync" />
 }
 
 @code {
@@ -187,8 +188,25 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await UpdateAuthenticationStateAsync(AuthenticationStateProvider.GetAuthenticationStateAsync());
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        await UpdateAuthenticationStateAsync(task);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UpdateAuthenticationStateAsync(Task<AuthenticationState> task)
+    {
+        var authState = await task;
         _user = authState.User;
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 
     private async Task SearchAsync()
@@ -296,7 +314,9 @@
     }
 
     private async Task CopyIdAsync(Guid id)
+#pragma warning disable BL0016
         => await JS.InvokeVoidAsync("copyTextDirect", id.ToString());
+#pragma warning restore BL0016
 
     private bool HasPermission(string permission)
         => _user?.HasPermission(permission) ?? false;

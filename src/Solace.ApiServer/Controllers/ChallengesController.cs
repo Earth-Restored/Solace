@@ -12,6 +12,7 @@ namespace Solace.ApiServer.Controllers;
 [Authorize]
 [ApiVersion("1.1")]
 [Route("1/api/v{version:apiVersion}/player/challenges")]
+[ApiController]
 internal sealed class ChallengesController : ControllerBase
 {
     private sealed record ChallengeRecord(

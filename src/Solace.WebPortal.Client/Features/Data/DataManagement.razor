@@ -5,6 +5,7 @@
 @using Solace.WebPortal.Common
 @using Solace.WebPortal.Common.Features.Data
 @attribute [Authorize(Policy = Permissions.ViewData)]
+@implements IDisposable
 @rendermode InteractiveWebAssembly
 @inject HttpClient Http
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -203,8 +204,25 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await UpdateAuthenticationStateAsync(AuthenticationStateProvider.GetAuthenticationStateAsync());
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        await UpdateAuthenticationStateAsync(task);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UpdateAuthenticationStateAsync(Task<AuthenticationState> task)
+    {
+        var authState = await task;
         _user = authState.User;
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -266,7 +284,9 @@
         try
         {
             // todo:
+#pragma warning disable BL0016
             await JS.InvokeVoidAsync("alert", "Not implemented.");
+#pragma warning restore BL0016
         }
         finally
         {
@@ -287,7 +307,9 @@
         try
         {
             // todo:
+#pragma warning disable BL0016
             await JS.InvokeVoidAsync("alert", "Not implemented.");
+#pragma warning restore BL0016
 
             _selectedFile = null;
             _inputFileId = Guid.NewGuid();
@@ -310,13 +332,11 @@
         {
             await Task.Delay(1000);
             _countdown--;
-            StateHasChanged();
         }
 
         if (_isConfirmingDelete)
         {
             _canConfirmDelete = true;
-            StateHasChanged();
         }
     }
 
@@ -369,7 +389,6 @@
             _isProcessing = false;
             _isConfirmingDelete = false;
             _canConfirmDelete = false;
-            StateHasChanged();
         }
     }
 

@@ -98,7 +98,7 @@ internal sealed class Component : IAsyncDisposable
 
         private readonly IReadOnlyCollection<string> _arguments;
 
-        private readonly Dictionary<string, string?> _environmentVariables = [];
+        private readonly Dictionary<string, string?> _environmentVariables = [with(StringComparer.Ordinal)];
 
         private Builder(string command, IReadOnlyCollection<string> arguments)
         {

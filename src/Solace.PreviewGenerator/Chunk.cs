@@ -42,7 +42,7 @@ internal sealed partial class Chunk
         Array.Fill(blockEntityMappings, null);
         Array.Fill(extraDatas, null);
 
-        HashSet<string> alreadyNotifiedMissingBlocks = [];
+        HashSet<string> alreadyNotifiedMissingBlocks = [with(StringComparer.Ordinal)];
         for (var subchunkY = 0; subchunkY < 16; subchunkY++)
         {
             var sectionIndex = subchunkY + 4 + 1; // Java world height starts at -64, plus one section for bottommost lighting

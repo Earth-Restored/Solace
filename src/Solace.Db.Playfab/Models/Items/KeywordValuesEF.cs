@@ -20,7 +20,7 @@ public sealed class KeywordValuesEF : IEquatable<KeywordValuesEF>, ICloneable<Ke
         var hash = new HashCode();
         foreach (var item in Values)
         {
-            hash.Add(item);
+            hash.Add(item, StringComparer.Ordinal);
         }
 
         return hash.ToHashCode();

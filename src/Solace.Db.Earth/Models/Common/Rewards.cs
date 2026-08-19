@@ -42,7 +42,7 @@ public sealed record Rewards(
 
         foreach (var item in Challenges)
         {
-            hash.Add(item);
+            hash.Add(item, StringComparer.Ordinal);
         }
 
         return hash.ToHashCode();

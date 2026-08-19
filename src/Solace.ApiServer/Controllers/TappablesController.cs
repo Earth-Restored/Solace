@@ -187,7 +187,7 @@ internal sealed class TappablesController : SolaceControllerBase
         {
             { "token", new Token(
                 Token.Type.TAPPABLE,
-                [],
+                [with(StringComparer.Ordinal)],
                 rewards.ToApiResponse(),
                 Token.LifetimeE.PERSISTENT
             ) },

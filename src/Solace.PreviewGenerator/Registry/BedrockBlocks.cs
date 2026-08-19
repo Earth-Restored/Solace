@@ -59,7 +59,7 @@ public static partial class BedrockBlocks
 
                 var id = element["id"]!.GetValue<int>();
                 var name = element["name"]!.GetValue<string>()!;
-                SortedDictionary<string, object> state = [];
+                SortedDictionary<string, object> state = [with(StringComparer.Ordinal)];
                 var stateObject = (JsonObject)element["state"]!;
                 foreach (var entry in stateObject)
                 {
@@ -90,7 +90,7 @@ public static partial class BedrockBlocks
 
         _isInitialized = true;
 
-        AirId = BedrockBlocks.GetId("minecraft:air", []);
+        AirId = BedrockBlocks.GetId("minecraft:air", [with(StringComparer.Ordinal)]);
         SortedDictionary<string, object> hashMap = new(StringComparer.Ordinal)
         {
             { "liquid_depth", 0 }
@@ -124,7 +124,7 @@ public static partial class BedrockBlocks
             return null;
         }
 
-        Dictionary<string, object> state = [];
+        Dictionary<string, object> state = [with(StringComparer.Ordinal)];
         foreach (var (key, value) in blockNameAndState.State)
         {
             state[key] = value;

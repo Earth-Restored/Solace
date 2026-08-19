@@ -6,7 +6,7 @@ namespace Solace.ApiServer.Utils;
 internal sealed class EarthApiResponse
 {
     public object? Result { get; }
-    public Dictionary<string, int?>? Updates { get; } = [];
+    public Dictionary<string, int?>? Updates { get; } = [with(StringComparer.Ordinal)];
 
     public EarthApiResponse(object results)
     {
@@ -28,7 +28,7 @@ internal sealed class EarthApiResponse
 
     internal sealed class UpdatesResponse
     {
-        public Dictionary<string, int?> Map = [];
+        public Dictionary<string, int?> Map = [with(StringComparer.Ordinal)];
 
         public UpdatesResponse(ResultsEF results)
             : this(results.Profile, results.Inventory, results.Crafting, results.Smelting, results.Boosts, results.Buildplates, results.Journal, results.Challenges, results.Tokens)

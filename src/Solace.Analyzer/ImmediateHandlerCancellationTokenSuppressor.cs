@@ -41,11 +41,6 @@ public sealed class ImmediateHandlerCancellationTokenSuppressor : DiagnosticSupp
                 continue;
             }
 
-            if (parameterNode.Identifier.Text is not "cancellationToken")
-            {
-                continue;
-            }
-
             if (parameterNode.Parent?.Parent is not MethodDeclarationSyntax methodNode)
             {
                 continue;

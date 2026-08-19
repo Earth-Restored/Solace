@@ -22,7 +22,7 @@ public sealed partial record class WorldData(
 
     public static async Task<WorldData?> LoadFromZipAsync(Stream stream, ILogger logger, CancellationToken cancellationToken = default)
     {
-        Dictionary<string, byte[]> worldFileContents = [];
+        Dictionary<string, byte[]> worldFileContents = [with(StringComparer.Ordinal)];
 
         try
         {
@@ -204,10 +204,8 @@ public sealed partial record class WorldData(
     {
         var versionData = new BuildplateMetadataVersion(1);
 
-        var versionNode = JsonSerializer.SerializeToNode(versionData, AppJsonContext.Default.BuildplateMetadataVersion) as JsonObject;
-        var v1Node = JsonSerializer.SerializeToNode(data, AppJsonContext.Default.BuildplateMetadataV1) as JsonObject;
-
-        if (versionNode is null || v1Node is null)
+        if (JsonSerializer.SerializeToNode(versionData, AppJsonContext.Default.BuildplateMetadataVersion) is not JsonObject versionNode ||
+            JsonSerializer.SerializeToNode(data, AppJsonContext.Default.BuildplateMetadataV1) is not JsonObject v1Node)
         {
             throw new InvalidOperationException("Failed to serialize metadata records to JsonNodes.");
         }

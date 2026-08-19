@@ -54,7 +54,7 @@ public sealed class Catalog
             }
 
             HashSet<Guid> ids = [];
-            HashSet<string> names = [];
+            HashSet<string> names = [with(StringComparer.Ordinal)];
             foreach (var item in Items)
             {
                 if (!ids.Add(item.Id))
@@ -321,7 +321,7 @@ public sealed class Catalog
                 EfficiencyCategories = ImmutableCollectionsMarshal.AsImmutableArray(efficiencyCategories);
             }
 
-            HashSet<string> names = [];
+            HashSet<string> names = [with(StringComparer.Ordinal)];
             foreach (var efficiencyCategory in EfficiencyCategories)
             {
                 if (!names.Add(efficiencyCategory.Name))
@@ -363,8 +363,8 @@ public sealed class Catalog
                 Groups = ImmutableCollectionsMarshal.AsImmutableArray(groups);
             }
 
-            HashSet<string> ids = [];
-            HashSet<string> names = [];
+            HashSet<string> ids = [with(StringComparer.Ordinal)];
+            HashSet<string> names = [with(StringComparer.Ordinal)];
             foreach (var journalGroup in Groups)
             {
                 if (!ids.Add(journalGroup.Id))

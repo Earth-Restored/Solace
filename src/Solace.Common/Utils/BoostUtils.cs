@@ -57,7 +57,7 @@ internal static class BoostUtils
 
     public static IEnumerable<Catalog.ItemsCatalogR.Item.BoostEffect> GetActiveEffects(BoostsEF boosts, DateTimeOffset currentTime, Catalog catalog)
     {
-        Dictionary<string, Catalog.ItemsCatalogR.Item.BoostInfoR> activeBoostsInfo = [];
+        Dictionary<string, Catalog.ItemsCatalogR.Item.BoostInfoR> activeBoostsInfo = [with(StringComparer.Ordinal)];
         foreach (var activeBoost in boosts.ActiveBoosts)
         {
             if (activeBoost is null)

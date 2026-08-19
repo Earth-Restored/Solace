@@ -10,11 +10,11 @@ namespace Solace.PreviewGenerator.Registry;
 public static partial class JavaBlocks
 {
     private static readonly Dictionary<int, string> map = [];
-    private static readonly Dictionary<string, List<string>> nonVanillaStatesList = [];
+    private static readonly Dictionary<string, List<string>> nonVanillaStatesList = [with(StringComparer.Ordinal)];
 
     private static readonly Dictionary<int, BedrockMapping> bedrockMap = [];
-    private static readonly Dictionary<string, BedrockMapping> bedrockMapByName = [];
-    private static readonly Dictionary<string, BedrockMapping> bedrockNonVanillaMap = [];
+    private static readonly Dictionary<string, BedrockMapping> bedrockMapByName = [with(StringComparer.Ordinal)];
+    private static readonly Dictionary<string, BedrockMapping> bedrockNonVanillaMap = [with(StringComparer.Ordinal)];
 
     private static readonly Lock _initLock = new();
     private static volatile bool _isInitialized;
@@ -142,7 +142,7 @@ public static partial class JavaBlocks
 
         var name = bedrockMappingObject["name"]!.GetValue<string>()!;
 
-        SortedDictionary<string, object> state = [];
+        SortedDictionary<string, object> state = [with(StringComparer.Ordinal)];
         if (bedrockMappingObject.TryGetPropertyValue("state", out var stateToken))
         {
             var stateObject = stateToken as JsonObject;

@@ -6,8 +6,9 @@
 @using Solace.WebPortal.Common.Features.Buildplates
 @using Solace.WebPortal.Common.Features.Common
 @attribute [Authorize(Policy = Permissions.ViewBuildplates)]
+@implements IDisposable
 @rendermode InteractiveWebAssembly
-@inject AuthenticationStateProvider AuthStateProvider
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
 @inject IConfiguration Configuration
@@ -125,7 +126,7 @@
 
 @if (_showDeleteModal)
 {
-    <DeleteConfirmModal Visible="true" IsBusy="_isDeleting"  LoadingButtonText="Deleting..." Message="Are you sure you want to delete" ItemName="@_buildplateToDelete?.Name"  ErrorMessage="@_deleteErrorMessage" OnCancel="CancelDelete" OnConfirm="ConfirmDelete">
+    <DeleteConfirmModal Visible="true" IsBusy="_isDeleting" LoadingButtonText="Deleting..." Message="Are you sure you want to delete" ItemName="@_buildplateToDelete?.Name" ErrorMessage="@_deleteErrorMessage" OnCancel="CancelDelete" OnConfirm="ConfirmDelete">
         <ChildContent>
             <div class="form-check form-switch mt-3">
                 <input class="form-check-input" type="checkbox" id="removeTemplateCheckbox" @bind="_removeTemplateFromPlayers" />
@@ -212,8 +213,25 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await UpdateAuthenticationStateAsync(AuthenticationStateProvider.GetAuthenticationStateAsync());
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        await UpdateAuthenticationStateAsync(task);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UpdateAuthenticationStateAsync(Task<AuthenticationState> task)
+    {
+        var authState = await task;
         _user = authState.User;
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 
     private async Task<PagedResult<List<BuildplateViewModel>>?> FetchDataAsync(PagedSearchQuery query)
@@ -324,7 +342,6 @@
             try
             {
                 _isDeleting = true;
-                StateHasChanged();
 
                 var url = $"/api/buildplates/templates/{_buildplateToDelete.Id}?removeTemplateFromPlayers={_removeTemplateFromPlayers}";
                 using var response = await Http.DeleteAsync(url);
@@ -400,7 +417,6 @@
         for (int i = 0; i <= 100; i += 20)
         {
             _exportProgress = i;
-            StateHasChanged();
             await Task.Delay(400);
         }
 

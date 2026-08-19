@@ -15,7 +15,7 @@ public static class EarthDbContextExtensions
         {
             var currentSecrets = await earthDb.Secrets
                 .AsNoTracking()
-                .ToDictionaryAsync(s => s.Id, s => s.Value);
+                .ToDictionaryAsync(s => s.Id, s => s.Value, StringComparer.Ordinal);
 
             if (CryptoSecrets.AllNames.All(currentSecrets.ContainsKey))
             {
@@ -59,7 +59,7 @@ public static class EarthDbContextExtensions
 
             return new CryptoSecrets(await earthDb.Secrets
                 .AsNoTracking()
-                .ToDictionaryAsync(s => s.Id, s => s.Value));
+                .ToDictionaryAsync(s => s.Id, s => s.Value, StringComparer.Ordinal));
 
             string GenerateSecureSecret(int decodedLength)
             {

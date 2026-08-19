@@ -73,7 +73,7 @@ internal sealed class JournalController : SolaceControllerBase
             _ => throw new InvalidDataException($"Unknown ActivityLog.Entry '{entry?.GetType()?.ToString() ?? "null"}'"),
         };
 
-        Dictionary<string, string> properties = [];
+        Dictionary<string, string> properties = [with(StringComparer.Ordinal)];
         switch (entry)
         {
             case BoostActivatedEntryEF boostActivated:

@@ -15,8 +15,8 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
     // EventBusServiceImpl is not registered as singleton - created per request
     internal sealed class State
     {
-        public ConcurrentDictionary<string, ConcurrentDictionary<Guid, SafeStreamWriter<EventMessage>>> Subscribers { get; } = [];
-        public ConcurrentDictionary<string, ImmutableArray<HandlerConnection>> Handlers { get; } = [];
+        public ConcurrentDictionary<string, ConcurrentDictionary<Guid, SafeStreamWriter<EventMessage>>> Subscribers { get; } = [with(StringComparer.Ordinal)];
+        public ConcurrentDictionary<string, ImmutableArray<HandlerConnection>> Handlers { get; } = [with(StringComparer.Ordinal)];
         public Lock HandlersLock { get; } = new();
 
         public ObjectPool<List<Task>> TaskListPool { get; } = ObjectPool.Create(new ListPooledObjectPolicy<Task>() { InitialCapacity = 4, });

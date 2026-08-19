@@ -11,7 +11,7 @@ public sealed class AdventuresConfig
     private static readonly string[] DefaultFolders = ["common", "uncommon", "rare", "epic", "legendary", "oobe"];
 
     public readonly AdventureSpawnConfig SpawnConfig;
-    private readonly Dictionary<string, ImmutableArray<AdventureBuildplate>> _buildplatesByFolder = [];
+    private readonly Dictionary<string, ImmutableArray<AdventureBuildplate>> _buildplatesByFolder = [with(StringComparer.Ordinal)];
 
     internal AdventuresConfig(string dir)
     {
@@ -19,7 +19,7 @@ public sealed class AdventuresConfig
         {
             SpawnConfig = LoadSpawnConfig(dir);
 
-            HashSet<string> folders = [.. DefaultFolders];
+            HashSet<string> folders = [with(StringComparer.Ordinal), .. DefaultFolders];
             foreach (var crystalType in SpawnConfig.CrystalTypes)
             {
                 folders.Add(crystalType.Folder);
@@ -113,12 +113,12 @@ public sealed class AdventuresConfig
 #pragma warning disable CA5394 // Do not use insecure randomness - idc
         var roll = random.Next(0, totalWeight);
 #pragma warning restore CA5394 // Do not use insecure randomness
-        foreach (var item in weightedItems)
+        foreach (var (item, weight) in weightedItems)
         {
-            roll -= item.Weight;
+            roll -= weight;
             if (roll < 0)
             {
-                return item.Item;
+                return item;
             }
         }
 

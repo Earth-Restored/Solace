@@ -129,9 +129,9 @@ internal static partial class App
         builder.Services.AddApiVersioning(config =>
         {
             config.DefaultApiVersion = new ApiVersion(1, 1);
-            config.AssumeDefaultVersionWhenUnspecified = true;
             config.ReportApiVersions = true;
-        });
+        })
+        .AddMvc();
 
         builder.Services.AddAuthentication("GenoaAuth")
             .AddScheme<AuthenticationSchemeOptions, GenoaAuthenticationHandler>("GenoaAuth", null);

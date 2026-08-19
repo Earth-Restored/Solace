@@ -13,7 +13,7 @@ internal sealed class Rewards
     private int? _level;
     private readonly Dictionary<Guid, int> _items = [];
     private readonly HashSet<Guid> _buildplates = [];
-    private readonly HashSet<string> _challenges = [];
+    private readonly HashSet<string> _challenges = [with(StringComparer.Ordinal)];
 
     public Rewards()
     {

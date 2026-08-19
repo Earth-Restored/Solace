@@ -28,11 +28,11 @@ public sealed class ItemEF
 
     public List<string> Tags { get; set; } = [];
 
-    public Dictionary<string, KeywordValuesEF> Keywords { get; set; } = [];
+    public Dictionary<string, KeywordValuesEF> Keywords { get; set; } = [with(StringComparer.Ordinal)];
 
-    public Dictionary<string, string> TitleTranslations { get; set; } = [];
+    public Dictionary<string, string> TitleTranslations { get; set; } = [with(StringComparer.Ordinal)];
 
-    public Dictionary<string, string> DescriptionTranslations { get; set; } = [];
+    public Dictionary<string, string> DescriptionTranslations { get; set; } = [with(StringComparer.Ordinal)];
 
     public List<ItemReferenceEF> ItemReferences { get; set; } = [];
 }

@@ -5,12 +5,12 @@
 @using Solace.WebPortal.Client.Features.Common
 @using Solace.WebPortal.Common
 @attribute [Authorize(Policy = Permissions.ViewPlayers)]
+@implements IDisposable
 @rendermode InteractiveWebAssembly
 @inject HttpClient Http
 @inject IJSRuntime JS
-@inject AuthenticationStateProvider AuthStateProvider
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavManager
-@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Player Profile - Solace</PageTitle>
 
@@ -33,7 +33,7 @@
 
     @if (IsDeleteModalVisible)
     {
-        <DeleteConfirmModal Visible="true" IsBusy="IsDeletingPlayer"  LoadingButtonText="Deleting..." Message="Are you sure you want to delete player" ItemName="@(_profileDisplay?.PlayerAccount?.Username ?? "[unknown]")"  ErrorMessage="@DeleteErrorMessage" ModalSizeClass="modal-sm" OnCancel="CloseDeleteModal" OnConfirm="DeletePlayerAsync" />
+        <DeleteConfirmModal Visible="true" IsBusy="IsDeletingPlayer" LoadingButtonText="Deleting..." Message="Are you sure you want to delete player" ItemName="@(_profileDisplay?.PlayerAccount?.Username ?? "[unknown]")" ErrorMessage="@DeleteErrorMessage" ModalSizeClass="modal-sm" OnCancel="CloseDeleteModal" OnConfirm="DeletePlayerAsync" />
     }
 </div>
 
@@ -47,8 +47,25 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await UpdateAuthenticationStateAsync(AuthenticationStateProvider.GetAuthenticationStateAsync());
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        await UpdateAuthenticationStateAsync(task);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UpdateAuthenticationStateAsync(Task<AuthenticationState> task)
+    {
+        var authState = await task;
         _user = authState.User;
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 
     private bool IsDeleteModalVisible { get; set; } = false;

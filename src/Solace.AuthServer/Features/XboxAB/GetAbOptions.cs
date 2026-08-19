@@ -30,7 +30,7 @@ public static partial class GetAbOptions
         Query _,
         CancellationToken cancellationToken)
             => new(
-            [ 
+            [
                 //"mc-sunsetting_1",
                 //"mc-reco-algo2simfirst",
                 //"mc-rp-hero-row-timer-2",
@@ -48,6 +48,7 @@ public static partial class GetAbOptions
                 //"mc-rp-risinglava",
             ],
             [
+                with(StringComparer.Ordinal),
                 //["28kk"] = "mc-sunsetting_1",
                 //["2mky"] = "mc-reco-algo2simfirst",
                 //["2qco"] = "mc-rp-hero-row-timer-2",
@@ -68,6 +69,7 @@ public static partial class GetAbOptions
                 new Config(
                     "Minecraft",
                     [
+                        with(StringComparer.Ordinal),
                         // ["sunsetting"] = true,
                         // ["algo"] = "two",
                         // ["fjkdsafjlkdsafdjlk"] = true,
