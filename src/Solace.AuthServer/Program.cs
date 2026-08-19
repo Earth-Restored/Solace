@@ -19,6 +19,7 @@ using Solace.Common.Asp;
 using Solace.Db;
 using Solace.Db.Earth;
 using Solace.Db.Playfab;
+using Solace.EventBus.Client;
 
 [assembly: Behaviors(
     typeof(ValidationBehavior<,>)
@@ -94,8 +95,9 @@ internal sealed partial class Program2
         builder.Services.AddSolaceAuthServerBehaviors();
 
         builder.Services.AddSingleton<StartupDependencies>();
-        builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().Secrets);
+        builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().StaticData);
+        builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().Secrets);
 
         builder.Services.AddSingleton<Features.PlayfabApi.Catalog.CatalogService>();
 
@@ -183,6 +185,8 @@ internal sealed partial class Program2
 
         builder.Services.AddHostedService<PlayfabDataSeeder>();
 
+        builder.Services.AddHostedService<PlayfabDataReloader>();
+
         using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
@@ -205,6 +209,24 @@ internal sealed partial class Program2
             startupDeps.Secrets = await earthDb.GetOrInitializeSecretsAsync();
         }
 
+        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
+        Debug.Assert(eventBusConnectionString is not null);
+
+        LogConnectingToEventBus(programLogger);
+        EventBusClient eventBus;
+        try
+        {
+            eventBus = await EventBusClient.ConnectAsync(eventBusConnectionString, programLogger);
+        }
+        catch (Exception exception)
+        {
+            LogConnectToEventBusError(programLogger, exception);
+            loggerFactory.Dispose();
+            return 3;
+        }
+
+        LogConnectedToEventBus(programLogger);
+
         LogLoadingStaticData(programLogger);
         StaticData.StaticDataProvider staticData;
         try
@@ -220,6 +242,7 @@ internal sealed partial class Program2
 
         LogLoadedStaticData(programLogger);
 
+        startupDeps.EventBus = eventBus;
         startupDeps.StaticData = staticData;
 
         var forwardedHeadersOptions = new ForwardedHeadersOptions
@@ -283,16 +306,26 @@ internal sealed partial class Program2
             Results.SignOut(new AuthenticationProperties { RedirectUri = returnUrl },
                 [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
 
-        app.Run();
+        await app.RunAsync();
 
         return 0;
     }
 
     internal sealed class StartupDependencies
     {
-        public Common.Asp.Auth.CryptoSecrets Secrets { get; set; } = null!;
+        public EventBusClient EventBus { get; set; } = null!;
         public StaticData.StaticDataProvider StaticData { get; set; } = null!;
+        public Common.Asp.Auth.CryptoSecrets Secrets { get; set; } = null!;
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Connecting to event bus")]
+    private static partial void LogConnectingToEventBus(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Could not connect to event bus")]
+    private static partial void LogConnectToEventBusError(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Connected to event bus")]
+    private static partial void LogConnectedToEventBus(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Loading static data")]
     private static partial void LogLoadingStaticData(ILogger logger);

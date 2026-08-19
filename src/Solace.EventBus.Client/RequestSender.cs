@@ -58,7 +58,7 @@ public sealed class RequestSender : IAsyncDisposable
     }
 
     public ValueTask DisposeAsync()
-        => ValueTask.CompletedTask;
+        => ValueTask.CompletedTask; // if this needs an implementation, also change EventBusClient, since it uses a singleton
 
     private async Task<MessagePayload?> RequestInternalAsync(RequestMessage requestMessage, CancellationToken cancellationToken)
     {
@@ -139,9 +139,9 @@ public sealed class RequestSender : IAsyncDisposable
 
                         channel.Writer.TryComplete();
                     }
-                    catch (Exception ex)
+                    catch (Exception exception)
                     {
-                        channel.Writer.TryComplete(ex);
+                        channel.Writer.TryComplete(exception);
                     }
                 }, cancellationToken);
             }

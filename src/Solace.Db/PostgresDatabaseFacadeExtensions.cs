@@ -26,7 +26,7 @@ public static class PostgresDatabaseFacadeExtensions
                 {
                     await databaseCreator.CreateAsync(cancellationToken);
                 }
-                catch (PostgresException ex) when (ex.SqlState == "42P04")
+                catch (PostgresException exception) when (exception.SqlState is "42P04")
                 {
                     // duplicate database, ignore
                 }

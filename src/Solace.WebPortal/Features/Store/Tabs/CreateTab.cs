@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Solace.Db.Playfab;
 using Solace.Db.Playfab.Models.Tabs;
+using Solace.EventBus.Client;
 using Solace.WebPortal.Common;
 using Solace.WebPortal.Common.Features.Store;
 
@@ -23,6 +24,7 @@ public static partial class CreateTab
     private static async ValueTask<Results<Ok<int>, BadRequest>> HandleAsync(
         Command command,
         PlayfabDbContext playfabDb,
+        EventBusClient eventBus,
         CancellationToken cancellationToken
     )
     {
@@ -72,6 +74,8 @@ public static partial class CreateTab
         await playfabDb.SaveChangesAsync(cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);
+
+        await eventBus.PublishAsync("playfab", "shop_data_updated", "", cancellationToken);
 
         return TypedResults.Ok(tab.TabIndex);
     }

@@ -13,7 +13,6 @@ using Asp.Versioning;
 using Solace.ApiServer.Authentication;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.HttpOverrides;
-using System.Reflection;
 using Solace.Common.Asp;
 using Solace.Db;
 using Solace.Db.Playfab;

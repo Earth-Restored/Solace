@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Security.Claims;
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Authorization;

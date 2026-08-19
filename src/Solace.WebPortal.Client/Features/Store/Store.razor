@@ -235,7 +235,7 @@
         deleteErrorMessage = null;
         pendingDeleteAction = async () =>
         {
-            var response = await Http.DeleteAsync($"api/store/tabs/{tab.TabId}");
+            var response = await Http.DeleteAsync($"api/store/tabs/{index}");
             if (response.IsSuccessStatusCode)
             {
                 tabs?.Remove(tab);

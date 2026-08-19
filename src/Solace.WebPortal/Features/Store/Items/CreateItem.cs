@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Solace.Db.Earth;
 using Solace.Db.Playfab;
 using Solace.Db.Playfab.Models.Items;
+using Solace.EventBus.Client;
 using Solace.StaticData;
 using Solace.WebPortal.Common;
 using Solace.WebPortal.Common.Features.Store;
@@ -26,6 +27,7 @@ public static partial class CreateItem
         Command command,
         PlayfabDbContext playfabDb,
         EarthDbContext earthDb,
+        EventBusClient eventBus,
         StaticDataProvider staticData,
         CancellationToken cancellationToken
     )
@@ -130,6 +132,8 @@ public static partial class CreateItem
 
         playfabDb.Items.Add(item);
         await playfabDb.SaveChangesAsync(cancellationToken);
+
+        await eventBus.PublishAsync("playfab", "shop_data_updated", "", cancellationToken);
 
         return TypedResults.Ok(id);
     }

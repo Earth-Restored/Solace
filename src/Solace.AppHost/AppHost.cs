@@ -237,6 +237,8 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
     .WaitFor(earthDb)
     .WithReference(playfabDb)
     .WaitFor(playfabDb)
+    .WithReference(eventBus)
+    .WaitFor(eventBus)
     .WithEnvironmentSection(builder.Configuration, "AuthServer:Authentication", prefixToRemove: "AuthServer:")
     .WithEnvironmentSection(builder.Configuration, "Shared:Oidc:WebPortal:AuthServer",
         prefixToRemove: "Shared:Oidc:WebPortal:AuthServer:",
