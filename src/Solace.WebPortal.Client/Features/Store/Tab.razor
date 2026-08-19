@@ -42,7 +42,7 @@ else
 
     @if (IsPreviewMode)
     {
-        <div class="preview-container bg-light p-4 border rounded">
+        <div class="preview-container bg-light p-4 border">
             @if (Model.ScreenLayoutQueries.Count is 0)
             {
                 <p class="text-muted mb-0"><em>No layout queries to preview.</em></p>
@@ -188,14 +188,19 @@ else
                                         {
                                             var index = i;
                                             var currentProductId = query.ProductIds[index];
+                                            var item = AvailableItems.FirstOrDefault(it => it.Id == currentProductId);
 
                                             <div class="input-group input-group-sm flex-grow-1" style="min-width: 260px; max-width: 100%;">
-                                                <select class="form-select form-select-sm" value="@currentProductId" @onchange="(e) => UpdateProductId(query, index, e.Value)" disabled="@(!HasPermission(Permissions.EditStore))">
-                                                    @foreach (var item in AvailableItems)
+                                                <button type="button" class="form-control text-start bg-white text-truncate" disabled="@(!HasPermission(Permissions.EditStore))" @onclick="() => OpenItemPicker(layout, query, index)">
+                                                    @if (item is not null)
                                                     {
-                                                        <option value="@item.Id">@item.Title (@item.ItemDataType)</option>
+                                                        <span>@item.Title <span class="text-muted">(@item.ItemDataType)</span></span>
                                                     }
-                                                </select>
+                                                    else
+                                                    {
+                                                        <span class="text-muted">Select an item...</span>
+                                                    }
+                                                </button>
                                                 @if (HasPermission(Permissions.EditStore))
                                                 {
                                                     <button type="button" class="btn btn-outline-danger" @onclick="() => query.ProductIds.RemoveAt(index)">
@@ -207,7 +212,7 @@ else
 
                                         @if (HasPermission(Permissions.EditStore))
                                         {
-                                            <button type="button" class="btn btn-sm btn-outline-success" @onclick="() => AddProduct(query)">
+                                            <button type="button" class="btn btn-sm btn-outline-success" disabled="@(AvailableItems.Count(i => !query.ProductIds.Contains(i.Id)) == 0)" @onclick="() => OpenItemPicker(layout, query, null)">
                                                 <i class="bi bi-plus me-1"></i>Product
                                             </button>
                                         }
@@ -230,6 +235,46 @@ else
     }
 }
 
+@if (IsItemPickerOpen)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h5 class="modal-title fs-6">Select Item</h5>
+                    <button type="button" class="btn-close" @onclick="CloseItemPicker"></button>
+                </div>
+                <div class="modal-body">
+                    <Solace.WebPortal.Client.Features.Common.SearchBar @bind-Value="SearchTerm" Class="mb-3" AutoFocus="true" />
+
+                    <div class="list-group">
+                        @if (FilteredItems.Count is 0)
+                        {
+                            <div class="text-center text-muted py-3">No available items match your search.</div>
+                        }
+                        else
+                        {
+                            @foreach (var item in FilteredItems)
+                            {
+                                <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" @onclick="() => SelectItem(item.Id)">
+                                    <div>
+                                        <div class="fw-bold">@item.Title</div>
+                                        <small class="text-muted">Type: @item.ItemDataType</small>
+                                    </div>
+                                    <i class="bi bi-plus text-muted"></i>
+                                </button>
+                            }
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseItemPicker">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public int? TabIndex { get; set; }
     private ClaimsPrincipal? _user;
@@ -243,6 +288,38 @@ else
     private Catalog.CatalogCacheService? CatalogService { get; set; }
     private Catalog.CatalogCacheService.SyncAccessor? Catalog;
 
+    private bool IsItemPickerOpen = false;
+    private ScreenLayoutQueryViewModel? ActiveLayout;
+    private QueryViewModel? ActiveQuery;
+    private int? ActiveProductIndex;
+    private string SearchTerm = string.Empty;
+
+    private List<ItemViewModel> FilteredItems
+    {
+        get
+        {
+            if (AvailableItems is null || ActiveLayout is null || ActiveQuery is null)
+            {
+                return [];
+            }
+
+            var layoutProductIds = ActiveLayout.Queries
+                .SelectMany(q => q.ProductIds)
+                .ToHashSet();
+
+            var currentSelectedId = ActiveProductIndex.HasValue && ActiveProductIndex.Value < ActiveQuery.ProductIds.Count
+                ? ActiveQuery.ProductIds[ActiveProductIndex.Value]
+                : (Guid?)null;
+
+            return AvailableItems
+                .Where(item => !layoutProductIds.Contains(item.Id) || item.Id == currentSelectedId)
+                .Where(item => string.IsNullOrWhiteSpace(SearchTerm) ||
+                    item.Title.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    item.ItemDataType.ToString().Contains(SearchTerm, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -253,7 +330,6 @@ else
     {
         if (firstRender)
         {
-            // cannot inject, bcs it's not available when prerendering
             CatalogService = ServiceProvider.GetRequiredService<Catalog.CatalogCacheService>();
             Catalog = await CatalogService.GetSyncAccessorAsync();
 
@@ -262,6 +338,8 @@ else
 
             AvailableItems = (await Http.GetFromJsonAsync<List<Solace.WebPortal.Common.Features.Store.ItemDto>>("api/store/items"))!
                 .Select(ItemViewModel.FromDto)
+                .OrderBy(item => item.ItemDataType)
+                .ThenBy(item => item.Title)
                 .ToList();
 
             if (TabIndex is not null)
@@ -285,6 +363,40 @@ else
         NavManager.NavigateTo("/Store");
     }
 
+    private async Task OpenItemPicker(ScreenLayoutQueryViewModel layout, QueryViewModel query, int? index)
+    {
+        ActiveLayout = layout;
+        ActiveQuery = query;
+        ActiveProductIndex = index;
+        SearchTerm = string.Empty;
+        IsItemPickerOpen = true;
+    }
+
+    private void CloseItemPicker()
+    {
+        IsItemPickerOpen = false;
+        ActiveLayout = null;
+        ActiveQuery = null;
+        ActiveProductIndex = null;
+        SearchTerm = string.Empty;
+    }
+
+    private void SelectItem(Guid productId)
+    {
+        if (ActiveQuery is null) return;
+
+        if (ActiveProductIndex.HasValue)
+        {
+            ActiveQuery.ProductIds[ActiveProductIndex.Value] = productId;
+        }
+        else
+        {
+            ActiveQuery.ProductIds.Add(productId);
+        }
+
+        CloseItemPicker();
+    }
+
     private RenderFragment RenderPreviewCard(Guid productId) => __builder =>
     {
         var storeItem = AvailableItems?.FirstOrDefault(i => i.Id == productId);
@@ -294,7 +406,7 @@ else
 
         <div class="preview-content-body" style="border-color: @rarityColor;">
             <div class="preview-title" title="@title">
-                @title
+                @title.ToUpper()
             </div>
             <div class="preview-media">
                 @RenderPreviewMedia(storeItem)
@@ -302,7 +414,7 @@ else
         </div>
         <div class="preview-price-bar">
             <i class="bi bi-gem"></i>
-            <span>@price</span>
+            <span>@(price is 0 ? "FREE" : price.ToString())</span>
         </div>
     };
 
@@ -389,34 +501,16 @@ else
         Model.ScreenLayoutQueries.Add(new ScreenLayoutQueryViewModel());
     }
 
-    private void AddProduct(QueryViewModel query)
-    {
-        var firstAvailable = AvailableItems?.FirstOrDefault(i => !query.ProductIds.Contains(i.Id)) ?? AvailableItems?.FirstOrDefault();
-
-        if (firstAvailable is not null)
-        {
-            query.ProductIds.Add(firstAvailable.Id);
-        }
-    }
-
-    private void UpdateProductId(QueryViewModel query, int index, object? value)
-    {
-        if (Guid.TryParse(value?.ToString(), out Guid newId))
-        {
-            query.ProductIds[index] = newId;
-        }
-    }
-
     private async Task HandleSubmit()
     {
         HttpResponseMessage response;
         if (TabIndex is not null)
         {
-            response = await Http.PutAsJsonAsync($"api/tabs/{TabIndex}", Model);
+            response = await Http.PutAsJsonAsync($"api/store/tabs/{TabIndex}", Model.ToDto());
         }
         else
         {
-            response = await Http.PostAsJsonAsync("api/tabs", Model);
+            response = await Http.PostAsJsonAsync("api/store/tabs", Model.ToDto());
         }
 
         if (response.IsSuccessStatusCode)

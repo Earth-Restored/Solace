@@ -10,7 +10,7 @@ using Solace.Db.Playfab.Models.Tabs;
 using Solace.WebPortal.Common;
 using Solace.WebPortal.Common.Features.Store;
 
-namespace Solace.WebPortal.Features.Store;
+namespace Solace.WebPortal.Features.Store.Tabs;
 
 [Handler]
 [MapGet("tabs/{TabIndex}")]
@@ -40,7 +40,6 @@ public static partial class GetTab
             tab.TabTitle,
             tab.TabIcon,
             tab.ScreenLayoutQueries.Select(sq => new ScreenLayoutQueryDto(
-                sq.ComponentId,
                 sq.ColumnType switch
                 {
                     ColumnTypeEF.Rectangle => ColumnTypeDto.Rectangle,
@@ -49,19 +48,6 @@ public static partial class GetTab
                     _ => throw new UnreachableException(),
                 },
                 sq.Queries.Select(q => new QueryDto(
-                    q.TopCount,
-                    q.QueryContentTypes.Select(type => type switch
-                    {
-                        ContentTypeEF.Durable => QueryContentTypeDto.Durable,
-                        ContentTypeEF.Collection => QueryContentTypeDto.Collection,
-                        ContentTypeEF.Bundle => QueryContentTypeDto.Bundle,
-                        ContentTypeEF.Persona => QueryContentTypeDto.Persona,
-                        ContentTypeEF.Genoa => QueryContentTypeDto.Genoa,
-                        ContentTypeEF.BuildplateOffer => QueryContentTypeDto.BuildplateOffer,
-                        ContentTypeEF.RubyOffer => QueryContentTypeDto.RubyOffer,
-                        ContentTypeEF.InventoryItemOffer => QueryContentTypeDto.InventoryItemOffer,
-                        _ => throw new UnreachableException(),
-                    }),
                     q.ProductIds
                 ))
             ))

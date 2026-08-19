@@ -7,7 +7,7 @@ using Solace.Db.Playfab;
 using Solace.WebPortal.Common;
 using Solace.WebPortal.Common.Features.Store;
 
-namespace Solace.WebPortal.Features.Store;
+namespace Solace.WebPortal.Features.Store.Tabs;
 
 [Handler]
 [MapGet("tabs/summary")]

@@ -61,6 +61,8 @@ public sealed class ItemViewModel
                 viewModel.Buildplate.BuildplateName = buildplateData.BuildplateName;
                 viewModel.Buildplate.Cost = buildplateData.Cost;
                 viewModel.Buildplate.UnlockLevel = buildplateData.UnlockLevel;
+                viewModel.Buildplate.Is1Player = buildplateData.Is1Player;
+                viewModel.Buildplate.Tags = [.. buildplateData.Tags];
                 viewModel.Buildplate.Rarity = MapRarity(buildplateData.Rarity);
                 viewModel.Buildplate.Version = buildplateData.Version.ToString();
                 break;
@@ -91,6 +93,46 @@ public sealed class ItemViewModel
                 RarityDto.Epic => Rarity.Epic,
                 RarityDto.Rare => Rarity.Rare,
                 RarityDto.Legendary => Rarity.Legendary,
+                _ => throw new UnreachableException(),
+            };
+        }
+    }
+
+    public ItemDto ToDto()
+    {
+        return new(
+            Id,
+            Title,
+            TitleTranslations,
+            Description,
+            DescriptionTranslations,
+            Purchasable,
+            Discount,
+            StartDate,
+            ThumbnailImageId,
+            ItemDataType switch
+            {
+                ItemDataType.Buildplate => ItemDataTypeDto.Buildplate,
+                ItemDataType.InventoryItem => ItemDataTypeDto.InventoryItem,
+                _ => throw new UnreachableException(),
+            },
+            ItemDataType is ItemDataType.Buildplate
+            ? new BuildplateDto(Buildplate.BuildplateId, null, Buildplate.Cost, Buildplate.UnlockLevel, Buildplate.Is1Player, Buildplate.Tags, MapRarity(Buildplate.Rarity), Version.Parse(Buildplate.Version))
+            : null,
+            ItemDataType is ItemDataType.InventoryItem
+            ? new InventoryItemDto(InventoryItem.ItemId, null, InventoryItem.Cost, InventoryItem.Amount, MapRarity(InventoryItem.Rarity), Version.Parse(InventoryItem.Version))
+            : null);
+
+        static RarityDto MapRarity(Rarity rarity)
+        {
+            return rarity switch
+            {
+                Rarity.None => RarityDto.None,
+                Rarity.Common => RarityDto.Common,
+                Rarity.Uncommon => RarityDto.Uncommon,
+                Rarity.Epic => RarityDto.Epic,
+                Rarity.Rare => RarityDto.Rare,
+                Rarity.Legendary => RarityDto.Legendary,
                 _ => throw new UnreachableException(),
             };
         }

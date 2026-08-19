@@ -22,7 +22,6 @@ public sealed class TabViewModel
             TabIcon = tab.TabIcon,
             ScreenLayoutQueries = [.. tab.ScreenLayoutQueries.Select(sq => new ScreenLayoutQueryViewModel()
             {
-                ComponentId = sq.ComponentId,
                 ColumnType = sq.ColumnType switch
                 {
                     ColumnTypeDto.Rectangle => ColumnType.Rectangle,
@@ -32,20 +31,27 @@ public sealed class TabViewModel
                 },
                 Queries = [.. sq.Queries.Select(q => new QueryViewModel()
                 {
-                    QueryContentTypes = [.. q.QueryContentTypes.Select(type => type switch
-                    {
-                        QueryContentTypeDto.Durable => QueryContentType.Durable,
-                        QueryContentTypeDto.Collection => QueryContentType.Collection,
-                        QueryContentTypeDto.Bundle => QueryContentType.Bundle,
-                        QueryContentTypeDto.Persona => QueryContentType.Persona,
-                        QueryContentTypeDto.Genoa => QueryContentType.Genoa,
-                        QueryContentTypeDto.BuildplateOffer => QueryContentType.BuildplateOffer,
-                        QueryContentTypeDto.RubyOffer => QueryContentType.RubyOffer,
-                        QueryContentTypeDto.InventoryItemOffer => QueryContentType.InventoryItemOffer,
-                        _ => throw new UnreachableException(),
-                    })],
                     ProductIds = [.. q.ProductIds],
                 })]
             })],
         };
+
+    public TabDto ToDto()
+        => new(
+            TabId,
+            TabTitle,
+            TabIcon,
+            ScreenLayoutQueries.Select(sq => new ScreenLayoutQueryDto(
+                sq.ColumnType switch
+                {
+                    ColumnType.Rectangle => ColumnTypeDto.Rectangle,
+                    ColumnType.Square => ColumnTypeDto.Square,
+                    ColumnType.Grid => ColumnTypeDto.Grid,
+                    _ => throw new UnreachableException(),
+                },
+                sq.Queries.Select(q => new QueryDto(
+                    q.ProductIds
+                ))
+            ))
+        );
 }

@@ -7,7 +7,7 @@ using Solace.Db.Playfab.Models.Items;
 using Solace.WebPortal.Common;
 using Solace.WebPortal.Common.Features.Store;
 
-namespace Solace.WebPortal.Features.Store;
+namespace Solace.WebPortal.Features.Store.Items;
 
 [Handler]
 [MapGet("items/summary")]

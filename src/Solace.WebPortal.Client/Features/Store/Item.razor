@@ -183,7 +183,7 @@ else
                         <ValidationMessage For="@(() => Model.Buildplate.BuildplateId)" />
                     </div>
                 </div>
-                <div class="row">
+                <div class="row mb-3">
                     <div class="col"><label>Cost</label>
                         <InputNumber @bind-Value="Model.Buildplate.Cost" class="form-control" readonly="@(!HasPermission(Permissions.EditStore))" />
                     </div>
@@ -200,6 +200,44 @@ else
                             <option value="@Rarity.Legendary">Legendary</option>
                         </InputSelect>
                     </div>
+                </div>
+
+                <div class="mb-3 form-check">
+                    <InputCheckbox @bind-Value="Model.Buildplate.Is1Player" class="form-check-input" id="is1PlayerCheck" disabled="@(!HasPermission(Permissions.EditStore))" />
+                    <label class="form-check-label" for="is1PlayerCheck">Is 1 Player</label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-block fw-bold">Tags</label>
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        @if (Model.Buildplate.Tags.Any())
+                        {
+                            @foreach (var tag in Model.Buildplate.Tags)
+                            {
+                                <span class="badge bg-secondary d-inline-flex align-items-center gap-1 p-2 fs-6">
+                                    @tag
+                                    @if (HasPermission(Permissions.EditStore))
+                                    {
+                                        <button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.5rem;" @onclick="() => RemoveTag(tag)" title="Remove Tag"></button>
+                                    }
+                                </span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted fst-italic small">No tags added.</span>
+                        }
+                    </div>
+
+                    @if (HasPermission(Permissions.EditStore))
+                    {
+                        <div class="input-group input-group-sm" style="max-width: 320px;">
+                            <input type="text" class="form-control" placeholder="Add tag..." @bind="_newTagInput" @bind:event="oninput" @onkeyup="HandleTagKeyUp" />
+                            <button type="button" class="btn btn-outline-primary" @onclick="AddTag" disabled="@string.IsNullOrWhiteSpace(_newTagInput)">
+                                <i class="bi bi-plus-lg me-1"></i> Add Tag
+                            </button>
+                        </div>
+                    }
                 </div>
             }
             else if (Model.ItemDataType is ItemDataType.InventoryItem)
@@ -227,7 +265,7 @@ else
                         <InputNumber @bind-Value="Model.InventoryItem.Amount" class="form-control" readonly="@(!HasPermission(Permissions.EditStore))" />
                     </div>
                     <div class="col"><label>Rarity</label>
-                        <InputSelect @bind-Value="Model.Buildplate.Rarity" class="form-select" disabled="@(!HasPermission(Permissions.EditStore))">
+                        <InputSelect @bind-Value="Model.InventoryItem.Rarity" class="form-select" disabled="@(!HasPermission(Permissions.EditStore))">
                             <option value="@Rarity.None">None</option>
                             <option value="@Rarity.Common">Common</option>
                             <option value="@Rarity.Uncommon">Uncommon</option>
@@ -345,45 +383,14 @@ else
     private string SelectedBuildplateDisplay = string.Empty;
     private string SelectedItemDisplay = string.Empty;
 
+    private string _newTagInput = string.Empty;
+
     private bool _showItemPicker = false;
     private bool _showBuildplatePicker = false;
     private bool _showTranslations = false;
     private string _selectedLanguageToAdd = string.Empty;
 
-    private static readonly Dictionary<string, string> LanguageNames = new()
-    {
-        ["bg-BG"] = "Bulgarian (Bulgaria)",
-        ["cs-CZ"] = "Czech (Czechia)",
-        ["da-DK"] = "Danish (Denmark)",
-        ["de-DE"] = "German (Germany)",
-        ["el-GR"] = "Greek (Greece)",
-        ["en-GB"] = "English (United Kingdom)",
-        ["en-US"] = "English (United States)",
-        ["es-ES"] = "Spanish (Spain)",
-        ["es-MX"] = "Spanish (Mexico)",
-        ["fi-FI"] = "Finnish (Finland)",
-        ["fr-CA"] = "French (Canada)",
-        ["fr-FR"] = "French (France)",
-        ["hu-HU"] = "Hungarian (Hungary)",
-        ["id-ID"] = "Indonesian (Indonesia)",
-        ["it-IT"] = "Italian (Italy)",
-        ["ja-JP"] = "Japanese (Japan)",
-        ["ko-KR"] = "Korean (South Korea)",
-        ["nb-NO"] = "Norwegian Bokmål (Norway)",
-        ["nl-NL"] = "Dutch (Netherlands)",
-        ["pl-PL"] = "Polish (Poland)",
-        ["pt-BR"] = "Portuguese (Brazil)",
-        ["pt-PT"] = "Portuguese (Portugal)",
-        ["ru-RU"] = "Russian (Russia)",
-        ["sk-SK"] = "Slovak (Slovakia)",
-        ["sv-SE"] = "Swedish (Sweden)",
-        ["tr-TR"] = "Turkish (Türkiye)",
-        ["uk-UA"] = "Ukrainian (Ukraine)",
-        ["zh-CN"] = "Chinese (Simplified, China)",
-        ["zh-TW"] = "Chinese (Traditional, Taiwan)"
-    };
-
-    private static readonly List<(string Code, string DisplayName)> AvailableLanguages = LanguageNames
+    private static readonly List<(string Code, string DisplayName)> AvailableLanguages = Constants.LanguageNames
         .Select(kvp => (Code: kvp.Key, DisplayName: kvp.Value))
         .OrderBy(c => c.DisplayName)
         .ToList();
@@ -466,7 +473,7 @@ else
 
     private string GetLanguageDisplayName(string code)
     {
-        if (LanguageNames.TryGetValue(code, out var name))
+        if (Constants.LanguageNames.TryGetValue(code, out var name))
         {
             return name;
         }
@@ -549,6 +556,28 @@ else
         }
     }
 
+    private void AddTag()
+    {
+        if (!string.IsNullOrWhiteSpace(_newTagInput))
+        {
+            Model.Buildplate.Tags.Add(_newTagInput.Trim());
+            _newTagInput = string.Empty;
+        }
+    }
+
+    private void RemoveTag(string tag)
+    {
+        Model.Buildplate.Tags.Remove(tag);
+    }
+
+    private void HandleTagKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AddTag();
+        }
+    }
+
     private void Cancel()
     {
         NavManager.NavigateTo("/Store");
@@ -559,11 +588,11 @@ else
         HttpResponseMessage response;
         if (Id.HasValue)
         {
-            response = await Http.PutAsJsonAsync($"api/items/{Id.Value}", Model);
+            response = await Http.PutAsJsonAsync($"api/store/items/{Id.Value}", Model.ToDto());
         }
         else
         {
-            response = await Http.PostAsJsonAsync("api/items", Model);
+            response = await Http.PostAsJsonAsync("api/store/items", Model.ToDto());
         }
 
         if (response.IsSuccessStatusCode)
