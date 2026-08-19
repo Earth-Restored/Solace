@@ -3,6 +3,7 @@ using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Solace.Db.Earth;
+using Solace.Db.Playfab;
 using Solace.ObjectStore.Client;
 using Solace.WebPortal.Common;
 using Solace.WebPortal.Common.Features.Data;
@@ -22,15 +23,17 @@ public static partial class GetSize
         Query _,
         EarthDbContext earthDb,
         ApplicationDbContext webPortalDb,
+        PlayfabDbContext playfabDb,
         ObjectStoreClient objectStore,
         CancellationToken cancellationToken
     )
     {
         var earthDbSize = await GetDatabaseSize(earthDb, cancellationToken);
         var webPortalDbSize = await GetDatabaseSize(webPortalDb, cancellationToken);
+        var playfabDbSize = await GetDatabaseSize(playfabDb, cancellationToken);
         var objectStoreSize = await objectStore.GetTotalSizeAsync(cancellationToken);
 
-        return new GetSizeResponse(earthDbSize, webPortalDbSize, objectStoreSize);
+        return new GetSizeResponse(earthDbSize, webPortalDbSize, playfabDbSize, objectStoreSize);
     }
 
     private static async Task<long> GetDatabaseSize(DbContext dbContext, CancellationToken cancellationToken)
