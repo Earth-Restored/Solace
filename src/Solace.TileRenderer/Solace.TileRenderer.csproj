@@ -36,6 +36,7 @@
     <PackageReference Include="Npgsql" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
+    <PackageReference Include="SkiaSharp.NativeAssets.macOS" />
     <PackageReference Include="SkiaSharp.NativeAssets.Win32" />
     <PackageReference Include="Grpc.Tools">
       <PrivateAssets>all</PrivateAssets>

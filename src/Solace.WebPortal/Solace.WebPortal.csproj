@@ -38,12 +38,12 @@
     <PackageReference Include="Immediate.Apis" />
     <PackageReference Include="Net.Codecrete.QrCodeGenerator" />
     <PackageReference Include="MCeToJava" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" VersionOverride="11.0.0-preview.6.26359.118" />
-    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" VersionOverride="11.0.0-preview.6.26359.118" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" VersionOverride="11.0.0-preview.6.26359.118" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" VersionOverride="11.0.0-preview.6.26359.118" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" VersionOverride="11.0.0-preview.6.26359.118" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" VersionOverride="11.0.0-preview.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="OpenIddict.AspNetCore" />
     <PackageReference Include="OpenIddict.EntityFrameworkCore" />
     <PackageReference Include="SixLabors.ImageSharp" />

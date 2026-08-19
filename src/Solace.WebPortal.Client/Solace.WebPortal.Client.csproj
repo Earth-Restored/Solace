@@ -12,8 +12,8 @@
 
   <ItemGroup>
     <PackageReference Include="BouncyCastle.Cryptography" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" VersionOverride="11.0.0-preview.6.26359.118" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" VersionOverride="11.0.0-preview.6.26359.118" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
   </ItemGroup>
 
