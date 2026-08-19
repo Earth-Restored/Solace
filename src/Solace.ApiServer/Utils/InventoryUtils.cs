@@ -47,11 +47,8 @@ internal static class InventoryUtils
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
 
-        var logger = Common.GlobalLoggerFactory.CreateLogger("abc");
-
         if (count is 0)
         {
-            logger.LogError("****** 0 ******");
             return;
         }
 
@@ -67,19 +64,13 @@ internal static class InventoryUtils
 
                 earthDb.StackableItems.Add(newItem);
                 await earthDb.SaveChangesAsync(cancellationToken);
-                logger.LogError("****** added ******");
             }
             catch (DbUpdateException)
             {
                 await earthDb.StackableItems
                     .Where(x => x.ProfileId == accountId && x.ItemId == itemId)
                     .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.Count, x => x.Count + count), cancellationToken);
-                logger.LogError("****** updated 2 ******");
             }
-        }
-        else
-        {
-            logger.LogError("****** updated ******");
         }
 
         results.Inventory();
