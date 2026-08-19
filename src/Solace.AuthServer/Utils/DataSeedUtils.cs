@@ -29,9 +29,13 @@ internal static class DataSeedUtils
                 return;
             }
 
-            await playfabDb.Tabs.ExecuteDeleteAsync(cancellationToken);
-            await playfabDb.Items.ExecuteDeleteAsync(cancellationToken);
-            await playfabDb.ItemData.ExecuteDeleteAsync(cancellationToken);
+            // update should only touch default data
+            if (isFirstTime || force)
+            {
+                await playfabDb.Tabs.ExecuteDeleteAsync(cancellationToken);
+                await playfabDb.Items.ExecuteDeleteAsync(cancellationToken);
+                await playfabDb.ItemData.ExecuteDeleteAsync(cancellationToken);
+            }
 
             await InternalSeedPlayfabDataAsync(playfabDb, staticData, cancellationToken);
 
@@ -72,72 +76,126 @@ internal static class DataSeedUtils
                 continue;
             }
 
-            ItemDataEF data = item.Data switch
+            var itemEF = await playfabDb.Items
+                .AsTracking()
+                .Include(item => item.Data)
+                .FirstOrDefaultAsync(item => item.Id == itemId, cancellationToken);
+
+            if (itemEF is null)
             {
-                Playfab.Item.BuildplateData buildplateData => new BuildplateDataEF()
+                itemEF = new ItemEF()
                 {
-#pragma warning disable CS0618 // Type or member is obsolete
                     Id = itemId,
-#pragma warning restore CS0618 // Type or member is obsolete
-                    BuildplateId = buildplateData.Id,
-                    Cost = buildplateData.Cost,
-                    Size = buildplateData.Size switch
+                    Data = item.Data switch
                     {
-                        Playfab.Item.BuidplateSize.Small => BuildplateSizeEF.Small,
-                        Playfab.Item.BuidplateSize.Medium => BuildplateSizeEF.Medium,
-                        Playfab.Item.BuidplateSize.Large => BuildplateSizeEF.Large,
+                        Playfab.Item.BuildplateData => new BuildplateDataEF()
+                        {
+#pragma warning disable CS0618 // Type or member is obsolete
+                            Id = itemId
+#pragma warning restore CS0618 // Type or member is obsolete
+                        },
+                        Playfab.Item.InventoryItemData => new InventoryItemDataEF()
+                        {
+#pragma warning disable CS0618 // Type or member is obsolete
+                            Id = itemId,
+#pragma warning restore CS0618 // Type or member is obsolete
+                        },
                         _ => throw new UnreachableException(),
-                    },
-                    UnlockLevel = buildplateData.UnlockLevel,
-                    Rarity = ConvertRarity(buildplateData.Rarity),
-                    Version = buildplateData.Version,
-                },
-                Playfab.Item.InventoryItemData inventoryData => new InventoryItemDataEF()
-                {
-#pragma warning disable CS0618 // Type or member is obsolete
-                    Id = itemId,
-#pragma warning restore CS0618 // Type or member is obsolete
-                    ItemId = inventoryData.Id,
-                    Cost = inventoryData.Cost,
-                    Amount = inventoryData.Amount,
-                    Rarity = ConvertRarity(inventoryData.Rarity),
-                    Version = inventoryData.Version,
-                },
-                _ => throw new UnreachableException(),
-            };
+                    }
+                };
 
-            var itemEF = new ItemEF()
+                itemEF.Data.Item = itemEF;
+
+                playfabDb.Items.Add(itemEF);
+            }
+            else if (itemEF.Data is null || (itemEF.Data is BuildplateDataEF) != (item.Data is Playfab.Item.BuildplateData))
             {
-                Id = itemId,
-                FriendlyId = item.FriendlyId,
-                Purchasable = item.Purchasable,
-                Title = item.Title,
-                Description = item.Description,
-                ThumbnailImageId = item.ThumbnailImageId,
-                CreationDate = new DateTimeOffset(item.CreationDate, TimeSpan.Zero),
-                LastModifiedDate = new DateTimeOffset(item.LastModifiedDate, TimeSpan.Zero),
-                StartDate = new DateTimeOffset(item.StartDate, TimeSpan.Zero),
-                SourceEntityId = item.SourceEntityId,
-                CreatorEntityId = item.CreatorEntityId,
-                Data = data,
-                Tags = [.. item.Tags],
-                Keywords = item.Keywords.ToDictionary(
-                    item => item.Key, item => new KeywordValuesEF()
+                if (itemEF.Data is not null)
+                {
+                    playfabDb.ItemData.Remove(itemEF.Data);
+                    await playfabDb.SaveChangesAsync(cancellationToken);
+                }
+
+                itemEF.Data = item.Data switch
+                {
+                    Playfab.Item.BuildplateData => new BuildplateDataEF()
                     {
-                        Values = [.. item.Value.Values],
-                    }, StringComparer.Ordinal),
-                TitleTranslations = item.TitleTranslations.ToDictionary(StringComparer.Ordinal),
-                DescriptionTranslations = item.DescriptionTranslations.ToDictionary(StringComparer.Ordinal),
-                ItemReferences = [.. item.ItemReferences.Select(itemRef =>
-                    new ItemReferenceEF(){
-                        Id = itemRef.Id,
-                        Amount = itemRef.Amount,
-                    })]
-            };
+#pragma warning disable CS0618 // Type or member is obsolete
+                        Id = itemId
+#pragma warning restore CS0618 // Type or member is obsolete
+                    },
+                    Playfab.Item.InventoryItemData => new InventoryItemDataEF()
+                    {
+#pragma warning disable CS0618 // Type or member is obsolete
+                        Id = itemId,
+#pragma warning restore CS0618 // Type or member is obsolete
+                    },
+                    _ => throw new UnreachableException(),
+                };
 
-            data.Item = itemEF;
+                itemEF.Data.Item = itemEF;
+            }
 
-            playfabDb.Items.Add(itemEF);
+            itemEF.FriendlyId = item.FriendlyId;
+            itemEF.Purchasable = item.Purchasable;
+            itemEF.Title = item.Title;
+            itemEF.Description = item.Description;
+            itemEF.ThumbnailImageId = item.ThumbnailImageId;
+            itemEF.CreationDate = new DateTimeOffset(item.CreationDate, TimeSpan.Zero);
+            itemEF.LastModifiedDate = new DateTimeOffset(item.LastModifiedDate, TimeSpan.Zero);
+            itemEF.StartDate = new DateTimeOffset(item.StartDate, TimeSpan.Zero);
+            itemEF.SourceEntityId = item.SourceEntityId;
+            itemEF.CreatorEntityId = item.CreatorEntityId;
+            itemEF.Tags = [.. item.Tags];
+            itemEF.Keywords = item.Keywords.ToDictionary(
+                item => item.Key, item => new KeywordValuesEF()
+                {
+                    Values = [.. item.Value.Values],
+                }, StringComparer.Ordinal);
+            itemEF.TitleTranslations = item.TitleTranslations.ToDictionary(StringComparer.Ordinal);
+            itemEF.DescriptionTranslations = item.DescriptionTranslations.ToDictionary(StringComparer.Ordinal);
+            itemEF.ItemReferences = [.. item.ItemReferences.Select(itemRef =>
+                new ItemReferenceEF(){
+                    Id = itemRef.Id,
+                    Amount = itemRef.Amount,
+                })];
+
+            switch (item.Data)
+            {
+                case Playfab.Item.BuildplateData buildplateData:
+                    {
+                        var data = (BuildplateDataEF)itemEF.Data!;
+
+                        data.BuildplateId = buildplateData.Id;
+                        data.Cost = buildplateData.Cost;
+                        data.Size = buildplateData.Size switch
+                        {
+                            Playfab.Item.BuidplateSize.Small => BuildplateSizeEF.Small,
+                            Playfab.Item.BuidplateSize.Medium => BuildplateSizeEF.Medium,
+                            Playfab.Item.BuidplateSize.Large => BuildplateSizeEF.Large,
+                            _ => throw new UnreachableException(),
+                        };
+                        data.UnlockLevel = buildplateData.UnlockLevel;
+                        data.Rarity = ConvertRarity(buildplateData.Rarity);
+                        data.Version = buildplateData.Version;
+                    }
+
+                    break;
+                case Playfab.Item.InventoryItemData inventoryData:
+                    {
+                        var data = (InventoryItemDataEF)itemEF.Data!;
+
+                        data.ItemId = inventoryData.Id;
+                        data.Cost = inventoryData.Cost;
+                        data.Amount = inventoryData.Amount;
+                        data.Rarity = ConvertRarity(inventoryData.Rarity);
+                        data.Version = inventoryData.Version;
+                    }
+
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
 
             await playfabDb.SaveChangesAsync(cancellationToken);
         }

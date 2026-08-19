@@ -281,8 +281,6 @@ else
     private TabViewModel Model { get; set; } = new();
     private bool DataLoaded;
 
-    private Uri? authServerUri;
-
     private List<ItemViewModel>? AvailableItems;
     private bool IsPreviewMode = false;
     private Catalog.CatalogCacheService? CatalogService { get; set; }
@@ -332,9 +330,6 @@ else
         {
             CatalogService = ServiceProvider.GetRequiredService<Catalog.CatalogCacheService>();
             Catalog = await CatalogService.GetSyncAccessorAsync();
-
-            var publicEndpoints = await Http.GetFromJsonAsync<PublicEndpointInfo>("api/config/public-endpoints");
-            authServerUri = publicEndpoints is { AuthServer: not null } ? new Uri(publicEndpoints.AuthServer) : null;
 
             AvailableItems = (await Http.GetFromJsonAsync<List<Solace.WebPortal.Common.Features.Store.ItemDto>>("api/store/items"))!
                 .Select(ItemViewModel.FromDto)

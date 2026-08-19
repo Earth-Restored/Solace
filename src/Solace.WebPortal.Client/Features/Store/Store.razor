@@ -15,9 +15,28 @@
 <div class="container my-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Store</h2>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-center">
+            @if (hasUpdateAvailable)
+            {
+                if (HasPermission(Permissions.EditStore))
+                {
+                    <button class="btn btn-success animate-pulse" @onclick="OpenUpdateModal">
+                        <i class="bi bi-arrow-up-circle me-1"></i> Update to v@(latestVersion)
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-success animate-pulse" disabled>
+                        <i class="bi bi-arrow-up-circle me-1"></i> An update to v@(latestVersion) is available
+                    </button>
+                }
+            }
+
             @if (HasPermission(Permissions.EditStore))
             {
+                <button class="btn btn-outline-warning" @onclick="OpenResetModal">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Data
+                </button>
                 <button class="btn btn-outline-primary" @onclick='() => Navigation.NavigateTo("/Store/Tabs/Create")'>
                     + Create Tab
                 </button>
@@ -172,7 +191,89 @@
 
 <Solace.WebPortal.Client.Features.Common.DeleteConfirmModal Visible="showDeleteModal" IsBusy="isDeleting" ItemName="@deleteTargetName" ErrorMessage="@deleteErrorMessage" OnCancel="CloseDeleteModal" OnConfirm="ConfirmDelete" />
 
+@if (showResetModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header bg-warning-subtle">
+                    <h5 class="modal-title text-warning-emphasis">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Reset Store Data
+                    </h5>
+                    <button type="button" class="btn-close" style="filter: invert(0);" @onclick="CloseResetModal" disabled="@isResetting"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning mb-3">
+                        <i class="bi bi-exclamation-circle me-1"></i>
+                        <strong>Warning:</strong> All tabs and items will be overwritten.
+                    </div>
+                    <p class="mb-0">Are you sure you want to reset all store data back to default?</p>
+
+                    @if (!string.IsNullOrEmpty(resetErrorMessage))
+                    {
+                        <div class="alert alert-danger mt-3 mb-0">
+                            @resetErrorMessage
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseResetModal" disabled="@isResetting">Cancel</button>
+                    <button type="button" class="btn btn-warning" @onclick="ConfirmReset" disabled="@isResetting">
+                        @if (isResetting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        }
+                        Confirm Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showUpdateModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-arrow-up-circle me-2"></i>Update Store Data (v@(latestVersion))
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseUpdateModal" disabled="@isUpdating"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning mb-3">
+                        <i class="bi bi-exclamation-circle me-1"></i>
+                        <strong>Warning:</strong> Default tabs and items will be overwritten.
+                    </div>
+                    <p class="mb-0">A store data update @(string.IsNullOrEmpty(currentVersion) ? (MarkupString)"to version" : (MarkupString)$"from version <strong>v{currentVersion}</strong> to") <strong>v@(latestVersion)</strong> is available. Do you want to apply this update now?</p>
+
+                    @if (!string.IsNullOrEmpty(updateErrorMessage))
+                    {
+                        <div class="alert alert-danger mt-3 mb-0">
+                            @updateErrorMessage
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseUpdateModal" disabled="@isUpdating">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="ConfirmUpdate" disabled="@isUpdating">
+                        @if (isUpdating)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        }
+                        Apply Update
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
+    public sealed record StoreVersionInfo(Version? CurrentVersion, Version AvailableVersion);
+
     private ClaimsPrincipal? _user;
 
     private List<TabSummaryDto>? tabs;
@@ -182,11 +283,23 @@
 
     private HashSet<int> expandedTabIndices = new();
 
+    // Delete Modal State
     private bool showDeleteModal;
     private bool isDeleting;
     private string? deleteTargetName;
     private string? deleteErrorMessage;
     private Func<Task>? pendingDeleteAction;
+
+    private bool hasUpdateAvailable;
+    private string? currentVersion;
+    private string latestVersion = string.Empty;
+    private bool showUpdateModal;
+    private bool isUpdating;
+    private string? updateErrorMessage;
+
+    private bool showResetModal;
+    private bool isResetting;
+    private string? resetErrorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -198,26 +311,46 @@
     {
         if (firstRender)
         {
-            try
-            {
-                var tabsTask = Http.GetFromJsonAsync<List<TabSummaryDto>>("api/store/tabs/summary?includeItems=true");
-                var itemsTask = Http.GetFromJsonAsync<List<ItemSummaryDto>>("api/store/items/summary");
-
-                await Task.WhenAll(tabsTask, itemsTask);
-
-                tabs = await tabsTask ?? new();
-                items = await itemsTask ?? new();
-            }
-            catch
-            {
-                errorMessage = "Failed to load store summary data. Please try again.";
-            }
-            finally
-            {
-                isLoading = false;
-            }
-
+            await LoadStoreDataAsync();
             StateHasChanged();
+        }
+    }
+
+    private async Task LoadStoreDataAsync()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = null;
+
+            var tabsTask = Http.GetFromJsonAsync<List<TabSummaryDto>>("api/store/tabs/summary?includeItems=true");
+            var itemsTask = Http.GetFromJsonAsync<List<ItemSummaryDto>>("api/store/items/summary");
+            var versionTask = Http.GetFromJsonAsync<StoreVersionInfo>("api/store/data/version");
+
+            await Task.WhenAll(tabsTask, itemsTask, versionTask);
+
+            tabs = await tabsTask ?? new();
+            items = await itemsTask ?? new();
+
+            var versionInfo = await versionTask;
+            if (versionInfo?.AvailableVersion is not null)
+            {
+                currentVersion = versionInfo.CurrentVersion?.ToString();
+                latestVersion = versionInfo.AvailableVersion.ToString();
+                hasUpdateAvailable = versionInfo.CurrentVersion is null || versionInfo.AvailableVersion > versionInfo.CurrentVersion;
+            }
+            else
+            {
+                hasUpdateAvailable = false;
+            }
+        }
+        catch
+        {
+            errorMessage = "Failed to load store summary data. Please try again.";
+        }
+        finally
+        {
+            isLoading = false;
         }
     }
 
@@ -229,6 +362,89 @@
         }
     }
 
+    // Reset Modal Handlers
+    private void OpenResetModal()
+    {
+        resetErrorMessage = null;
+        showResetModal = true;
+    }
+
+    private void CloseResetModal()
+    {
+        showResetModal = false;
+        resetErrorMessage = null;
+    }
+
+    private async Task ConfirmReset()
+    {
+        try
+        {
+            isResetting = true;
+            resetErrorMessage = null;
+
+            var response = await Http.PostAsync("api/store/data/reset", null);
+            if (response.IsSuccessStatusCode)
+            {
+                showResetModal = false;
+                await LoadStoreDataAsync();
+            }
+            else
+            {
+                resetErrorMessage = "Failed to reset store data. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            resetErrorMessage = ex.Message;
+        }
+        finally
+        {
+            isResetting = false;
+        }
+    }
+
+    // Update Modal Handlers
+    private void OpenUpdateModal()
+    {
+        updateErrorMessage = null;
+        showUpdateModal = true;
+    }
+
+    private void CloseUpdateModal()
+    {
+        showUpdateModal = false;
+        updateErrorMessage = null;
+    }
+
+    private async Task ConfirmUpdate()
+    {
+        try
+        {
+            isUpdating = true;
+            updateErrorMessage = null;
+
+            var response = await Http.PostAsync("api/store/data/update", null);
+            if (response.IsSuccessStatusCode)
+            {
+                showUpdateModal = false;
+                await LoadStoreDataAsync();
+            }
+            else
+            {
+                updateErrorMessage = "Failed to update store data. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            updateErrorMessage = ex.Message;
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    // Delete Handlers
     private void OpenDeleteTabModal(TabSummaryDto tab, int index)
     {
         deleteTargetName = $"Tab #{index} ({tab.TabId})";

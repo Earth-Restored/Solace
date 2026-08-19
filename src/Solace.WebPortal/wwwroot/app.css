@@ -403,9 +403,10 @@ html.dark .btn-danger {
 }
 
 html.dark .btn-warning {
-    background-color: #6a5a1a;
-    border-color: #6a5a1a;
-    color: #d0d0e0;
+    background-color: #d99b00;
+    border-color: #d99b00;
+    color: #000000;
+    font-weight: 500;
 }
 
 html.dark .text-muted {
@@ -690,4 +691,15 @@ html.dark .card-header.bg-warning-subtle {
 
 html.dark .border-warning {
     border-color: #997404 !important;
+}
+
+html.dark .btn-warning:hover:not(:disabled) {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #000000;
+}
+
+html.dark .btn-secondary:hover:not(:disabled) {
+    background-color: #5a5a8a;
+    border-color: #5a5a8a;
 }
