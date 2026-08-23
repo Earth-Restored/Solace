@@ -279,7 +279,7 @@ public sealed class EarthDbContext : DbContext
                 v => JsonSerializer.Deserialize(v, DbJsonContext.Default.ActiveBoostArray)
                     ?? new BoostsEF.ActiveBoost?[5]
             )
-            .Metadata.SetValueComparer(new ArrayValueComparer<BoostsEF.ActiveBoost>(BoostsEF.ActiveBoost.Comparer.Instance));
+            .Metadata.SetValueComparer(new ArrayValueComparer<BoostsEF.ActiveBoost>());
 
         // hotbar
         modelBuilder.Entity<HotbarEF>()
@@ -288,7 +288,7 @@ public sealed class EarthDbContext : DbContext
                 v => JsonSerializer.Serialize(v, DbJsonContext.Default.ItemArray),
                 v => JsonSerializer.Deserialize<HotbarEF.Item?[]>(v, DbJsonContext.Default.ItemArray) ?? new HotbarEF.Item?[7]
             )
-            .Metadata.SetValueComparer(new ArrayValueComparer<HotbarEF.Item>(HotbarEF.Item.Comparer.Instance));
+            .Metadata.SetValueComparer(new ArrayValueComparer<HotbarEF.Item>());
 
         // inventory
         modelBuilder.Entity<StackableItemEF>()
@@ -358,7 +358,7 @@ public sealed class EarthDbContext : DbContext
                 v => JsonSerializer.Serialize(v, DbJsonContext.Default.CraftingSlotEFArray),
                 v => JsonSerializer.Deserialize(v, DbJsonContext.Default.CraftingSlotEFArray) ?? new CraftingSlotEF[] { new(), new(), new(), }
             )
-            .Metadata.SetValueComparer(new ArrayValueComparer<CraftingSlotEF>(CraftingSlotEF.Comparer.Instance));
+            .Metadata.SetValueComparer(new ArrayValueComparer<CraftingSlotEF>());
 
         // smelting slots
         modelBuilder.Ignore<SmeltingSlotEF.ActiveSmeltingJob>();
@@ -371,7 +371,7 @@ public sealed class EarthDbContext : DbContext
                 v => JsonSerializer.Serialize(v, DbJsonContext.Default.SmeltingSlotEFArray),
                 v => JsonSerializer.Deserialize(v, DbJsonContext.Default.SmeltingSlotEFArray) ?? new SmeltingSlotEF[] { new(), new(), new(), }
             )
-            .Metadata.SetValueComparer(new ArrayValueComparer<SmeltingSlotEF>(SmeltingSlotEF.Comparer.Instance));
+            .Metadata.SetValueComparer(new ArrayValueComparer<SmeltingSlotEF>());
 
         // shared buildplates
         modelBuilder.Entity<SharedBuildplateEF>()
@@ -380,7 +380,7 @@ public sealed class EarthDbContext : DbContext
                 v => JsonSerializer.Serialize(v, DbJsonContext.Default.HotbarItemArray),
                 v => JsonSerializer.Deserialize<SharedBuildplateEF.HotbarItem?[]>(v, DbJsonContext.Default.HotbarItemArray) ?? new SharedBuildplateEF.HotbarItem?[7]
             )
-            .Metadata.SetValueComparer(new ArrayValueComparer<SharedBuildplateEF.HotbarItem>(SharedBuildplateEF.HotbarItem.Comparer.Instance));
+            .Metadata.SetValueComparer(new ArrayValueComparer<SharedBuildplateEF.HotbarItem>());
 #pragma warning restore CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
 #pragma warning restore CS8621 // Nullability of reference types in return type doesn't match the target delegate (possibly because of nullability attributes).
 #pragma warning restore IDE0058 // Expression value is never used

@@ -70,6 +70,10 @@ function Push-Project {
         "/p:EventSourceSupport=false",
         "/p:HttpActivityPropagationSupport=false",
         "/p:MetadataUpdaterSupport=false",
+        "/p:EFCoreCompileQueries=false", # pretty broken, does not respect lang version for some reason (does not recognize [with(...)]), todo: enabled when it's fixed, same for the three bellow
+        "/p:EFCorePrecompileQueries=false",
+        "/p:EFPrecompileQueriesStage=None",
+        "/p:EFScaffoldModelStage=None",
         "/t:PublishContainer",
         "-p:ContainerRegistry=$Registry",
         "-p:ContainerRepository=$Username/solace-$PackageName",

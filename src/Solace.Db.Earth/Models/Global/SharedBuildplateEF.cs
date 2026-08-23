@@ -40,20 +40,5 @@ public sealed class SharedBuildplateEF : IEntityWithId<Guid>
     {
         public HotbarItem DeepCopy()
             => new(this);
-
-        public sealed class Comparer : IEqualityComparer<HotbarItem>
-        {
-            public static Comparer Instance { get; } = new Comparer();
-
-            private Comparer()
-            {
-            }
-
-            public bool Equals(HotbarItem? x, HotbarItem? y)
-                => x == y || (x?.Equals(y) ?? false);
-
-            public int GetHashCode([DisallowNull] HotbarItem obj)
-                => obj.GetHashCode();
-        }
     }
 }

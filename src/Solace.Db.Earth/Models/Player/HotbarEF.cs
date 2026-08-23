@@ -19,20 +19,5 @@ public sealed class HotbarEF : IEntityWithId<Guid>
     {
         public Item DeepCopy()
             => new(this);
-
-        public sealed class Comparer : IEqualityComparer<Item>
-        {
-            public static Comparer Instance { get; } = new Comparer();
-
-            private Comparer()
-            {
-            }
-
-            public bool Equals(Item? x, Item? y)
-                => x == y || (x?.Equals(y) ?? false);
-
-            public int GetHashCode([DisallowNull] Item obj)
-                => obj.GetHashCode();
-        }
     }
 }

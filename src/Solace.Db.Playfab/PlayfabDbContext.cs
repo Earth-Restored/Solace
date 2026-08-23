@@ -44,8 +44,6 @@ public sealed class PlayfabDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        var jsonSerializerOptions = new JsonSerializerOptions();
-
         modelBuilder.Entity<SeedingHistory>(builder =>
         {
             builder.HasKey(e => e.Key);
@@ -71,36 +69,36 @@ public sealed class PlayfabDbContext : DbContext
 
             builder.Property(e => e.Keywords)
                 .HasConversion(
-                    v => JsonSerializer.Serialize(v, jsonSerializerOptions),
-                    v => JsonSerializer.Deserialize<Dictionary<string, KeywordValuesEF>>(v, jsonSerializerOptions) ?? new(StringComparer.Ordinal)
+                    v => JsonSerializer.Serialize(v),
+                    v => JsonSerializer.Deserialize<Dictionary<string, KeywordValuesEF>>(v) ?? new(StringComparer.Ordinal)
                 )
-                .Metadata.SetValueComparer(new StringDictionaryValueComparer<KeywordValuesEF>(static item => item.DeepCopy()));
+                .Metadata.SetValueComparer(new StringDictionaryValueComparer<KeywordValuesEF>());
 
             builder.Property(e => e.TitleTranslations)
                 .HasConversion(
-                    v => JsonSerializer.Serialize(v, jsonSerializerOptions),
-                    v => JsonSerializer.Deserialize<Dictionary<string, string>>(v, jsonSerializerOptions) ?? new(StringComparer.Ordinal)
+                    v => JsonSerializer.Serialize(v),
+                    v => JsonSerializer.Deserialize<Dictionary<string, string>>(v) ?? new(StringComparer.Ordinal)
                 )
-                .Metadata.SetValueComparer(new StringDictionaryValueComparer<string>(static item => item));
+                .Metadata.SetValueComparer(new StringStringDictionaryValueComparer());
 
             builder.Property(e => e.DescriptionTranslations)
                 .HasConversion(
-                    v => JsonSerializer.Serialize(v, jsonSerializerOptions),
-                    v => JsonSerializer.Deserialize<Dictionary<string, string>>(v, jsonSerializerOptions) ?? new(StringComparer.Ordinal)
+                    v => JsonSerializer.Serialize(v),
+                    v => JsonSerializer.Deserialize<Dictionary<string, string>>(v) ?? new(StringComparer.Ordinal)
                 )
-                .Metadata.SetValueComparer(new StringDictionaryValueComparer<string>(static item => item));
+                .Metadata.SetValueComparer(new StringStringDictionaryValueComparer());
 
             builder.Property(e => e.Tags)
                 .HasConversion(
-                    v => JsonSerializer.Serialize(v, jsonSerializerOptions),
-                    v => JsonSerializer.Deserialize<List<string>>(v, jsonSerializerOptions) ?? new()
+                    v => JsonSerializer.Serialize(v),
+                    v => JsonSerializer.Deserialize<List<string>>(v) ?? new()
                 )
                 .Metadata.SetValueComparer(new ListImmutableValueComparer<string>());
 
             builder.Property(e => e.ItemReferences)
                 .HasConversion(
-                    v => JsonSerializer.Serialize(v, jsonSerializerOptions),
-                    v => JsonSerializer.Deserialize<List<ItemReferenceEF>>(v, jsonSerializerOptions) ?? new()
+                    v => JsonSerializer.Serialize(v),
+                    v => JsonSerializer.Deserialize<List<ItemReferenceEF>>(v) ?? new()
                 )
                 .Metadata.SetValueComparer(new ListValueComparer<ItemReferenceEF>());
         });
@@ -139,8 +137,8 @@ public sealed class PlayfabDbContext : DbContext
 
             builder.Property(e => e.ScreenLayoutQueries)
                 .HasConversion(
-                    v => JsonSerializer.Serialize(v, jsonSerializerOptions),
-                    v => JsonSerializer.Deserialize<List<ScreenLayoutQueryEF>>(v, jsonSerializerOptions) ?? new()
+                    v => JsonSerializer.Serialize(v),
+                    v => JsonSerializer.Deserialize<List<ScreenLayoutQueryEF>>(v) ?? new()
                 )
                 .Metadata.SetValueComparer(new ListValueComparer<ScreenLayoutQueryEF>());
         });

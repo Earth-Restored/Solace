@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using Solace.Common;
+﻿using Solace.Common;
 
 namespace Solace.Db.Earth.Models.Player.Workshop;
 
@@ -34,21 +33,6 @@ public sealed class SmeltingSlotEF : IEquatable<SmeltingSlotEF>, ICloneable<Smel
 
     public override int GetHashCode()
         => HashCode.Combine(ActiveJob, Burning, Locked);
-
-    public sealed class Comparer : IEqualityComparer<SmeltingSlotEF>
-    {
-        public static Comparer Instance { get; } = new Comparer();
-
-        private Comparer()
-        {
-        }
-
-        public bool Equals(SmeltingSlotEF? x, SmeltingSlotEF? y)
-            => x?.Equals(y) ?? ReferenceEquals(x, y) || (x != null && y != null && (x.ActiveJob?.Equals(y.ActiveJob) ?? false) && (x.Burning?.Equals(y.Burning) ?? false) && x.Locked == y.Locked);
-
-        public int GetHashCode([DisallowNull] SmeltingSlotEF obj)
-            => HashCode.Combine(obj.ActiveJob, obj.Burning, obj.Locked);
-    }
 
     public sealed record ActiveSmeltingJob(
         string SessionId,

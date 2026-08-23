@@ -1,9 +1,8 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using Solace.Common;
+﻿using Solace.Common;
 
 namespace Solace.Db.Earth.Models.Player.Workshop;
 
-public sealed class CraftingSlotEF : ICloneable<CraftingSlotEF>
+public sealed class CraftingSlotEF : IEquatable<CraftingSlotEF>, ICloneable<CraftingSlotEF>
 {
     public ActiveCraftingJob? ActiveJob { get; set; }
     public bool Locked { get; set; }
@@ -15,20 +14,14 @@ public sealed class CraftingSlotEF : ICloneable<CraftingSlotEF>
             Locked = Locked,
         };
 
-    public sealed class Comparer : IEqualityComparer<CraftingSlotEF>
-    {
-        public static Comparer Instance { get; } = new Comparer();
+    public bool Equals(CraftingSlotEF? other)
+        => other is not null && ActiveJob == other.ActiveJob && Locked == other.Locked;
 
-        private Comparer()
-        {
-        }
+    public override int GetHashCode()
+        => HashCode.Combine(ActiveJob, Locked);
 
-        public bool Equals(CraftingSlotEF? x, CraftingSlotEF? y)
-            => x == y || (x != null && y != null && (x.ActiveJob?.Equals(y.ActiveJob) ?? false) && x.Locked == y.Locked);
-
-        public int GetHashCode([DisallowNull] CraftingSlotEF obj)
-            => HashCode.Combine(obj.ActiveJob, obj.Locked);
-    }
+    public override bool Equals(object? obj)
+        => Equals(obj as CraftingSlotEF);
 
     public sealed record InputRow(InputItem[] Items)
         : ICloneable<InputRow>
