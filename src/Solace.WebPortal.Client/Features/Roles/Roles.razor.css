@@ -1,0 +1,56 @@
+.permission-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    background-color: var(--bs-border-color-translucent, #e9ecef);
+    gap: 1px;
+}
+
+.permission-tile {
+    background-color: var(--bs-body-bg, #ffffff);
+    padding: 0.75rem 1rem;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.permission-tile:hover:not(.readonly) {
+    background-color: var(--bs-tertiary-bg, #f8f9fa);
+}
+
+.permission-tile.selected {
+    background-color: rgba(13, 110, 253, 0.035);
+}
+
+.permission-tile.selected .permission-title {
+    color: var(--bs-primary, #0d6efd);
+    font-weight: 600;
+}
+
+.permission-tile.readonly {
+    cursor: default;
+    opacity: 0.7;
+}
+
+.permission-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--bs-body-color, #212529);
+}
+
+.permission-desc {
+    font-size: 0.75rem;
+    color: var(--bs-secondary-color, #6c757d);
+    line-height: 1.25;
+}
+
+.permission-indicator i {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.text-tertiary {
+    color: var(--bs-border-color, #dee2e6);
+}

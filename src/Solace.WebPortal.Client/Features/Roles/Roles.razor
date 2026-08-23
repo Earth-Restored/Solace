@@ -127,7 +127,7 @@
                     </h5>
                     <button type="button" class="btn-close" @onclick="() => _isEditing = false"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
                     @if (!string.IsNullOrEmpty(_errorMessage))
                     {
                         <div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
@@ -136,47 +136,83 @@
                         </div>
                     }
 
-                    <div class="mb-3">
-                        <label class="form-label">Role Name</label>
-                        <input class="form-control" @bind="_editModel.Name" disabled="@(!_editModel.CanEditMetadata)" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Role Color</label>
-                        <input type="color" class="form-control form-control-color" @bind="_editModel.Color" disabled="@(!_editModel.CanEditMetadata)" />
+                    <div class="card mb-4 border-0 bg-light">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <label class="form-label fw-semibold">Role Name</label>
+                                    <input class="form-control" @bind="_editModel.Name" disabled="@(!_editModel.CanEditMetadata)" placeholder="Enter role name..." />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Badge Color</label>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <input type="color" class="form-control form-control-color flex-shrink-0" @bind="_editModel.Color" disabled="@(!_editModel.CanEditMetadata)" />
+                                        <input type="text" class="form-control font-monospace text-uppercase" @bind="_editModel.Color" disabled="@(!_editModel.CanEditMetadata)" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <h6>Permissions</h6>
-                    <div class="row">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0 text-uppercase tracking-wide text-muted small">Permissions Configuration</h6>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">
+                            @_modelPermissions.Count Selected
+                        </span>
+                    </div>
+
+                    <div class="d-flex flex-column gap-3">
                         @foreach (var categoryGroup in Permissions.AllWithInfo.GroupBy(p => p.Category))
                         {
-                            <div class="mb-3">
-                                <h5>@categoryGroup.Key</h5>
-                                <div class="row">
+                            var categoryPerms = categoryGroup.ToList();
+                            var categoryPermNames = categoryPerms.Select(p => p.Name).ToList();
+                            var assignedCount = categoryPermNames.Count(p => _modelPermissions.Contains(p));
+                            var isAllSelected = assignedCount == categoryPermNames.Count;
+
+                            <div class="card border shadow-sm overflow-hidden mb-3">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2 px-3 border-bottom">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-semibold text-dark">@categoryGroup.Key</span>
+                                        <span class="badge bg-secondary-subtle text-secondary rounded-pill small">
+                                            @assignedCount / @categoryPermNames.Count
+                                        </span>
+                                    </div>
+                                    @if (!_editModel.IsReadOnly)
+                                    {
+                                        <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 fw-medium" @onclick="() => ToggleCategoryPermissions(categoryPermNames, !isAllSelected)">
+                                            @(isAllSelected ? "Deselect All" : "Select All")
+                                        </button>
+                                    }
+                                </div>
+
+                                <div class="permission-grid">
                                     @foreach (var perm in categoryGroup)
                                     {
                                         var isAssigned = _modelPermissions.Contains(perm.Name);
-                                        var isExpanded = _expandedPermissions.Contains(perm.Name);
 
-                                        <div class="col-md-4">
-                                            <div class="form-check p-2 border rounded @(isAssigned ? "bg-light" : "")" style="cursor: pointer;">
-                                                <input class="form-check-input ms-1" type="checkbox" checked="@isAssigned" disabled="@_editModel.IsReadOnly" @onchange="@(e => TogglePermission(perm.Name, e.Value))" />
-                                                <label class="form-check-label ms-2 @(isAssigned ? "fw-bold" : "text-muted")">
-                                                    @perm.Name
-                                                </label>
+                                        <div class="permission-tile @(isAssigned ? "selected" : "") @(_editModel.IsReadOnly ? "readonly" : "")" @onclick="() => TogglePermission(perm.Name, !isAssigned)">
 
-                                                @if (!string.IsNullOrWhiteSpace(perm.Description))
-                                                {
-                                                    <button class="btn btn-sm btn-link p-0 ms-2" @onclick="() => ToggleDescription(perm.Name)">
-                                                        @(isExpanded ? "▲" : "▼")
-                                                    </button>
-                                                    @if (isExpanded)
+                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                <span class="permission-title">@perm.Name</span>
+
+                                                <div class="permission-indicator">
+                                                    @if (isAssigned)
                                                     {
-                                                        <div class="small text-muted mt-1" style="white-space: pre-wrap;">
-                                                            @perm.Description
-                                                        </div>
+                                                        <i class="bi bi-check-circle-fill text-primary"></i>
                                                     }
-                                                }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-circle text-tertiary"></i>
+                                                    }
+                                                </div>
                                             </div>
+
+                                            @if (!string.IsNullOrWhiteSpace(perm.Description))
+                                            {
+                                                <span class="permission-desc mt-1">
+                                                    @perm.Description
+                                                </span>
+                                            }
                                         </div>
                                     }
                                 </div>
@@ -198,7 +234,7 @@
 
 @if (_showDeleteConfirm && _roleToDelete is not null)
 {
-    <DeleteConfirmModal Visible="true"  Message="Are you sure you want to delete" ItemName="@_roleToDelete.Name"  OnCancel="CloseDeleteConfirm" OnConfirm="DeleteConfirmed" />
+    <DeleteConfirmModal Visible="true" Message="Are you sure you want to delete" ItemName="@_roleToDelete.Name" OnCancel="CloseDeleteConfirm" OnConfirm="DeleteConfirmed" />
 }
 
 @code {
@@ -209,7 +245,6 @@
     private RoleEditModel _editModel = new();
     private HashSet<string> _modelPermissions = new();
 
-    private HashSet<string> _expandedPermissions = new();
     private bool _showDeleteConfirm = false;
     private RoleDto? _roleToDelete;
     private string? _errorMessage;
@@ -271,7 +306,6 @@
         };
 
         _modelPermissions = role.Permissions.ToHashSet();
-        _expandedPermissions.Clear();
         _isEditing = true;
     }
 
@@ -398,6 +432,7 @@
         {
             return;
         }
+
         if (checkedValue is bool b && b)
         {
             _modelPermissions.Add(perm);
@@ -408,11 +443,23 @@
         }
     }
 
-    private void ToggleDescription(string permName)
+    private void ToggleCategoryPermissions(IEnumerable<string> permissionNames, bool selectAll)
     {
-        if (!_expandedPermissions.Add(permName))
+        if (_editModel.IsReadOnly)
         {
-            _expandedPermissions.Remove(permName);
+            return;
+        }
+
+        foreach (var name in permissionNames)
+        {
+            if (selectAll)
+            {
+                _modelPermissions.Add(name);
+            }
+            else
+            {
+                _modelPermissions.Remove(name);
+            }
         }
     }
 
