@@ -158,7 +158,7 @@ public sealed class RequestHandler : IAsyncDisposable
                                                     IsLastChunk = isLast,
                                                     BinaryData = UnsafeByteOperations.UnsafeWrap(chunkMemory)
                                                 }
-                                            }, cancellationToken);
+                                            }, cancellationToken: cancellationToken);
                                         }, _cts.Token);
                                         break;
                                 }
@@ -166,8 +166,6 @@ public sealed class RequestHandler : IAsyncDisposable
                         }
                         catch (Exception exception) when (exception is not (OperationCanceledException or RpcException { StatusCode: StatusCode.Cancelled, }))
                         {
-                            await _onError(exception);
-
                             try
                             {
                                 await safeStream.WriteAsync(new ClientMessage
@@ -182,6 +180,8 @@ public sealed class RequestHandler : IAsyncDisposable
                             catch
                             {
                             }
+
+                            await _onError(exception);
                         }
                         finally
                         {

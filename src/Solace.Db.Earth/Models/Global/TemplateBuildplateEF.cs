@@ -12,6 +12,10 @@ public sealed class TemplateBuildplateEF : IEntityWithId<Guid>
 
     public required int BlocksPerMeter { get; set; }
 
+    public int? RequiredLevel { get; set; }
+
+    public int? Order { get; set; }
+
     public required bool Night { get; set; }
 
     public required Guid ServerDataObjectId { get; set; }

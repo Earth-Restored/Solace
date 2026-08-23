@@ -3,7 +3,7 @@
 namespace Solace.ApiServer.Types.Buildplates;
 
 internal sealed record SharedBuildplate(
-    string PlayerId,
+    string PlayerUsername,
     string SharedOn,
     SharedBuildplate.BuildplateDataR BuildplateData,
     Inventory.InventoryResponse Inventory

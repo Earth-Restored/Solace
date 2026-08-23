@@ -1,7 +1,10 @@
 ﻿using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Solace.BuildplateImporter;
 using Solace.Db.Earth;
 using Solace.Db.Earth.Models.Player;
+using Solace.ObjectStore.Client;
 
 namespace Solace.ApiServer.Utils;
 
@@ -68,14 +71,14 @@ internal sealed class Rewards
         return this;
     }
 
-    public async Task ToRedeemQueryAsync(EarthDbContext earthDb, ResultsEF.Builder results, Guid accountId, DateTimeOffset currentTime, StaticData.StaticDataProvider staticData, CancellationToken cancellationToken = default)
+    public async Task ToRedeemQueryAsync(EarthDbContext earthDb, ResultsEF.Builder results, ObjectStoreClient objectStore, Guid profileId, DateTimeOffset currentTime, StaticData.StaticDataProvider staticData, CancellationToken cancellationToken = default)
     {
         var checkLevelUp = false;
         if (_rubies > 0 || _experiencePoints > 0)
         {
             var profile = await earthDb.Profiles
                 .AsTracking()
-                .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
+                .FirstAsync(profile => profile.Id == profileId, cancellationToken: cancellationToken);
 
             if (_rubies > 0)
             {
@@ -108,18 +111,18 @@ internal sealed class Rewards
 
                     if (item.Stackable)
                     {
-                        await InventoryUtils.AddStackableItemsAsync(earthDb, results, accountId, itemId, quantity, cancellationToken);
+                        await InventoryUtils.AddStackableItemsAsync(earthDb, results, profileId, itemId, quantity, cancellationToken);
                     }
                     else
                     {
-                        await InventoryUtils.AddInstanceItemsAsync(earthDb, results, accountId, itemId, quantity, cancellationToken);
+                        await InventoryUtils.AddInstanceItemsAsync(earthDb, results, profileId, itemId, quantity, cancellationToken);
                     }
 
-                    if (await JournalUtils.AddCollectedItemAsync(earthDb, results, accountId, itemId, currentTime, quantity, cancellationToken) is 0)
+                    if (await JournalUtils.AddCollectedItemAsync(earthDb, results, profileId, itemId, currentTime, quantity, cancellationToken) is 0)
                     {
                         if (item.JournalEntry is not null)
                         {
-                            await TokenUtils.AddTokenAsync(earthDb, results, new JournalItemUnlockedTokenEF(accountId, itemId), cancellationToken);
+                            await TokenUtils.AddTokenAsync(earthDb, results, new JournalItemUnlockedTokenEF(profileId, itemId), cancellationToken);
                         }
                     }
                 }
@@ -133,7 +136,24 @@ internal sealed class Rewards
 
         if (_buildplates.Count > 0)
         {
-            // TODO
+            await using var importer = new Importer(earthDb, null, objectStore, NullLogger.Instance)
+            {
+                OwnsEarthDb = false,
+                OwnsEventBusClient = false,
+                OwnsObjectStoreClient = false,
+            };
+
+            foreach (var buildplateId in _buildplates)
+            {
+                if (await earthDb.PlayerBuildplates.AnyAsync(buildplate => buildplate.ProfileId == profileId && buildplate.TemplateId == buildplateId, cancellationToken))
+                {
+                    continue;
+                }
+
+                await importer.AddBuidplateToPlayer(buildplateId, profileId, cancellationToken);
+
+                results.Buildplates();
+            }
         }
 
         if (_challenges.Count > 0)
@@ -143,7 +163,7 @@ internal sealed class Rewards
 
         if (checkLevelUp)
         {
-            await LevelUtils.CheckAndHandlePlayerLevelUpAsync(earthDb, results, accountId, currentTime, staticData);
+            await LevelUtils.CheckAndHandlePlayerLevelUpAsync(earthDb, results, profileId, currentTime, staticData);
         }
     }
 

@@ -7,7 +7,6 @@ using Solace.Db.Earth;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
 using Solace.StaticData;
-using SData = Solace.StaticData.StaticDataProvider;
 using Microsoft.AspNetCore.Authentication;
 using Asp.Versioning;
 using Solace.ApiServer.Authentication;
@@ -16,6 +15,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Solace.Common.Asp;
 using Solace.Db;
 using Solace.Db.Playfab;
+using System.IO.Compression;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
@@ -226,10 +226,10 @@ internal static partial class App
         LogConnectedToObjectStore(programLogger);
 
         LogLoadingStaticData(programLogger);
-        SData staticData;
+        StaticDataProvider staticData;
         try
         {
-            staticData = new SData(builder.Configuration["StaticDataPath"]!);
+            staticData = new StaticDataProvider(builder.Configuration["StaticDataPath"]!);
         }
         catch (StaticDataException exception)
         {
@@ -259,6 +259,7 @@ internal static partial class App
             var fixUpBuildplates = builder.Configuration.GetValue<bool>("FixUpBuildplatesOnImport", false);
 
             await ImportStoreBuildplates(earthDb, eventBus, objectStore, staticData, fixUpBuildplates, programLogger);
+            await ImportLevelBuildplates(earthDb, eventBus, objectStore, staticData, fixUpBuildplates, programLogger);
         }
 
         // init stuff that needs async initialization
@@ -271,13 +272,9 @@ internal static partial class App
         return 0;
     }
 
-    private static async Task ImportStoreBuildplates(EarthDbContext earthDbContext, EventBusClient eventBus, ObjectStoreClient objectStore, SData staticData, bool fixUpBuildplates, ILogger logger)
+    private static async Task ImportStoreBuildplates(EarthDbContext earthDbContext, EventBusClient eventBus, ObjectStoreClient objectStore, StaticDataProvider staticData, bool fixUpBuildplates, ILogger logger, CancellationToken cancellationToken = default)
     {
-        LogImportingStoreBuildplates(logger);
-
-        var currentStoreBuildplates = await earthDbContext.TemplateBuildplates
-            .AsNoTracking()
-            .ToListAsync();
+        LogImportingTemplates(logger, "store");
 
         await using var importer = new Importer(earthDbContext, eventBus, objectStore, logger)
         {
@@ -290,13 +287,13 @@ internal static partial class App
         {
             if (earthDbContext.TemplateBuildplates.Any(bp => bp.Id == buildplate.Id))
             {
-                LogStoreBuildplateAlreadyExists(logger, buildplate.Id);
+                LogTemplateAlreadyExists(logger, "store", buildplate.Id);
                 continue;
             }
 
             try
             {
-                LogImportingStoreBuildplate(logger, buildplate.Id);
+                LogImportingTemplate(logger, "store", buildplate.Id);
 
                 var name = "unknown buildplate";
                 var bpPlayfabItem = staticData.Playfab.Items.Values.FirstOrDefault(item => item.Data is Playfab.Item.BuildplateData bpData && bpData.Id == buildplate.Id);
@@ -307,23 +304,74 @@ internal static partial class App
 
                 await using (var buidplateData = buildplate.OpenRead())
                 {
-                    await importer.ImportTemplateAsync(buildplate.Id, $"[STORE] {name}", buidplateData, fixUpBuildplates);
+                    await importer.ImportTemplateAsync(buildplate.Id, $"[STORE] {name}", buidplateData, fixUpBuildplates, cancellationToken);
                 }
             }
             catch (Exception exception)
             {
-                LogFailedToImportStoreBuidplate(logger, exception, buildplate.Id);
+                LogFailedToImportTemplate(logger, exception, "store", buildplate.Id);
             }
         }
 
-        LogImportedStoreBuildplates(logger);
+        LogImportedTemplates(logger, "store");
+    }
+
+    private static async Task ImportLevelBuildplates(EarthDbContext earthDbContext, EventBusClient eventBus, ObjectStoreClient objectStore, StaticDataProvider staticData, bool fixUpBuildplates, ILogger logger, CancellationToken cancellationToken = default)
+    {
+        LogImportingTemplates(logger, "level");
+
+        await using var importer = new Importer(earthDbContext, eventBus, objectStore, logger)
+        {
+            OwnsEarthDb = false,
+            OwnsEventBusClient = false,
+            OwnsObjectStoreClient = false,
+        };
+
+        var order = 1000;
+
+        foreach (var (staticBuildplate, buildplateInfo) in staticData.Buildplates.LevelBuildplates
+            .Select(buildplate => (Buildplate: buildplate, Info: buildplate.GetInfo()))
+            .OrderBy(item => item.Info.RequiredLevel ?? 1))
+        {
+            if (earthDbContext.TemplateBuildplates.Any(bp => bp.Id == staticBuildplate.Id))
+            {
+                LogTemplateAlreadyExists(logger, "level", staticBuildplate.Id);
+                continue;
+            }
+
+            try
+            {
+                LogImportingTemplate(logger, "level", staticBuildplate.Id);
+
+                await using (var buidplateData = staticBuildplate.OpenRead())
+                {
+                    var template = await importer.ImportTemplateAsync(staticBuildplate.Id, $"[LEVEL] {buildplateInfo.Name}", buidplateData, fixUpBuildplates, cancellationToken);
+
+                    if (template is null)
+                    {
+                        continue;
+                    }
+
+                    template.RequiredLevel = buildplateInfo.RequiredLevel;
+                    template.Order = order++;
+
+                    await earthDbContext.SaveChangesAsync(cancellationToken);
+                }
+            }
+            catch (Exception exception)
+            {
+                LogFailedToImportTemplate(logger, exception, "level", staticBuildplate.Id);
+            }
+        }
+
+        LogImportedTemplates(logger, "level");
     }
 
     internal sealed class StartupDependencies
     {
         public EventBusClient EventBus { get; set; } = null!;
         public ObjectStoreClient ObjectStore { get; set; } = null!;
-        public SData StaticData { get; set; } = null!;
+        public StaticDataProvider StaticData { get; set; } = null!;
         public Common.Asp.Auth.CryptoSecrets Secrets { get; set; } = null!;
     }
 
@@ -363,19 +411,19 @@ internal static partial class App
     [LoggerMessage(Level = LogLevel.Information, Message = "Loaded static data")]
     private static partial void LogLoadedStaticData(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Importing store buildplates")]
-    private static partial void LogImportingStoreBuildplates(ILogger logger);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Importing {TemplateType} buildplates")]
+    private static partial void LogImportingTemplates(ILogger logger, string TemplateType);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Store buildplate {BuildplateId} already exists")]
-    private static partial void LogStoreBuildplateAlreadyExists(ILogger logger, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Debug, Message = "{TemplateType} buildplate {BuildplateId} already exists")]
+    private static partial void LogTemplateAlreadyExists(ILogger logger, string TemplateType, Guid BuildplateId);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Importing store buildplate {BuildplateId}")]
-    private static partial void LogImportingStoreBuildplate(ILogger logger, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Importing {TemplateType} buildplate {BuildplateId}")]
+    private static partial void LogImportingTemplate(ILogger logger, string TemplateType, Guid BuildplateId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to import store buidplate {BuildplateId}")]
-    private static partial void LogFailedToImportStoreBuidplate(ILogger logger, Exception exception, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to import {TemplateType} buidplate {BuildplateId}")]
+    private static partial void LogFailedToImportTemplate(ILogger logger, Exception exception, string TemplateType, Guid BuildplateId);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Imported store buildplates")]
-    private static partial void LogImportedStoreBuildplates(ILogger logger);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Imported {TemplateType} buildplates")]
+    private static partial void LogImportedTemplates(ILogger logger, string TemplateType);
 }
 

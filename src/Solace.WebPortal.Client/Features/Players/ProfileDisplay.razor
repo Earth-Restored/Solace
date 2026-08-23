@@ -113,7 +113,7 @@ else
                             <div class="row flex-grow-1 g-3">
                                 <div class="col-12">
                                     <div class="d-flex justify-content-between mb-1 small">
-                                        <span class="text-muted">XP (@(((PlayerAccount.LevelProgressPercentage ?? 1f) * 100).ToString("F0") ?? "100")%)</span>
+                                        <span class="text-muted">XP (@((int)((PlayerAccount.LevelProgressPercentage ?? 1f) * 100))%)</span>
                                         <span class="font-weight-bold">@PlayerAccount.TotalExperience</span>
                                     </div>
                                 </div>

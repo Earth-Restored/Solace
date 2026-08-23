@@ -77,6 +77,24 @@ else
                                     </div>
                                 }
 
+                                @if (bp.RequiredLevel is not null || bp.Locked)
+                                {
+                                    <div class="d-flex flex-wrap gap-1 mb-2">
+                                        @if (bp.RequiredLevel is { } requiredLevel)
+                                        {
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-shield-lock me-1"></i> Level @requiredLevel
+                                            </span>
+                                        }
+                                        @if (bp.Locked)
+                                        {
+                                            <span class="badge bg-warning">
+                                                <i class="bi bi-lock-fill me-1"></i> Locked
+                                            </span>
+                                        }
+                                    </div>
+                                }
+
                                 <div class="mb-3">
                                     <label class="form-label visually-hidden">Buildplate Name</label>
                                     <input type="text" minlength="1" maxlength="80" class="form-control fw-bold border-0 bg-light" @bind="bp.Name" @bind:event="oninput" disabled="@(!HasPermission(Permissions.ManagePlayers) || bp.IsBusy)" />
@@ -389,6 +407,8 @@ else
                     Name = dto.Name,
                     Size = dto.Size,
                     BlocksPerMeter = dto.BlocksPerMeter,
+                    RequiredLevel = dto.RequiredLevel,
+                    Locked = dto.Locked,
                     IsNight = dto.IsNight,
                 })
                 .ToList();
@@ -766,6 +786,8 @@ else
         public required string Name { get; set; }
         public int Size { get; set; }
         public int BlocksPerMeter { get; set; }
+        public int? RequiredLevel { get; set; }
+        public bool Locked { get; set; }
         public bool IsNight { get; set; }
 
         // Change Tracking

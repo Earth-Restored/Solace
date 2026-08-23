@@ -73,7 +73,7 @@ internal sealed class ProfileController : SolaceControllerBase
     [HttpGet("rubies")]
     public async Task<Results<ContentHttpResult, BadRequest>> GetRubies(CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -90,7 +90,7 @@ internal sealed class ProfileController : SolaceControllerBase
     [HttpGet("splitRubies")]
     public async Task<Results<ContentHttpResult, BadRequest>> GetSplitRubies(CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }

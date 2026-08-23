@@ -35,7 +35,7 @@ public sealed partial class Importer : IAsyncDisposable
 
     public required bool OwnsObjectStoreClient { get; init; }
 
-    public async Task<bool> ImportTemplateAsync(Guid templateId, string name, Stream stream, bool fixUpBuildplate = false, CancellationToken cancellationToken = default)
+    public async Task<TemplateBuildplateEF?> ImportTemplateAsync(Guid templateId, string name, Stream stream, bool fixUpBuildplate = false, CancellationToken cancellationToken = default)
     {
         if (fixUpBuildplate)
         {
@@ -50,8 +50,8 @@ public sealed partial class Importer : IAsyncDisposable
 
             if (fixedUpData is null)
             {
-                LogBuildplateUpdateNoResponse();
-                return false;
+                LogBuildplateUpdaterNoResponse();
+                return null;
             }
 
             stream = fixedUpData.Value.Value switch
@@ -68,14 +68,14 @@ public sealed partial class Importer : IAsyncDisposable
 
         if (worldData is null)
         {
-            return false;
+            return null;
         }
 
         var preview = await GeneratePreviewAsync(worldData, cancellationToken);
 
         if (preview is null)
         {
-            return false;
+            return null;
         }
 
         return await StoreTemplate(templateId, name, preview, worldData, cancellationToken);
@@ -245,7 +245,7 @@ public sealed partial class Importer : IAsyncDisposable
         return true;
     }
 
-    public async Task<Guid?> AddBuidplateToPlayer(Guid templateId, Guid playerId, CancellationToken cancellationToken = default)
+    public async Task<PlayerBuildplateEF?> AddBuidplateToPlayer(Guid templateId, Guid profileId, CancellationToken cancellationToken = default)
     {
         TemplateBuildplateEF? template;
         try
@@ -289,7 +289,9 @@ public sealed partial class Importer : IAsyncDisposable
 
         var buidplateId = Guid.CreateVersion7();
 
-        if (!await StoreBuildplate(templateId, playerId, buidplateId, template, serverData, preview, cancellationToken))
+        var buildplate = await StoreBuildplate(templateId, profileId, buidplateId, template, serverData, preview, cancellationToken);
+
+        if (buildplate is null)
         {
             await preview.DisposeAsync();
             return null;
@@ -297,10 +299,10 @@ public sealed partial class Importer : IAsyncDisposable
 
         await preview.DisposeAsync();
 
-        return buidplateId;
+        return buildplate;
     }
 
-    public async Task<bool> RegeneratePlayerBuildplatePreviewAsync(Guid accountId, Guid buildplateId, CancellationToken cancellationToken = default)
+    public async Task<bool> RegeneratePlayerBuildplatePreviewAsync(Guid profileId, Guid buildplateId, CancellationToken cancellationToken = default)
     {
         PlayerBuildplateEF? buildplate;
 
@@ -308,23 +310,23 @@ public sealed partial class Importer : IAsyncDisposable
         {
             buildplate = await EarthDb.PlayerBuildplates
                 .AsTracking()
-                .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.ProfileId == accountId, cancellationToken);
+                .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.ProfileId == profileId, cancellationToken);
         }
         catch (Exception exception)
         {
-            LogBuildplateFetchError(exception, accountId, buildplateId);
+            LogBuildplateFetchError(exception, profileId, buildplateId);
             return false;
         }
 
         if (buildplate is null)
         {
-            LogBuildplateNotFound(accountId, buildplateId);
+            LogBuildplateNotFound(profileId, buildplateId);
             return false;
         }
 
         if (Guid.IsNullOrZero(buildplate.ServerDataObjectId))
         {
-            LogBuildplateNoAssociatedServerData(accountId, buildplateId);
+            LogBuildplateNoAssociatedServerData(profileId, buildplateId);
             return false;
         }
 
@@ -332,7 +334,7 @@ public sealed partial class Importer : IAsyncDisposable
 
         if (serverData is null)
         {
-            LogBuildplateServerDataLoadError(accountId, buildplateId);
+            LogBuildplateServerDataLoadError(profileId, buildplateId);
             return false;
         }
 
@@ -355,7 +357,7 @@ public sealed partial class Importer : IAsyncDisposable
         var newPreviewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
         if (newPreviewObjectId is null)
         {
-            LogBuildplatePreviewStoreFail(accountId, buildplateId);
+            LogBuildplatePreviewStoreFail(profileId, buildplateId);
             return false;
         }
 
@@ -370,32 +372,32 @@ public sealed partial class Importer : IAsyncDisposable
             if (!Guid.IsNullOrZero(oldPreviewObjectId))
             {
                 await ObjectStoreClient.DeleteAsync(oldPreviewObjectId, cancellationToken);
-                LogDeletedOldBuildplatePreview(accountId, buildplateId);
+                LogDeletedOldBuildplatePreview(profileId, buildplateId);
             }
 
             return true;
         }
         catch (Exception exception)
         {
-            LogBuildplatePreviewSaveFail(exception, accountId, buildplateId);
+            LogBuildplatePreviewSaveFail(exception, profileId, buildplateId);
             await ObjectStoreClient.DeleteAsync(newPreviewObjectId.Value, cancellationToken);
             return false;
         }
     }
 
-    public async Task<bool> RemoveBuildplateFromPlayer(Guid buildplateId, Guid accountId, CancellationToken cancellationToken = default)
+    public async Task<bool> RemoveBuildplateFromPlayer(Guid buildplateId, Guid profileId, CancellationToken cancellationToken = default)
     {
-        LogRemovingBuildplate(accountId, buildplateId);
+        LogRemovingBuildplate(profileId, buildplateId);
 
         try
         {
             var buildplate = await EarthDb.PlayerBuildplates
                 .AsTracking()
-                .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.ProfileId == accountId, cancellationToken);
+                .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.ProfileId == profileId, cancellationToken);
 
             if (buildplate is null)
             {
-                LogBuildplateNotFound(accountId, buildplateId);
+                LogBuildplateNotFound(profileId, buildplateId);
                 return true;
             }
 
@@ -418,12 +420,12 @@ public sealed partial class Importer : IAsyncDisposable
         }
         catch (Exception exception) when (exception is DbUpdateException or DbUpdateConcurrencyException)
         {
-            LogRemoveBuildplateFail(exception, accountId, buildplateId);
+            LogRemoveBuildplateFail(exception, profileId, buildplateId);
             return false;
         }
         catch (Exception exception)
         {
-            LogRemoveBuildplateFail(exception, accountId, buildplateId);
+            LogRemoveBuildplateFail(exception, profileId, buildplateId);
             return false;
         }
     }
@@ -469,7 +471,7 @@ public sealed partial class Importer : IAsyncDisposable
         return preview is not null ? new MemoryStream(Encoding.ASCII.GetBytes(preview)) : null;
     }
 
-    private async Task<bool> StoreTemplate(Guid templateId, string name, Stream preview, WorldData worldData, CancellationToken cancellationToken)
+    private async Task<TemplateBuildplateEF?> StoreTemplate(Guid templateId, string name, Stream preview, WorldData worldData, CancellationToken cancellationToken)
     {
         TemplateBuildplateEF? template;
         try
@@ -481,13 +483,13 @@ public sealed partial class Importer : IAsyncDisposable
         catch (Exception exception)
         {
             LogTemplateFetchError(exception, templateId);
-            return false;
+            return null;
         }
 
         if (template is not null)
         {
             LogTemplateAlreadyExists(templateId);
-            return false;
+            return null;
             /*_logger.Information("Template buildplate found, updating");
 
             _logger.Information("Storing template world");
@@ -546,7 +548,7 @@ public sealed partial class Importer : IAsyncDisposable
             if (serverDataObjectId is null)
             {
                 LogTemplateServerDataStoreFail(templateId);
-                return false;
+                return null;
             }
 
             LogStoringTemplatePreview();
@@ -554,7 +556,7 @@ public sealed partial class Importer : IAsyncDisposable
             if (previewObjectId is null)
             {
                 LogTemplatePreviewStoreFail(templateId);
-                return false;
+                return null;
             }
 
             var scale = worldData.Size switch
@@ -581,20 +583,20 @@ public sealed partial class Importer : IAsyncDisposable
             {
                 EarthDb.TemplateBuildplates.Add(template);
                 await EarthDb.SaveChangesAsync(cancellationToken);
+
+                return template;
             }
             catch (Exception exception)
             {
                 LogTemplateSaveFail(exception, templateId);
                 await ObjectStoreClient.DeleteAsync(serverDataObjectId.Value, cancellationToken);
                 await ObjectStoreClient.DeleteAsync(previewObjectId.Value, cancellationToken);
-                return false;
+                return null;
             }
         }
-
-        return true;
     }
 
-    private async Task<bool> StoreBuildplate(Guid templateId, Guid accountId, Guid buildplateId, TemplateBuildplateEF template, byte[] serverData, Stream preview, CancellationToken cancellationToken)
+    private async Task<PlayerBuildplateEF?> StoreBuildplate(Guid templateId, Guid profileId, Guid buildplateId, TemplateBuildplateEF template, byte[] serverData, Stream preview, CancellationToken cancellationToken)
     {
         LogStoringServerData();
         Guid? serverDataObjectId;
@@ -605,27 +607,27 @@ public sealed partial class Importer : IAsyncDisposable
 
         if (serverDataObjectId is null)
         {
-            LogBuildplateServerDataStoreFail(accountId, buildplateId);
-            return false;
+            LogBuildplateServerDataStoreFail(profileId, buildplateId);
+            return null;
         }
 
         LogStoringPreview();
         var previewObjectId = await ObjectStoreClient.StoreAsync(preview, cancellationToken);
         if (previewObjectId is null)
         {
-            LogBuildplatePreviewStoreFail(accountId, buildplateId);
+            LogBuildplatePreviewStoreFail(profileId, buildplateId);
             await ObjectStoreClient.DeleteAsync(serverDataObjectId.Value, cancellationToken);
-            return false;
+            return null;
         }
 
         try
         {
             var lastModified = DateTimeOffset.UtcNow;
 
-            EarthDb.PlayerBuildplates.Add(new PlayerBuildplateEF()
+            var buildplate = new PlayerBuildplateEF()
             {
                 Id = buildplateId,
-                ProfileId = accountId,
+                ProfileId = profileId,
                 TemplateId = templateId,
                 Name = template.Name,
                 Size = template.Size,
@@ -635,71 +637,73 @@ public sealed partial class Importer : IAsyncDisposable
                 LastModified = lastModified,
                 ServerDataObjectId = serverDataObjectId.Value,
                 PreviewObjectId = previewObjectId.Value,
-            });
+            };
+
+            EarthDb.PlayerBuildplates.Add(buildplate);
 
             await EarthDb.SaveChangesAsync(cancellationToken);
 
-            return true;
+            return buildplate;
         }
         catch (Exception exception)
         {
-            LogBuildplateSaveFail(exception, accountId, buildplateId);
+            LogBuildplateSaveFail(exception, profileId, buildplateId);
             await ObjectStoreClient.DeleteAsync(serverDataObjectId.Value, cancellationToken);
             await ObjectStoreClient.DeleteAsync(previewObjectId.Value, cancellationToken);
-            return false;
+            return null;
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Buildplate update did not respond to event bus request.")]
-    private partial void LogBuildplateUpdateNoResponse();
+    [LoggerMessage(Level = LogLevel.Error, Message = "Buildplate updater did not respond to event bus request.")]
+    private partial void LogBuildplateUpdaterNoResponse();
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to fetch template '{TemplateId}' from db")]
     private partial void LogTemplateFetchError(Exception exception, Guid TemplateId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to fetch buildplate '{BuildplateId}' for player '{AccountId}' from db")]
-    private partial void LogBuildplateFetchError(Exception exception, Guid AccountId, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to fetch buildplate '{BuildplateId}' for profile '{ProfileId}' from db")]
+    private partial void LogBuildplateFetchError(Exception exception, Guid ProfileId, Guid BuildplateId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Template '{TemplateId}' does not exist")]
     public partial void LogTemplateNotFound(Guid TemplateId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Buildplate '{BuildplateId}' for player '{AccountId}' does not exist")]
-    public partial void LogBuildplateNotFound(Guid AccountId, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Buildplate '{BuildplateId}' for profile '{ProfileId}' does not exist")]
+    public partial void LogBuildplateNotFound(Guid ProfileId, Guid BuildplateId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to get world data for template '{TemplateId}'")]
     public partial void LogTemplateServerDataLoadError(Guid TemplateId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to get world data for buildplate '{BuildplateId}' for player '{AccountId}'")]
-    public partial void LogBuildplateServerDataLoadError(Guid AccountId, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to get world data for buildplate '{BuildplateId}' for profile '{ProfileId}'")]
+    public partial void LogBuildplateServerDataLoadError(Guid ProfileId, Guid BuildplateId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to store world data for template '{TemplateId}'")]
     private partial void LogTemplateServerDataStoreFail(Guid TemplateId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to store world data for buildplate '{BuildplateId}' for player '{AccountId}'")]
-    private partial void LogBuildplateServerDataStoreFail(Guid AccountId, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to store world data for buildplate '{BuildplateId}' for profile '{ProfileId}'")]
+    private partial void LogBuildplateServerDataStoreFail(Guid ProfileId, Guid BuildplateId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to store preview for template '{TemplateId}'")]
     private partial void LogTemplatePreviewStoreFail(Guid TemplateId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to store preview for buildplate '{BuildplateId}' for player '{AccountId}'")]
-    private partial void LogBuildplatePreviewStoreFail(Guid AccountId, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to store preview for buildplate '{BuildplateId}' for profile '{ProfileId}'")]
+    private partial void LogBuildplatePreviewStoreFail(Guid ProfileId, Guid BuildplateId);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Deleted old preview for template '{TemplateId}'")]
     private partial void LogDeletedOldTemplatePreview(Guid TemplateId);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Deleted old preview for buildplate '{BuildplateId}' for player '{AccountId}'")]
-    private partial void LogDeletedOldBuildplatePreview(Guid AccountId, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Deleted old preview for buildplate '{BuildplateId}' for profile '{ProfileId}'")]
+    private partial void LogDeletedOldBuildplatePreview(Guid ProfileId, Guid BuildplateId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to save preview to db for template '{TemplateId}'")]
     private partial void LogTemplatePreviewSaveFail(Exception exception, Guid TemplateId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to save preview to db for buildplate '{BuildplateId}' for player '{AccountId}'")]
-    private partial void LogBuildplatePreviewSaveFail(Exception exception, Guid AccountId, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to save preview to db for buildplate '{BuildplateId}' for profile '{ProfileId}'")]
+    private partial void LogBuildplatePreviewSaveFail(Exception exception, Guid ProfileId, Guid BuildplateId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Removing template '{TemplateId}'")]
     private partial void LogRemovingTemplate(Guid TemplateId);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Removing buildplate '{BuildplateId}' for player '{AccountId}'")]
-    private partial void LogRemovingBuildplate(Guid AccountId, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Removing buildplate '{BuildplateId}' for profile '{ProfileId}'")]
+    private partial void LogRemovingBuildplate(Guid ProfileId, Guid BuildplateId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Error getting buildplates based on template '{TemplateId}'")]
     private partial void LogGetBuildplatesBasedOnTemplateError(Exception exception, Guid TemplateId);
@@ -710,13 +714,13 @@ public sealed partial class Importer : IAsyncDisposable
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to remove template '{TemplateId}' from db")]
     private partial void LogRemoveTemplateFail(Exception exception, Guid TemplateId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to remove buildplate '{BuildplateId}' for player '{AccountId}' from db")]
-    private partial void LogRemoveBuildplateFail(Exception exception, Guid AccountId, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to remove buildplate '{BuildplateId}' for profile '{ProfileId}' from db")]
+    private partial void LogRemoveBuildplateFail(Exception exception, Guid ProfileId, Guid BuildplateId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Removed template '{TemplateId}'")]
     private partial void LogRemovedTemplate(Guid TemplateId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Removed template '{TemplateId}', and associated player buildplates")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Removed template '{TemplateId}', and associated profile buildplates")]
     private partial void LogRemovedTemplateFromPlayers(Guid TemplateId);
 
     [LoggerMessage(Message = "Could not get preview for template '{TemplateId}'")]
@@ -755,8 +759,8 @@ public sealed partial class Importer : IAsyncDisposable
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to save template '{TemplateId}' to db")]
     private partial void LogTemplateSaveFail(Exception exception, Guid TemplateId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to save buildplate '{BuildplateId}' for player '{AccountId}' to db")]
-    private partial void LogBuildplateSaveFail(Exception exception, Guid AccountId, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to save buildplate '{BuildplateId}' for profile '{ProfileId}' to db")]
+    private partial void LogBuildplateSaveFail(Exception exception, Guid ProfileId, Guid BuildplateId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Storing world data")]
     private partial void LogStoringServerData();
@@ -767,6 +771,6 @@ public sealed partial class Importer : IAsyncDisposable
     [LoggerMessage(Level = LogLevel.Error, Message = "Template '{TemplateId}' has no associated world data")]
     private partial void LogTemplateNoAssociatedServerData(Guid TemplateId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "'{AccountId}''s buildplate '{BuildplateId}' has no associated world data")]
-    private partial void LogBuildplateNoAssociatedServerData(Guid AccountId, Guid BuildplateId);
+    [LoggerMessage(Level = LogLevel.Error, Message = "'{ProfileId}''s buildplate '{BuildplateId}' has no associated world data")]
+    private partial void LogBuildplateNoAssociatedServerData(Guid ProfileId, Guid BuildplateId);
 }

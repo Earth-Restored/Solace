@@ -37,16 +37,14 @@ public sealed partial class AddBuildplate(
             OwnsObjectStoreClient = false,
         };
 
-        var buildplateIdNullable = await importer.AddBuidplateToPlayer(command.Body.TemplateId, command.PlayerId, cancellationToken);
-        if (buildplateIdNullable is null)
+        var buildplate = await importer.AddBuidplateToPlayer(command.Body.TemplateId, command.PlayerId, cancellationToken);
+        if (buildplate is null)
         {
             return TypedResults.BadRequest();
         }
 
-        var buildplateId = buildplateIdNullable.Value;
-
         return TypedResults.Ok(new AddBuildplateResponse(
-            buildplateId
+            buildplate.Id
         ));
     }
 }

@@ -154,8 +154,8 @@ public sealed class Playfab
             Legendary,
         }
 
-        [JsonConverter(typeof(JsonStringEnumConverter<BuidplateSize>))]
-        public enum BuidplateSize
+        [JsonConverter(typeof(JsonStringEnumConverter<BuildplateSize>))]
+        public enum BuildplateSize
         {
             Small,
             Medium,
@@ -181,7 +181,7 @@ public sealed class Playfab
         public sealed record BuildplateData(
             Guid Id,
             int Cost,
-            BuidplateSize Size,
+            BuildplateSize Size,
             int UnlockLevel,
             Rarity Rarity,
             Version Version

@@ -4,8 +4,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Solace.Common.Asp;
+using Solace.Common.Utils;
 using Solace.Db.Earth;
 using Solace.Db.Earth.Models.Player;
+using Solace.EventBus.Client;
+using Solace.ObjectStore.Client;
+using Solace.StaticData;
 using Solace.WebPortal.Common;
 using Solace.WebPortal.Common.Features.Common;
 using Solace.WebPortal.Common.Features.Players.Buildplates;
@@ -16,7 +21,14 @@ namespace Solace.WebPortal.Features.Players.Buildplates;
 [MapGet("")]
 [MapGroup<BuildplatesGroup>]
 [Authorize]
-public static partial class GetBuildplates
+public sealed partial class GetBuildplates(
+    EarthDbContext earthDb,
+    EventBusClient eventBus,
+    ObjectStoreClient objectStore,
+    StaticDataProvider staticData,
+    IHttpContextAccessor httpContextAccessor,
+    ILogger<GetBuildplates> logger
+)
 {
     public sealed record Query(
         [property: FromRoute] Guid PlayerId,
@@ -25,10 +37,8 @@ public static partial class GetBuildplates
         int PageSize = 8
     ) : PagedSearchQuery(SearchTerm, Page, PageSize);
 
-    private static async ValueTask<Results<Ok<PagedSearchResult<List<BuildplateDto>>>, NotFound, UnauthorizedHttpResult, ForbidHttpResult>> HandleAsync(
+    private async ValueTask<Results<Ok<PagedSearchResult<IEnumerable<BuildplateDto>>>, NotFound, UnauthorizedHttpResult, ForbidHttpResult>> HandleAsync(
         Query query,
-        EarthDbContext earthDb,
-        IHttpContextAccessor httpContextAccessor,
         CancellationToken cancellationToken)
     {
         var httpUser = httpContextAccessor.HttpContext?.User;
@@ -39,11 +49,12 @@ public static partial class GetBuildplates
 
         var userId = httpUser.GetIdLong();
 
+        int currentLevel;
         if (!httpUser.HasPermission(Permissions.ViewPlayers))
         {
             var profile = await earthDb.Profiles
                .AsNoTracking()
-               .Select(profile => new { profile.Id, profile.WebPortalAccountId, })
+               .Select(profile => new { profile.Id, profile.WebPortalAccountId, profile.Level, })
                .FirstOrDefaultAsync(profile => profile.Id == query.PlayerId, cancellationToken);
 
             if (profile is null)
@@ -55,7 +66,26 @@ public static partial class GetBuildplates
             {
                 return TypedResults.Forbid();
             }
+
+            currentLevel = profile.Level;
         }
+        else
+        {
+            var currentLevelNullable = await earthDb.Profiles
+                .AsNoTracking()
+                .Where(profile => profile.Id == query.PlayerId)
+                .Select(profile => (int?)profile.Level)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (currentLevelNullable is null)
+            {
+                return TypedResults.NotFound();
+            }
+
+            currentLevel = currentLevelNullable.Value;
+        }
+
+        await LevelBuildplateSeeder.SeedLevelBuildplates(query.PlayerId, earthDb, eventBus, objectStore, staticData.Buildplates, logger, cancellationToken);
 
         var dbQuery = (IQueryable<PlayerBuildplateEF>)earthDb.PlayerBuildplates
             .AsNoTracking()
@@ -78,7 +108,7 @@ public static partial class GetBuildplates
             matchingCount = totalCount;
         }
 
-        var items = await dbQuery
+        IEnumerable<BuildplateDto> buildplates = await dbQuery
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(buildplate => new BuildplateDto(
@@ -88,11 +118,38 @@ public static partial class GetBuildplates
                 buildplate.BlocksPerMeter,
                 buildplate.Size,
                 buildplate.Offset,
+                null,
+                false,
                 buildplate.Night,
                 buildplate.ServerDataObjectId,
                 buildplate.PreviewObjectId))
             .ToListAsync(cancellationToken);
 
-        return TypedResults.Ok(new PagedSearchResult<List<BuildplateDto>>(items, totalCount, matchingCount));
+        var templateIds = buildplates
+            .Select(buildplate => buildplate.TemplateId)
+            .WhereNotNull()
+            .ToHashSet();
+
+        var templates = await earthDb.TemplateBuildplates
+            .AsNoTracking()
+            .Where(template => templateIds.Contains(template.Id))
+            .Select(template => new { template.Id, template.RequiredLevel, template.Order, })
+            .ToDictionaryAsync(template => template.Id, cancellationToken);
+
+        buildplates = buildplates.Select(buildplate =>
+        {
+            if (buildplate.TemplateId is null || !templates.TryGetValue(buildplate.TemplateId.Value, out var template))
+            {
+                return buildplate;
+            }
+
+            return buildplate with
+            {
+                RequiredLevel = template.RequiredLevel,
+                Locked = currentLevel < (template?.RequiredLevel ?? 1),
+            };
+        });
+
+        return TypedResults.Ok(new PagedSearchResult<IEnumerable<BuildplateDto>>(buildplates, totalCount, matchingCount));
     }
 }

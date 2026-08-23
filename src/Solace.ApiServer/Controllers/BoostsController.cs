@@ -38,7 +38,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
     [HttpGet("boosts")]
     public async Task<Results<ContentHttpResult, BadRequest>> GetBoosts(CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -192,7 +192,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
     [HttpPost("boosts/potions/{itemId}/activate")]
     public async Task<Results<ContentHttpResult, BadRequest>> ActivateBoost(Guid itemId, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -291,7 +291,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
     [HttpPost("boosts/minifigs/{productId}/{id}/activate")]
     public async Task<Results<ContentHttpResult, BadRequest>> ActivateMiniFig(string productId, string id, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -402,7 +402,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
     [HttpDelete("boosts/{instanceId}")]
     public async Task<Results<ContentHttpResult, BadRequest>> DeactivateBoost(Guid instanceId, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }

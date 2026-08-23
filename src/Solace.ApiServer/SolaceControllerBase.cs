@@ -23,7 +23,7 @@ internal abstract class SolaceControllerBase : ControllerBase
     protected static ContentHttpResult JsonPascalCase(object value)
         => TypedResults.Content(JsonSerializer.Serialize(value), "application/json");
 
-    protected bool TryGetAccountId(out Guid accountId)
+    protected bool TryGetProfileId(out Guid accountId)
     {
         var playerIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(playerIdString))

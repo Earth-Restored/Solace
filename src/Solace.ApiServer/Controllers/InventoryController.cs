@@ -31,7 +31,7 @@ internal sealed class InventoryController : SolaceControllerBase
     [HttpGet]
     public async Task<Results<ContentHttpResult, BadRequest>> GetInventory(CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -128,7 +128,7 @@ internal sealed class InventoryController : SolaceControllerBase
     [HttpPut("hotbar")]
     public async Task<Results<BadRequest, ContentHttpResult>> SetHotbar(CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -167,7 +167,7 @@ internal sealed class InventoryController : SolaceControllerBase
     [HttpPost("{itemId}/consume")]
     public async Task<Results<ContentHttpResult, BadRequest>> ConsumeItem(Guid itemId, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }

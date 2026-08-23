@@ -26,7 +26,7 @@ internal sealed class JournalController : SolaceControllerBase
     [HttpGet]
     public async Task<Results<ContentHttpResult, BadRequest>> Get(CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }

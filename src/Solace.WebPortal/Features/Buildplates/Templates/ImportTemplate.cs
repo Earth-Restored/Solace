@@ -81,14 +81,14 @@ public sealed partial class ImportTemplate(
                 }
 
                 zipStream.Position = 0;
-                if (!await importer.ImportTemplateAsync(Guid.CreateVersion7(), displayName, zipStream, fixUpBuildplates, cancellationToken))
+                if ((await importer.ImportTemplateAsync(Guid.CreateVersion7(), displayName, zipStream, fixUpBuildplates, cancellationToken)) is null)
                 {
                     return TypedResults.InternalServerError("Unknown error occured.");
                 }
             }
             else
             {
-                if (!await importer.ImportTemplateAsync(Guid.CreateVersion7(), displayName, memoryStream, fixUpBuildplates, cancellationToken))
+                if ((await importer.ImportTemplateAsync(Guid.CreateVersion7(), displayName, memoryStream, fixUpBuildplates, cancellationToken)) is null)
                 {
                     return TypedResults.InternalServerError("Unknown error occured.");
                 }

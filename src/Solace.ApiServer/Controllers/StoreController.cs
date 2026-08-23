@@ -117,7 +117,7 @@ internal sealed partial class StoreController : SolaceControllerBase
     [HttpPost("purchase")]
     public async Task<Results<ContentHttpResult, BadRequest>> Purchase(CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -142,7 +142,7 @@ internal sealed partial class StoreController : SolaceControllerBase
     [HttpPost("purchaseV2")]
     public async Task<Results<ContentHttpResult, BadRequest>> PurchaseV2(CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }

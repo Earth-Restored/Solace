@@ -1,13 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Solace.Db.Earth;
 using Solace.Db.Earth.Models.Player;
+using Solace.ObjectStore.Client;
 using Solace.StaticData;
 
 namespace Solace.ApiServer.Utils;
 
 internal static class TokenUtils
 {
-    public static async Task<TokenEF?> RedeemTokenAsync(EarthDbContext earthDb, ResultsEF.Builder results, Guid accountId, Guid tokenId, DateTimeOffset currentTime, StaticDataProvider staticData, CancellationToken cancellationToken = default)
+    public static async Task<TokenEF?> RedeemTokenAsync(EarthDbContext earthDb, ResultsEF.Builder results, ObjectStoreClient objectStore, Guid accountId, Guid tokenId, DateTimeOffset currentTime, StaticDataProvider staticData, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -26,7 +27,7 @@ internal static class TokenUtils
             await earthDb.SaveChangesAsync(cancellationToken);
             results.Tokens();
 
-            await DoActionsOnRedeemedTokenAsync(earthDb, results, token, accountId, currentTime, staticData);
+            await DoActionsOnRedeemedTokenAsync(earthDb, results, objectStore, token, accountId, currentTime, staticData);
             await transaction.CommitAsync(cancellationToken);
             return token;
         }
@@ -66,7 +67,7 @@ internal static class TokenUtils
     }
 
     // does not handle redeeming the token itself (removing it from the list of tokens belonging to the player)
-    public static async Task<TokenEF> DoActionsOnRedeemedTokenAsync(EarthDbContext earthDb, ResultsEF.Builder results, TokenEF token, Guid accountId, DateTimeOffset currentTime, StaticData.StaticDataProvider staticData)
+    public static async Task<TokenEF> DoActionsOnRedeemedTokenAsync(EarthDbContext earthDb, ResultsEF.Builder results, ObjectStoreClient objectStore, TokenEF token, Guid accountId, DateTimeOffset currentTime, StaticData.StaticDataProvider staticData)
     {
         switch (token)
         {
@@ -74,7 +75,7 @@ internal static class TokenUtils
                 {
                     await ActivityLogUtils.AddEntryAsync(earthDb, results, accountId, new LevelUpEntryEF(accountId, currentTime, levelUpToken.Level));
 
-                    await Rewards.FromDBRewardsModel(levelUpToken.Rewards).ToRedeemQueryAsync(earthDb, results, accountId, currentTime, staticData);
+                    await Rewards.FromDBRewardsModel(levelUpToken.Rewards).ToRedeemQueryAsync(earthDb, results, objectStore, accountId, currentTime, staticData);
                 }
 
                 break;
@@ -92,7 +93,7 @@ internal static class TokenUtils
                 break;
             case DailyLoginTokenEF { Claimed: false, } dailyLoginToken:
                 {
-                    await Rewards.FromDBRewardsModel(dailyLoginToken.Rewards).ToRedeemQueryAsync(earthDb, results, accountId, currentTime, staticData);
+                    await Rewards.FromDBRewardsModel(dailyLoginToken.Rewards).ToRedeemQueryAsync(earthDb, results, objectStore, accountId, currentTime, staticData);
                 }
 
                 break;

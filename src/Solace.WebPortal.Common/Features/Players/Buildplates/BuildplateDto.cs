@@ -7,6 +7,8 @@ public sealed record BuildplateDto(
     int BlocksPerMeter,
     int Size,
     int Offset,
+    int? RequiredLevel,
+    bool Locked,
     bool IsNight,
     Guid ServerDataObjectId,
     Guid PreviewObjectId

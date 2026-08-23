@@ -301,6 +301,13 @@ public sealed class EarthDbContext : DbContext
         modelBuilder.Entity<ItemJournalEntryEF>()
             .HasKey(x => new { x.ProfileId, x.ItemId, });
 
+        // player buildplates
+        modelBuilder.Entity<PlayerBuildplateEF>(builder =>
+        {
+            builder.HasIndex(pb => pb.TemplateId)
+                .IsUnique(false);
+        });
+
         // redeemed tappables
         modelBuilder.Entity<RedeemedTappableEF>()
             .HasKey(x => new { x.ProfileId, x.TappableId, });

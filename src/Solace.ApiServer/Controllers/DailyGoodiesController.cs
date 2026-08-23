@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Solace.StaticData;
 using System.Text.Json.Serialization;
 using DBRewards = Solace.Db.Earth.Models.Common.Rewards;
+using Solace.ObjectStore.Client;
 
 namespace Solace.ApiServer.Controllers;
 
@@ -18,11 +19,13 @@ namespace Solace.ApiServer.Controllers;
 internal sealed class DailyGoodiesController : SolaceControllerBase
 {
     private readonly EarthDbContext _earthDb;
+    private readonly ObjectStoreClient _objectStore;
     private readonly StaticDataProvider _staticData;
 
-    public DailyGoodiesController(EarthDbContext earthDB, StaticDataProvider staticData)
+    public DailyGoodiesController(EarthDbContext earthDB, ObjectStoreClient objectStore, StaticDataProvider staticData)
     {
         _earthDb = earthDB;
+        _objectStore = objectStore;
         _staticData = staticData;
     }
 
@@ -37,7 +40,7 @@ internal sealed class DailyGoodiesController : SolaceControllerBase
     [HttpGet("dailyrewards")]
     public async Task<Results<ContentHttpResult, BadRequest>> Get(CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -58,7 +61,7 @@ internal sealed class DailyGoodiesController : SolaceControllerBase
     [HttpPost("player/dailyrewards/redeem")]
     public async Task<Results<ContentHttpResult, BadRequest>> Claim(CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -80,7 +83,7 @@ internal sealed class DailyGoodiesController : SolaceControllerBase
         var results = new ResultsEF.Builder()
             .Tokens();
 
-        await TokenUtils.DoActionsOnRedeemedTokenAsync(_earthDb, results, dailyLoginToken, accountId, requestStartedOn, _staticData);
+        await TokenUtils.DoActionsOnRedeemedTokenAsync(_earthDb, results, _objectStore, dailyLoginToken, accountId, requestStartedOn, _staticData);
 
         var updates = new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken));
         return EarthJson(BuildDailyGoodiesResponse(today, claimedToken, null), updates);

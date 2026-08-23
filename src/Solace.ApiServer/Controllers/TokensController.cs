@@ -8,6 +8,7 @@ using Solace.Db.Earth;
 using Solace.Db.Earth.Models.Player;
 using Rewards = Solace.ApiServer.Utils.Rewards;
 using Microsoft.EntityFrameworkCore;
+using Solace.ObjectStore.Client;
 
 namespace Solace.ApiServer.Controllers;
 
@@ -17,18 +18,20 @@ namespace Solace.ApiServer.Controllers;
 internal sealed class TokensController : SolaceControllerBase
 {
     private readonly EarthDbContext _earthDb;
+    private readonly ObjectStoreClient _objectStore;
     private readonly StaticData.StaticDataProvider _staticData;
 
-    public TokensController(EarthDbContext earthDb, StaticData.StaticDataProvider staticData)
+    public TokensController(EarthDbContext earthDb, ObjectStoreClient objectStore, StaticData.StaticDataProvider staticData)
     {
         _earthDb = earthDb;
+        _objectStore = objectStore;
         _staticData = staticData;
     }
 
     [HttpGet]
     public async Task<Results<ContentHttpResult, BadRequest>> Get(CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -55,7 +58,7 @@ internal sealed class TokensController : SolaceControllerBase
     [HttpPost("{tokenId}/redeem")]
     public async Task<Results<ContentHttpResult, BadRequest>> Redeem(Guid tokenId, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -63,7 +66,7 @@ internal sealed class TokensController : SolaceControllerBase
         // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        var removedToken = await TokenUtils.RedeemTokenAsync(_earthDb, ResultsEF.Builder.Null, accountId, tokenId, requestStartedOn, _staticData, cancellationToken);
+        var removedToken = await TokenUtils.RedeemTokenAsync(_earthDb, ResultsEF.Builder.Null, _objectStore, accountId, tokenId, requestStartedOn, _staticData, cancellationToken);
 
         if (removedToken is not null)
         {

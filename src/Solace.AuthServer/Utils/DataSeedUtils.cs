@@ -170,9 +170,9 @@ internal static class DataSeedUtils
                         data.Cost = buildplateData.Cost;
                         data.Size = buildplateData.Size switch
                         {
-                            Playfab.Item.BuidplateSize.Small => BuildplateSizeEF.Small,
-                            Playfab.Item.BuidplateSize.Medium => BuildplateSizeEF.Medium,
-                            Playfab.Item.BuidplateSize.Large => BuildplateSizeEF.Large,
+                            Playfab.Item.BuildplateSize.Small => BuildplateSizeEF.Small,
+                            Playfab.Item.BuildplateSize.Medium => BuildplateSizeEF.Medium,
+                            Playfab.Item.BuildplateSize.Large => BuildplateSizeEF.Large,
                             _ => throw new UnreachableException(),
                         };
                         data.UnlockLevel = buildplateData.UnlockLevel;

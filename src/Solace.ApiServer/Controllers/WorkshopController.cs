@@ -24,6 +24,7 @@ using Solace.Db.Earth;
 using Microsoft.EntityFrameworkCore;
 using Solace.Db.Earth.Models.Player;
 using Solace.Db.Earth.Models.Common;
+using Solace.ObjectStore.Client;
 
 namespace Solace.ApiServer.Controllers;
 
@@ -33,18 +34,20 @@ namespace Solace.ApiServer.Controllers;
 internal sealed class WorkshopController : SolaceControllerBase
 {
     private readonly EarthDbContext _earthDb;
+    private readonly ObjectStoreClient _objectStore;
     private readonly StaticData.StaticDataProvider _staticData;
 
-    public WorkshopController(EarthDbContext earthDb, StaticData.StaticDataProvider staticData)
+    public WorkshopController(EarthDbContext earthDb, ObjectStoreClient objectStore, StaticData.StaticDataProvider staticData)
     {
         _earthDb = earthDb;
+        _objectStore = objectStore;
         _staticData = staticData;
     }
 
     [HttpGet("player/utilityBlocks")]
     public async Task<Results<ContentHttpResult, BadRequest>> GetUtilityBlocks(CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -87,7 +90,7 @@ internal sealed class WorkshopController : SolaceControllerBase
     [HttpGet("crafting/{slotIndex}")]
     public async Task<Results<ContentHttpResult, BadRequest>> GetCraftingStatus(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
+        if (!TryGetProfileId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -110,7 +113,7 @@ internal sealed class WorkshopController : SolaceControllerBase
     [HttpGet("smelting/{slotIndex}")]
     public async Task<Results<ContentHttpResult, BadRequest>> GetSmeltingStatus(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
+        if (!TryGetProfileId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -133,7 +136,7 @@ internal sealed class WorkshopController : SolaceControllerBase
     [HttpPost("crafting/{slotIndex}/start")]
     public async Task<Results<ContentHttpResult, BadRequest>> StartCrafting(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
+        if (!TryGetProfileId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -295,7 +298,7 @@ internal sealed class WorkshopController : SolaceControllerBase
     [HttpPost("smelting/{slotIndex}/start")]
     public async Task<Results<ContentHttpResult, BadRequest>> StartSmelting(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
+        if (!TryGetProfileId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -459,7 +462,7 @@ internal sealed class WorkshopController : SolaceControllerBase
     [HttpPost("crafting/{slotIndex}/collectItems")]
     public async Task<Results<ContentHttpResult, BadRequest>> CollectCraftingItems(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
+        if (!TryGetProfileId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -501,7 +504,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             .Crafting();
 
         await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new Db.Earth.Models.Player.CraftingCompletedEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
-        await rewards.ToRedeemQueryAsync(_earthDb, results, accountId, requestStartedOn, _staticData, cancellationToken);
+        await rewards.ToRedeemQueryAsync(_earthDb, results, _objectStore, accountId, requestStartedOn, _staticData, cancellationToken);
 
         return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal)
             {
@@ -512,7 +515,7 @@ internal sealed class WorkshopController : SolaceControllerBase
     [HttpPost("smelting/{slotIndex}/collectItems")]
     public async Task<Results<ContentHttpResult, BadRequest>> CollectSmeltingItems(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
+        if (!TryGetProfileId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -565,7 +568,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             .Smelting();
 
         await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new SmeltingCompletedEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
-        await rewards.ToRedeemQueryAsync(_earthDb, results, accountId, requestStartedOn, _staticData, cancellationToken);
+        await rewards.ToRedeemQueryAsync(_earthDb, results, _objectStore, accountId, requestStartedOn, _staticData, cancellationToken);
 
         return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal)
             {
@@ -576,7 +579,7 @@ internal sealed class WorkshopController : SolaceControllerBase
     [HttpPost("crafting/{slotIndex}/stop")]
     public async Task<Results<ContentHttpResult, BadRequest>> StopCraftingJob(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
+        if (!TryGetProfileId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -633,7 +636,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             .Crafting();
 
         await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new CraftingCompletedEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
-        await rewards.ToRedeemQueryAsync(_earthDb, results, accountId, requestStartedOn, _staticData, cancellationToken);
+        await rewards.ToRedeemQueryAsync(_earthDb, results, _objectStore, accountId, requestStartedOn, _staticData, cancellationToken);
 
         var buildResults = await results.BuildAsync(_earthDb, accountId, cancellationToken);
 
@@ -643,7 +646,7 @@ internal sealed class WorkshopController : SolaceControllerBase
     [HttpPost("smelting/{slotIndex}/stop")]
     public async Task<Results<ContentHttpResult, BadRequest>> StopSmeltingJob(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
+        if (!TryGetProfileId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -719,7 +722,7 @@ internal sealed class WorkshopController : SolaceControllerBase
             .Smelting();
 
         await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new SmeltingCompletedEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
-        await rewards.ToRedeemQueryAsync(_earthDb, results, accountId, requestStartedOn, _staticData, cancellationToken);
+        await rewards.ToRedeemQueryAsync(_earthDb, results, _objectStore, accountId, requestStartedOn, _staticData, cancellationToken);
 
         var buildResults = await results.BuildAsync(_earthDb, accountId, cancellationToken);
 
@@ -729,7 +732,7 @@ internal sealed class WorkshopController : SolaceControllerBase
     [HttpPost("crafting/{slotIndex}/finish")]
     public async Task<Results<ContentHttpResult, BadRequest>> FinishCrafting(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
+        if (!TryGetProfileId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -797,7 +800,7 @@ internal sealed class WorkshopController : SolaceControllerBase
     [HttpPost("smelting/{slotIndex}/finish")]
     public async Task<Results<ContentHttpResult, BadRequest>> FinishSmelting(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
+        if (!TryGetProfileId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -919,7 +922,7 @@ internal sealed class WorkshopController : SolaceControllerBase
     [HttpPost("crafting/{slotIndex}/unlock")]
     public async Task<Results<ContentHttpResult, BadRequest>> UnlockCraftingSlot(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
+        if (!TryGetProfileId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }
@@ -971,7 +974,7 @@ internal sealed class WorkshopController : SolaceControllerBase
     [HttpPost("smelting/{slotIndex}/unlock")]
     public async Task<Results<ContentHttpResult, BadRequest>> UnlockSmeltingSlot(int slotIndex, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId) || slotIndex is < 1 or > 3)
+        if (!TryGetProfileId(out var accountId) || slotIndex is < 1 or > 3)
         {
             return TypedResults.BadRequest();
         }

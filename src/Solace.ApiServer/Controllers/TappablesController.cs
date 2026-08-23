@@ -10,6 +10,7 @@ using Solace.Db.Earth;
 using Solace.Db.Earth.Models.Player;
 using Solace.StaticData;
 using Microsoft.EntityFrameworkCore;
+using Solace.ObjectStore.Client;
 
 namespace Solace.ApiServer.Controllers;
 
@@ -20,19 +21,21 @@ internal sealed class TappablesController : SolaceControllerBase
 {
     private readonly TappablesManager _tappablesManager;
     private readonly EarthDbContext _earthDb;
-    private readonly StaticData.StaticDataProvider _staticData;
+    private readonly ObjectStoreClient _objectStore;
+    private readonly StaticDataProvider _staticData;
 
-    public TappablesController(TappablesManager tappablesManager, EarthDbContext earthDb, StaticData.StaticDataProvider staticData)
+    public TappablesController(TappablesManager tappablesManager, EarthDbContext earthDb, ObjectStoreClient objectStore, StaticDataProvider staticData)
     {
         _tappablesManager = tappablesManager;
         _earthDb = earthDb;
+        _objectStore = objectStore;
         _staticData = staticData;
     }
 
     [HttpGet("locations/{lat}/{lon}")]
     public async Task<Results<ContentHttpResult, BadRequest>> GetTappables(double lat, double lon, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -100,7 +103,7 @@ internal sealed class TappablesController : SolaceControllerBase
     [HttpPost("tappables/{tileIdStr}")]
     public async Task<Results<ContentHttpResult, BadRequest>> RedeemTappable(string tileIdStr, CancellationToken cancellationToken)
     {
-        if (!TryGetAccountId(out var accountId))
+        if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -181,7 +184,7 @@ internal sealed class TappablesController : SolaceControllerBase
         var results = new ResultsEF.Builder();
 
         await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new TappableEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
-        await rewards.ToRedeemQueryAsync(_earthDb, results, accountId, requestStartedOn, _staticData, cancellationToken);
+        await rewards.ToRedeemQueryAsync(_earthDb, results, _objectStore, accountId, requestStartedOn, _staticData, cancellationToken);
 
         return EarthJson(new Dictionary<string, object?>(StringComparer.Ordinal)
         {

@@ -17,6 +17,7 @@ namespace Solace.StaticData;
 [JsonSerializable(typeof(PlayerLevels.Level))]
 [JsonSerializable(typeof(Playfab.Item), TypeInfoPropertyName = "PlayfabItem")]
 [JsonSerializable(typeof(Playfab.Tab))]
+[JsonSerializable(typeof(StaticBuidplateInfo))]
 [JsonSerializable(typeof(TappablesConfig.TappableConfig))]
 internal sealed partial class AppJsonContext : JsonSerializerContext
 {
