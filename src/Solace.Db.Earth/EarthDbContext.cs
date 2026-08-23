@@ -312,6 +312,13 @@ public sealed class EarthDbContext : DbContext
         modelBuilder.Entity<RedeemedTappableEF>()
             .HasKey(x => new { x.ProfileId, x.TappableId, });
 
+        // template buildplates
+        modelBuilder.Entity<TemplateBuildplateEF>()
+            .HasMany(a => a.PlayerBuildplates)
+            .WithOne(b => b.Template)
+            .HasForeignKey(b => b.TemplateId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // tokens
         modelBuilder.Entity<TokenEF>()
             .HasDiscriminator<string>("token_type")

@@ -1,4 +1,6 @@
-﻿namespace Solace.Db.Earth.Models.Global;
+﻿using Solace.Db.Earth.Models.Player;
+
+namespace Solace.Db.Earth.Models.Global;
 
 public sealed class TemplateBuildplateEF : IEntityWithId<Guid>
 {
@@ -21,4 +23,6 @@ public sealed class TemplateBuildplateEF : IEntityWithId<Guid>
     public required Guid ServerDataObjectId { get; set; }
 
     public required Guid PreviewObjectId { get; set; }
+
+    public IList<PlayerBuildplateEF> PlayerBuildplates { get; set; } = [];
 }

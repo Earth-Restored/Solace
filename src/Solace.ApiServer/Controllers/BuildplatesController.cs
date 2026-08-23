@@ -52,13 +52,13 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var currentLevel = await _earthDb.Profiles
+        var CurrentProfileLevel = await _earthDb.Profiles
             .AsNoTracking()
             .Where(profile => profile.Id == profileId)
             .Select(profile => (int?)profile.Level)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (currentLevel is null)
+        if (CurrentProfileLevel is null)
         {
             return TypedResults.NotFound();
         }
@@ -108,7 +108,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
                 SurfaceOrientation.HORIZONTAL,
                 model,
                 template?.Order ?? 0,
-                currentLevel < (template?.RequiredLevel ?? 1),
+                CurrentProfileLevel < (template?.RequiredLevel ?? 1),
                 template?.RequiredLevel ?? 1,
                 false,    // TODO
                 TimeFormatter.FormatTime(buildplate.LastModified),
@@ -131,7 +131,35 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        // TODO: coordinates, required level, etc.
+        // TODO: coordinates, etc.
+
+        var buildplateInfo = await _earthDb.PlayerBuildplates
+            .AsNoTracking()
+            .Where(buildplate => buildplate.ProfileId == profileId && buildplate.Id == buildplateId)
+            .Select(buildplate => new
+            {
+                RequiredLevel = buildplate.Template != null ? buildplate.Template.RequiredLevel : null,
+                CurrentProfileLevel = (int?)buildplate.Profile.Level
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (buildplateInfo is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (buildplateInfo.RequiredLevel is > 1)
+        {
+            if (buildplateInfo.CurrentProfileLevel is null)
+            {
+                return TypedResults.NotFound();
+            }
+
+            if (buildplateInfo.CurrentProfileLevel < buildplateInfo.RequiredLevel.Value)
+            {
+                return TypedResults.BadRequest();
+            }
+        }
 
         return await GetNewBuildplateInstanceResponse(profileId, buildplateId, BuildplateInstancesManager.InstanceType.BUILD, cancellationToken);
     }
@@ -144,7 +172,35 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        // TODO: coordinates, required level, etc.
+        // TODO: coordinates, etc.
+
+        var buildplateInfo = await _earthDb.PlayerBuildplates
+            .AsNoTracking()
+            .Where(buildplate => buildplate.ProfileId == profileId && buildplate.Id == buildplateId)
+            .Select(buildplate => new
+            {
+                RequiredLevel = buildplate.Template != null ? buildplate.Template.RequiredLevel : null,
+                CurrentProfileLevel = (int?)buildplate.Profile.Level
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (buildplateInfo is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (buildplateInfo.RequiredLevel is > 1)
+        {
+            if (buildplateInfo.CurrentProfileLevel is null)
+            {
+                return TypedResults.NotFound();
+            }
+
+            if (buildplateInfo.CurrentProfileLevel < buildplateInfo.RequiredLevel.Value)
+            {
+                return TypedResults.BadRequest();
+            }
+        }
 
         return await GetNewBuildplateInstanceResponse(profileId, buildplateId, BuildplateInstancesManager.InstanceType.PLAY, cancellationToken);
     }
@@ -157,17 +213,40 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        // todo: required level
-
         var requestStartedOn = HttpContext.GetTimestamp();
 
         var buildplate = await _earthDb.PlayerBuildplates
             .AsNoTracking()
-            .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.ProfileId == profileId, cancellationToken: cancellationToken);
+            .Where(buildplate => buildplate.Id == buildplateId && buildplate.ProfileId == profileId)
+            .Select(buildplate => new
+            {
+                buildplate.Size,
+                buildplate.Offset,
+                buildplate.BlocksPerMeter,
+                buildplate.Night,
+                buildplate.LastModified,
+                buildplate.ServerDataObjectId,
+                RequiredLevel = buildplate.Template != null ? buildplate.Template.RequiredLevel : null,
+                CurrentProfileLevel = (int?)buildplate.Profile.Level
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (buildplate is null)
         {
             return TypedResults.NotFound();
+        }
+
+        if (buildplate.RequiredLevel is > 1)
+        {
+            if (buildplate.CurrentProfileLevel is null)
+            {
+                return TypedResults.NotFound();
+            }
+
+            if (buildplate.CurrentProfileLevel < buildplate.RequiredLevel.Value)
+            {
+                return TypedResults.BadRequest();
+            }
         }
 
         var hotbar = await _earthDb.Hotbars
@@ -320,7 +399,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
     }
 
     [HttpPost("multiplayer/buildplate/shared/{sharedBuildplateId}/play/instances")]
-    public async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> GetSharedBuildplateInstance(Guid sharedBuildplateId, CancellationToken cancellationToken)
+    public async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> CreateSharedBuildplateInstance(Guid sharedBuildplateId, CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var profileId))
         {

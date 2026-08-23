@@ -1,4 +1,6 @@
-﻿namespace Solace.Db.Earth.Models.Player;
+﻿using Solace.Db.Earth.Models.Global;
+
+namespace Solace.Db.Earth.Models.Player;
 
 public sealed class PlayerBuildplateEF : IEntityWithId<Guid>
 {
@@ -9,6 +11,8 @@ public sealed class PlayerBuildplateEF : IEntityWithId<Guid>
     public ProfileEF Profile { get; set; } = null!;
 
     public Guid? TemplateId { get; set; }
+
+    public TemplateBuildplateEF? Template { get; set; }
 
     public required string Name { get; set; }
 
