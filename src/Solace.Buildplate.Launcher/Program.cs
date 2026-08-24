@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
+using BitcoderCZ.IO;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
@@ -39,7 +40,7 @@ internal static class Program
 internal static partial class App
 #pragma warning restore MA0048 // File name must match type name
 {
-    internal static string StaticDataPath = "./staticdata";
+    internal static AbsoluteDirectory StaticDataPath = new RelativeDirectory("staticdata").ToAbsolute();
 
     public static readonly Version MinimumFountainBridgeVersion = new(0, 0, 2);
     public static readonly Version MinimumBuildplateConnectorPluginVersion = new(0, 1, 0);
@@ -101,7 +102,7 @@ internal static partial class App
         {
             var staticDataPath = builder.Configuration["StaticDataPath"];
             Debug.Assert(staticDataPath is not null);
-            StaticDataPath = Path.GetFullPath(staticDataPath);
+            StaticDataPath = new AbsoluteDirectory(Path.GetFullPath(staticDataPath));
         }
 
         // init stuff that requires logger but needs to be injected
@@ -134,14 +135,14 @@ internal static partial class App
 
         var fabricJarName = builder.Configuration["FabricJarName"]!;
 
-        var serverJarsDir = Path.Combine(StaticDataPath, "server_jars");
+        var serverJarsDir = StaticDataPath / "server_jars";
 
         var fountainBridgeJarName = builder.Configuration["FountainBridgeJarName"];
         Debug.Assert(fountainBridgeJarName is not null);
 
         if (!Path.IsPathFullyQualified(fountainBridgeJarName))
         {
-            fountainBridgeJarName = Path.GetFullPath(Path.Combine(serverJarsDir, fountainBridgeJarName));
+            fountainBridgeJarName = Path.GetFullPath(Path.Combine(serverJarsDir.Value, fountainBridgeJarName));
         }
 
         if ((fountainBridgeJarName = ResolveVersionedFile(fountainBridgeJarName, MinimumFountainBridgeVersion, programLogger)) is null)
@@ -154,7 +155,7 @@ internal static partial class App
 
         if (!Path.IsPathFullyQualified(connectorPluginJarName))
         {
-            connectorPluginJarName = Path.GetFullPath(Path.Combine(serverJarsDir, connectorPluginJarName));
+            connectorPluginJarName = Path.GetFullPath(Path.Combine(serverJarsDir.Value, connectorPluginJarName));
         }
 
         if ((connectorPluginJarName = ResolveVersionedFile(connectorPluginJarName, MinimumBuildplateConnectorPluginVersion, programLogger)) is null)
@@ -162,7 +163,7 @@ internal static partial class App
             return 7;
         }
 
-        var starter = new Starter(eventBusClient, eventBusConnectionString, publicEndPoint, baseInstancePublicPort, javaCmd, fountainBridgeJarName, Path.GetFullPath(Path.Combine(StaticDataPath, "server_template_dir")), fabricJarName, connectorPluginJarName, loggerFactory, GlobalLoggerFactory.CreateLogger<Starter>());
+        var starter = new Starter(eventBusClient, eventBusConnectionString, publicEndPoint, baseInstancePublicPort, javaCmd, fountainBridgeJarName, StaticDataPath / "server_template_dir", fabricJarName, connectorPluginJarName, loggerFactory, GlobalLoggerFactory.CreateLogger<Starter>());
 
         startupDeps.EventBus = eventBusClient;
         startupDeps.Starter = starter;
@@ -206,7 +207,7 @@ internal static partial class App
 
             if (!File.TryFindCompatibleFile(directory, minimumVersion, fileName, out var matchingFile))
             {
-                LogVersionedStaticDataNotFoundError(logger, Path.GetFullPath(Path.Combine(StaticDataPath, path)), minimumVersion);
+                LogVersionedStaticDataNotFoundError(logger, (StaticDataPath / new RelativeFile(path)).Value, minimumVersion);
                 return null;
             }
             else

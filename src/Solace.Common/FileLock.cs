@@ -1,10 +1,12 @@
+using BitcoderCZ.IO;
+
 namespace Solace.Common;
 
 public sealed class FileLock
 {
-    private readonly FileInfo _file;
+    private readonly AbsoluteFile _file;
 
-    public FileLock(FileInfo file)
+    public FileLock(AbsoluteFile file)
     {
         _file = file;
     }
@@ -44,12 +46,12 @@ public sealed class FileLock
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            _file.Directory!.Create();
+            _file.Parent!.Create();
 
             FileStream lockFileStream;
             try
             {
-                lockFileStream = new FileStream(_file.FullName, FileMode.OpenOrCreate, FileAccess.Read, FileShare.None, bufferSize: 1, FileOptions.DeleteOnClose);
+                lockFileStream = new FileStream(_file.Value, FileMode.OpenOrCreate, FileAccess.Read, FileShare.None, bufferSize: 1, FileOptions.DeleteOnClose);
             }
             catch (UnauthorizedAccessException)
             {

@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BitcoderCZ.IO" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="BouncyCastle.Cryptography" />
     <PackageReference Include="Microsoft.Extensions.ObjectPool" />

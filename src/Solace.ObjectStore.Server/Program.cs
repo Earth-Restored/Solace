@@ -1,4 +1,5 @@
-﻿using Solace.Common;
+﻿using BitcoderCZ.IO;
+using Solace.Common;
 using Solace.ObjectStore.Server.Services;
 using System.Diagnostics;
 #if USE_SHARED_LIBS
@@ -66,7 +67,7 @@ internal static partial class App
 
         var dataDirectory = Path.GetFullPath(builder.Configuration.GetValue<string>("DataDirectory", "data/object_store"));
 
-        builder.Services.AddSingleton(new DataStore(new DirectoryInfo(dataDirectory)));
+        builder.Services.AddSingleton(new DataStore(new AbsoluteDirectory(dataDirectory)));
 
         await using var app = builder.Build();
 

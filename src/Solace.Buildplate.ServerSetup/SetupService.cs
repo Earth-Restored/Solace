@@ -4,6 +4,7 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Runtime.Versioning;
 using System.Text.Json.Serialization;
+using BitcoderCZ.IO;
 using Cyotek.Data.Nbt;
 using Cyotek.Data.Nbt.Serialization;
 using Microsoft.Extensions.Configuration;
@@ -34,8 +35,8 @@ internal sealed partial class SetupService : IDisposable
     private static readonly string[] JavaOptions = ["-Xms256M", "-Xmx1G", "-XX:+UseG1GC", "-XX:+ParallelRefProcEnabled", "-XX:MaxGCPauseMillis=200", "-XX:+UnlockExperimentalVMOptions", "-XX:+DisableExplicitGC", "-XX:G1NewSizePercent=20", "-XX:G1MaxNewSizePercent=30", "-XX:G1HeapRegionSize=4M", "-XX:G1ReservePercent=15", "-XX:G1HeapWastePercent=5", "-XX:G1MixedGCCountTarget=4", "-XX:InitiatingHeapOccupancyPercent=15", "-XX:G1MixedGCLiveThresholdPercent=90", "-XX:G1RSetUpdatingPauseTimePercent=5", "-XX:SurvivorRatio=32", "-XX:MaxTenuringThreshold=1", "-XX:+PerfDisableSharedMem", "-XX:MaxMetaspaceSize=192M", "-XX:MaxDirectMemorySize=128M", "-Xss256k"];
 
     private readonly HttpClient _httpClient;
-    private readonly DirectoryInfo _serverDirectory;
-    private readonly DirectoryInfo _modsDirectory;
+    private readonly AbsoluteDirectory _serverDirectory;
+    private readonly AbsoluteDirectory _modsDirectory;
     private readonly ILogger<SetupService> _logger;
 
     public SetupService(IConfiguration configuration, ILogger<SetupService> logger)
@@ -43,9 +44,9 @@ internal sealed partial class SetupService : IDisposable
         _httpClient = new HttpClient();
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd($"Earth-Restored-Solace/{Assembly.GetExecutingAssembly().GetName().Version}");
 
-        var staticDataPath = configuration["StaticDataPath"]!;
+        var staticDataPath = Path.GetFullPath(configuration["StaticDataPath"]!);
 
-        _serverDirectory = new DirectoryInfo(Path.Combine(staticDataPath, "server_template_dir"));
+        _serverDirectory = new AbsoluteDirectory(Path.Combine(staticDataPath, "server_template_dir"));
         _modsDirectory = _serverDirectory.CreateSubdirectory("mods");
 
         _logger = logger;
@@ -56,7 +57,7 @@ internal sealed partial class SetupService : IDisposable
     [SupportedOSPlatform("windows")]
     public async Task SetupAsync(CancellationToken cancellationToken = default)
     {
-        var fileLock = new FileLock(new FileInfo(Path.Combine(_serverDirectory.FullName, ".setupLock")));
+        var fileLock = new FileLock(_serverDirectory / new RelativeFile(".setupLock"));
 
         LogLockGetStart();
         FileLock.Handle lockHandle = default;
@@ -75,18 +76,18 @@ internal sealed partial class SetupService : IDisposable
 
             LogLockGetDone();
 
-            var setupDoneFile = new FileInfo(Path.Combine(_serverDirectory.FullName, ".setupDone"));
+            var setupDoneFile = _serverDirectory / new RelativeFile(".setupDone");
             setupDoneFile.Delete();
 
             var serverJar = await SetupServer(cancellationToken);
 
             foreach (var (modName, modPattern) in Mods)
             {
-                var modFile = _modsDirectory.EnumerateFiles(modPattern).FirstOrDefault();
+                var modFile = _modsDirectory.EnumerateFiles(SearchOption.TopDirectoryOnly, modPattern).FirstOrDefault();
 
                 if (modFile is not null)
                 {
-                    LogModFileFound(modFile.FullName);
+                    LogModFileFound(modFile.Value);
                     continue;
                 }
 
@@ -97,14 +98,14 @@ internal sealed partial class SetupService : IDisposable
             }
 
             // eula acceptance verified in Program.Main
-            File.WriteAllText(Path.Combine(_serverDirectory.FullName, "eula.txt"), "eula=true");
+            await (_serverDirectory / new RelativeFile("eula.txt")).WriteAllTextAsync("eula=true", cancellationToken);
 
-            var preDownloadedFile = new FileInfo(Path.Combine(_serverDirectory.FullName, ".preDownloadDone"));
+            var preDownloadedFile = _serverDirectory / new RelativeFile(".preDownloadDone");
 
             if (preDownloadedFile.Exists &&
-                Directory.Exists(Path.Combine(_serverDirectory.FullName, "libraries")) &&
-                Directory.Exists(Path.Combine(_serverDirectory.FullName, "versions", GameVersion.ToString())) &&
-                Directory.Exists(Path.Combine(_serverDirectory.FullName, ".fabric")))
+                (_serverDirectory / "libraries").Exists &&
+                (_serverDirectory / "versions" / GameVersion.ToString()).Exists &&
+                (_serverDirectory / ".fabric").Exists)
             {
                 LogServerPreDownloaded();
             }
@@ -115,7 +116,7 @@ internal sealed partial class SetupService : IDisposable
                 // dissables spawn region
                 var worldDirectory = _serverDirectory.CreateSubdirectory("world");
                 var levelDatTag = LevelDatUtils.Create(false, false, 0);
-                using (var fs = new FileStream(Path.Combine(worldDirectory.FullName, "level.dat"), FileMode.Create, FileAccess.Write, FileShare.Read))
+                using (var fs = new FileStream(Path.Combine(worldDirectory.Value, "level.dat"), FileMode.Create, FileAccess.Write, FileShare.Read))
                 using (var gzs = new GZipStream(fs, CompressionLevel.Optimal))
                 {
                     var writer = new BinaryTagWriter(gzs);
@@ -128,23 +129,23 @@ internal sealed partial class SetupService : IDisposable
                 }
 
                 // copy solace mod out
-                foreach (var solaceModFile in _modsDirectory.EnumerateFiles("solace-*.jar"))
+                foreach (var solaceModFile in _modsDirectory.EnumerateFiles(SearchOption.TopDirectoryOnly, "solace-*.jar"))
                 {
-                    solaceModFile.MoveTo(Path.Combine(_serverDirectory.FullName, solaceModFile.Name));
+                    solaceModFile.MoveTo(_serverDirectory, true);
                 }
 
                 var javaExe = JavaLocator.Locate(_logger);
 
                 serverProcess = new Process()
                 {
-                    StartInfo = new ProcessStartInfo(javaExe, [.. JavaOptions, "-jar", serverJar.FullName, "--nogui"])
+                    StartInfo = new ProcessStartInfo(javaExe, [.. JavaOptions, "-jar", serverJar.Value, "--nogui"])
                     {
                         KillOnParentExit = true,
                         UseShellExecute = false,
                         CreateNoWindow = true,
                         RedirectStandardOutput = true,
                         RedirectStandardInput = true,
-                        WorkingDirectory = _serverDirectory.FullName,
+                        WorkingDirectory = _serverDirectory.Value,
                     },
                     EnableRaisingEvents = true,
                 };
@@ -202,21 +203,21 @@ internal sealed partial class SetupService : IDisposable
             }
 
             // copy solace mod in
-            foreach (var solaceModFile in _serverDirectory.EnumerateFiles("solace-*.jar"))
+            foreach (var solaceModFile in _serverDirectory.EnumerateFiles(SearchOption.TopDirectoryOnly, "solace-*.jar"))
             {
-                solaceModFile.MoveTo(Path.Combine(_modsDirectory.FullName, solaceModFile.Name));
+                solaceModFile.MoveTo(_modsDirectory, true);
             }
 
             // cleanup
-            new DirectoryInfo(Path.Combine(_serverDirectory.FullName, "world")).SafeDelete(recursive: true);
-            new DirectoryInfo(Path.Combine(_serverDirectory.FullName, "logs")).SafeDelete(recursive: true);
-            File.Delete(Path.Combine(_serverDirectory.FullName, "banned-ips.json"));
-            File.Delete(Path.Combine(_serverDirectory.FullName, "banned-players.json"));
-            File.Delete(Path.Combine(_serverDirectory.FullName, "eula.txt"));
-            File.Delete(Path.Combine(_serverDirectory.FullName, "ops.json"));
-            File.Delete(Path.Combine(_serverDirectory.FullName, "server.properties"));
-            File.Delete(Path.Combine(_serverDirectory.FullName, "usercache.json"));
-            File.Delete(Path.Combine(_serverDirectory.FullName, "whitelist.json"));
+            (_serverDirectory / "world").SafeDelete(recursive: true);
+            (_serverDirectory / "logs").SafeDelete(recursive: true);
+            (_serverDirectory / new RelativeFile("banned-ips.json")).Delete();
+            (_serverDirectory / new RelativeFile("banned-players.json")).Delete();
+            (_serverDirectory / new RelativeFile("eula.txt")).Delete();
+            (_serverDirectory / new RelativeFile("ops.json")).Delete();
+            (_serverDirectory / new RelativeFile("server.properties")).Delete();
+            (_serverDirectory / new RelativeFile("usercache.json")).Delete();
+            (_serverDirectory / new RelativeFile("whitelist.json")).Delete();
 
             setupDoneFile.Create();
 
@@ -232,16 +233,16 @@ internal sealed partial class SetupService : IDisposable
     public void Dispose()
         => _httpClient.Dispose();
 
-    private async Task<FileInfo> SetupServer(CancellationToken cancellationToken)
+    private async Task<AbsoluteFile> SetupServer(CancellationToken cancellationToken)
     {
-        if (File.TryFindCompatibleFile(_serverDirectory.FullName, GameVersion, "server-{{version}}.jar", out var serverJarPath))
+        if (File.TryFindCompatibleFile(_serverDirectory.Value, GameVersion, "server-{{version}}.jar", out var serverJarPath))
         {
             LogServerFileFound(serverJarPath);
-            return new FileInfo(serverJarPath);
+            return new AbsoluteFile(serverJarPath);
         }
 
         // delete any incompatible files
-        foreach (var file in _serverDirectory.GetFiles("server-*.jar", SearchOption.TopDirectoryOnly))
+        foreach (var file in _serverDirectory.EnumerateFiles(SearchOption.TopDirectoryOnly, "server-*.jar"))
         {
             try
             {
@@ -253,7 +254,7 @@ internal sealed partial class SetupService : IDisposable
             }
         }
 
-        var serverFile = new FileInfo(Path.Combine(_serverDirectory.FullName, $"server-{GameVersion}.jar"));
+        var serverFile = _serverDirectory / new RelativeFile($"server-{GameVersion}.jar");
 
         LogDownloadServerStart();
 
@@ -290,16 +291,16 @@ internal sealed partial class SetupService : IDisposable
 
         LogModFoundVersion(name, latestVersion.VersionNumber);
 
-        var destinationFile = new FileInfo(Path.Combine(_modsDirectory.FullName, primaryFile.FileName));
+        var destinationFile = _modsDirectory / new RelativeFile(primaryFile.FileName);
 
         await DownloadFileAsync(primaryFile.Url, destinationFile, cancellationToken);
 
-        LogModDownloadDone(name, destinationFile.FullName);
+        LogModDownloadDone(name, destinationFile.Value);
 
         return true;
     }
 
-    private async Task DownloadFileAsync(string requestUri, FileInfo destinationFile, CancellationToken cancellationToken)
+    private async Task DownloadFileAsync(string requestUri, AbsoluteFile destinationFile, CancellationToken cancellationToken)
     {
         const int BufferSize = 1024 * 8; // 8 kb
 
@@ -310,7 +311,7 @@ internal sealed partial class SetupService : IDisposable
         var totalBytes = response.Content.Headers.ContentLength;
 
         using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var fileStream = new FileStream(destinationFile.FullName, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: BufferSize, useAsync: true);
+        using var fileStream = new FileStream(destinationFile.Value, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: BufferSize, useAsync: true);
 
         var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
         long totalBytesRead = 0;

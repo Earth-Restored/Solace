@@ -4,6 +4,7 @@ using System.IO.Compression;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json.Serialization;
+using BitcoderCZ.IO;
 using Cyotek.Data.Nbt;
 using Cyotek.Data.Nbt.Serialization;
 using Microsoft.Extensions.Logging;
@@ -24,7 +25,7 @@ internal sealed partial class Instance
     [SupportedOSPlatform("android")]
     [SupportedOSPlatform("linux")]
     [SupportedOSPlatform("windows")]
-    public static Instance Run(EventBusClient eventBusClient, Guid? playerId, Guid buildplateId, BuildplateSource buildplateSource, Guid instanceId, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, DateTimeOffset? shutdownTime, string publicAddress, int port, int serverInternalPort, string javaCmd, FileInfo fountainBridgeJar, DirectoryInfo serverTemplateDir, string fabricJarName, FileInfo connectorPluginJar, DirectoryInfo baseDir, string eventBusConnectionString, ILoggerFactory loggerFactory, ILogger logger)
+    public static Instance Run(EventBusClient eventBusClient, Guid? playerId, Guid buildplateId, BuildplateSource buildplateSource, Guid instanceId, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, DateTimeOffset? shutdownTime, string publicAddress, int port, int serverInternalPort, string javaCmd, AbsoluteFile fountainBridgeJar, AbsoluteDirectory serverTemplateDir, string fabricJarName, AbsoluteFile connectorPluginJar, AbsoluteDirectory baseDir, string eventBusConnectionString, ILoggerFactory loggerFactory, ILogger logger)
     {
         if (playerId is null && buildplateSource is BuildplateSource.PLAYER)
         {
@@ -58,11 +59,11 @@ internal sealed partial class Instance
     private readonly int _serverInternalPort;
 
     private readonly string _javaCmd;
-    private readonly FileInfo _fountainBridgeJar;
-    private readonly DirectoryInfo _serverTemplateDir;
+    private readonly AbsoluteFile _fountainBridgeJar;
+    private readonly AbsoluteDirectory _serverTemplateDir;
     private readonly string _fabricJarName;
-    private readonly FileInfo _connectorPluginJar;
-    private readonly DirectoryInfo _baseDir;
+    private readonly AbsoluteFile _connectorPluginJar;
+    private readonly AbsoluteDirectory _baseDir;
     private readonly string _eventBusAddress;
     private readonly string _eventBusQueueName;
     private readonly string _connectorPluginArgString;
@@ -79,8 +80,8 @@ internal sealed partial class Instance
     private Subscriber? _subscriber;
     private RequestHandler? _requestHandler;
 
-    private DirectoryInfo _serverWorkDir = null!;
-    private DirectoryInfo _bridgeWorkDir = null!;
+    private AbsoluteDirectory _serverWorkDir = null!;
+    private AbsoluteDirectory _bridgeWorkDir = null!;
     private ConsoleProcess? _serverProcess;
     private ConsoleProcess? _bridgeProcess;
     private bool _shuttingDown;
@@ -88,7 +89,7 @@ internal sealed partial class Instance
 
     private volatile bool _hostPlayerConnected;
 
-    private Instance(EventBusClient eventBusClient, Guid? playerId, Guid buildplateId, BuildplateSource buildplateSource, Guid instanceId, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, DateTimeOffset? shutdownTime, string publicAddress, int port, int serverInternalPort, string javaCmd, FileInfo fountainBridgeJar, DirectoryInfo serverTemplateDir, string fabricJarName, FileInfo connectorPluginJar, DirectoryInfo baseDir, string eventBusConnectionString, ILoggerFactory loggerFactory, ILogger logger)
+    private Instance(EventBusClient eventBusClient, Guid? playerId, Guid buildplateId, BuildplateSource buildplateSource, Guid instanceId, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, DateTimeOffset? shutdownTime, string publicAddress, int port, int serverInternalPort, string javaCmd, AbsoluteFile fountainBridgeJar, AbsoluteDirectory serverTemplateDir, string fabricJarName, AbsoluteFile connectorPluginJar, AbsoluteDirectory baseDir, string eventBusConnectionString, ILoggerFactory loggerFactory, ILogger logger)
     {
         _eventBusClient = eventBusClient;
 
@@ -641,9 +642,9 @@ internal sealed partial class Instance
         }
     }
 
-    private async Task<DirectoryInfo?> SetupServerFiles(byte[] serverData)
+    private async Task<AbsoluteDirectory?> SetupServerFiles(byte[] serverData)
     {
-        var workDir = new DirectoryInfo(Path.Combine(_baseDir.FullName, "server"));
+        var workDir = _baseDir / "server";
         try
         {
             workDir.Create();
@@ -654,14 +655,14 @@ internal sealed partial class Instance
             return null;
         }
 
-        if (!CopyServerFile(new FileInfo(Path.Combine(_serverTemplateDir.FullName, _fabricJarName)), new FileInfo(Path.Combine(workDir.FullName, _fabricJarName)), false))
+        if (!CopyServerFile(_serverTemplateDir / new RelativeFile(_fabricJarName), workDir / new RelativeFile(_fabricJarName), false))
         {
             LogFabricJarNotFound(_fabricJarName);
             return null;
         }
 
         var warnedMissingServerFiles = false;
-        if (!CopyServerFile(new DirectoryInfo(Path.Combine(_serverTemplateDir.FullName, ".fabric", "server")), new DirectoryInfo(Path.Combine(workDir.FullName, ".fabric", "server")), true))
+        if (!CopyServerFile(_serverTemplateDir / ".fabric" / "server", workDir / ".fabric" / "server", true))
         {
             if (!warnedMissingServerFiles)
             {
@@ -670,7 +671,7 @@ internal sealed partial class Instance
             }
         }
 
-        if (!CopyServerFile(new DirectoryInfo(Path.Combine(_serverTemplateDir.FullName, "libraries")), new DirectoryInfo(Path.Combine(workDir.FullName, "libraries")), true))
+        if (!CopyServerFile(_serverTemplateDir / "libraries", workDir / "libraries", true))
         {
             if (!warnedMissingServerFiles)
             {
@@ -679,7 +680,7 @@ internal sealed partial class Instance
             }
         }
 
-        if (!CopyServerFile(new DirectoryInfo(Path.Combine(_serverTemplateDir.FullName, "versions")), new DirectoryInfo(Path.Combine(workDir.FullName, "versions")), true))
+        if (!CopyServerFile(_serverTemplateDir / "versions", workDir / "versions", true))
         {
             if (!warnedMissingServerFiles)
             {
@@ -690,12 +691,13 @@ internal sealed partial class Instance
             }
         }
 
-        if (!CopyServerFile(new DirectoryInfo(Path.Combine(_serverTemplateDir.FullName, "mods")), new DirectoryInfo(Path.Combine(workDir.FullName, "mods")), true))
+        if (!CopyServerFile(_serverTemplateDir / "mods", workDir / "mods", true))
         {
             LogModsDirrectoryNotFound();
         }
 
-        await File.WriteAllTextAsync(Path.Combine(workDir.FullName, "eula.txt"), "eula=true");
+        // eula acceptance verified in App.RunAsync
+        await (workDir / new RelativeFile("eula.txt")).WriteAllTextAsync("eula=true");
 
         var serverProperties = new StringBuilder()
             .Append("online-mode=false\n")
@@ -708,9 +710,9 @@ internal sealed partial class Instance
             .Append(CultureInfo.InvariantCulture, $"solace-event-bus-address={_eventBusAddress}\n")
             .Append(CultureInfo.InvariantCulture, $"solace-event-bus-queue-name={_eventBusQueueName}\n")
             .ToString();
-        await File.WriteAllTextAsync(Path.Combine(workDir.FullName, "server.properties"), serverProperties);
+        await (workDir / new RelativeFile("server.properties")).WriteAllTextAsync(serverProperties);
 
-        var worldDir = new DirectoryInfo(Path.Combine(workDir.FullName, "world"));
+        var worldDir = workDir / "world";
         try
         {
             workDir.Create();
@@ -721,7 +723,7 @@ internal sealed partial class Instance
             return null;
         }
 
-        var worldEntitiesDir = new DirectoryInfo(Path.Combine(worldDir.FullName, "entities"));
+        var worldEntitiesDir = worldDir / "entities";
         try
         {
             worldEntitiesDir.Create();
@@ -732,7 +734,7 @@ internal sealed partial class Instance
             return null;
         }
 
-        var worldRegionDir = new DirectoryInfo(Path.Combine(worldDir.FullName, "region"));
+        var worldRegionDir = worldDir / "region";
         try
         {
             worldRegionDir.Create();
@@ -744,7 +746,7 @@ internal sealed partial class Instance
         }
 
         var levelDatTag = LevelDatUtils.Create(_survival, _night, 3);
-        using (var fs = new FileStream(Path.Combine(worldDir.FullName, "level.dat"), FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read))
+        using (var fs = new FileStream(Path.Combine(worldDir.Value, "level.dat"), FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read))
         using (var gzs = new GZipStream(fs, CompressionLevel.Optimal))
         {
             var writer = new BinaryTagWriter(gzs);
@@ -765,10 +767,10 @@ internal sealed partial class Instance
                     continue;
                 }
 
-                var path = Path.Combine(worldDir.FullName, entry.FullName);
+                var path = worldDir / new RelativeFile(entry.FullName);
 
                 using (var zipStream = await entry.OpenAsync())
-                using (var fs = File.OpenWriteNew(path))
+                using (var fs = path.OpenWrite(true))
                 {
                     await zipStream.CopyToAsync(fs);
                 }
@@ -778,7 +780,7 @@ internal sealed partial class Instance
         return workDir;
     }
 
-    private static bool CopyServerFile(FileSystemInfo src, FileSystemInfo dst, bool directory)
+    private static bool CopyServerFile(IAbsolutePath src, IAbsolutePath dst, bool directory)
     {
         if (!src.Exists)
         {
@@ -787,21 +789,21 @@ internal sealed partial class Instance
 
         if (directory)
         {
-            ((DirectoryInfo)src).CopyTo(dst.FullName);
+            ((AbsoluteDirectory)src).CopyContentsTo((AbsoluteDirectory)dst, true, true);
         }
         else
         {
-            ((FileInfo)src).CopyTo(dst.FullName);
+            ((AbsoluteFile)src).CopyTo((AbsoluteFile)dst, true);
         }
 
         return true;
     }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-    private DirectoryInfo? SetupBridgeFiles(byte[] serverData)
+    private AbsoluteDirectory? SetupBridgeFiles(byte[] serverData)
 #pragma warning restore IDE0060 // Remove unused parameter
     {
-        var workDir = new DirectoryInfo(Path.Combine(_baseDir.FullName, "bridge"));
+        var workDir = _baseDir / "bridge";
         try
         {
             workDir.Create();
@@ -879,7 +881,7 @@ internal sealed partial class Instance
                     };
                 }
 
-                await _serverProcess.ExecuteAsync(_serverWorkDir.FullName, ["-jar", _fabricJarName, "-nogui"]);
+                await _serverProcess.ExecuteAsync(_serverWorkDir.Value, ["-jar", _fabricJarName, "-nogui"]);
 
                 LogServerProcessStarted(_serverProcess.Id);
             }
@@ -954,13 +956,13 @@ internal sealed partial class Instance
                     }).Forget();
                 };
 
-                await _bridgeProcess.ExecuteAsync(_bridgeWorkDir!.FullName,
+                await _bridgeProcess.ExecuteAsync(_bridgeWorkDir!.Value,
                 [
-                    "-jar", _fountainBridgeJar.FullName,
+                    "-jar", _fountainBridgeJar.Value,
                     "-port", Port.ToString(CultureInfo.InvariantCulture),
                     "-serverAddress", "127.0.0.1",
                     "-serverPort", _serverInternalPort.ToString(CultureInfo.InvariantCulture),
-                    "-connectorPluginJar", _connectorPluginJar.FullName,
+                    "-connectorPluginJar", _connectorPluginJar.Value,
                     "-connectorPluginClass", "earthrestored.solace.buildplate.connector.plugin.SolaceConnectorPlugin",
                     "-connectorPluginArg", _connectorPluginArgString,
                     "-useUUIDAsUsername",

@@ -1,3 +1,4 @@
+using BitcoderCZ.IO;
 using Microsoft.Extensions.Logging;
 using Solace.Common;
 
@@ -5,15 +6,15 @@ namespace Solace.Buildplate.Common;
 
 public static partial class ServerUtils
 {
-    public static async Task WaitForSetup(string staticDataPath, ILogger logger, CancellationToken cancellationToken = default)
+    public static async Task WaitForSetup(AbsoluteDirectory staticDataPath, ILogger logger, CancellationToken cancellationToken = default)
     {
         await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken); // give time to server setup to start and lock the file
 
-        var fileLock = new FileLock(new FileInfo(Path.Combine(staticDataPath, "server_template_dir", ".setupLock")));
+        var fileLock = new FileLock(staticDataPath / "server_template_dir" / new RelativeFile(".setupLock"));
 
-        var setupDoneFile = Path.Combine(staticDataPath, "server_template_dir", ".setupDone");
+        var setupDoneFile = staticDataPath / "server_template_dir" / new RelativeFile(".setupDone");
 
-        if (File.Exists(setupDoneFile))
+        if (setupDoneFile.Exists)
         {
             return;
         }
@@ -28,7 +29,7 @@ public static partial class ServerUtils
             var timeout = TimeSpan.FromMinutes(30);
             using (await fileLock.AcquireAsync(timeout, cancellationToken))
             {
-                if (File.Exists(setupDoneFile))
+                if (setupDoneFile.Exists)
                 {
                     LogWaitForSetupDone(logger);
                     return;

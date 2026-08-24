@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using BitcoderCZ.IO;
+using Microsoft.Extensions.Logging;
 using Solace.Common.Utils;
 
 namespace Solace.Common;
@@ -27,20 +28,22 @@ public static partial class JavaLocator
         {
             LogTryJavaHome(logger);
 
+            javaHome = Path.GetFullPath(javaHome);
+
             try
             {
-                var file = new FileInfo(Path.Combine(javaHome, "bin", "java"));
+                var file = new AbsoluteFile(Path.Combine(javaHome, "bin", "java"));
                 if (file.CanExecute())
                 {
-                    var path = file.FullName;
+                    var path = file.Value;
                     LogUseJavaHome(logger, path);
                     return path;
                 }
 
-                file = new FileInfo(Path.Combine(javaHome, "bin", "java.exe"));
+                file = new AbsoluteFile(Path.Combine(javaHome, "bin", "java.exe"));
                 if (file.CanExecute())
                 {
-                    var path = file.FullName;
+                    var path = file.Value;
                     LogUseJavaHome(logger, path);
                     return path;
                 }

@@ -170,7 +170,7 @@ internal sealed partial class App
 
     private static Results<BadRequest, PhysicalFileHttpResult> GetResourcePackHandler(HttpContext context, ILogger<App> logger)
     {
-        var resourcePackFilePath = Path.Combine(staticDataPath, "resourcepacks", "vanilla.zip"); //resource packs are distributed as renamed zip files containing an MCpack
+        var resourcePackFilePath = Path.Combine(staticDataPath, "resourcepacks", "vanilla.zip"); // resource packs are distributed as renamed zip files containing an MCpack
 
         if (!System.IO.File.Exists(resourcePackFilePath))
         {

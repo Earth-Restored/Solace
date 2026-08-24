@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.Versioning;
+using BitcoderCZ.IO;
 using Microsoft.Extensions.Logging;
 using Solace.Buildplate.Common;
 using Solace.Buildplate.Connector.Model;
@@ -17,13 +18,13 @@ internal sealed partial class Starter
     private readonly string _publicAddress;
     private readonly ushort _basePort;
     private readonly string _javaCmd;
-    private readonly DirectoryInfo _tmpDir;
+    private readonly AbsoluteDirectory _tmpDir;
     private readonly string _eventBusConnectionString;
 
-    private readonly FileInfo _fountainBridgeJar;
-    private readonly DirectoryInfo _serverTemplateDir;
-    private readonly string _fabricJarName;
-    private readonly FileInfo _connectorPluginJar;
+    private readonly AbsoluteFile _fountainBridgeJar;
+    private readonly AbsoluteDirectory _serverTemplateDir;
+    private readonly RelativeFile _fabricJarName;
+    private readonly AbsoluteFile _connectorPluginJar;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<Starter> _logger;
 
@@ -31,20 +32,20 @@ internal sealed partial class Starter
     private readonly HashSet<int> _portsInUse = [];
     private readonly HashSet<int> _serverInternalPortsInUse = [];
 
-    public Starter(EventBusClient eventBusClient, string eventBusConnectionString, string publicAddress, ushort basePort, string javaCmd, string bridgeJar, string serverTemplateDir, string fabricJarName, string connectorPluginJar, ILoggerFactory loggerFactory, ILogger<Starter> logger)
+    public Starter(EventBusClient eventBusClient, string eventBusConnectionString, string publicAddress, ushort basePort, string javaCmd, string bridgeJar, AbsoluteDirectory serverTemplateDir, string fabricJarName, string connectorPluginJar, ILoggerFactory loggerFactory, ILogger<Starter> logger)
     {
         _eventBusClient = eventBusClient;
 
         _publicAddress = publicAddress;
         _basePort = basePort;
         _javaCmd = javaCmd;
-        _tmpDir = new DirectoryInfo(Path.GetTempPath());
+        _tmpDir = new AbsoluteDirectory(Path.GetTempPath());
         _eventBusConnectionString = eventBusConnectionString;
 
-        _fountainBridgeJar = new FileInfo(Path.GetFullPath(bridgeJar));
-        _serverTemplateDir = new DirectoryInfo(Path.GetFullPath(serverTemplateDir));
-        _fabricJarName = fabricJarName;
-        _connectorPluginJar = new FileInfo(connectorPluginJar);
+        _fountainBridgeJar = new AbsoluteFile(Path.GetFullPath(bridgeJar));
+        _serverTemplateDir = serverTemplateDir;
+        _fabricJarName = new RelativeFile(fabricJarName);
+        _connectorPluginJar = new AbsoluteFile(Path.GetFullPath(connectorPluginJar));
         _logger = logger;
         _loggerFactory = loggerFactory;
     }
@@ -56,7 +57,7 @@ internal sealed partial class Starter
     {
         await ServerUtils.WaitForSetup(App.StaticDataPath, _logger, cancellationToken);
 
-        var fabricJarName = App.ResolveVersionedFile(Path.Combine(App.StaticDataPath, "server_template_dir", _fabricJarName), Buildplate.Common.Constants.GameVersion, _logger);
+        var fabricJarName = App.ResolveVersionedFile((App.StaticDataPath / "server_template_dir" / _fabricJarName).Value, Buildplate.Common.Constants.GameVersion, _logger);
         if (fabricJarName is null)
         {
             return null;
@@ -127,9 +128,9 @@ internal sealed partial class Starter
         }
     }
 
-    private DirectoryInfo? CreateInstanceBaseDir(Guid instanceId)
+    private AbsoluteDirectory? CreateInstanceBaseDir(Guid instanceId)
     {
-        var directory = new DirectoryInfo(Path.Combine(_tmpDir.FullName, $"solace-buildplate-instance_{instanceId}"));
+        var directory = _tmpDir / $"solace-buildplate-instance_{instanceId}";
         try
         {
             directory.Create();
@@ -139,7 +140,7 @@ internal sealed partial class Starter
             LogCreateBaseDirectoryFail(exception, instanceId);
         }
 
-        LogCreateBaseDirectorySucceed(directory.FullName);
+        LogCreateBaseDirectorySucceed(directory.Value);
         return directory;
     }
 

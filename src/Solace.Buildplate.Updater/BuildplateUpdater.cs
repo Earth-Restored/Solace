@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Runtime.Versioning;
 using System.Text.RegularExpressions;
+using BitcoderCZ.IO;
 using Cyotek.Data.Nbt;
 using Cyotek.Data.Nbt.Serialization;
 using Microsoft.Extensions.Configuration;
@@ -31,25 +32,25 @@ internal sealed partial class BuildplateUpdater : IDisposable
 
     private readonly SemaphoreSlim _convertLock = new(1, 1);
 
-    private readonly string _staticDataPath;
+    private readonly AbsoluteDirectory _staticDataPath;
 
     private readonly ILogger<BuildplateUpdater> _logger;
 
-    private DirectoryInfo? _serverDirectory;
+    private AbsoluteDirectory? _serverDirectory;
 
-    private DirectoryInfo? _worldDirectory;
+    private AbsoluteDirectory? _worldDirectory;
 
-    private FileInfo? _serverJar;
+    private AbsoluteFile? _serverJar;
 
-    private FileInfo? _templateLevelDat;
+    private AbsoluteFile? _templateLevelDat;
 
-    private FileInfo? _levelDat;
+    private AbsoluteFile? _levelDat;
 
     private string? _javaExe;
 
     public BuildplateUpdater(IConfiguration configuration, ILogger<BuildplateUpdater> logger)
     {
-        _staticDataPath = configuration["StaticDataPath"]!;
+        _staticDataPath = new AbsoluteDirectory(Path.GetFullPath(configuration["StaticDataPath"]!));
         _logger = logger;
     }
 
@@ -62,7 +63,7 @@ internal sealed partial class BuildplateUpdater : IDisposable
 
         await ServerUtils.WaitForSetup(_staticDataPath, _logger, cancellationToken);
 
-        var tempDirectory = new DirectoryInfo("tmp");
+        var tempDirectory = new RelativeDirectory("tmp").ToAbsolute();
         if (tempDirectory.Exists)
         {
             tempDirectory.Delete(recursive: true);
@@ -73,32 +74,32 @@ internal sealed partial class BuildplateUpdater : IDisposable
         _serverDirectory = tempDirectory.CreateSubdirectory("server");
 
         // eula acceptance verified in Program.Main
-        File.WriteAllText(Path.Combine(_serverDirectory.FullName, "eula.txt"), "eula=true");
+        await (_serverDirectory / new RelativeFile("eula.txt")).WriteAllTextAsync("eula=true", cancellationToken);
 
-        var staticDataServer = new DirectoryInfo(Path.Combine(_staticDataPath, "server_template_dir"));
+        var staticDataServer = _staticDataPath / "server_template_dir";
 
-        if (!File.TryFindCompatibleFile(staticDataServer.FullName, Buildplate.Common.Constants.GameVersion, "server-{{version}}.jar", out var serverJarPath))
+        if (!File.TryFindCompatibleFile(staticDataServer.Value, Buildplate.Common.Constants.GameVersion, "server-{{version}}.jar", out var serverJarPath))
         {
             LogServerJarNotFound();
             return false;
         }
 
-        _serverJar = new FileInfo(Path.Combine(_serverDirectory.FullName, Path.GetFileName(serverJarPath)));
+        _serverJar = _serverDirectory / new RelativeFile(Path.GetFileName(serverJarPath));
 
-        File.Copy(serverJarPath, _serverJar.FullName, true);
+        File.Copy(serverJarPath, _serverJar.Value, true);
 
         var modsDirectory = _serverDirectory.CreateSubdirectory("mods");
 
-        new DirectoryInfo(Path.Combine(staticDataServer.FullName, "mods")).CopyFilesTo(modsDirectory.FullName, Mods, overwrite: false);
+        (staticDataServer / "mods").CopyFilesTo(modsDirectory, Mods, overwrite: false);
 
         _worldDirectory = _serverDirectory.CreateSubdirectory("world");
 
         // same for all buildplate, create once and copy
-        _templateLevelDat = new FileInfo(Path.Combine(_serverDirectory.FullName, "level.dat"));
-        _levelDat = new FileInfo(Path.Combine(_worldDirectory.FullName, "level.dat"));
+        _templateLevelDat = _serverDirectory / new RelativeFile("level.dat");
+        _levelDat = _worldDirectory / new RelativeFile("level.dat");
 
         var levelDatTag = LevelDatUtils.Create(false, false, 0);
-        using (var fs = new FileStream(_templateLevelDat.FullName, FileMode.Create, FileAccess.Write, FileShare.Read))
+        using (var fs = new FileStream(_templateLevelDat.Value, FileMode.Create, FileAccess.Write, FileShare.Read))
         using (var gzs = new GZipStream(fs, CompressionLevel.Optimal))
         {
             var writer = new BinaryTagWriter(gzs);
@@ -124,9 +125,9 @@ internal sealed partial class BuildplateUpdater : IDisposable
         void CopyFolder(string path)
         {
             Debug.Assert(_serverDirectory is not null);
-            var target = Path.Combine(_serverDirectory.FullName, path);
-            Directory.CreateDirectory(target);
-            new DirectoryInfo(Path.Combine(staticDataServer.FullName, path)).CopyTo(target);
+            var target = _serverDirectory / path;
+            target.Create();
+            (staticDataServer / path).CopyContentsTo(target, true, true);
         }
     }
 
@@ -159,27 +160,27 @@ internal sealed partial class BuildplateUpdater : IDisposable
 
             using (var worldZip = new ZipArchive(worldZipData, ZipArchiveMode.Read, leaveOpen: true))
             {
-                await worldZip.ExtractToDirectoryAsync(_worldDirectory.FullName, cancellationToken);
+                await worldZip.ExtractToDirectoryAsync(_worldDirectory.Value, cancellationToken);
             }
 
-            var metadata = WorldData.LoadMetadata(await File.ReadAllTextAsync(Path.Combine(_worldDirectory.FullName, "buildplate_metadata.json"), cancellationToken), _logger);
+            var metadata = WorldData.LoadMetadata(await (_worldDirectory / new RelativeFile("buildplate_metadata.json")).ReadAllTextAsync(cancellationToken), _logger);
 
             if (metadata is null)
             {
                 return null;
             }
 
-            _templateLevelDat.CopyTo(_levelDat.FullName, true);
+            _templateLevelDat.CopyTo(_levelDat, true);
 
             var serverProcess = new Process()
             {
-                StartInfo = new ProcessStartInfo(_javaExe, [.. JavaOptions, "-jar", _serverJar.FullName, "--nogui"])
+                StartInfo = new ProcessStartInfo(_javaExe, [.. JavaOptions, "-jar", _serverJar.Value, "--nogui"])
                 {
                     KillOnParentExit = true,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardInput = true,
-                    WorkingDirectory = _serverDirectory.FullName,
+                    WorkingDirectory = _serverDirectory.Value,
                 },
             };
 
@@ -248,16 +249,16 @@ internal sealed partial class BuildplateUpdater : IDisposable
             using (var result = new ZipArchive(resultFs, ZipArchiveMode.Create, leaveOpen: true))
             {
 
-                await result.CreateEntryFromFileAsync(Path.Combine(_worldDirectory.FullName, "buildplate_metadata.json"), "buildplate_metadata.json", cancellationToken);
+                await result.CreateEntryFromFileAsync(Path.Combine(_worldDirectory.Value, "buildplate_metadata.json"), "buildplate_metadata.json", cancellationToken);
 
-                foreach (var file in Directory.EnumerateFiles(Path.Combine(_worldDirectory.FullName, "region")))
+                foreach (var file in (_worldDirectory / "region").EnumerateFiles(SearchOption.TopDirectoryOnly))
                 {
-                    await result.CreateEntryFromFileAsync(file, $"region/{Path.GetFileName(file)}", cancellationToken);
+                    await result.CreateEntryFromFileAsync(file.Value, $"region/{file.Name}", cancellationToken);
                 }
 
-                foreach (var file in Directory.EnumerateFiles(Path.Combine(_worldDirectory.FullName, "entities")))
+                foreach (var file in (_worldDirectory / "entities").EnumerateFiles(SearchOption.TopDirectoryOnly))
                 {
-                    await result.CreateEntryFromFileAsync(file, $"entities/{Path.GetFileName(file)}", cancellationToken);
+                    await result.CreateEntryFromFileAsync(file.Value, $"entities/{file.Name}", cancellationToken);
                 }
             }
 

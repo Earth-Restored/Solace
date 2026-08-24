@@ -1,3 +1,5 @@
+using BitcoderCZ.IO;
+
 namespace Solace.Common.Utils;
 
 public static class DirectoryInfoExtensions
@@ -78,7 +80,7 @@ public static class DirectoryInfoExtensions
                             continue;
                         }
 
-                        string destPath = Path.Combine(destinationDirectoryName, file.Name);
+                        var destPath = Path.Combine(destinationDirectoryName, file.Name);
                         file.CopyTo(destPath, overwrite);
                     }
                 }
@@ -95,6 +97,70 @@ public static class DirectoryInfoExtensions
                         var fileName = Path.GetFileName(pattern);
                         var destPath = Path.Combine(destinationDirectoryName, fileName);
                         File.Copy(sourceFilePath, destPath, overwrite);
+                    }
+                }
+            }
+        }
+    }
+
+    extension(AbsoluteDirectory directory)
+    {
+        public void CopyFilesTo(AbsoluteDirectory destinationDirectory, ReadOnlySpan<string> filesToCopy, bool overwrite = false)
+        {
+            ArgumentNullException.ThrowIfNull(directory);
+            ArgumentNullException.ThrowIfNull(destinationDirectory);
+
+            if (!directory.Exists)
+            {
+                throw new DirectoryNotFoundException($"Source directory does not exist: '{directory.Value}'");
+            }
+
+            if (filesToCopy.IsEmpty)
+            {
+                return;
+            }
+
+            destinationDirectory.Create();
+
+            var processedFiles = filesToCopy.Length > 1
+                ? new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)
+                : null;
+
+            foreach (var pattern in filesToCopy)
+            {
+                if (string.IsNullOrWhiteSpace(pattern))
+                {
+                    continue;
+                }
+
+                var patternSpan = pattern.AsSpan();
+
+                if (patternSpan.IndexOfAny('*', '?') >= 0)
+                {
+                    foreach (var file in directory.EnumerateFiles(FastEnumOptions, pattern))
+                    {
+                        if (processedFiles is not null && !processedFiles.Add(file.Value))
+                        {
+                            continue;
+                        }
+
+                        var destPath = destinationDirectory / new RelativeFile(file.Name);
+                        file.CopyTo(destPath, overwrite);
+                    }
+                }
+                else
+                {
+                    var sourceFilePath = directory / new RelativeFile(pattern);
+                    if (sourceFilePath.Exists)
+                    {
+                        if (processedFiles is not null && !processedFiles.Add(sourceFilePath.Value))
+                        {
+                            continue;
+                        }
+
+                        var fileName = Path.GetFileName(pattern);
+                        var destPath = destinationDirectory / new RelativeFile(fileName);
+                        sourceFilePath.CopyTo(destPath, overwrite);
                     }
                 }
             }

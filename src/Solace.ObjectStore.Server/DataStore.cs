@@ -1,12 +1,13 @@
-﻿using Solace.Common.Utils;
+﻿using BitcoderCZ.IO;
+using Solace.Common.Utils;
 
 namespace Solace.ObjectStore.Server;
 
 internal sealed class DataStore
 {
-    private readonly DirectoryInfo _rootDirectory;
+    private readonly AbsoluteDirectory _rootDirectory;
 
-    public DataStore(DirectoryInfo rootDirectory)
+    public DataStore(AbsoluteDirectory rootDirectory)
     {
         _rootDirectory = rootDirectory;
 
@@ -25,9 +26,9 @@ internal sealed class DataStore
 
         long result = 0;
 
-        foreach (var subDir in _rootDirectory.EnumerateDirectories())
+        foreach (var subDir in _rootDirectory.EnumerateDirectories(SearchOption.TopDirectoryOnly))
         {
-            foreach (var file in subDir.EnumerateFiles())
+            foreach (var file in subDir.EnumerateFiles(SearchOption.TopDirectoryOnly))
             {
                 result += file.Length;
                 cancellationToken.ThrowIfCancellationRequested();
@@ -45,23 +46,23 @@ internal sealed class DataStore
         var id = Guid.CreateVersion7();
         var idString = id.ToString();
 
-        var dir = new DirectoryInfo(Path.Combine(_rootDirectory.FullName, idString[..2]));
+        var dir = _rootDirectory / idString[..2];
         if (!dir.Exists)
         {
             dir.Create();
         }
 
-        var file = new FileInfo(Path.Combine(dir.FullName, idString));
+        var file = dir / new RelativeFile(idString);
 
         try
         {
-            using var fileStream = File.OpenWrite(file.FullName);
+            using var fileStream = file.OpenWrite(true);
             await data.CopyToAsync(fileStream, cancellationToken);
         }
         catch (UnauthorizedAccessException exception)
         {
             file.Delete();
-            throw new DataStoreException($"Permission denied writing object file '{file.FullName}'", exception);
+            throw new DataStoreException($"Permission denied writing object file '{file.Value}'", exception);
         }
         catch (IOException exception)
         {
@@ -78,7 +79,7 @@ internal sealed class DataStore
 
         var idString = id.ToString();
 
-        var file = new FileInfo(Path.Combine(_rootDirectory.FullName, idString[..2], idString));
+        var file = _rootDirectory / idString[..2] / new RelativeFile(idString);
         if (!file.Exists)
         {
             return (null, 0);
@@ -86,7 +87,7 @@ internal sealed class DataStore
 
         try
         {
-            return (File.OpenRead(file.FullName), file.Length);
+            return (file.OpenRead(), file.Length);
         }
         catch (IOException exception)
         {
@@ -100,7 +101,7 @@ internal sealed class DataStore
 
         var idString = id.ToString();
 
-        var file = new FileInfo(Path.Combine(_rootDirectory.FullName, idString[..2], idString));
+        var file = _rootDirectory / idString[..2] / new RelativeFile(idString);
 
         if (file.Exists)
         {

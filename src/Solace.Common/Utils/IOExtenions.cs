@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
+using BitcoderCZ.IO;
 
 namespace Solace.Common.Utils;
 
@@ -155,6 +156,52 @@ public static class IOExtenions
         }
     }
 
+    extension(AbsoluteFile file)
+    {
+        public long SafeLength
+        {
+            get
+            {
+                if (!file.Exists)
+                {
+                    return 0;
+                }
+
+                return file.Length;
+            }
+        }
+
+        public void SafeDelete()
+        {
+            try
+            {
+                file.Delete();
+            }
+            catch (DirectoryNotFoundException)
+            {
+            }
+        }
+
+        public bool CanExecute()
+        {
+            // TODO: implement
+
+            try
+            {
+                if (!file.Exists)
+                {
+                    return false;
+                }
+
+                return true;
+            }
+            catch (IOException)
+            {
+                return false;
+            }
+        }
+    }
+
     extension(DirectoryInfo directory)
     {
         public long Length => directory.EnumerateFiles("*", SearchOption.AllDirectories).Sum(file => file.Length);
@@ -210,6 +257,64 @@ public static class IOExtenions
             catch (DirectoryNotFoundException)
             {
             }
+        }
+
+        public void SafeDelete(bool recursive)
+        {
+            try
+            {
+                directory.Delete(recursive);
+            }
+            catch (DirectoryNotFoundException)
+            {
+            }
+        }
+    }
+
+    extension(IDirectory directory)
+    {
+        public long Length => directory.EnumerateFiles(SearchOption.AllDirectories).Sum(file => file.Length);
+
+        public long SafeLength
+        {
+            get
+            {
+                if (!directory.Exists)
+                {
+                    return 0;
+                }
+
+                return directory.Length;
+            }
+        }
+
+        public bool TryCreate()
+        {
+            try
+            {
+                directory.Create();
+                return true;
+            }
+            catch (IOException)
+            {
+                return false;
+            }
+        }
+
+        public bool CanRead()
+        {
+            // TODO: implement
+            if (!directory.Exists)
+            {
+                return false;
+            }
+
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+            {
+                return true;
+            }
+
+            return true;
         }
 
         public void SafeDelete(bool recursive)
