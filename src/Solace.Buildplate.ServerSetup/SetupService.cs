@@ -215,7 +215,6 @@ internal sealed partial class SetupService : IDisposable
             (_serverDirectory / new RelativeFile("banned-players.json")).Delete();
             (_serverDirectory / new RelativeFile("eula.txt")).Delete();
             (_serverDirectory / new RelativeFile("ops.json")).Delete();
-            (_serverDirectory / new RelativeFile("server.properties")).Delete();
             (_serverDirectory / new RelativeFile("usercache.json")).Delete();
             (_serverDirectory / new RelativeFile("whitelist.json")).Delete();
 

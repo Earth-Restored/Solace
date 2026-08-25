@@ -111,6 +111,23 @@ internal sealed partial class BuildplateUpdater : IDisposable
             writer.Close();
         }
 
+        var serverPropertiesFile = _serverDirectory / new RelativeFile("server.properties");
+        var staticDataserverPropertiesFile = staticDataServer / new RelativeFile("server.properties");
+        if (staticDataserverPropertiesFile.Exists)
+        {
+            staticDataserverPropertiesFile.CopyTo(serverPropertiesFile, true);
+        }
+        else
+        {
+            serverPropertiesFile.Create();
+        }
+
+        var serverProperties = await ServerProperties.LoadAsync(serverPropertiesFile, cancellationToken);
+
+        serverProperties["function-permission-level"] = "3";
+
+        await serverProperties.SaveAsync(serverPropertiesFile, cancellationToken);
+
         _javaExe = JavaLocator.Locate(_logger);
 
         CopyFolder(Path.Combine(".fabric", "server"));
@@ -224,6 +241,8 @@ internal sealed partial class BuildplateUpdater : IDisposable
             serverProcess.Start();
 
             serverProcess.BeginOutputReadLine();
+
+            await SendCommandAsync($"/tick freeze");
 
             await serverStarted.Task.WaitAsync(StartTimeout, cancellationToken);
 
