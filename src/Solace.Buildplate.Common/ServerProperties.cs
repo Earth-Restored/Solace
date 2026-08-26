@@ -13,7 +13,7 @@ public sealed class ServerProperties : IDictionary<string, string>
 
     public ServerProperties()
     {
-        _dict = [];
+        _dict = [with(StringComparer.Ordinal)];
     }
 
     private ServerProperties(Dictionary<string, string> dict)
@@ -23,7 +23,7 @@ public sealed class ServerProperties : IDictionary<string, string>
 
     public static async Task<ServerProperties> LoadAsync(IFile path, CancellationToken cancellationToken = default)
     {
-        var dict = new Dictionary<string, string>();
+        var dict = new Dictionary<string, string>(StringComparer.Ordinal);
         var lineBuffer = new StringBuilder();
 
         await foreach (var rawLine in path.ReadLinesAsync(cancellationToken))
@@ -61,7 +61,9 @@ public sealed class ServerProperties : IDictionary<string, string>
             ParsePropertyLine(lineBuffer.ToString(), dict);
         }
 
+#pragma warning disable IDE0028 // Simplify collection initialization
         return new ServerProperties(dict);
+#pragma warning restore IDE0028 // Simplify collection initialization
     }
 
     public async Task SaveAsync(IFile path, CancellationToken cancellationToken = default)
