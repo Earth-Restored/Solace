@@ -8,6 +8,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <BasePath />
     <ResourcePreloader />
+    <script>
+        window.esmsInitOptions = { shimMode: true };
+    </script>
+    <script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["bi-icons.css"]" />
@@ -18,12 +22,12 @@
         @((MarkupString)CaptchaValidator.ManagerScript)
     </script>
     @((MarkupString)CaptchaValidator.Script)
-    <script type="importmap">
+    <script type="importmap-shim">
         {
             "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
-                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/",
-                "skinview3d": "https://cdn.jsdelivr.net/npm/skinview3d@3.4.2/+esm?external=three"
+            "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/",
+            "skinview3d": "https://cdn.jsdelivr.net/npm/skinview3d@3.4.2/+esm?external=three"
             }
         }
     </script>
@@ -35,62 +39,62 @@
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>
     <script>
-        (function() {
-            var toggling = false;
-            function applyDark() {
-                var html = document.documentElement;
-                if (localStorage.getItem('darkMode') === 'true') html.classList.add('dark');
-                else html.classList.remove('dark');
-            }
-            applyDark();
-            window.toggleDarkMode = function() {
-                toggling = true;
-                var html = document.documentElement;
-                var isDark = html.classList.toggle('dark');
-                localStorage.setItem('darkMode', isDark);
-                setTimeout(function() { toggling = false; }, 100);
-            };
-            new MutationObserver(function() {
-                if (toggling) return;
-                if (localStorage.getItem('darkMode') === 'true' && !document.documentElement.classList.contains('dark'))
-                    document.documentElement.classList.add('dark');
-            }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        (function () {
+        var toggling = false;
+        function applyDark() {
+        var html = document.documentElement;
+        if (localStorage.getItem('darkMode') === 'true') html.classList.add('dark');
+        else html.classList.remove('dark');
+        }
+        applyDark();
+        window.toggleDarkMode = function () {
+        toggling = true;
+        var html = document.documentElement;
+        var isDark = html.classList.toggle('dark');
+        localStorage.setItem('darkMode', isDark);
+        setTimeout(function () { toggling = false; }, 100);
+        };
+        new MutationObserver(function () {
+        if (toggling) return;
+        if (localStorage.getItem('darkMode') === 'true' && !document.documentElement.classList.contains('dark'))
+        document.documentElement.classList.add('dark');
+        }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
         })();
 
         window.copyTextDirect = function (text) {
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(text).catch(function(err) {
-                    console.warn("Modern clipboard failed: ", err);
-                });
-                return;
-            }
+        if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).catch(function (err) {
+        console.warn("Modern clipboard failed: ", err);
+        });
+        return;
+        }
 
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            
-            textArea.style.position = "fixed";
-            textArea.style.opacity = "0";
-            textArea.style.left = "-9999px";
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
 
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        textArea.style.left = "-9999px";
 
-            try {
-                document.execCommand('copy');
-            } catch (err) {
-                console.error('Fallback copy failed', err);
-            }
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
 
-            document.body.removeChild(textArea);
+        try {
+        document.execCommand('copy');
+        } catch (err) {
+        console.error('Fallback copy failed', err);
+        }
+
+        document.body.removeChild(textArea);
         };
 
         window.triggerFileDownload = (fileName, url) => {
-            const anchorElement = document.createElement('a');
-            anchorElement.href = url;
-            anchorElement.download = fileName ?? '';
-            anchorElement.click();
-            anchorElement.remove();
+        const anchorElement = document.createElement('a');
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+        anchorElement.remove();
         }
     </script>
 </body>

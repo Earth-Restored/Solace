@@ -403,7 +403,7 @@ else
                 return;
             }
 
-            jsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/Features/Players/Player.razor.js");
+            jsModule ??= await JS.InvokeAsync<IJSObjectReference>("importShim", "/Features/Players/Player.razor.js");
 
             var base64Image = Convert.ToBase64String(skinDto.SkinData);
 
