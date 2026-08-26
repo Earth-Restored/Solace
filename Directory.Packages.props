@@ -4,8 +4,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Asp.Versioning.Mvc" Version="10.2.1" />
-    <PackageVersion Include="Aspire.Hosting.Docker" Version="13.5.2" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.5.2" />
+    <PackageVersion Include="Aspire.Hosting.Docker" Version="13.5.3" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.5.3" />
     <PackageVersion Include="BitcoderCZ.Buffers" Version="1.8.0" />
     <PackageVersion Include="BitcoderCZ.IO" Version="1.2.0" />
     <PackageVersion Include="BitcoderCZ.Maths" Version="1.2.0" />
@@ -13,7 +13,7 @@
     <PackageVersion Include="BitcoderCZ.Minecraft.MeshGenerator.Gltf" Version="1.3.0" />
     <PackageVersion Include="BitcoderCZ.Utils" Version="1.4.1" />
     <PackageVersion Include="BouncyCastle.Cryptography" Version="2.7.0" />
-    <PackageVersion Include="CommunityToolkit.Aspire.Hosting.Sqlite" Version="13.4.0" />
+    <PackageVersion Include="CommunityToolkit.Aspire.Hosting.Sqlite" Version="13.5.0" />
     <PackageVersion Include="Cyotek.Data.Nbt" Version="4.0.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.36.0" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.83.0" />
@@ -22,8 +22,8 @@
     <PackageVersion Include="hamarb123.Analyzers" Version="1.3.7" />
     <PackageVersion Include="Immediate.Apis" Version="6.3.0" />
     <PackageVersion Include="Immediate.Validations" Version="3.6.0" />
-    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.177" />
-    <PackageVersion Include="MCeToJava" Version="1.4.0" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.180" />
+    <PackageVersion Include="MCeToJava" Version="1.5.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="11.0.0-preview.7.26381.103" />
     <PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="11.0.0-preview.7.26381.103" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0-preview.7.26381.103" />
