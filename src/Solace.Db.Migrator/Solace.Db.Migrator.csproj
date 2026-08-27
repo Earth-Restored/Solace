@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Solace.Db.Earth/Solace.Db.Earth.csproj" />
+    <ProjectReference Include="../Solace.ObjectStore.Client/Solace.ObjectStore.Client.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- don't include whole web portal -->
+    <Compile Include="../Solace.WebPortal/Data/ApplicationDbContext.cs" Link="ApplicationDbContext.cs" />
+    <Compile Include="../Solace.WebPortal/Data/ApplicationRole.cs" Link="ApplicationRole.cs" />
+    <Compile Include="../Solace.WebPortal/Data/ApplicationUser.cs" Link="ApplicationUser.cs" />
+    <Compile Include="../Solace.WebPortal/Data/BuildplatePreviewEF.cs" Link="BuildplatePreviewEF.cs" />
+    <Compile Include="../Solace.WebPortal/Utils/LongIdGenerator.cs" Link="LongIdGenerator.cs" />
+    <Compile Include="../Solace.WebPortal.Common/Permissions.cs" Link="Permissions.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Identity" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="OpenIddict.EntityFrameworkCore" />
+    <PackageReference Include="Spectre.Console" />
+  </ItemGroup>
+
+</Project>

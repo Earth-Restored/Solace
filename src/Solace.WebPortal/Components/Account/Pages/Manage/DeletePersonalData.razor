@@ -2,11 +2,14 @@
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using Solace.Db.Earth
 @using Solace.WebPortal.Data
 
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityRedirectManager RedirectManager
+@inject IDbContextFactory<EarthDbContext> EarthDbFactory
 @inject ILogger<DeletePersonalData> Logger
 
 <PageTitle>Delete Personal Data</PageTitle>
@@ -80,15 +83,25 @@
             return;
         }
 
+        var userId = long.Parse(await UserManager.GetUserIdAsync(user));
+
+        await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
+        await using var earthTransaction = await earthDb.Database.BeginTransactionAsync();
+
+        await earthDb.Profiles
+            .Where(profile => profile.WebPortalAccountId == userId)
+            .ExecuteDeleteAsync();
+
         var result = await UserManager.DeleteAsync(user);
         if (!result.Succeeded)
         {
-            throw new InvalidOperationException("Unexpected error occurred deleting user.");
+            message = "Error: Could not delete user account.";
+            return;
         }
 
-        await SignInManager.SignOutAsync();
+        await earthTransaction.CommitAsync();
 
-        var userId = await UserManager.GetUserIdAsync(user);
+        await SignInManager.SignOutAsync();
         Logger.LogInformation("User with ID '{UserId}' deleted themselves.", userId);
 
         RedirectManager.RedirectToCurrentPage();

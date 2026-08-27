@@ -18,7 +18,7 @@ internal sealed record Rewards(
     );
 
     internal sealed record Challenge(
-        string Id
+        Guid Id
     );
 
     internal sealed record UtilityBlock();

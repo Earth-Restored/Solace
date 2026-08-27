@@ -10,7 +10,7 @@ public sealed class EncounterBuildplateEF : IEntityWithId<Guid>
 
     public required int Offset { get; set; }
 
-    public required int Scale { get; set; }
+    public required int BlocksPerMeter { get; set; }
 
     public required Guid ServerDataObjectId { get; set; }
 }

@@ -16,7 +16,7 @@ partial class EarthDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20260823133143_BuildplateTemplateRelation";
+    public override string LastMigrationId => "20260827163210_OptimizeSchema";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -33,10 +33,10 @@ partial class EarthDbContextModelSnapshot : ModelSnapshot
                     .ValueGeneratedOnAdd()
                     .HasColumnType("uuid");
 
-                b.Property<int>("Offset")
+                b.Property<int>("BlocksPerMeter")
                     .HasColumnType("integer");
 
-                b.Property<int>("Scale")
+                b.Property<int>("Offset")
                     .HasColumnType("integer");
 
                 b.Property<Guid>("ServerDataObjectId")
@@ -70,6 +70,9 @@ partial class EarthDbContextModelSnapshot : ModelSnapshot
                     .ValueGeneratedOnAdd()
                     .HasColumnType("uuid");
 
+                b.Property<int>("BlocksPerMeter")
+                    .HasColumnType("integer");
+
                 b.Property<DateTimeOffset>("BuildplateLastModifed")
                     .HasColumnType("timestamp with time zone");
 
@@ -94,9 +97,6 @@ partial class EarthDbContextModelSnapshot : ModelSnapshot
 
                 b.Property<Guid>("ProfileId")
                     .HasColumnType("uuid");
-
-                b.Property<int>("Scale")
-                    .HasColumnType("integer");
 
                 b.Property<Guid>("ServerDataObjectId")
                     .HasColumnType("uuid");
@@ -421,6 +421,7 @@ partial class EarthDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("bytea");
 
                 b.Property<string>("Username")
+                    .IsRequired()
                     .HasColumnType("text");
 
                 b.Property<long?>("WebPortalAccountId")

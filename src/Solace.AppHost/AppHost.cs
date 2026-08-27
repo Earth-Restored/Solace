@@ -6,6 +6,8 @@ using Solace.AppHost;
 var builder = DistributedApplication.CreateBuilder(args);
 #pragma warning restore MA0048 // File name must match type name
 
+var migrationMode = builder.Configuration.GetValue<bool>("migration-mode");
+
 builder.AddDockerComposeEnvironment("solace-prod")
     .WithProperties(env =>
     {
@@ -48,9 +50,6 @@ var earthDb = postgres.AddDatabase("EarthDb");
 var playfabDb = postgres.AddDatabase("PlayfabDb");
 var webPortalDb = postgres.AddDatabase("WebPortalDb");
 
-var eventBus = builder.AddProject<Projects.Solace_EventBus_Server>("event-bus")
-    .WithHttpEndpoint(name: "http");
-
 var objectStoreDataDirectory = builder.Configuration.GetValue<string>("ObjectStore:DataDirectory", "data/object_store");
 if (builder.Configuration.GetValue<bool>("Shared:ResolvePaths", false))
 {
@@ -73,6 +72,15 @@ var objectStore = builder.AddProject<Projects.Solace_ObjectStore_Server>("object
 
         service.Environment["DataDirectory"] = "/app/data/object_store";
     });
+
+if (migrationMode)
+{
+    builder.Build().Run();
+    return;
+}
+
+var eventBus = builder.AddProject<Projects.Solace_EventBus_Server>("event-bus")
+    .WithHttpEndpoint(name: "http");
 
 var staticDataPath = builder.Configuration["Shared:StaticDataPath"]!;
 if (builder.Configuration.GetValue<bool>("Shared:ResolvePaths", false))

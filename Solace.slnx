@@ -17,6 +17,7 @@
   <Project Path="src/Solace.EventBus/Solace.EventBus.csproj" />
   <Project Path="src/Solace.Db/Solace.Db.csproj" />
   <Project Path="src/Solace.Db.Earth/Solace.Db.Earth.csproj" />
+  <Project Path="src/Solace.Db.Migrator/Solace.Db.Migrator.csproj" />
   <Project Path="src/Solace.Db.Playfab/Solace.Db.Playfab.csproj" />
   <Project Path="src/Solace.EventBus.Client/Solace.EventBus.Client.csproj" />
   <Project Path="src/Solace.EventBus.Server/Solace.EventBus.Server.csproj" />

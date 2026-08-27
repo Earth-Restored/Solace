@@ -14,7 +14,7 @@ public sealed class SharedBuildplateEF : IEntityWithId<Guid>
 
     public required int Offset { get; set; }
 
-    public required int Scale { get; set; }
+    public required int BlocksPerMeter { get; set; }
 
     public required bool Night { get; set; }
 

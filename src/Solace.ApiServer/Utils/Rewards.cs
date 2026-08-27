@@ -16,7 +16,7 @@ internal sealed class Rewards
     private int? _level;
     private readonly Dictionary<Guid, int> _items = [];
     private readonly HashSet<Guid> _buildplates = [];
-    private readonly HashSet<string> _challenges = [with(StringComparer.Ordinal)];
+    private readonly HashSet<Guid> _challenges = [];
 
     public Rewards()
     {
@@ -49,7 +49,7 @@ internal sealed class Rewards
         return this;
     }
 
-    public Rewards AddChallenge(string id)
+    public Rewards AddChallenge(Guid id)
     {
         _challenges.Add(id);
         return this;

@@ -272,7 +272,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             ProfileId = profileId,
             Size = buildplate.Size,
             Offset = buildplate.Offset,
-            Scale = buildplate.BlocksPerMeter,
+            BlocksPerMeter = buildplate.BlocksPerMeter,
             Night = buildplate.Night,
             Created = requestStartedOn,
             BuildplateLastModifed = buildplate.LastModified,
@@ -357,7 +357,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             new SharedBuildplate.BuildplateDataR(
                 new Dimension(sharedBuildplate.Size, sharedBuildplate.Size),
                 new Offset(0, sharedBuildplate.Offset, 0),
-                sharedBuildplate.Scale,
+                sharedBuildplate.BlocksPerMeter,
                 SharedBuildplate.BuildplateDataR.TypeE.SURVIVAL,
                 SurfaceOrientation.HORIZONTAL,
                 preview,
@@ -647,7 +647,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
 
                     size = sharedBuildplate.Size;
                     offset = sharedBuildplate.Offset;
-                    scale = sharedBuildplate.Scale;
+                    scale = sharedBuildplate.BlocksPerMeter;
                 }
 
                 break;
@@ -715,7 +715,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             .FirstOrDefaultAsync(encounterBuildplate => encounterBuildplate.Id == buildplateId, cancellationToken);
         if (encounterBuildplate is not null)
         {
-            return new BuildplateGeometry(encounterBuildplate.Size, encounterBuildplate.Offset, encounterBuildplate.Scale);
+            return new BuildplateGeometry(encounterBuildplate.Size, encounterBuildplate.Offset, encounterBuildplate.BlocksPerMeter);
         }
 
         var templateBuildplate = await _earthDb.TemplateBuildplates

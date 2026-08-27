@@ -41,10 +41,10 @@ internal sealed class DataStore
     public void DeleteAll()
         => _rootDirectory.SafeDelete(recursive: true);
 
-    public async Task<Guid> StoreAsync(Stream data, CancellationToken cancellationToken = default)
+    public async Task<Guid> StoreAsync(Guid? id, Stream data, CancellationToken cancellationToken = default)
     {
-        var id = Guid.CreateVersion7();
-        var idString = id.ToString();
+        id ??= Guid.CreateVersion7();
+        var idString = id.Value.ToString();
 
         var dir = _rootDirectory / idString[..2];
         if (!dir.Exists)
@@ -70,7 +70,7 @@ internal sealed class DataStore
             throw new DataStoreException(exception);
         }
 
-        return id;
+        return id.Value;
     }
 
     public async Task<(Stream? Stream, long Length)> LoadAsync(Guid id, CancellationToken cancellationToken = default)

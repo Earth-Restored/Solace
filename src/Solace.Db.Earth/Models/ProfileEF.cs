@@ -14,11 +14,10 @@ public sealed class ProfileEF : IEntityWithId<Guid>
 
     public required DateTimeOffset CreatedDate { get; set; }
 
-    public required string? Username { get; set; }
+    public required string Username { get; set; }
 
     public required string? ProfilePictureUrl { get; set; }
 
-    // [MaxLength(16 * 1024)]
     public byte[]? SkinImageData { get; set; } // .png
 
     public bool IsSkinSlim { get; set; }

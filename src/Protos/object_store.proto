@@ -30,7 +30,9 @@ message DeleteAllResponse {
 }
 
 message StoreObjectRequest {
-    bytes chunk_data = 1;
+    optional fixed64 idLow = 1;
+    optional fixed64 idHigh = 2;
+    bytes chunk_data = 3;
 }
 
 message StoreObjectResponse {

@@ -36,13 +36,28 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
     {
         var pipe = new Pipe();
 
-        var storeTask = _dataStore.StoreAsync(pipe.Reader.AsStream(), context.CancellationToken);
+        Task<Guid>? storeTask = null;
 
         try
         {
             using var writerStream = pipe.Writer.AsStream();
             await foreach (var request in requestStream.ReadAllAsync(context.CancellationToken))
             {
+                if (storeTask is null)
+                {
+                    Guid? requestId;
+                    if (request is { IdLow: 0, IdHigh: 0, })
+                    {
+                        requestId = null;
+                    }
+                    else
+                    {
+                        requestId = Guid.FromLowHigh(request.IdLow, request.IdHigh);
+                    }
+
+                    storeTask = _dataStore.StoreAsync(requestId, pipe.Reader.AsStream(), context.CancellationToken);
+                }
+
                 await pipe.Writer.WriteAsync(request.ChunkData.Memory, context.CancellationToken);
             }
 
@@ -59,7 +74,14 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
         Guid id;
         try
         {
-            id = await storeTask;
+            if (storeTask is null)
+            {
+                id = await _dataStore.StoreAsync(null, Stream.Null, context.CancellationToken);
+            }
+            else
+            {
+                id = await storeTask;
+            }
         }
         catch (DataStore.DataStoreException exception)
         {

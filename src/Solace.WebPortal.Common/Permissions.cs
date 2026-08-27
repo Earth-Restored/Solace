@@ -67,6 +67,9 @@ public static class Permissions
         })];
     }
 
+    public static bool Exists(string name)
+        => All.Contains(name, StringComparer.Ordinal);
+
     public readonly record struct PermissionDescriptor(
         string Name,
         string Category,

@@ -84,6 +84,58 @@ public sealed class ObjectStoreClient : IAsyncDisposable
         }
     }
 
+    public async Task<Guid?> UpdateAsync(Guid id, ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
+    {
+        var idLowHigh = id.ToLowHigh();
+
+        using var call = _client.StoreObject(cancellationToken: cancellationToken);
+
+        await call.RequestStream.WriteAsync(new StoreObjectRequest
+        {
+            IdLow = idLowHigh.Low,
+            IdHigh = idLowHigh.High,
+            ChunkData = ByteString.CopyFrom(data.Span),
+        }, cancellationToken);
+
+        await call.RequestStream.CompleteAsync();
+
+        var response = await call;
+
+        return Guid.FromLowHigh(response.IdLow, response.IdHigh);
+    }
+
+    public async Task<Guid?> UpdateAsync(Guid id, Stream data, CancellationToken cancellationToken = default)
+    {
+        var idLowHigh = id.ToLowHigh();
+
+        using var call = _client.StoreObject(cancellationToken: cancellationToken);
+
+        var buffer = ArrayPool<byte>.Shared.Rent(64 * 1024);
+        int bytesRead;
+        try
+        {
+            while ((bytesRead = await data.ReadAsync(buffer, cancellationToken)) > 0)
+            {
+                await call.RequestStream.WriteAsync(new StoreObjectRequest
+                {
+                    IdLow = idLowHigh.Low,
+                    IdHigh = idLowHigh.High,
+                    ChunkData = ByteString.CopyFrom(buffer, 0, bytesRead),
+                }, cancellationToken);
+            }
+
+            await call.RequestStream.CompleteAsync();
+
+            var response = await call;
+
+            return Guid.FromLowHigh(response.IdLow, response.IdHigh);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: false);
+        }
+    }
+
     public async Task<Stream?> GetStreamAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var idLowHigh = id.ToLowHigh();

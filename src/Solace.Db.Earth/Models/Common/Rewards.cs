@@ -8,7 +8,7 @@ public sealed record Rewards(
     int? Level,
     Dictionary<Guid, int> Items,
     Guid[] Buildplates,
-    string[] Challenges
+    Guid[] Challenges
 ) : ICloneable<Rewards>
 {
     public Rewards() : this(0, 0, null, [], [], [])
@@ -42,7 +42,7 @@ public sealed record Rewards(
 
         foreach (var item in Challenges)
         {
-            hash.Add(item, StringComparer.Ordinal);
+            hash.Add(item);
         }
 
         return hash.ToHashCode();

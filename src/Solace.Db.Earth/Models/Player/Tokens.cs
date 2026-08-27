@@ -35,8 +35,8 @@ public abstract class RewardedTokenEF : TokenEF
     }
 
     [SetsRequiredMembers]
-    protected RewardedTokenEF(Guid accountId, Rewards rewards)
-        : base(accountId)
+    protected RewardedTokenEF(Guid profileId, Rewards rewards)
+        : base(profileId)
     {
         Rewards = rewards;
     }
@@ -52,8 +52,8 @@ public sealed class LevelUpTokenEF : RewardedTokenEF
     }
 
     [SetsRequiredMembers]
-    public LevelUpTokenEF(Guid accountId, int level, Rewards rewards)
-        : base(accountId, rewards)
+    public LevelUpTokenEF(Guid profileId, int level, Rewards rewards)
+        : base(profileId, rewards)
     {
         Level = level;
         Rewards = rewards;

@@ -576,7 +576,7 @@ public sealed class Catalog
             );
 
             public sealed record RewardChallenge(
-                string Id
+                Guid Id
             );
 
             public sealed record RewardUtilityBlock();

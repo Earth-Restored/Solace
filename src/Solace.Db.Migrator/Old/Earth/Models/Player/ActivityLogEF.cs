@@ -1,0 +1,195 @@
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
+using Solace.Common;
+using Solace.Db.Migrator.Old.Earth.Models.Common;
+
+namespace Solace.Db.Migrator.Old.Earth.Models.Player;
+
+public sealed class ActivityLogEF : IEntityWithId<Guid>, IVersionedEntity
+{
+    public Guid Id { get; set; }
+
+    public int Version { get; set; } = 1;
+
+    public Account Account { get; set; } = null!;
+
+    public List<Entry> Entries { get; set; } = [];
+
+    [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+    [JsonDerivedType(typeof(LevelUpEntry), "LEVEL_UP")]
+    [JsonDerivedType(typeof(TappableEntry), "TAPPABLE")]
+    [JsonDerivedType(typeof(JournalItemUnlockedEntry), "JOURNAL_ITEM_UNLOCKED")]
+    [JsonDerivedType(typeof(CraftingCompletedEntry), "CRAFTING_COMPLETED")]
+    [JsonDerivedType(typeof(SmeltingCompletedEntry), "SMELTING_COMPLETED")]
+    [JsonDerivedType(typeof(BoostActivatedEntry), "BOOST_ACTIVATED")]
+    public abstract class Entry : IEquatable<Entry>, ICloneable<Entry>
+    {
+        public long Timestamp { get; init; }
+
+        [JsonIgnore]
+        public TypeE Type { get; init; }
+
+        protected Entry(long timestamp, TypeE type)
+        {
+            Timestamp = timestamp;
+            Type = type;
+        }
+
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public enum TypeE
+        {
+#pragma warning disable CA1707 // Identifiers should not contain underscores
+            LEVEL_UP,
+            TAPPABLE,
+            JOURNAL_ITEM_UNLOCKED,
+            CRAFTING_COMPLETED,
+            SMELTING_COMPLETED,
+            BOOST_ACTIVATED,
+#pragma warning restore CA1707 // Identifiers should not contain underscores
+        }
+
+        public abstract bool Equals(Entry? other);
+
+        public override bool Equals(object? obj)
+            => Equals(obj as Entry);
+
+        public abstract override int GetHashCode();
+
+        public abstract Entry DeepCopy();
+
+        public sealed class Comparer : IEqualityComparer<Entry>
+        {
+            public static Comparer Instance { get; } = new Comparer();
+
+            private Comparer()
+            {
+            }
+
+            public bool Equals(Entry? x, Entry? y)
+                => ReferenceEquals(x, y) || (x?.Equals(y) ?? false);
+
+            public int GetHashCode([DisallowNull] Entry obj)
+                => obj.GetHashCode();
+        }
+    }
+
+    public sealed class LevelUpEntry : Entry
+    {
+        public int Level { get; init; }
+
+        public LevelUpEntry(long timestamp, int level)
+            : base(timestamp, TypeE.LEVEL_UP)
+        {
+            Level = level;
+        }
+
+        public override bool Equals(Entry? other)
+            => other is LevelUpEntry levelUp && Timestamp == levelUp.Timestamp && Level == levelUp.Level;
+
+        public override int GetHashCode()
+            => HashCode.Combine(Timestamp, Level);
+
+        public override LevelUpEntry DeepCopy()
+            => new(Timestamp, Level);
+    }
+
+    public sealed class TappableEntry : Entry
+    {
+        public Rewards Rewards { get; init; }
+
+        public TappableEntry(long timestamp, Rewards rewards)
+            : base(timestamp, TypeE.TAPPABLE)
+        {
+            Rewards = rewards;
+        }
+
+        public override bool Equals(Entry? other)
+            => other is TappableEntry tappable && Timestamp == tappable.Timestamp && Rewards.Equals(tappable.Rewards);
+
+        public override int GetHashCode()
+            => HashCode.Combine(Timestamp, Rewards);
+
+        public override TappableEntry DeepCopy()
+            => new(Timestamp, Rewards.DeepCopy());
+    }
+
+    public sealed class JournalItemUnlockedEntry : Entry
+    {
+        public string ItemId { get; init; }
+
+        public JournalItemUnlockedEntry(long timestamp, string itemId)
+            : base(timestamp, TypeE.JOURNAL_ITEM_UNLOCKED)
+        {
+            ItemId = itemId;
+        }
+
+        public override bool Equals(Entry? other)
+            => other is JournalItemUnlockedEntry journalUnlock && Timestamp == journalUnlock.Timestamp && ItemId == journalUnlock.ItemId;
+
+        public override int GetHashCode()
+            => HashCode.Combine(Timestamp, ItemId);
+
+        public override JournalItemUnlockedEntry DeepCopy()
+            => new(Timestamp, ItemId);
+    }
+
+    public sealed class CraftingCompletedEntry : Entry
+    {
+        public Rewards Rewards { get; init; }
+
+        public CraftingCompletedEntry(long timestamp, Rewards rewards)
+            : base(timestamp, TypeE.CRAFTING_COMPLETED)
+        {
+            Rewards = rewards;
+        }
+
+        public override bool Equals(Entry? other)
+            => other is CraftingCompletedEntry crafting && Timestamp == crafting.Timestamp && Rewards.Equals(crafting.Rewards);
+
+        public override int GetHashCode()
+            => HashCode.Combine(Timestamp, Rewards);
+
+        public override CraftingCompletedEntry DeepCopy()
+            => new(Timestamp, Rewards.DeepCopy());
+    }
+
+    public sealed class SmeltingCompletedEntry : Entry
+    {
+        public Rewards Rewards { get; init; }
+
+        public SmeltingCompletedEntry(long timestamp, Rewards rewards)
+            : base(timestamp, TypeE.SMELTING_COMPLETED)
+        {
+            Rewards = rewards;
+        }
+
+        public override bool Equals(Entry? other)
+            => other is SmeltingCompletedEntry smelting && Timestamp == smelting.Timestamp && Rewards.Equals(smelting.Rewards);
+
+        public override int GetHashCode()
+            => HashCode.Combine(Timestamp, Rewards);
+
+        public override SmeltingCompletedEntry DeepCopy()
+            => new(Timestamp, Rewards.DeepCopy());
+    }
+
+    public sealed class BoostActivatedEntry : Entry
+    {
+        public string ItemId { get; init; }
+
+        public BoostActivatedEntry(long timestamp, string itemId)
+            : base(timestamp, TypeE.BOOST_ACTIVATED)
+        {
+            ItemId = itemId;
+        }
+
+        public override bool Equals(Entry? other)
+            => other is BoostActivatedEntry boost && Timestamp == boost.Timestamp && ItemId == boost.ItemId;
+
+        public override int GetHashCode()
+            => HashCode.Combine(Timestamp, ItemId);
+
+        public override BoostActivatedEntry DeepCopy()
+            => new(Timestamp, ItemId);
+    }
+}

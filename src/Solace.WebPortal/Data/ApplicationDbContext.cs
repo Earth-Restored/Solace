@@ -8,6 +8,23 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 {
     public DbSet<BuildplatePreviewEF> BuildplatePreviews { get; set; }
 
+    public static ApplicationDbContext CreateFromConnection(string connectionString)
+    {
+        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+        ConfigureBuilder(optionsBuilder, connectionString);
+
+        return new ApplicationDbContext(optionsBuilder.Options);
+    }
+
+    public static void ConfigureBuilder(DbContextOptionsBuilder optionsBuilder, string connectionString)
+    {
+#pragma warning disable IDE0022 // Use expression body for method
+        optionsBuilder.UseNpgsql(connectionString);
+#pragma warning restore IDE0022 // Use expression body for method
+
+        // optionsBuilder.UseModel(CompiledModels.ApplicationDbContext.Instance);
+    }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
