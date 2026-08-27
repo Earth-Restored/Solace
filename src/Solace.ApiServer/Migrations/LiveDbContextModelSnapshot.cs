@@ -3,12 +3,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Solace.ApiServer;
+using Solace.DB;
 
 #nullable disable
 
 namespace Solace.ApiServer.Migrations
 {
+#pragma warning disable CS0618 // Type or member is obsolete
     [DbContext(typeof(LiveDbContext))]
+#pragma warning restore CS0618 // Type or member is obsolete
     partial class LiveDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

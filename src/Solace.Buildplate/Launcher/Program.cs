@@ -19,6 +19,8 @@ internal static class Program
         public string EventBusConnectionString { get; set; }
         [Option("publicAddress", Required = true, HelpText = "Public server address to report in instance info")]
         public string PublicAddress { get; set; }
+        [Option("basePublicPort", Required = true, HelpText = "Base public port for buildplate instances")]
+        public int BasePublicPort { get; set; }
         [Option("bridgeJar", Required = true, HelpText = "Fountain bridge JAR file")]
         public string BridgeJar { get; set; }
         [Option("serverTemplateDir", Required = true, HelpText = "Minecraft/Fabric server template directory, containing the Fabric JAR, mods, and libraries")]
@@ -108,7 +110,8 @@ internal static class Program
         Log.Information("Connected to event bus");
 
         string javaCmd = JavaLocator.Locate();
-        var starter = new Starter(eventBusClient, options.EventBusConnectionString, options.PublicAddress, javaCmd, options.BridgeJar, options.ServerTemplateDir, options.FabricJarName, options.ConnectorPluginJar);
+
+        var starter = new Starter(eventBusClient, options.EventBusConnectionString, options.PublicAddress, checked((ushort)options.BasePublicPort), javaCmd, options.BridgeJar, options.ServerTemplateDir, options.FabricJarName, options.ConnectorPluginJar);
         var instanceManager = await InstanceManager.CreateAsync(eventBusClient, starter);
 
         Console.CancelKeyPress += (sender, e) =>
@@ -122,6 +125,8 @@ internal static class Program
         {
             instanceManager.ShutdownAsync().Forget();
         };
+
+        Log.Information("Started, public address: {Address}, base port: {BasePort}", options.PublicAddress, options.BasePublicPort);
 
         while (true)
         {

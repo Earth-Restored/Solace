@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 using Solace.ApiServer.Models;
 using Solace.ApiServer.Utils;
 
@@ -9,7 +10,14 @@ namespace Solace.ApiServer.Controllers.XboxLive.Auth;
 [Route("xsts.auth.xboxlive.com/xsts/authorize")]
 internal sealed class XstsController : SolaceControllerBase
 {
-    private static Config config => Program.config;
+    private static Config Config => Program.config;
+
+    private readonly CryptoSecrets _cryptoSecrets;
+
+    public XstsController(CryptoSecrets cryptoSecrets)
+    {
+        _cryptoSecrets = cryptoSecrets;
+    }
 
     internal sealed record AuthenticateRequest(
         AuthenticateRequest.PropertiesR Properties,
@@ -40,9 +48,9 @@ internal sealed class XstsController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var deviceTokenAuth = JwtUtils.Verify<Tokens.Xbox.AuthToken>(request.Properties.DeviceToken, config.XboxLive.AuthTokenSecretBytes)?.Data;
-        var titleTokenAuth = JwtUtils.Verify<Tokens.Xbox.AuthToken>(request.Properties.TitleToken, config.XboxLive.AuthTokenSecretBytes)?.Data;
-        var userTokenAuth = JwtUtils.Verify<Tokens.Xbox.AuthToken>(request.Properties.UserTokens[0], config.XboxLive.AuthTokenSecretBytes)?.Data;
+        var deviceTokenAuth = JwtUtils.Verify<Tokens.Xbox.AuthToken>(request.Properties.DeviceToken, _cryptoSecrets.LiveAuthTokenSecret)?.Data;
+        var titleTokenAuth = JwtUtils.Verify<Tokens.Xbox.AuthToken>(request.Properties.TitleToken, _cryptoSecrets.LiveAuthTokenSecret)?.Data;
+        var userTokenAuth = JwtUtils.Verify<Tokens.Xbox.AuthToken>(request.Properties.UserTokens[0], _cryptoSecrets.LiveAuthTokenSecret)?.Data;
 
         if (deviceTokenAuth is not Tokens.Xbox.DeviceToken || titleTokenAuth is not Tokens.Xbox.TitleToken || userTokenAuth is not Tokens.Xbox.UserToken userToken)
         {
@@ -53,20 +61,20 @@ internal sealed class XstsController : SolaceControllerBase
         {
             case "http://xboxlive.com":
                 {
-                    var tokenValidity = ValidityDatePair.Create(config.XboxLive.TokenValidityMinutes);
+                    var tokenValidity = ValidityDatePair.Create(Config.XboxLive.TokenValidityMinutes);
                     var token = new Tokens.Xbox.XapiToken(userToken.UserId, userToken.Username);
 
                     return JsonPascalCase(new AuthenticateResponse(
                         tokenValidity.IssuedStr,
                         tokenValidity.ExpiresStr,
-                        JwtUtils.Sign(token, config.XboxLive.XapiTokenSecretBytes, tokenValidity),
+                        JwtUtils.Sign(token, _cryptoSecrets.LiveXapiTokenSecret, tokenValidity),
                         new()
                         {
                             ["xui"] = [
                                 new()
                                 {
-                                    ["xid"] = userToken.Xid,
-                                    ["uhs"] = userToken.Uhs,
+                                    ["xid"] = userToken.Xid.ToString(),
+                                    ["uhs"] = userToken.Uhs.ToString(),
 
                                     ["gtg"] = userToken.Username,
                                     ["agg"] = "Adult",
@@ -81,19 +89,19 @@ internal sealed class XstsController : SolaceControllerBase
 
             case "http://events.xboxlive.com":
                 {
-                    var tokenValidity = ValidityDatePair.Create(config.XboxLive.TokenValidityMinutes);
+                    var tokenValidity = ValidityDatePair.Create(Config.XboxLive.TokenValidityMinutes);
                     var token = new Tokens.Xbox.XapiToken(userToken.UserId, userToken.Username);
 
                     return JsonPascalCase(new AuthenticateResponse(
                        tokenValidity.IssuedStr,
                        tokenValidity.ExpiresStr,
-                       JwtUtils.Sign(token, config.XboxLive.XapiTokenSecretBytes, tokenValidity),
+                       JwtUtils.Sign(token, _cryptoSecrets.LiveXapiTokenSecret, tokenValidity),
                        new()
                        {
                            ["xui"] = [
                                 new()
                                 {
-                                    ["uhs"] = userToken.Uhs,
+                                    ["uhs"] = userToken.Uhs.ToString(),
                                 },
                            ]
                        }
@@ -102,19 +110,19 @@ internal sealed class XstsController : SolaceControllerBase
 
             case "https://b980a380.minecraft.playfabapi.com/":
                 {
-                    var tokenValidity = ValidityDatePair.Create(config.XboxLive.TokenValidityMinutes);
+                    var tokenValidity = ValidityDatePair.Create(Config.XboxLive.TokenValidityMinutes);
                     var token = new Tokens.Shared.PlayfabXboxToken(userToken.UserId);
 
                     return JsonPascalCase(new AuthenticateResponse(
                        tokenValidity.IssuedStr,
                        tokenValidity.ExpiresStr,
-                       JwtUtils.Sign(token, config.XboxLive.PlayfabTokenSecretBytes, tokenValidity),
+                       JwtUtils.Sign(token, _cryptoSecrets.LivePlayfabTokenSecret, tokenValidity),
                        new()
                        {
                            ["xui"] = [
                                 new()
                                 {
-                                    ["uhs"] = userToken.Uhs,
+                                    ["uhs"] = userToken.Uhs.ToString(),
                                 },
                            ]
                        }

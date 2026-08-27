@@ -3,15 +3,20 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
+using CommandLine;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
+using Solace.Common;
+using Solace.Common.Utils;
 using Solace.DB;
 using Solace.LauncherUI.Components;
 using Solace.LauncherUI.Components.Account;
@@ -27,14 +32,22 @@ public partial class Program
     public static readonly string StaticDataDir = Path.GetFullPath(Path.Combine("..", "staticdata"));
     public static readonly string DataDirRelative = Path.Combine("..", "data");
     public static readonly string DataDir = Path.GetFullPath(DataDirRelative);
+    public static readonly string ObjectStoreDirName = "object_store";
 
     public static string Address { get; private set; } = "";
 
     public static string LoggerAddress => Address + "/api/logs/create";
 
-    private static async Task Main(string[] args)
+    private sealed class Options
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     {
-        // Environment.CurrentDirectory = AppContext.BaseDirectory; // todo:
+        [Option('s', "start-on-startup", Default = false, Required = false, HelpText = "Start the server automatically when the application launches.")]
+        public bool StartOnStartup { get; set; }
+    }
+
+    private static async Task<int> Main(string[] args)
+    {
+        // Environment.CurrentDirectory = AppContext.BaseDirectory;
 
         Settings.Instance = await Settings.LoadAsync(Settings.DefaultPath);
 
@@ -54,6 +67,62 @@ public partial class Program
             .CreateLogger();
 
         Log.Logger = log;
+
+        builder.Logging.ClearProviders();
+        builder.Logging.AddSerilog(log);
+
+        bool isLegacyDb = await IsLegacyEarthDbAsync(Settings.Instance.EarthDatabaseConnectionString!);
+        string legacyDbPath = "";
+        string liveDbPath = "";
+        if (isLegacyDb)
+        {
+            Log.Information("Detected legacy db format, backing up db");
+            string dbDirectory = Path.GetDirectoryName(Path.GetFullPath(Settings.Instance.EarthDatabaseConnectionString!))!;
+            Directory.CreateDirectory(dbDirectory);
+            legacyDbPath = Path.GetUniqueFilePath(Path.Combine(dbDirectory, "earth.db.old"));
+            File.Move(Settings.Instance.EarthDatabaseConnectionString!, legacyDbPath);
+            Log.Debug($"Moved legacy earth db to '{legacyDbPath}'");
+
+            liveDbPath = Path.GetUniqueFilePath(Path.Combine(dbDirectory, "live.db.old"));
+            File.Move(Settings.Instance.LiveDatabaseConnectionString!, liveDbPath);
+            Log.Debug($"Moved legacy live db to '{liveDbPath}'");
+        }
+        // bool isLegacyDb = true;
+        // string legacyDbPath = Path.GetFullPath(Path.Combine(DataDirRelative, "earth.db.old"));
+        // if (EF.IsDesignTime)
+        // {
+        //     isLegacyDb = false;
+        // }
+        // else
+        // {
+        //     Log.Information("Detected legacy db format, backing up db");
+        //     if (File.Exists(legacyDbPath))
+        //     {
+        //         File.Delete(Settings.Instance.EarthDatabaseConnectionString!);
+        //         File.Delete(Settings.Instance.EarthDatabaseConnectionString! + "-shm");
+        //         File.Delete(Settings.Instance.EarthDatabaseConnectionString! + "-wal");
+        //         await File.Create(Settings.Instance.EarthDatabaseConnectionString!).DisposeAsync(); // create and close it
+
+        //         try
+        //         {
+        //             var dbFile = new FileInfo(Settings.Instance.EarthDatabaseConnectionString!);
+        //             if (dbFile.Exists)
+        //             {
+        //                 dbFile.IsReadOnly = false;
+        //                 File.SetAttributes(dbFile.FullName, FileAttributes.Normal);
+        //             }
+        //         }
+        //         catch (Exception ex)
+        //         {
+        //             Log.Warning(ex, "Failed to normalize database file permissions");
+        //         }
+        //     }
+        //     else
+        //     {
+        //         File.Move(Settings.Instance.EarthDatabaseConnectionString!, legacyDbPath);
+        //         Log.Debug($"Moved legacy db to '{legacyDbPath}'");
+        //     }
+        // }
 
         builder.Services.AddSingleton<ServerManager>();
 
@@ -75,12 +144,19 @@ public partial class Program
         builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
         builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 
-        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+        var launcherConnectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
         builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
-            options.UseSqlite(connectionString));
-        builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlite(connectionString));
+            options.UseSqlite(launcherConnectionString));
+        // builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        //     options.UseSqlite(launcherConnectionString));
+
+        string earthConnectionString = "Data Source=" + Path.GetFullPath(Settings.Instance.EarthDatabaseConnectionString!);
+
+        builder.Services.AddDbContextFactory<EarthDbContext>(options =>
+            EarthDbContext.ConfigureBuilder(options, earthConnectionString));
+        // builder.Services.AddDbContext<EarthDbContext>(options =>
+        //     options.UseSqlite(earthConnectionString));
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
         builder.Services.AddIdentityCore<ApplicationUser>(options =>
@@ -152,16 +228,36 @@ public partial class Program
         });
 
         // Apply database migrations and initialize built-in roles
-        using (var scope = app.Services.CreateScope())
+        if (!EF.IsDesignTime)
         {
-            // make sure Data dir exists
-            Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "Data"));
+            using (var scope = app.Services.CreateScope())
+            {
+                // make sure Data dir exists
+                Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "Data"));
+                Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), Path.GetDirectoryName(Settings.Instance.EarthDatabaseConnectionString)!));
 
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            await dbContext.Database.MigrateAsync();
+                var appDbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                await appDbContext.Database.MigrateAsync();
 
-            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
-            await EnsureBuiltInRolesAsync(roleManager);
+                var earthDbContext = scope.ServiceProvider.GetRequiredService<EarthDbContext>();
+                await earthDbContext.Database.MigrateAsync();
+
+                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                await EnsureBuiltInRolesAsync(roleManager, userManager);
+
+                if (isLegacyDb)
+                {
+#pragma warning disable CS0618 // Type or member is obsolete - needed for migration
+                    var optionsBuilder = new DbContextOptionsBuilder<LiveDbContext>();
+                    optionsBuilder.UseSqlite("Data Source=" + liveDbPath!);
+
+                    using var liveDbContext = new LiveDbContext(optionsBuilder.Options);
+#pragma warning restore CS0618 // Type or member is obsolete
+
+                    await MigrateLegacyDataAsync(earthDbContext, liveDbContext, legacyDbPath);
+                }
+            }
         }
 
         // extract buildplates from db/objectstore
@@ -188,11 +284,76 @@ public partial class Program
         //     File.WriteAllBytes(Path.Combine("bps", dbBuildplate.Name[7..]), preview);
         // }
 
-        app.Run();
+        if (args.Any(a => a.StartsWith("--applicationName", StringComparison.Ordinal)))
+        {
+            await app.RunAsync();
+            return 0;
+        }
+
+        ParserResult<Options> res = Parser.Default.ParseArguments<Options>(args);
+
+        Options options;
+        if (res is Parsed<Options> parsed)
+        {
+            options = parsed.Value;
+        }
+        else if (res is NotParsed<Options> notParsed)
+        {
+            if (res.Errors.Any(error => error is HelpRequestedError))
+            {
+                return 0;
+            }
+            else if (res.Errors.Any(error => error is VersionRequestedError))
+            {
+                return 0;
+            }
+            else
+            {
+                return 1;
+            }
+        }
+        else
+        {
+            return 1;
+        }
+
+        if (options.StartOnStartup)
+        {
+            Task.Run(async () =>
+            {
+                await Task.Delay(3000);
+                using (var scope = app.Services.CreateScope())
+                {
+                    var serverManager = scope.ServiceProvider.GetRequiredService<ServerManager>();
+                    await serverManager.Start();
+                }
+            }).Forget();
+        }
+
+        await app.RunAsync();
+
+        return 0;
     }
 
-    private static async Task EnsureBuiltInRolesAsync(RoleManager<ApplicationRole> roleManager)
+    private static async Task EnsureBuiltInRolesAsync(RoleManager<ApplicationRole> roleManager, UserManager<ApplicationUser> userManager)
     {
+        var everyoneRole = await roleManager.FindByNameAsync(ApplicationRole.Default);
+
+        if (everyoneRole == null)
+        {
+            everyoneRole = new ApplicationRole
+            {
+                Name = ApplicationRole.Default,
+                Position = int.MaxValue - 10,
+                Color = "#99AAB5",
+                IsBuiltIn = true
+            };
+            await roleManager.CreateAsync(everyoneRole);
+            await roleManager.AddClaimAsync(everyoneRole, new Claim("Permission", Permissions.LinkPlayers));
+        }
+
+        await AssignRoleToAllUsersAsync(userManager, ApplicationRole.Default);
+
         var ownerRole = await roleManager.FindByNameAsync(ApplicationRole.Owner);
 
         if (ownerRole == null)
@@ -230,6 +391,63 @@ public partial class Program
             {
                 await roleManager.RemoveClaimAsync(ownerRole, claim);
             }
+        }
+    }
+
+    private static async Task AssignRoleToAllUsersAsync(UserManager<ApplicationUser> userManager, string roleName)
+    {
+        foreach (var user in userManager.Users)
+        {
+            if (!await userManager.IsInRoleAsync(user, roleName))
+            {
+                await userManager.AddToRoleAsync(user, roleName);
+            }
+        }
+    }
+
+    private static async Task<bool> IsLegacyEarthDbAsync(string filePath)
+    {
+        if (!File.Exists(filePath))
+        {
+            return false;
+        }
+
+        using var connection = new SqliteConnection("Data Source=" + filePath);
+        await connection.OpenAsync();
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name=$name;";
+            command.Parameters.AddWithValue("$name", "__EFMigrationsHistory");
+
+            using (var reader = command.ExecuteReader())
+            {
+                return !reader.HasRows;
+            }
+        }
+    }
+
+#pragma warning disable CS0618 // Type or member is obsolete - needed for migration
+    private static async Task MigrateLegacyDataAsync(EarthDbContext earthDb, LiveDbContext liveDb, string legacyDbPath)
+#pragma warning restore CS0618 // Type or member is obsolete
+    {
+        using var legacyEarthDb = new SqliteConnection("Data Source=" + legacyDbPath);
+        await legacyEarthDb.OpenAsync();
+
+        var migrator = new DatabaseMigrator(earthDb, legacyEarthDb, liveDb);
+
+        Log.Information($"Begining database migration from '{legacyDbPath}' to '{Path.GetFullPath(Settings.Instance.EarthDatabaseConnectionString!)}'");
+
+        try
+        {
+            await migrator.MigrateAsync();
+
+            Log.Information("Database migrated");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"Failed to migrate database. To retry, delete earth.db and rename (earth/live).db.old to (earth/live).db. Error: {ex.Message}");
+            throw;
         }
     }
 

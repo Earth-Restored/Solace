@@ -7,7 +7,7 @@ namespace Solace.ApiServer.Controllers.PlayfabApi;
 
 [Route("Object")]
 [Route("20CA2.playfabapi.com/Object")]
-internal sealed class ObjectController : SolaceControllerBase
+internal sealed class ObjectController : LoginServerControllerBase
 {
     private sealed record GetObjectsRequest(
         GetObjectsRequest.EntityR Entity,
@@ -15,7 +15,7 @@ internal sealed class ObjectController : SolaceControllerBase
     )
     {
         public sealed record EntityR(
-            string Id,
+            Guid Id,
             string Type
         );
     }
@@ -23,6 +23,10 @@ internal sealed class ObjectController : SolaceControllerBase
     private static readonly string[] DataArray0 = ["#ff523d89", "#0", "#0", "#0"];
     private static readonly string[] DataArray1 = ["#ff2f1f0f", "#0", "#0", "#0"];
     private static readonly string[] DataArray2 = ["#0", "#0", "#ff774235", "#0"];
+
+    public ObjectController(CryptoSecrets cryptoSecrets) : base(cryptoSecrets)
+    {
+    }
 
     [HttpPost("GetObjects")]
     public async Task<Results<ContentHttpResult, ForbidHttpResult, BadRequest>> GetObjects()
@@ -231,7 +235,7 @@ internal sealed class ObjectController : SolaceControllerBase
     )
     {
         public sealed record EntityR(
-            string Id,
+            Guid Id,
             string Type
         );
 

@@ -33,10 +33,17 @@ internal sealed class ResourcePackController : ControllerBase
 [Route("cdn/availableresourcepack/resourcepacks/dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35")]
 public class ResourcePackCdnController : ControllerBase
 {
-    [HttpGet, HttpHead]
-    public async Task<Results<BadRequest, FileContentHttpResult>> Get()
+    private readonly StaticData.StaticData _staticData;
+
+    public ResourcePackCdnController(StaticData.StaticData staticData)
     {
-        string resourcePackFilePath = Path.Combine(Program.staticData.Directory, @"resourcepacks/vanilla.zip"); //resource packs are distributed as renamed zip files containing an MCpack
+        _staticData = staticData;
+    }
+
+    [HttpGet, HttpHead]
+    public async Task<Results<BadRequest, PhysicalFileHttpResult>> Get()
+    {
+        string resourcePackFilePath = Path.Combine(_staticData.Directory, "resourcepacks", "vanilla.zip"); //resource packs are distributed as renamed zip files containing an MCpack
 
         if (!System.IO.File.Exists(resourcePackFilePath))
         {
@@ -44,11 +51,13 @@ public class ResourcePackCdnController : ControllerBase
             return TypedResults.BadRequest(); //we cannot serve you.
         }
 
-        // TODO: use Stream
-        byte[] fileData = await System.IO.File.ReadAllBytesAsync(resourcePackFilePath); //Namespaces
-        var cd = new System.Net.Mime.ContentDisposition { FileName = "dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35", Inline = true };
-        Response.Headers.Append("Content-Disposition", cd.ToString());
+        string downloadName = "dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35";
 
-        return TypedResults.File(fileData, "application/octet-stream", "dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35");
+        return TypedResults.PhysicalFile(
+            path: resourcePackFilePath,
+            contentType: "application/octet-stream",
+            fileDownloadName: downloadName,
+            enableRangeProcessing: true
+        );
     }
 }

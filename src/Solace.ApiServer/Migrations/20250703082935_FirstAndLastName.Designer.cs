@@ -4,12 +4,15 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Solace.ApiServer;
+using Solace.DB;
 
 #nullable disable
 
 namespace Solace.ApiServer.Migrations
 {
+#pragma warning disable CS0618 // Type or member is obsolete
     [DbContext(typeof(LiveDbContext))]
+#pragma warning restore CS0618 // Type or member is obsolete
     [Migration("20250703082935_FirstAndLastName")]
     partial class FirstAndLastName
     {

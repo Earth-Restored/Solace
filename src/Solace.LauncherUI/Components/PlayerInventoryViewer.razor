@@ -1,0 +1,676 @@
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using System.Linq
+@using Solace.Common.Utils
+@using Solace.DB
+@using Solace.DB.Models.Common
+@using Item = Solace.StaticData.Catalog.ItemsCatalogR.Item;
+@inject IDbContextFactory<EarthDbContext> EarthDbFactory
+@inject ILogger<PlayerInventoryViewer> Logger
+
+<div class="inventory-container">
+    @if (IsLoading)
+    {
+        <div class="loading-screen">
+            <div class="spinner"></div>
+            <p>Loading Textures...</p>
+        </div>
+    }
+    else
+    {
+        <div class="filters">
+            <div class="header-actions">
+                <input type="text" placeholder="Search items..." @bind="SearchTerm" @bind:event="oninput" class="search-input" />
+                @if (IsEditable)
+                {
+                    <button class="btn btn-success" @onclick="OpenAddModal">+ Add Item</button>
+                }
+            </div>
+
+            <div class="select-group">
+                <select @bind="SelectedType">
+                    <option value="">All Types</option>
+                    @foreach (var type in Enum.GetValues<Item.TypeE>())
+                    {
+                        <option value="@type">@type</option>
+                    }
+                </select>
+
+                <select @bind="SelectedCategory">
+                    <option value="">All Categories</option>
+                    @foreach (var cat in Enum.GetValues<Item.CategoryE>())
+                    {
+                        <option value="@cat">@cat</option>
+                    }
+                </select>
+
+                <select @bind="SelectedRarity">
+                    <option value="">All Rarities</option>
+                    @foreach (var rarity in Enum.GetValues<Item.RarityE>())
+                    {
+                        <option value="@rarity">@rarity</option>
+                    }
+                </select>
+
+                <select @bind="SelectedSort">
+                    <option value="@SortOption.NameAsc">Name (A-Z)</option>
+                    <option value="@SortOption.NameDesc">Name (Z-A)</option>
+                    <option value="@SortOption.AmountAsc">Amount (Low to High)</option>
+                    <option value="@SortOption.AmountDesc">Amount (High to Low)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid">
+            @foreach (var slot in PaginatedInventory)
+            {
+                <div class="item-card" @onclick="() => OpenItemDetails(slot)">
+                    <div class="slot" title="@slot.BaseItem.Name">
+                        <img src="/api/genoa-textures/ui/items/@(slot.TextureName).png" alt="@slot.BaseItem.Name" onerror="this.onerror=null; this.src='/mock_textures/missing_texture.png';" />
+
+                        @if (slot.BaseItem.Stackable)
+                        {
+                            <span class="count-badge">@slot.Count</span>
+                        }
+                        else if (slot.BaseItem.ToolInfo is not null)
+                        {
+                            <div class="durability-bar">
+                                <div class="durability-fill" style="width: @(slot.HealthPercentage)%; background-color: @(GetHealthColor(slot.HealthPercentage));">
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <div class="item-label">@slot.BaseItem.Name</div>
+                </div>
+            }
+        </div>
+
+        <div class="pagination">
+            <button @onclick="PrevPage" disabled="@(!CanGoPrev)" class="pag-btn">Previous</button>
+            <span class="pag-info">Page @CurrentPage of @TotalPages <span class="total-count">(Total: @FilteredInventory.Count)</span></span>
+            <button @onclick="NextPage" disabled="@(!CanGoNext)" class="pag-btn">Next</button>
+        </div>
+    }
+</div>
+
+@if (SelectedItemSlot is not null)
+{
+    <div class="modal-backdrop" @onclick="CloseItemDetails">
+        <div class="modal-content" @onclick:stopPropagation>
+            <button class="modal-close" @onclick="CloseItemDetails">&times;</button>
+
+            <h3 class="modal-title">@SelectedItemSlot.BaseItem.Name</h3>
+            <span class="modal-id">ID: @SelectedItemSlot.BaseItem.Id</span>
+            @if (SelectedItemSlot.InstanceId is not null)
+            {
+                <span class="modal-id">Instance ID: @SelectedItemSlot.InstanceId</span>
+            }
+
+            <hr class="modal-divider" />
+
+            @if (IsEditable)
+            {
+                <div class="edit-controls info-group">
+                    <h4>Admin Controls</h4>
+                    <div class="edit-actions">
+                        @if (SelectedItemSlot.BaseItem.Stackable)
+                        {
+                            <div class="edit-count-group">
+                                <label>Count:</label>
+                                <input type="number" @bind="EditCount" min="1" class="edit-input" />
+                                <button class="btn btn-primary" @onclick="SaveItemChanges">Save</button>
+                            </div>
+                        }
+                        <button class="btn btn-danger" @onclick="() => RemoveItem(SelectedItemSlot)">Remove Item</button>
+                    </div>
+                </div>
+            }
+
+            <table class="modal-table">
+                <tr>
+                    <td>Type</td>
+                    <td>@SelectedItemSlot.BaseItem.Type</td>
+                </tr>
+                <tr>
+                    <td>Category</td>
+                    <td>@SelectedItemSlot.BaseItem.Category</td>
+                </tr>
+                <tr>
+                    <td>Rarity</td>
+                    <td><span style="font-weight: bold; color: @GetRarityColor(SelectedItemSlot.BaseItem.Rarity)">@SelectedItemSlot.BaseItem.Rarity</span></td>
+                </tr>
+                <tr>
+                    <td>Stackable</td>
+                    <td>@(SelectedItemSlot.BaseItem.Stackable ? "Yes" : "No")</td>
+                </tr>
+                @if (SelectedItemSlot.BaseItem.Stackable && !IsEditable)
+                {
+                    <tr>
+                        <td>Current Count</td>
+                        <td><strong>@SelectedItemSlot.Count</strong></td>
+                    </tr>
+                }
+                <tr>
+                    <td>Primary Use</td>
+                    <td>@SelectedItemSlot.BaseItem.UseType</td>
+                </tr>
+            </table>
+
+            @if (SelectedItemSlot.BaseItem.ToolInfo is not null)
+            {
+                <div class="info-group" style="border-left-color: #e74c3c;">
+                    <h4>Tool Specs</h4>
+                    <p><strong>Block Damage:</strong> @SelectedItemSlot.BaseItem.ToolInfo.BlockDamage</p>
+                    <p><strong>Mob Damage:</strong> @SelectedItemSlot.BaseItem.ToolInfo.MobDamage</p>
+                    <p><strong>Durability:</strong> @(SelectedItemSlot.BaseItem.ToolInfo.MaxWear - SelectedItemSlot.CurrentWear) / @SelectedItemSlot.BaseItem.ToolInfo.MaxWear (@((int)SelectedItemSlot.HealthPercentage)%)</p>
+                    @if (!string.IsNullOrEmpty(SelectedItemSlot.BaseItem.ToolInfo.EfficiencyCategory))
+                    {
+                        <p><strong>Efficiency Type:</strong> @SelectedItemSlot.BaseItem.ToolInfo.EfficiencyCategory</p>
+                    }
+                </div>
+            }
+
+            @if (SelectedItemSlot.BaseItem.BlockInfo is not null)
+            {
+                <div class="info-group" style="border-left-color: #9b59b6;">
+                    <h4>Block Specs</h4>
+                    <p><strong>Breaking Health:</strong> @SelectedItemSlot.BaseItem.BlockInfo.BreakingHealth</p>
+                    @if (!string.IsNullOrEmpty(SelectedItemSlot.BaseItem.BlockInfo.EfficiencyCategory))
+                    {
+                        <p><strong>Optimal Tool Class:</strong> @SelectedItemSlot.BaseItem.BlockInfo.EfficiencyCategory</p>
+                    }
+                </div>
+            }
+
+            @if (SelectedItemSlot.BaseItem.ConsumeInfo is not null)
+            {
+                <div class="info-group" style="border-left-color: #2ecc71;">
+                    <h4>Consumable Info</h4>
+                    <p><strong>Heal Capacity:</strong> +@SelectedItemSlot.BaseItem.ConsumeInfo.Heal HP</p>
+                    @if (!string.IsNullOrEmpty(SelectedItemSlot.BaseItem.ConsumeInfo.ReturnItemId))
+                    {
+                        <p><strong>Recycled Trash Item:</strong> @SelectedItemSlot.BaseItem.ConsumeInfo.ReturnItemId</p>
+                    }
+                </div>
+            }
+
+            @if (SelectedItemSlot.BaseItem.FuelInfo is not null)
+            {
+                <div class="info-group" style="border-left-color: #e67e22;">
+                    <h4>Burn/Fuel Values</h4>
+                    <p><strong>Total Burn Time:</strong> @SelectedItemSlot.BaseItem.FuelInfo.BurnTime seconds</p>
+                    <p><strong>Heat generation/s:</strong> @SelectedItemSlot.BaseItem.FuelInfo.HeatPerSecond</p>
+                </div>
+            }
+
+            @if (SelectedItemSlot.BaseItem.BoostInfo is not null)
+            {
+                <div class="info-group" style="border-left-color: #1abc9c;">
+                    <h4>Active Buff Effects</h4>
+                    <p><strong>Buff Name:</strong> @SelectedItemSlot.BaseItem.BoostInfo.Name</p>
+                    <p><strong>Buff Category:</strong> @SelectedItemSlot.BaseItem.BoostInfo.Type</p>
+                    <p><strong>Duration:</strong> @(SelectedItemSlot.BaseItem.BoostInfo.Duration)s</p>
+                </div>
+            }
+
+            <div class="info-group info-group-xp">
+                <h4>Yield Profiles (XP)</h4>
+                <p class="xp-metrics">
+                    Tappable: <b>@SelectedItemSlot.BaseItem.Experience.Tappable</b> |
+                    Encounter: <b>@SelectedItemSlot.BaseItem.Experience.Encounter</b> |
+                    Crafting: <b>@SelectedItemSlot.BaseItem.Experience.Crafting</b>
+                </p>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsAddModalOpen)
+{
+    <div class="modal-backdrop" @onclick="CloseAddModal">
+        <div class="modal-content add-modal" @onclick:stopPropagation>
+            <button class="modal-close" @onclick="CloseAddModal">&times;</button>
+            <h3 class="modal-title">Add New Item</h3>
+            <hr class="modal-divider" />
+
+            <input type="text" placeholder="Search catalog..." @bind="AddSearchTerm" @bind:event="oninput" class="search-input" style="margin-bottom: 10px;" />
+
+            <div class="catalog-list">
+                @foreach (var catItem in AddCatalogFiltered)
+                {
+                    <div class="catalog-item @(SelectedItemToAdd?.Id == catItem.Id ? "selected" : "")" @onclick="() => SelectedItemToAdd = catItem">
+                        <div class="cat-item-icon-wrapper">
+                            <img src="/api/genoa-textures/ui/items/@(GetTextureName(catItem)).png" alt="@catItem.Name" onerror="this.onerror=null; this.src='/mock_textures/missing_texture.png';" />
+                        </div>
+                        <div class="cat-item-info">
+                            <div class="cat-item-name">@catItem.Name</div>
+                            <div class="cat-item-id">@catItem.Id</div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="modal-pagination">
+                <button @onclick="PrevAddPage" disabled="@(!CanGoPrevAdd)" class="btn btn-primary btn-sm">Prev</button>
+                <span class="pag-info text-sm">Page @AddCurrentPage of @AddTotalPages <span class="total-count">(Total: @FullCatalogFiltered.Count)</span></span>
+                <button @onclick="NextAddPage" disabled="@(!CanGoNextAdd)" class="btn btn-primary btn-sm">Next</button>
+            </div>
+
+            @if (SelectedItemToAdd is not null)
+            {
+                <div class="add-controls">
+                    <div class="add-count-group">
+                        <label>Quantity:</label>
+                        <input type="number" @bind="AddItemCount" min="1" class="edit-input" />
+                    </div>
+                    <button class="btn btn-success" @onclick="ConfirmAddItem" disabled="@(AddItemCount < 1)">Confirm Add</button>
+                </div>
+                @if (!SelectedItemToAdd.Stackable && AddItemCount > 1)
+                {
+                    <span class="warning-text">Will generate @AddItemCount separate instances.</span>
+                }
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private enum SortOption
+    {
+        NameAsc,
+        NameDesc,
+        AmountAsc,
+        AmountDesc
+    }
+
+    [Parameter]
+    public required Guid AccountId { get; set; }
+
+    [Parameter]
+    public int PageSize { get; set; } = 28;
+
+    [Parameter]
+    public bool IsEditable { get; set; } = false;
+
+    private bool IsLoading = true;
+    private InventorySlot? SelectedItemSlot;
+    private int EditCount = 1;
+
+    private bool IsAddModalOpen = false;
+    private Item? SelectedItemToAdd = null;
+    private int AddItemCount = 1;
+
+    private Solace.StaticData.StaticData staticData = new StaticData.StaticData(Program.StaticDataDir);
+
+    private string _searchTerm = "";
+    private string SearchTerm
+    {
+        get => _searchTerm;
+        set { _searchTerm = value; CurrentPage = 1; }
+    }
+
+    private Item.TypeE? _selectedType;
+    private Item.TypeE? SelectedType
+    {
+        get => _selectedType;
+        set { _selectedType = value; CurrentPage = 1; }
+    }
+
+    private Item.CategoryE? _selectedCategory;
+    private Item.CategoryE? SelectedCategory
+    {
+        get => _selectedCategory;
+        set { _selectedCategory = value; CurrentPage = 1; }
+    }
+
+    private Item.RarityE? _selectedRarity;
+    private Item.RarityE? SelectedRarity
+    {
+        get => _selectedRarity;
+        set { _selectedRarity = value; CurrentPage = 1; }
+    }
+
+    private SortOption _selectedSort = SortOption.AmountDesc;
+    private SortOption SelectedSort
+    {
+        get => _selectedSort;
+        set { _selectedSort = value; CurrentPage = 1; }
+    }
+
+    private int CurrentPage = 1;
+    private int TotalPages => int.Max(1, (int)double.Ceiling(FilteredInventory.Count / (double)PageSize));
+    private bool CanGoPrev => CurrentPage > 1;
+    private bool CanGoNext => CurrentPage < TotalPages;
+
+    private List<InventorySlot> FullInventory = new();
+
+    private List<InventorySlot> FilteredInventory
+    {
+        get
+        {
+            var query = FullInventory
+                .Where(s => string.IsNullOrWhiteSpace(SearchTerm) || s.BaseItem.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase))
+                .Where(s => SelectedType == null || s.BaseItem.Type == SelectedType)
+                .Where(s => SelectedCategory == null || s.BaseItem.Category == SelectedCategory)
+                .Where(s => SelectedRarity == null || s.BaseItem.Rarity == SelectedRarity);
+
+            query = SelectedSort switch
+            {
+                SortOption.NameAsc => query.OrderBy(s => s.BaseItem.Name).ThenBy(s => s.BaseItem.Id),
+                SortOption.NameDesc => query.OrderByDescending(s => s.BaseItem.Name).ThenBy(s => s.BaseItem.Id),
+                SortOption.AmountAsc => query.OrderBy(s => s.Count).ThenBy(s => s.BaseItem.Id),
+                SortOption.AmountDesc => query.OrderByDescending(s => s.Count).ThenBy(s => s.BaseItem.Id),
+                _ => query.OrderBy(s => s.BaseItem.Id)
+            };
+
+            return query.ToList();
+        }
+    }
+
+    private IEnumerable<InventorySlot> PaginatedInventory => FilteredInventory
+        .Skip((CurrentPage - 1) * PageSize)
+        .Take(PageSize);
+
+    private int AddCurrentPage = 1;
+    private int AddPageSize = 10;
+
+    private string _addSearchTerm = "";
+    private string AddSearchTerm
+    {
+        get => _addSearchTerm;
+        set { _addSearchTerm = value; AddCurrentPage = 1; }
+    }
+
+    private List<Item> FullCatalogFiltered => staticData.Catalog.ItemsCatalog.Items
+        .Where(i => string.IsNullOrWhiteSpace(AddSearchTerm) || i.Name.Contains(AddSearchTerm, StringComparison.OrdinalIgnoreCase) || i.Id.Contains(AddSearchTerm, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    private int AddTotalPages => int.Max(1, (int)double.Ceiling(FullCatalogFiltered.Count / (double)AddPageSize));
+    private bool CanGoPrevAdd => AddCurrentPage > 1;
+    private bool CanGoNextAdd => AddCurrentPage < AddTotalPages;
+
+    private IEnumerable<Item> AddCatalogFiltered => FullCatalogFiltered
+        .Skip((AddCurrentPage - 1) * AddPageSize)
+        .Take(AddPageSize);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await ReloadInventoryAsync();
+    }
+
+    private async Task ReloadInventoryAsync()
+    {
+        IsLoading = true;
+        FullInventory.Clear();
+        await LoadDbData();
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                await GenoaResourcepackCache.GetCachePath();
+            }
+            finally
+            {
+                IsLoading = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        }).Forget();
+    }
+
+    private async Task LoadDbData()
+    {
+        try
+        {
+            await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
+            var inventory = await earthDb.Inventories
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
+            if (inventory is null)
+            {
+                return;
+            }
+
+            var catalog = staticData.Catalog.ItemsCatalog;
+
+            foreach (var (itemId, itemCount) in inventory.StackableItemsData)
+            {
+                var item = catalog.GetItem(itemId);
+                if (item is null)
+                {
+                    continue;
+                }
+
+                FullInventory.Add(new InventorySlot() { BaseItem = item, Count = itemCount });
+            }
+
+            foreach (var (itemId, instances) in inventory.NonStackableItemsData)
+            {
+                var item = catalog.GetItem(itemId);
+                if (item is null)
+                {
+                    continue;
+                }
+
+                foreach (var (instanceId, instance) in instances)
+                {
+                    FullInventory.Add(new InventorySlot() { BaseItem = item, CurrentWear = instance.Wear, InstanceId = instanceId });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load inventory data for AccountId {AccountId}", AccountId);
+        }
+    }
+
+    private void PrevPage()
+    {
+        if (CanGoPrev)
+        {
+            CurrentPage--;
+        }
+    }
+    private void NextPage()
+    {
+        if (CanGoNext)
+        {
+            CurrentPage++;
+        }
+    }
+
+    private void PrevAddPage()
+    {
+        if (CanGoPrevAdd)
+        {
+            AddCurrentPage--;
+        }
+    }
+    private void NextAddPage()
+    {
+        if (CanGoNextAdd)
+        {
+            AddCurrentPage++;
+        }
+    }
+
+    private void OpenItemDetails(InventorySlot slot)
+    {
+        SelectedItemSlot = slot;
+        EditCount = slot.Count;
+    }
+
+    private void CloseItemDetails()
+        => SelectedItemSlot = null;
+
+    private void OpenAddModal()
+    {
+        IsAddModalOpen = true;
+        AddSearchTerm = "";
+        AddCurrentPage = 1;
+        SelectedItemToAdd = null;
+        AddItemCount = 1;
+    }
+
+    private void CloseAddModal()
+        => IsAddModalOpen = false;
+
+    private async Task ConfirmAddItem()
+    {
+        if (SelectedItemToAdd is null || AddItemCount < 1)
+        {
+            return;
+        }
+
+        await using var db = await EarthDbFactory.CreateDbContextAsync();
+        var inv = await db.Inventories.FirstOrDefaultAsync();
+
+        if (inv != null)
+        {
+            var itemId = SelectedItemToAdd.Id;
+
+            if (SelectedItemToAdd.Stackable)
+            {
+                if (inv.StackableItemsData.ContainsKey(itemId))
+                {
+                    inv.StackableItemsData[itemId] += AddItemCount;
+                }
+                else
+                {
+                    inv.StackableItemsData[itemId] = AddItemCount;
+                }
+            }
+            else
+            {
+                if (!inv.NonStackableItemsData.ContainsKey(itemId))
+                {
+                    inv.NonStackableItemsData[itemId] = new();
+                }
+
+                for (int i = 0; i < AddItemCount; i++)
+                {
+                    var newInstanceId = Guid.NewGuid().ToString();
+                    inv.NonStackableItemsData[itemId][newInstanceId] = new NonStackableItemInstance(newInstanceId, 0);
+                }
+            }
+
+            db.Inventories.Update(inv);
+            await db.SaveChangesAsync();
+        }
+
+        CloseAddModal();
+        await ReloadInventoryAsync();
+    }
+
+    private async Task SaveItemChanges()
+    {
+        if (SelectedItemSlot is null || !SelectedItemSlot.BaseItem.Stackable)
+        {
+            return;
+        }
+
+        await using var db = await EarthDbFactory.CreateDbContextAsync();
+        var inv = await db.Inventories.FirstOrDefaultAsync();
+
+        if (inv is not null)
+        {
+            if (EditCount <= 0)
+            {
+                inv.StackableItemsData.Remove(SelectedItemSlot.BaseItem.Id);
+            }
+            else
+            {
+                inv.StackableItemsData[SelectedItemSlot.BaseItem.Id] = EditCount;
+            }
+
+            db.Inventories.Update(inv);
+            await db.SaveChangesAsync();
+        }
+
+        CloseItemDetails();
+        await ReloadInventoryAsync();
+    }
+
+    private async Task RemoveItem(InventorySlot slot)
+    {
+        await using var db = await EarthDbFactory.CreateDbContextAsync();
+        var inv = await db.Inventories.FirstOrDefaultAsync();
+
+        if (inv is not null)
+        {
+            var itemId = slot.BaseItem.Id;
+
+            if (slot.BaseItem.Stackable)
+            {
+                inv.StackableItemsData.Remove(itemId);
+            }
+            else if (slot.InstanceId is not null)
+            {
+                if (inv.NonStackableItemsData.TryGetValue(itemId, out var instances))
+                {
+                    instances.Remove(slot.InstanceId);
+                    if (instances.Count == 0)
+                    {
+                        inv.NonStackableItemsData.Remove(itemId);
+                    }
+                }
+            }
+
+            db.Inventories.Update(inv);
+            await db.SaveChangesAsync();
+        }
+
+        CloseItemDetails();
+        await ReloadInventoryAsync();
+    }
+
+    private string GetHealthColor(double percentage)
+        => percentage switch { > 50 => "#00ff00", > 20 => "#ffff00", _ => "#ff0000" };
+
+    private string GetRarityColor(Item.RarityE rarity)
+        => rarity switch
+        {
+            Item.RarityE.COMMON => "#7f8c8d",
+            Item.RarityE.UNCOMMON => "#2ecc71",
+            Item.RarityE.RARE => "#3498db",
+            Item.RarityE.EPIC => "#9b59b6",
+            Item.RarityE.LEGENDARY => "#e67e22",
+            Item.RarityE.OOBE => "#d35400",
+            _ => "#7f8c8d"
+        };
+
+    private static string GetTextureName(Item item)
+    {
+        if (item.Category is Item.CategoryE.BOOST_ADVENTURE_XP or Item.CategoryE.BOOST_CRAFTING or Item.CategoryE.BOOST_DEFENSE or Item.CategoryE.BOOST_EATING or Item.CategoryE.BOOST_HEALTH or Item.CategoryE.BOOST_HOARDING or Item.CategoryE.BOOST_ITEM_XP or Item.CategoryE.BOOST_MINING_SPEED or Item.CategoryE.BOOST_RETENTION or Item.CategoryE.BOOST_SMELTING or Item.CategoryE.BOOST_STRENGTH or Item.CategoryE.BOOST_TAPPABLE_RADIUS)
+        {
+            return item.Id.ToString();
+        }
+
+        return item.Name + "_" + item.Aux;
+    }
+
+    public class InventorySlot
+    {
+        public required Item BaseItem { get; set; }
+        public int Count { get; set; } = 1;
+        public int CurrentWear { get; set; } = 0;
+        public string? InstanceId { get; set; }
+
+        public double HealthPercentage
+        {
+            get
+            {
+                if (BaseItem.ToolInfo is null || BaseItem.ToolInfo.MaxWear == 0)
+                {
+                    return 100;
+                }
+
+                var health = 100.0 * (BaseItem.ToolInfo.MaxWear - CurrentWear) / BaseItem.ToolInfo.MaxWear;
+                return double.Clamp(health, 0, 100);
+            }
+        }
+
+        public string TextureName => GetTextureName(BaseItem);
+    }
+}

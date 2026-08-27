@@ -4,7 +4,7 @@ using Solace.LauncherUI.Models.Db;
 
 namespace Solace.LauncherUI.Data;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
     : IdentityDbContext<ApplicationUser, ApplicationRole, string>(options)
 {
     public DbSet<DbBuildplatePreview> BuildplatePreviews { get; set; }
@@ -12,6 +12,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        builder.Entity<ApplicationUser>()
+            .PrimitiveCollection(e => e.LinkedInGameAccounts);
 
         builder.Entity<DbBuildplatePreview>(entity =>
         {

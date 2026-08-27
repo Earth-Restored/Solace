@@ -11,6 +11,9 @@ using Solace.Common.Utils;
 using Solace.DB;
 using Solace.DB.Models.Player;
 using Solace.StaticData;
+using Microsoft.EntityFrameworkCore;
+using Solace.DB.Utils;
+using Serilog;
 
 namespace Solace.ApiServer.Controllers.EarthApi;
 
@@ -19,90 +22,87 @@ namespace Solace.ApiServer.Controllers.EarthApi;
 [Route("1/api/v{version:apiVersion}")]
 internal sealed class TappablesController : SolaceControllerBase
 {
-    private static TappablesManager tappablesManager => Program.tappablesManager;
-    private static EarthDB earthDB => Program.DB;
-    private static StaticData.StaticData staticData => Program.staticData;
+    private readonly TappablesManager _tappablesManager;
+    private readonly EarthDbContext _earthDB;
+    private readonly StaticData.StaticData _staticData;
+
+    public TappablesController(TappablesManager tappablesManager, EarthDbContext earthDb, StaticData.StaticData staticData)
+    {
+        _tappablesManager = tappablesManager;
+        _earthDB = earthDb;
+        _staticData = staticData;
+    }
 
     [HttpGet("locations/{lat}/{lon}")]
     public async Task<Results<ContentHttpResult, BadRequest>> GetTappables(double lat, double lon, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId))
+        if (!TryGetAccountId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
 
         long requestStartedOn = HttpContext.GetTimestamp();
 
-        await tappablesManager.NotifyTileActiveAsync(playerId, lat, lon);
+        await _tappablesManager.NotifyTileActiveAsync(accountId, lat, lon);
 
-        TappablesManager.Tappable[] tappables = tappablesManager.GetTappablesAround(lat, lon, 5.0);    // TODO: radius
-        TappablesManager.Encounter[] encounters = tappablesManager.GetEncountersAround(lat, lon, 5.0);    // TODO: radius
+        TappablesManager.Tappable[] tappables = _tappablesManager.GetTappablesAround(lat, lon, 5.0);    // TODO: radius
+        TappablesManager.Encounter[] encounters = _tappablesManager.GetEncountersAround(lat, lon, 5.0);    // TODO: radius
 
-        try
-        {
-            EarthDB.Results results = await new EarthDB.Query(false)
-                .Get("redeemedTappables", playerId, typeof(RedeemedTappables))
-                .ExecuteAsync(earthDB, cancellationToken);
-            RedeemedTappables redeemedTappables = results.Get<RedeemedTappables>("redeemedTappables");
+        var redeemedTappables = await _earthDB.RedeemedTappables
+            .AsNoTracking()
+            .FirstOrNewAsync(redeemedTappables => redeemedTappables.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
 
-            IEnumerable<ActiveLocation> activeLocationTappables = tappables
-                .Where(tappable => tappable.SpawnTime + tappable.ValidFor > requestStartedOn && !redeemedTappables.IsRedeemed(tappable.Id))
-                .Select(tappable => new ActiveLocation(
-                    tappable.Id,
-                    TappablesManager.LocationToTileId(tappable.Lat, tappable.Lon),
-                    new Coordinate(tappable.Lat, tappable.Lon),
-                    TimeFormatter.FormatTime(tappable.SpawnTime),
-                    TimeFormatter.FormatTime(tappable.SpawnTime + tappable.ValidFor),
-                    ActiveLocation.TypeE.TAPPABLE,
-                    tappable.Icon,
-                    new ActiveLocation.MetadataR(U.RandomUuid().ToString(), Enum.Parse<Rarity>(tappable.Rarity.ToString())),
-                    new ActiveLocation.TappableMetadataR(Enum.Parse<Rarity>(tappable.Rarity.ToString())),
-                    null
-                ));
+        IEnumerable<ActiveLocation> activeLocationTappables = tappables
+            .Where(tappable => tappable.SpawnTime + tappable.ValidFor > requestStartedOn && !redeemedTappables.IsRedeemed(tappable.Id))
+            .Select(tappable => new ActiveLocation(
+                tappable.Id,
+                TappablesManager.LocationToTileId(tappable.Lat, tappable.Lon),
+                new Coordinate(tappable.Lat, tappable.Lon),
+                TimeFormatter.FormatTime(tappable.SpawnTime),
+                TimeFormatter.FormatTime(tappable.SpawnTime + tappable.ValidFor),
+                ActiveLocation.TypeE.TAPPABLE,
+                tappable.Icon,
+                new ActiveLocation.MetadataR(Guid.NewGuid(), Rarity.FromTappable(tappable.Rarity)),
+                new ActiveLocation.TappableMetadataR(Rarity.FromTappable(tappable.Rarity)),
+                null
+            ));
 
-            IEnumerable<ActiveLocation> activeLocationEncounters = encounters
-                .Where(encounter => encounter.SpawnTime + encounter.ValidFor > requestStartedOn)
-                .Select(encounter => new ActiveLocation(
+        IEnumerable<ActiveLocation> activeLocationEncounters = encounters
+            .Where(encounter => encounter.SpawnTime + encounter.ValidFor > requestStartedOn)
+            .Select(encounter => new ActiveLocation(
+                encounter.Id,
+                TappablesManager.LocationToTileId(encounter.Lat, encounter.Lon),
+                new Coordinate(encounter.Lat, encounter.Lon),
+                TimeFormatter.FormatTime(encounter.SpawnTime),
+                TimeFormatter.FormatTime(encounter.SpawnTime + encounter.ValidFor),
+                ActiveLocation.TypeE.ENCOUNTER,
+                encounter.Icon,
+                new ActiveLocation.MetadataR(Guid.NewGuid(), Rarity.FromEncounter(encounter.Rarity)),
+                null,
+                new ActiveLocation.EncounterMetadataR(
+                    ActiveLocation.EncounterMetadataR.EncounterTypeE.SHORT_4X4_PEACEFUL,    // TODO
+                                                                                            //UUID.randomUUID().toString(),    // TODO: what is this field for and does it matter what we put here?
                     encounter.Id,
-                    TappablesManager.LocationToTileId(encounter.Lat, encounter.Lon),
-                    new Coordinate(encounter.Lat, encounter.Lon),
-                    TimeFormatter.FormatTime(encounter.SpawnTime),
-                    TimeFormatter.FormatTime(encounter.SpawnTime + encounter.ValidFor),
-                    ActiveLocation.TypeE.ENCOUNTER,
-                    encounter.Icon,
-                    new ActiveLocation.MetadataR(U.RandomUuid().ToString(), Enum.Parse<Rarity>(encounter.Rarity.ToString())),
-                    null,
-                    new ActiveLocation.EncounterMetadataR(
-                        ActiveLocation.EncounterMetadataR.EncounterTypeE.SHORT_4X4_PEACEFUL,    // TODO
-                                                                                                //UUID.randomUUID().toString(),    // TODO: what is this field for and does it matter what we put here?
-                        encounter.Id,
-                        encounter.EncounterBuildplateId,
-                        ActiveLocation.EncounterMetadataR.AnchorStateE.OFF,
-                        "",
-                        ""
-                    )
-                ));
+                    encounter.EncounterBuildplateId,
+                    ActiveLocation.EncounterMetadataR.AnchorStateE.OFF,
+                    "",
+                    ""
+                )
+            ));
 
-            ActiveLocation[] activeLocations = [.. activeLocationTappables, .. activeLocationEncounters];
+        ActiveLocation[] activeLocations = [.. activeLocationTappables, .. activeLocationEncounters];
 
-            return EarthJson(new Dictionary<string, object>()
-            {
-                { "killSwitchedTileIds", new List<object>() },
-                { "activeLocations", activeLocations }
-            });
-        }
-        catch (EarthDB.DatabaseException ex)
+        return EarthJson(new Dictionary<string, object>()
         {
-            throw new ServerErrorException(ex);
-        }
+            { "killSwitchedTileIds", new List<object>() },
+            { "activeLocations", activeLocations }
+        });
     }
 
     [HttpPost("tappables/{tileId}")]
     public async Task<Results<ContentHttpResult, BadRequest>> RedeemTappable(string tileId, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId))
+        if (!TryGetAccountId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -116,104 +116,122 @@ internal sealed class TappablesController : SolaceControllerBase
         // request.timestamp
         long requestStartedOn = HttpContext.GetTimestamp();
 
-        TappablesManager.Tappable? tappable = tappablesManager.GetTappableWithId(tappableRequest.Id, tileId);
-        if (tappable is null || !tappablesManager.IsTappableValidFor(tappable, requestStartedOn, tappableRequest.PlayerCoordinate.Latitude, tappableRequest.PlayerCoordinate.Longitude))
+        TappablesManager.Tappable? tappable = _tappablesManager.GetTappableWithId(tappableRequest.Id, tileId);
+        if (tappable is null || !_tappablesManager.IsTappableValidFor(tappable, requestStartedOn, tappableRequest.PlayerCoordinate.Latitude, tappableRequest.PlayerCoordinate.Longitude))
         {
             return TypedResults.BadRequest();
         }
 
-        try
+        var redeemedTappables = await _earthDB.RedeemedTappables
+            .AsTracking()
+            .FirstOrNewAsync(redeemedTappables => redeemedTappables.Id == accountId, cancellationToken: cancellationToken);
+
+        var boosts = await _earthDB.Boosts
+            .AsNoTracking()
+            .FirstOrNewAsync(boosts => boosts.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+
+        var tokens = await _earthDB.Tokens
+            .AsTracking()
+            .FirstOrNewAsync(tokens => tokens.Id == accountId, cancellationToken: cancellationToken);
+        TokensEF.ChallengeProgressToken storedProgress = tokens.Tokens.TryGetValue(ChallengesController.ProgressTokenId, out TokensEF.Token? rawProgress) &&
+            rawProgress is TokensEF.ChallengeProgressToken challengeToken
+            ? challengeToken
+            : new TokensEF.ChallengeProgressToken();
+        var challengeProgress = ChallengeProgressVersion.FromToken(storedProgress);
+
+        if (redeemedTappables.IsRedeemed(tappable.Id))
         {
-            EarthDB.Results results = await new EarthDB.Query(true)
-                .Get("redeemedTappables", playerId, typeof(RedeemedTappables))
-                .Get("boosts", playerId, typeof(Boosts))
-                .Then(results1 =>
-                {
-                    var query = new EarthDB.Query(true);
-                    Boosts boosts = results1.Get<Boosts>("boosts");
+            return TypedResults.BadRequest();
+        }
 
-                    RedeemedTappables redeemedTappables = results1.Get<RedeemedTappables>("redeemedTappables");
+        int experiencePointsGlobalMultiplier = 0;
 
-                    if (redeemedTappables.IsRedeemed(tappable.Id))
-                    {
-                        query.Extra("success", false);
-                        return query;
-                    }
-
-                    int experiencePointsGlobalMultiplier = 0;
-
-                    Dictionary<string, int> experiencePointsPerItemMultiplier = [];
-                    foreach (var effect in BoostUtils.GetActiveEffects(boosts, requestStartedOn, staticData.Catalog.ItemsCatalog))
-                    {
-                        if (effect.Type is Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.TypeE.ITEM_XP)
-                        {
-                            if (effect.ApplicableItemIds is not null && effect.ApplicableItemIds.Length > 0)
-                            {
-                                foreach (string itemId in effect.ApplicableItemIds)
-                                {
-                                    experiencePointsPerItemMultiplier[itemId] = experiencePointsPerItemMultiplier.GetValueOrDefault(itemId) + effect.Value;
-                                }
-                            }
-                            else
-                            {
-                                experiencePointsGlobalMultiplier += effect.Value;
-                            }
-                        }
-                    }
-
-                    var rewards = new Utils.Rewards();
-
-                    foreach (TappablesManager.Tappable.Item item in tappable.Items)
-                    {
-                        rewards.AddItem(item.Id, item.Count);
-                        int experiencePoints = staticData.Catalog.ItemsCatalog.GetItem(item.Id)!.Experience.Tappable;
-                        int experiencePointsMultiplier = experiencePointsGlobalMultiplier + experiencePointsPerItemMultiplier.GetValueOrDefault(item.Id);
-                        if (experiencePointsMultiplier > 0)
-                        {
-                            experiencePoints = experiencePoints * (experiencePointsMultiplier + 100) / 100;
-                        }
-
-                        rewards.AddExperiencePoints(experiencePoints * item.Count);
-                    }
-
-                    rewards.AddRubies(1); // TODO
-
-                    redeemedTappables.Add(tappable.Id, tappable.SpawnTime + tappable.ValidFor);
-                    redeemedTappables.Prune(requestStartedOn);
-                    query.Update("redeemedTappables", playerId, redeemedTappables);
-                    query.Then(ActivityLogUtils.AddEntry(playerId, new ActivityLog.TappableEntry(requestStartedOn, rewards.ToDBRewardsModel())));
-                    query.Then(rewards.ToRedeemQuery(playerId, requestStartedOn, staticData));
-                    query.Then(results2 => new EarthDB.Query(false).Extra("success", true).Extra("rewards", rewards));
-
-                    return query;
-                })
-                .ExecuteAsync(earthDB, cancellationToken);
-
-            if ((bool)results.GetExtra("success"))
+        Dictionary<string, int> experiencePointsPerItemMultiplier = [];
+        foreach (var effect in BoostUtils.GetActiveEffects(boosts, requestStartedOn, _staticData.Catalog.ItemsCatalog))
+        {
+            if (effect.Type is Catalog.ItemsCatalogR.Item.BoostInfoR.Effect.TypeE.ITEM_XP)
             {
-                return EarthJson(new Dictionary<string, object?>()
+                if (effect.ApplicableItemIds is not null && effect.ApplicableItemIds.Length > 0)
                 {
-                    { "token", new Token(
-                        Token.Type.TAPPABLE,
-                        [],
-                        ((Utils.Rewards) results.GetExtra("rewards")).ToApiResponse(),
-                        Token.LifetimeE.PERSISTENT
-                    ) },
-                    { "updates", null }
-                }, new EarthApiResponse.UpdatesResponse(results));
-            }
-            else
-            {
-                return TypedResults.BadRequest();
+                    foreach (string itemId in effect.ApplicableItemIds)
+                    {
+                        experiencePointsPerItemMultiplier[itemId] = experiencePointsPerItemMultiplier.GetValueOrDefault(itemId) + effect.Value;
+                    }
+                }
+                else
+                {
+                    experiencePointsGlobalMultiplier += effect.Value;
+                }
             }
         }
-        catch (EarthDB.DatabaseException ex)
+
+        var rewards = new Utils.Rewards();
+        HashSet<string> collectedItemIds = [];
+
+        foreach (TappablesManager.Tappable.Item item in tappable.Items)
         {
-            throw new ServerErrorException(ex);
+            collectedItemIds.Add(item.Id);
+            rewards.AddItem(item.Id, item.Count);
+            int experiencePoints = _staticData.Catalog.ItemsCatalog.GetItem(item.Id)!.Experience.Tappable;
+            int experiencePointsMultiplier = experiencePointsGlobalMultiplier + experiencePointsPerItemMultiplier.GetValueOrDefault(item.Id);
+            if (experiencePointsMultiplier > 0)
+            {
+                experiencePoints = experiencePoints * (experiencePointsMultiplier + 100) / 100;
+            }
+
+            rewards.AddExperiencePoints(experiencePoints * item.Count);
         }
+
+        rewards.AddRubies(1); // TODO
+
+        challengeProgress.RecordTappable(requestStartedOn);
+        challengeProgress.AddObjectiveProgress(requestStartedOn, "6b0655aa-cc63-4876-a1e1-afb319403c1c");
+        string icon = tappable.Icon.ToString();
+        if (icon.Contains("chest", StringComparison.OrdinalIgnoreCase))
+        {
+            challengeProgress.AddObjectiveProgress(requestStartedOn, "2b64c950-f80b-4491-b81d-bf90cee88db1");
+            challengeProgress.AddObjectiveProgress(requestStartedOn, "d5cbfe47-504a-4e8a-a7b8-481de901c20f");
+        }
+
+        if (icon.Contains("cow", StringComparison.OrdinalIgnoreCase) ||
+            icon.Contains("sheep", StringComparison.OrdinalIgnoreCase) ||
+            icon.Contains("chicken", StringComparison.OrdinalIgnoreCase) ||
+            icon.Contains("pig", StringComparison.OrdinalIgnoreCase))
+        {
+            challengeProgress.AddObjectiveProgress(requestStartedOn, "1d981b84-a03a-451d-82a6-9bfe0fc885fb");
+        }
+
+        if (collectedItemIds.Contains("a1bf49f9-1f1f-2a4d-5f7b-c0c5ba833068"))
+        {
+            challengeProgress.AddObjectiveProgress(requestStartedOn, "bd9d3fd7-12ef-49e0-91fa-c971795f8e35");
+        }
+
+        tokens.AddToken(ChallengesController.ProgressTokenId, challengeProgress.ToToken());
+
+        redeemedTappables.Add(tappable.Id, tappable.SpawnTime + tappable.ValidFor);
+        redeemedTappables.Prune(requestStartedOn);
+
+        await _earthDB.SaveChangesAsync(cancellationToken);
+        var results = new EarthDbContext.Results(_earthDB);
+
+        await ActivityLogUtils.AddEntryAsync(results, accountId, new ActivityLogEF.TappableEntry(requestStartedOn, rewards.ToDBRewardsModel()));
+        await rewards.ToRedeemQueryAsync(results, accountId, requestStartedOn, _staticData);
+
+        return EarthJson(new Dictionary<string, object?>()
+        {
+            { "token", new Token(
+                Token.Type.TAPPABLE,
+                [],
+                rewards.ToApiResponse(),
+                Token.LifetimeE.PERSISTENT
+            ) },
+            { "updates", null }
+        }, new EarthApiResponse.UpdatesResponse(results));
     }
 
     [HttpPost("multiplayer/encounters/state")]
+    [HttpPost("multiplayer/adventures/state")]
+    [HttpPost("multiplayer/player/adventures/state")]
     public async Task<Results<ContentHttpResult, BadRequest>> EncountersState(CancellationToken cancellationToken)
     {
         var requestedIds = await Request.Body.AsJsonAsync<Dictionary<string, object>>(cancellationToken);
@@ -245,7 +263,7 @@ internal sealed class TappablesController : SolaceControllerBase
     }
 
     private sealed record TappableRequest(
-        string Id,
+        Guid Id,
         Coordinate PlayerCoordinate
     );
 }

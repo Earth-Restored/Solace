@@ -14,8 +14,8 @@ public sealed class TappablesManager
     private Subscriber _subscriber = null!;
     private RequestSender _requestSender = null!;
 
-    private readonly Dictionary<string, Dictionary<string, Tappable>> _tappables = [];
-    private readonly Dictionary<string, Dictionary<string, Encounter>> _encounters = [];
+    private readonly Dictionary<string, Dictionary<Guid, Tappable>> _tappables = [];
+    private readonly Dictionary<string, Dictionary<Guid, Encounter>> _encounters = [];
     private int _pruneCounter;
 
     private TappablesManager()
@@ -41,7 +41,7 @@ public sealed class TappablesManager
 
     public Tappable[] GetTappablesAround(double lat, double lon, double radius)
         => [.. GetTileIdsAround(lat, lon, radius)
-            .Select(tileId => _tappables.GetOrDefault(tileId, null))
+            .Select(tileId => _tappables.GetValueOrDefault(tileId))
             .Where(tappables => tappables is not null)
             .Select(items => items!.Values)
             .SelectMany(stream => stream)
@@ -55,7 +55,7 @@ public sealed class TappablesManager
 
     public Encounter[] GetEncountersAround(double lat, double lon, double radius)
         => [.. GetTileIdsAround(lat, lon, radius)
-            .Select(tileId => _encounters.GetOrDefault(tileId))
+            .Select(tileId => _encounters.GetValueOrDefault(tileId))
             .Where(encounters => encounters is not null)
             .SelectMany(encounters => encounters!.Values)
             .Where(encounter =>
@@ -90,12 +90,12 @@ public sealed class TappablesManager
         return [.. Enumerable.Range(tileX - tileRadius, sideLength).Select(x => Enumerable.Range(tileY - tileRadius, sideLength).Select(y => $"{x}_{y}")).SelectMany(stream => stream)];
     }
 
-    public Tappable? GetTappableWithId(string id, string tileId)
+    public Tappable? GetTappableWithId(Guid id, string tileId)
     {
-        Dictionary<string, Tappable>? tappablesInTile = _tappables.GetOrDefault(tileId, null);
+        var tappablesInTile = _tappables.GetValueOrDefault(tileId);
         if (tappablesInTile is not null)
         {
-            Tappable? tappable = tappablesInTile.GetOrDefault(id, null);
+            var tappable = tappablesInTile.GetValueOrDefault(id);
             if (tappable is not null)
             {
                 return tappable;
@@ -105,12 +105,12 @@ public sealed class TappablesManager
         return null;
     }
 
-    public Encounter? GetEncounterWithId(string id, string tileId)
+    public Encounter? GetEncounterWithId(Guid id, string tileId)
     {
-        var encountersInTile = _encounters.GetOrDefault(tileId);
+        var encountersInTile = _encounters.GetValueOrDefault(tileId);
         if (encountersInTile is not null)
         {
-            var encounter = encountersInTile.GetOrDefault(id);
+            var encounter = encountersInTile.GetValueOrDefault(id);
             if (encounter is not null)
             {
                 return encounter;
@@ -149,11 +149,11 @@ public sealed class TappablesManager
         return true;
     }
 
-    public async Task NotifyTileActiveAsync(string playerId, double lat, double lon)
+    public async Task NotifyTileActiveAsync(Guid accountId, double lat, double lon)
     {
         int tileX = XToTile(LonToX(lon));
         int tileY = YToTile(LatToY(lat));
-        string? response = await _requestSender.RequestAsync("tappables", "activeTile", Json.Serialize(new ActiveTileNotification(tileX, tileY, playerId)));
+        string? response = await _requestSender.RequestAsync("tappables", "activeTile", Json.Serialize(new ActiveTileNotification(tileX, tileY, accountId.ToString())));
         if (response is null)
         {
             Log.Warning("Active tile notification event was rejected/ignored");
@@ -248,7 +248,7 @@ public sealed class TappablesManager
     {
         foreach (var tileTappables in _tappables.Values)
         {
-            tileTappables.RemoveIf(entry =>
+            tileTappables.RemoveAll(entry =>
             {
                 Tappable tappable = entry.Value;
                 long expiresAt = tappable.SpawnTime + tappable.ValidFor;
@@ -256,11 +256,11 @@ public sealed class TappablesManager
             });
         }
 
-        _tappables.RemoveIf(entry => entry.Value.IsEmpty());
+        _tappables.RemoveAll(entry => entry.Value.Count is 0);
 
         foreach (var tileEncounters in _encounters.Values)
         {
-            tileEncounters.RemoveIf(entry =>
+            tileEncounters.RemoveAll(entry =>
             {
                 Encounter encounter = entry.Value;
                 long expiresAt = encounter.SpawnTime + encounter.ValidFor;
@@ -268,7 +268,7 @@ public sealed class TappablesManager
             });
         }
 
-        _encounters.RemoveIf(entry => entry.Value.Count == 0);
+        _encounters.RemoveAll(entry => entry.Value.Count is 0);
     }
 
     public static string LocationToTileId(float lat, float lon)
@@ -287,7 +287,7 @@ public sealed class TappablesManager
         => (int)Math.Floor(y * (1 << 16));
 
     public sealed record Tappable(
-        string Id,
+        Guid Id,
         float Lat,
         float Lon,
         long SpawnTime,
@@ -314,14 +314,14 @@ public sealed class TappablesManager
     }
 
     public sealed record Encounter(
-        string Id,
+        Guid Id,
         float Lat,
         float Lon,
         long SpawnTime,
         long ValidFor,
         string Icon,
         Encounter.RarityE Rarity,
-        string EncounterBuildplateId
+        Guid EncounterBuildplateId
     )
     {
         [JsonConverter(typeof(JsonStringEnumConverter))]

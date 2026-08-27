@@ -1,9 +1,12 @@
-﻿using System.Buffers;
-using System.Collections.Concurrent;
+﻿using System;
+using System.Buffers;
+using System.IO;
 using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 
 namespace Solace.ObjectStore.Client;
 
@@ -22,10 +25,11 @@ public sealed class ObjectStoreClient : IAsyncDisposable
         }
     }
 
-    private readonly Socket _socket;
-    private readonly NetworkStream _stream;
+    private readonly string _host;
+    private readonly int _port;
     private readonly Channel<Command> _commandQueue;
     private readonly CancellationTokenSource _cts = new();
+    private readonly TaskCompletionSource _initialConnectTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly Task _processingTask;
 
     public static async Task<ObjectStoreClient> ConnectAsync(string connectionString)
@@ -34,30 +38,19 @@ public sealed class ObjectStoreClient : IAsyncDisposable
         string host = parts[0];
         if (!int.TryParse(parts.Length > 1 ? parts[1] : "5396", out int port) || port is <= 0 or > 65535)
         {
-            throw new ArgumentException($"Invalid port number in connection string.");
+            throw new ArgumentException("Invalid port number in connection string.");
         }
 
-        Socket socket = new(SocketType.Stream, ProtocolType.Tcp);
-        try
-        {
-            await socket.ConnectAsync(host, port);
-        }
-        catch (SocketException ex)
-        {
-            socket.Dispose();
-            throw new ConnectException($"Could not create socket: {ex.Message}", ex);
-        }
-
-        return new ObjectStoreClient(socket);
+        var client = new ObjectStoreClient(host, port);
+        await client._initialConnectTcs.Task;
+        return client;
     }
 
-    private ObjectStoreClient(Socket socket)
+    private ObjectStoreClient(string host, int port)
     {
-        _socket = socket;
-        _stream = new NetworkStream(socket, ownsSocket: false);
-
+        _host = host;
+        _port = port;
         _commandQueue = Channel.CreateUnbounded<Command>();
-
         _processingTask = Task.Run(ProcessConnectionAsync);
     }
 
@@ -93,79 +86,122 @@ public sealed class ObjectStoreClient : IAsyncDisposable
 
     private async Task ProcessConnectionAsync()
     {
-        var reader = PipeReader.Create(_stream);
-        var writer = PipeWriter.Create(_stream);
+        while (!_cts.Token.IsCancellationRequested)
+        {
+            Socket? socket = null;
+            NetworkStream? stream = null;
 
-        Command? activeCommand = null;
+            try
+            {
+                socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+                await socket.ConnectAsync(_host, _port, _cts.Token);
+
+                _initialConnectTcs.TrySetResult();
+
+                stream = new NetworkStream(socket, ownsSocket: true);
+                await RunMultiplexedLoopsAsync(stream);
+
+                break;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                if (_initialConnectTcs.TrySetException(new ConnectException($"Could not connect to {_host}:{_port}", ex)))
+                {
+                    return;
+                }
+
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(2), _cts.Token);
+                }
+                catch
+                {
+                    break;
+                }
+            }
+            finally
+            {
+                stream?.Dispose();
+                socket?.Dispose();
+            }
+        }
+    }
+
+    private async Task RunMultiplexedLoopsAsync(Stream stream)
+    {
+        var reader = PipeReader.Create(stream);
+        var writer = PipeWriter.Create(stream);
+        var pendingResponses = Channel.CreateUnbounded<Command>();
+
+        using var loopCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+
+        var readTask = ReadLoopAsync(reader, pendingResponses.Reader, loopCts.Token);
+        var writeTask = WriteLoopAsync(writer, pendingResponses.Writer, loopCts.Token);
+
+        Task completedTask = await Task.WhenAny(readTask, writeTask);
+        loopCts.Cancel();
 
         try
         {
-            await foreach (var command in _commandQueue.Reader.ReadAllAsync(_cts.Token))
-            {
-                activeCommand = command;
-                await WriteCommandAsync(writer, command);
-                await ReadResponseAsync(reader, command);
-                activeCommand = null;
-            }
+            await Task.WhenAll(readTask, writeTask);
         }
-        catch (Exception ex)
+        catch
         {
-            activeCommand?.Tcs.TrySetException(ex);
-            FaultPendingCommands(ex);
+        }
+
+        pendingResponses.Writer.TryComplete();
+        var dropEx = new ConnectException("Connection dropped before response was received.");
+        await foreach (var cmd in pendingResponses.Reader.ReadAllAsync())
+        {
+            cmd.Tcs.TrySetException(dropEx);
+        }
+
+        await completedTask; // Rethrow inner exception to trigger reconnect
+    }
+
+    private async Task WriteLoopAsync(PipeWriter writer, ChannelWriter<Command> pendingResponses, CancellationToken token)
+    {
+        try
+        {
+            await foreach (var command in _commandQueue.Reader.ReadAllAsync(token))
+            {
+                pendingResponses.TryWrite(command);
+                await WriteCommandAsync(writer, command, token);
+            }
         }
         finally
         {
-            await reader.CompleteAsync();
             await writer.CompleteAsync();
-            _socket.Close();
         }
     }
 
-    private async Task WriteCommandAsync(PipeWriter writer, Command command)
-    {
-        switch (command.Type)
-        {
-            case CommandType.Store:
-                var memory = (ReadOnlyMemory<byte>)command.Data;
-                var header = Encoding.ASCII.GetBytes($"STORE {memory.Length}\n");
-
-                writer.Write(header);
-                writer.Write(memory.Span);
-
-                await writer.FlushAsync(_cts.Token);
-                break;
-            case CommandType.Get:
-                await writer.WriteAsync(Encoding.ASCII.GetBytes($"GET {(string)command.Data}\n"), _cts.Token);
-                break;
-            case CommandType.Delete:
-                await writer.WriteAsync(Encoding.ASCII.GetBytes($"DEL {(string)command.Data}\n"), _cts.Token);
-                break;
-        }
-    }
-
-    private async Task ReadResponseAsync(PipeReader reader, Command command)
+    private static async Task ReadLoopAsync(PipeReader reader, ChannelReader<Command> pendingResponses, CancellationToken token)
     {
         Range[] partsArray = ArrayPool<Range>.Shared.Rent(2);
         try
         {
             while (true)
             {
-                ReadResult result = await reader.ReadAsync(_cts.Token);
+                ReadResult result = await reader.ReadAsync(token);
                 ReadOnlySequence<byte> buffer = result.Buffer;
 
                 if (TryReadMessage(ref buffer, out ReadOnlySequence<byte> line))
                 {
+                    if (!pendingResponses.TryRead(out var command))
+                    {
+                        throw new InvalidOperationException("Received unsolicited response from server.");
+                    }
+
                     var message = Encoding.ASCII.GetString(line).AsSpan().Trim('\r');
                     var parts = partsArray.AsSpan(0, 2);
                     var partsLength = message.Split(parts, ' ');
                     var partsLocal = parts[..partsLength];
 
-                    reader.AdvanceTo(buffer.Start, result.Buffer.End);
-
                     if (message[partsLocal[0]] is "ERR")
                     {
                         command.Tcs.TrySetResult(command.Type is CommandType.Delete ? false : null);
-                        return;
+                        reader.AdvanceTo(buffer.Start);
+                        continue;
                     }
 
                     if (message[partsLocal[0]] is "OK")
@@ -173,26 +209,29 @@ public sealed class ObjectStoreClient : IAsyncDisposable
                         if (command.Type is CommandType.Delete)
                         {
                             command.Tcs.TrySetResult(true);
-                            return;
+                            reader.AdvanceTo(buffer.Start);
+                            continue;
                         }
 
                         if (command.Type is CommandType.Store)
                         {
                             command.Tcs.TrySetResult(partsLocal.Length > 1 ? message[partsLocal[1]].ToString() : null);
-                            return;
+                            reader.AdvanceTo(buffer.Start);
+                            continue;
                         }
 
                         if (command.Type is CommandType.Get && partsLocal.Length is 2 && int.TryParse(message[partsLocal[1]], out int length))
                         {
-                            await ReadBinaryPayloadAsync(reader, length, command);
-                            return;
+                            reader.AdvanceTo(buffer.Start);
+                            await ReadBinaryPayloadAsync(reader, length, command, token);
+                            continue;
                         }
                     }
 
-                    throw new InvalidOperationException("Invalid server response format.");
+                    throw new InvalidDataException("Invalid server response format.");
                 }
 
-                reader.AdvanceTo(buffer.Start, result.Buffer.End);
+                reader.AdvanceTo(buffer.Start, buffer.End);
 
                 if (result.IsCompleted)
                 {
@@ -203,10 +242,31 @@ public sealed class ObjectStoreClient : IAsyncDisposable
         finally
         {
             ArrayPool<Range>.Shared.Return(partsArray);
+            await reader.CompleteAsync();
         }
     }
 
-    private async Task ReadBinaryPayloadAsync(PipeReader reader, int length, Command command)
+    private static async Task WriteCommandAsync(PipeWriter writer, Command command, CancellationToken token)
+    {
+        switch (command.Type)
+        {
+            case CommandType.Store:
+                var memory = (ReadOnlyMemory<byte>)command.Data;
+                var header = Encoding.ASCII.GetBytes($"STORE {memory.Length}\n");
+                writer.Write(header);
+                writer.Write(memory.Span);
+                await writer.FlushAsync(token);
+                break;
+            case CommandType.Get:
+                await writer.WriteAsync(Encoding.ASCII.GetBytes($"GET {(string)command.Data}\n"), token);
+                break;
+            case CommandType.Delete:
+                await writer.WriteAsync(Encoding.ASCII.GetBytes($"DEL {(string)command.Data}\n"), token);
+                break;
+        }
+    }
+
+    private static async Task ReadBinaryPayloadAsync(PipeReader reader, int length, Command command, CancellationToken token)
     {
         if (length is 0)
         {
@@ -216,7 +276,7 @@ public sealed class ObjectStoreClient : IAsyncDisposable
 
         while (true)
         {
-            ReadResult result = await reader.ReadAsync(_cts.Token);
+            ReadResult result = await reader.ReadAsync(token);
             ReadOnlySequence<byte> buffer = result.Buffer;
 
             if (buffer.Length >= length)
@@ -251,15 +311,6 @@ public sealed class ObjectStoreClient : IAsyncDisposable
         return true;
     }
 
-    private void FaultPendingCommands(Exception ex)
-    {
-        _commandQueue.Writer.TryComplete();
-        while (_commandQueue.Reader.TryRead(out var cmd))
-        {
-            cmd.Tcs.TrySetException(ex);
-        }
-    }
-
     public async ValueTask DisposeAsync()
     {
         _cts.Cancel();
@@ -273,8 +324,12 @@ public sealed class ObjectStoreClient : IAsyncDisposable
         {
         }
 
-        _stream.Dispose();
-        _socket.Dispose();
+        var ex = new ObjectDisposedException(nameof(ObjectStoreClient));
+        
+        while (_commandQueue.Reader.TryRead(out var cmd))
+        {
+            cmd.Tcs.TrySetException(ex);
+        }
     }
 
     private enum CommandType

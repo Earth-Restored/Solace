@@ -6,7 +6,7 @@ internal sealed class NbtBuilder
 {
     public sealed class Compound
     {
-        private readonly LinkedList<Tag> tags = new LinkedList<Tag>();
+        private readonly List<Tag> tags = [];
 
         public Compound()
         {
@@ -27,63 +27,63 @@ internal sealed class NbtBuilder
         public Compound Add(string name, int value)
         {
             var tag = new TagInt(name, value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public Compound Add(string name, byte value)
         {
             var tag = new TagByte(name, value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public Compound Add(string name, short value)
         {
             var tag = new TagShort(name, value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public Compound Add(string name, long value)
         {
             var tag = new TagLong(name, value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public Compound Add(string name, float value)
         {
             var tag = new TagFloat(name, value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public Compound Add(string name, double value)
         {
             var tag = new TagDouble(name, value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public Compound Add(string name, string value)
         {
             var tag = new TagString(name, value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public Compound Add(string name, int[] value)
         {
             var tag = new TagIntArray(name, value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public Compound Add(string name, byte[] value)
         {
             var tag = new TagByteArray(name, value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
@@ -93,14 +93,14 @@ internal sealed class NbtBuilder
         public Compound Add(string name, Compound value)
         {
             TagCompound tag = value.Build(name);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public Compound Add(string name, List value)
         {
             TagList tag = value.Build(name);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
     }
@@ -108,7 +108,7 @@ internal sealed class NbtBuilder
     public sealed class List
     {
         private readonly TagType type;
-        private readonly LinkedList<Tag> tags = new LinkedList<Tag>();
+        private readonly List<Tag> tags = [];
 
         public List(TagType type)
         {
@@ -129,63 +129,63 @@ internal sealed class NbtBuilder
         public List Add(int value)
         {
             var tag = new TagInt("", value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public List Add(byte value)
         {
             var tag = new TagByte("", value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public List Add(short value)
         {
             var tag = new TagShort("", value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public List Add(long value)
         {
             var tag = new TagLong("", value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public List Add(float value)
         {
             var tag = new TagFloat("", value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public List Add(double value)
         {
             var tag = new TagDouble("", value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public List Add(string value)
         {
             var tag = new TagString("", value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public List Add(int[] value)
         {
             var tag = new TagIntArray("", value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public List Add(byte[] value)
         {
             var tag = new TagByteArray("", value);
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
@@ -195,14 +195,14 @@ internal sealed class NbtBuilder
         public List Add(Compound value)
         {
             TagCompound tag = value.Build("");
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
 
         public List Add(List value)
         {
             TagList tag = value.Build("");
-            tags.AddLast(tag);
+            tags.Add(tag);
             return this;
         }
     }

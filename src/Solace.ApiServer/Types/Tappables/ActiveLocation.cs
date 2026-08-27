@@ -4,7 +4,7 @@ using Solace.ApiServer.Types.Common;
 namespace Solace.ApiServer.Types.Tappables;
 
 public record ActiveLocation(
-    string Id,
+    Guid Id,
     string TileId,
     Coordinate Coordinate,
     string SpawnTime,
@@ -27,7 +27,7 @@ public record ActiveLocation(
     }
 
     public sealed record MetadataR(
-        string RewardId,
+        Guid RewardId,
         Rarity Rarity
     );
 
@@ -37,8 +37,8 @@ public record ActiveLocation(
 
     public sealed record EncounterMetadataR(
         EncounterMetadataR.EncounterTypeE EncounterType,
-        string LocationId,
-        string WorldId,
+        Guid LocationId,
+        Guid WorldId,
         EncounterMetadataR.AnchorStateE AnchorState,
         string AnchorId,
         string AugmentedImageSetId

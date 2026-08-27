@@ -1,6 +1,7 @@
 @page "/ServerStatus"
 @rendermode InteractiveServer
 @using System.Security.Claims
+@using System.Linq
 @using Solace.LauncherUI.Utils
 @inject AuthenticationStateProvider AuthStateProvider
 @inject LogsLogService LogService
@@ -47,28 +48,25 @@
         @foreach (var comp in ServerManager.Components)
         {
             <div class="col-12 col-sm-6 col-lg-4">
-            <div class="card border border-light-subtle shadow-sm h-100">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center">
-                        <div class="status-indicator @GetStatusClass(comp.Status) me-3"></div>
-                        <div>
-                            <h6 class="mb-0 fw-bold">@comp.Name</h6>
-                            <small class="text-muted">@comp.Status.ToString()</small>
+                <div class="card border border-light-subtle shadow-sm h-100">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="status-indicator @GetStatusClass(comp.Status) me-3"></div>
+                            <div>
+                                <h6 class="mb-0 fw-bold">@comp.Name</h6>
+                                <small class="text-muted">@comp.Status.ToString()</small>
+                            </div>
                         </div>
-                    </div>
 
-                    @if (comp.Status is LauncherUI.ServerStatus.Offline)
-                    {
-                        <button class="btn btn-sm btn-outline-success border-0" 
-                                title="Start Component"
-                                disabled="@(IsButtonDisabled(Permissions.StartServer) || !ServerManager.CanStart || _currentStatus is LauncherUI.ServerStatus.Starting or LauncherUI.ServerStatus.Stopping)"
-                                @onclick="() => StartComponent(comp.ExeName)">
-                            <i class="bi bi-play-fill fs-5"></i>
-                        </button>
-                    }
+                        @if (comp.Status is LauncherUI.ServerStatus.Offline)
+                        {
+                            <button class="btn btn-sm btn-outline-success border-0 flex-shrink-0" title="Start Component" disabled="@(IsButtonDisabled(Permissions.StartServer) || !ServerManager.CanStart || _currentStatus is LauncherUI.ServerStatus.Starting or LauncherUI.ServerStatus.Stopping)" @onclick="() => StartComponent(comp.ExeName)">
+                                <i class="bi bi-play-fill fs-5"></i>
+                            </button>
+                        }
+                    </div>
                 </div>
             </div>
-        </div>
         }
     </div>
 
@@ -77,53 +75,45 @@
     {
         <div class="row g-2 mb-4">
             <div class="col-12 col-md-4">
-                <button class="btn btn-lg btn-success w-100 py-3 d-flex flex-column align-items-center"
-                        disabled="@(IsButtonDisabled(Permissions.StartServer) || !ServerManager.CanStart)"
-                        @onclick="() => StartServer()">
-                    <i class="bi bi-play-fill fs-2"></i>
+                <button class="btn btn-lg btn-success w-100 py-2 py-md-3 d-flex flex-row flex-md-column align-items-center justify-content-center" disabled="@(IsButtonDisabled(Permissions.StartServer) || !ServerManager.CanStart)" @onclick="() => StartServer()">
+                    <i class="bi bi-play-fill fs-4 fs-md-2 me-2 me-md-0"></i>
                     <span style="font-size: 0.9rem;">Start All</span>
                 </button>
             </div>
             <div class="col-6 col-md-4">
-                <button class="btn btn-lg btn-warning w-100 py-3 d-flex flex-column align-items-center"
-                        disabled="@(IsButtonDisabled(Permissions.RestartServer) || !ServerManager.CanRestart)"
-                        @onclick="() => RestartServer()">
-                    <i class="bi bi-arrow-clockwise fs-2"></i>
+                <button class="btn btn-lg btn-warning w-100 py-2 py-md-3 d-flex flex-row flex-md-column align-items-center justify-content-center" disabled="@(IsButtonDisabled(Permissions.RestartServer) || !ServerManager.CanRestart)" @onclick="() => RestartServer()">
+                    <i class="bi bi-arrow-clockwise fs-4 fs-md-2 me-2 me-md-0"></i>
                     <span style="font-size: 0.9rem;">Restart</span>
                 </button>
             </div>
             <div class="col-6 col-md-4">
-                <button class="btn btn-lg btn-danger w-100 py-3 d-flex flex-column align-items-center"
-                        disabled="@(IsButtonDisabled(Permissions.StopServer) || !ServerManager.CanStop)"
-                        @onclick="() => StopServer()">
-                    <i class="bi bi-stop-fill fs-2"></i>
+                <button class="btn btn-lg btn-danger w-100 py-2 py-md-3 d-flex flex-row flex-md-column align-items-center justify-content-center" disabled="@(IsButtonDisabled(Permissions.StopServer) || !ServerManager.CanStop)" @onclick="() => StopServer()">
+                    <i class="bi bi-stop-fill fs-4 fs-md-2 me-2 me-md-0"></i>
                     <span style="font-size: 0.9rem;">Stop</span>
                 </button>
             </div>
             <div class="col-12 mt-2">
-                <button class="btn btn-lg btn-outline-danger w-100 py-3 d-flex flex-column align-items-center"
-                        disabled="@IsButtonDisabled(Permissions.StopServer)" @onclick="() => KillAll()">
-                    <i class="bi bi-x-circle-fill fs-2"></i>
+                <button class="btn btn-lg btn-outline-danger w-100 py-2 py-md-3 d-flex flex-row flex-md-column align-items-center justify-content-center" disabled="@IsButtonDisabled(Permissions.StopServer)" @onclick="() => KillAll()">
+                    <i class="bi bi-x-circle-fill fs-4 fs-md-2 me-2 me-md-0"></i>
                     <span style="font-size: 0.9rem; font-weight: bold;">KILL ALL PROCESSES</span>
                 </button>
             </div>
         </div>
     }
 
-    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0 log-card">
         <div class="card-header bg-white border-0 pt-3">
             <h5 class="fw-bold"><i class="bi bi-terminal me-2"></i>Live Logs</h5>
         </div>
         <div class="card-body pt-0">
             @if (HasPermission(Permissions.ViewServerLogs))
             {
-                <div class="nav-scroller mb-3">
+                <div class="nav-scroller mb-2">
                     <ul class="nav nav-pills flex-nowrap" style="overflow-x: auto; white-space: nowrap;">
                         @foreach (var component in LogService.GetKnownComponents())
                         {
                             <li class="nav-item">
-                                <button class="nav-link py-2 me-2 @(_activeTab == component ? "active" : "bg-light text-dark")"
-                                        @onclick="() => _activeTab = component">
+                                <button class="nav-link py-2 me-2 @(_activeTab == component ? "active" : "bg-light text-dark")" @onclick="() => _activeTab = component">
                                     @component
                                 </button>
                             </li>
@@ -131,11 +121,31 @@
                     </ul>
                 </div>
 
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-3 px-2 px-md-0">
+                    <span class="text-muted small fw-bold me-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Filter Levels:</span>
+                    <div class="d-flex flex-wrap gap-1-5">
+                        @foreach (var level in _allLevels)
+                        {
+                            var isSelected = _selectedLevels.Contains(level);
+                            <button class="btn btn-sm filter-btn @(isSelected ? GetFilterBtnClass(level) : "filter-btn-disabled")" 
+                                    @onclick="() => ToggleLogLevel(level)">
+                                <i class="bi @(isSelected ? "bi-check-circle-fill" : "bi-circle") me-1.5"></i>
+                                @level.ToUpperInvariant()
+                            </button>
+                        }
+                    </div>
+                </div>
+
                 <div class="log-container" @ref="_logContainerRef">
                     <div class="log-content">
-                        @foreach (var log in LogService.GetLogsFor(_activeTab))
+                        @foreach (var log in LogService.GetLogsFor(_activeTab).Where(l => string.IsNullOrEmpty(l.Level) || _selectedLevels.Contains(l.Level)))
                         {
-                            <div class="log-line"><span class="log-time">[@log.Timestamp.ToString("HH:mm:ss")]</span> <span class="log-level @GetLogLevelClass(log.Level)">[@GetShortLevel(log.Level)]</span> <span class="log-msg">@log.RenderedMessage</span></div>
+                            <div class="log-line"><span class="log-time">[@log.Timestamp.ToString("HH:mm:ss")]</span> <span class="log-level @GetLogLevelClass(log.Level)">[@GetShortLevel(log.Level)]</span> <span class="log-msg">@log.RenderedMessage</span>
+                                @if (!string.IsNullOrWhiteSpace(log.Exception))
+                                {
+                                    <div class="log-exception">@log.Exception</div>
+                                }
+                            </div>
                         }
                     </div>
                 </div>
@@ -159,6 +169,12 @@
 
     private ElementReference _logContainerRef;
     private bool _scrollerInitialized;
+
+    private readonly string[] _allLevels = { "Verbose", "Debug", "Information", "Warning", "Error", "Fatal" };
+    private readonly HashSet<string> _selectedLevels = new(StringComparer.OrdinalIgnoreCase) 
+    { 
+        "Information", "Warning", "Error", "Fatal" 
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -189,6 +205,30 @@
         ServerManager.OnStatusChanged -= HandleUpdate;
     }
 
+    private void ToggleLogLevel(string level)
+    {
+        if (_selectedLevels.Contains(level))
+        {
+            _selectedLevels.Remove(level);
+        }
+        else
+        {
+            _selectedLevels.Add(level);
+        }
+    }
+
+    private string GetFilterBtnClass(string level)
+        => level switch
+        {
+            "Verbose" => "btn-filter-vrb",
+            "Debug" => "btn-filter-dbg",
+            "Information" => "btn-filter-inf",
+            "Warning" => "btn-filter-wrn",
+            "Error" => "btn-filter-err",
+            "Fatal" => "btn-filter-ftl",
+            _ => "btn-secondary"
+        };
+
     private async Task StartServer()
         => await ServerManager.Start();
 
@@ -213,7 +253,7 @@
 
     private bool HasPermission(string permission)
         => _user?.HasPermission(permission) ?? false;
-        
+
     private bool IsButtonDisabled(string permission)
         => !HasPermission(permission);
 

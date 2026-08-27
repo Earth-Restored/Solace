@@ -1,76 +1,119 @@
-﻿using Solace.Common.Utils;
+﻿using Microsoft.EntityFrameworkCore;
+using Solace.Common.Utils;
+using Solace.ApiServer.Controllers.EarthApi;
 using Solace.DB;
 using Solace.DB.Models.Player;
+using Solace.DB.Utils;
+using System.Globalization;
 
 namespace Solace.ApiServer.Utils;
 
 public static class TokenUtils
 {
-    public static EarthDB.Query AddToken(string playerId, Tokens.Token token)
+    public static async Task<TokensEF.Token?> RedeemTokenAsync(
+        EarthDbContext.Results results,
+        Guid accountId,
+        string tokenId,
+        long currentTime,
+        StaticData.StaticData staticData,
+        CancellationToken cancellationToken = default)
     {
-        var getQuery = new EarthDB.Query(true);
-        getQuery.Get("tokens", playerId, typeof(Tokens));
-        getQuery.Then(results =>
+        try
         {
-            Tokens tokens = results.Get<Tokens>("tokens");
-            string id = U.RandomUuid().ToString();
-            tokens.AddToken(id, token);
-            var updateQuery = new EarthDB.Query(true);
-            updateQuery.Update("tokens", playerId, tokens);
-            updateQuery.Extra("tokenId", id);
-            return updateQuery;
-        });
-        return getQuery;
+            await using var transaction = await results.EarthDb.Database.BeginTransactionAsync(cancellationToken);
+            var tokens = await results.EarthDb.Tokens
+                .AsTracking()
+                .FirstOrNewAsync(tokens => tokens.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+            if (!tokens.Tokens.TryGetValue(tokenId, out TokensEF.Token? token) ||
+                token is TokensEF.ChallengeProgressToken or TokensEF.DailyLoginToken { Claimed: true } ||
+                token is TokensEF.DailyLoginToken dailyLogin && dailyLogin.Date != UtcDate(currentTime))
+            {
+                return null;
+            }
+
+            TokensEF.Token removedToken = tokens.RemoveToken(tokenId)!;
+
+            await results.EarthDb.SaveChangesAsync(cancellationToken);
+            results.Tokens = tokens.Version;
+            await DoActionsOnRedeemedTokenAsync(results, removedToken, accountId, currentTime, staticData);
+            await transaction.CommitAsync(cancellationToken);
+            return removedToken;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return null;
+        }
+    }
+
+    public static async Task<string> AddTokenAsync(EarthDbContext.Results results, Guid accountId, TokensEF.Token token)
+    {
+        var tokens = await results.EarthDb.Tokens
+            .AsTracking()
+            .FirstOrNewAsync(tokens => tokens.Id == accountId);
+
+        string id = Guid.NewGuid().ToString();
+        tokens.AddToken(id, token);
+
+        await results.EarthDb.SaveChangesAsync();
+
+        results.Tokens = tokens.Version;
+
+        return id;
     }
 
     // does not handle redeeming the token itself (removing it from the list of tokens belonging to the player)
-    public static EarthDB.Query DoActionsOnRedeemedToken(Tokens.Token token, string playerId, long currentTime, StaticData.StaticData staticData)
+    public static async Task<TokensEF.Token> DoActionsOnRedeemedTokenAsync(EarthDbContext.Results results, TokensEF.Token token, Guid accountId, long currentTime, StaticData.StaticData staticData)
     {
-        var getQuery = new EarthDB.Query(true);
-
-        switch (token.Type)
+        switch (token)
         {
-            case Tokens.Token.TypeE.LEVEL_UP:
+            case TokensEF.LevelUpToken levelUpToken:
                 {
-                    var levelUpToken = (Tokens.LevelUpToken)token;
+                    await ActivityLogUtils.AddEntryAsync(results, accountId, new ActivityLogEF.LevelUpEntry(currentTime, levelUpToken.Level));
 
-                    getQuery.Then(results =>
-                    {
-                        var updateQuery = new EarthDB.Query(true);
-
-                        updateQuery.Then(ActivityLogUtils.AddEntry(playerId, new ActivityLog.LevelUpEntry(currentTime, levelUpToken.Level)));
-
-                        updateQuery.Then(Rewards.FromDBRewardsModel(levelUpToken.Rewards).ToRedeemQuery(playerId, currentTime, staticData));
-
-                        return updateQuery;
-                    }, false);
+                    await Rewards.FromDBRewardsModel(levelUpToken.Rewards).ToRedeemQueryAsync(results, accountId, currentTime, staticData);
                 }
 
                 break;
-            case Tokens.Token.TypeE.JOURNAL_ITEM_UNLOCKED:
+            case TokensEF.JournalItemUnlockedToken journalItemUnlockedToken:
                 {
-                    var journalItemUnlockedToken = (Tokens.JournalItemUnlockedToken)token;
-                    getQuery.Then(results =>
+                    await ActivityLogUtils.AddEntryAsync(results, accountId, new ActivityLogEF.JournalItemUnlockedEntry(currentTime, journalItemUnlockedToken.ItemId));
+
+                    /*int experiencePoints = staticData.catalog.itemsCatalog.getItem(journalItemUnlockedToken.itemId).experience().journal();
+                    if (experiencePoints > 0)
                     {
-                        var updateQuery = new EarthDB.Query(true);
+                        updateQuery.then(new Rewards().addExperiencePoints(experiencePoints).toRedeemQuery(playerId, currentTime, staticData));
+                    }*/
+                }
 
-                        updateQuery.Then(ActivityLogUtils.AddEntry(playerId, new ActivityLog.JournalItemUnlockedEntry(currentTime, journalItemUnlockedToken.ItemId)));
+                break;
+            case TokensEF.DailyLoginToken { Claimed: false } dailyLoginToken:
+                {
+                    var tokens = await results.EarthDb.Tokens
+                        .AsTracking()
+                        .FirstOrNewAsync(tokens => tokens.Id == accountId);
+                    TokensEF.ChallengeProgressToken stored = tokens.Tokens.TryGetValue(ChallengesController.ProgressTokenId, out TokensEF.Token? raw) &&
+                        raw is TokensEF.ChallengeProgressToken progressToken
+                        ? progressToken
+                        : new TokensEF.ChallengeProgressToken();
+                    var progress = ChallengeProgressVersion.FromToken(stored);
+                    if (progress.IsDailyLoginClaimed(currentTime))
+                    {
+                        break;
+                    }
 
-                        /*int experiencePoints = staticData.catalog.itemsCatalog.getItem(journalItemUnlockedToken.itemId).experience().journal();
-                        if (experiencePoints > 0)
-                        {
-                            updateQuery.then(new Rewards().addExperiencePoints(experiencePoints).toRedeemQuery(playerId, currentTime, staticData));
-                        }*/
-
-                        return updateQuery;
-                    }, false);
+                    progress.ClaimDailyLogin(currentTime);
+                    tokens.AddToken(ChallengesController.ProgressTokenId, progress.ToToken());
+                    await results.EarthDb.SaveChangesAsync();
+                    results.Tokens = tokens.Version;
+                    await Rewards.FromDBRewardsModel(dailyLoginToken.Rewards).ToRedeemQueryAsync(results, accountId, currentTime, staticData);
                 }
 
                 break;
         }
 
-        getQuery.Extra("token", token);
-
-        return getQuery;
+        return token;
     }
+
+    private static string UtcDate(long timestamp)
+        => DateTimeOffset.FromUnixTimeMilliseconds(timestamp).UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 }

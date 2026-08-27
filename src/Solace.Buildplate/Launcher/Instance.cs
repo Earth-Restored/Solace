@@ -19,7 +19,7 @@ public sealed class Instance
 {
     private const long HOST_PLAYER_CONNECT_TIMEOUT = 120_000;
 
-    public static Instance Run(EventBusClient eventBusClient, string? playerId, string buildplateId, BuildplateSource buildplateSource, string instanceId, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, long? shutdownTime, string publicAddress, int port, int serverInternalPort, string javaCmd, FileInfo fountainBridgeJar, DirectoryInfo serverTemplateDir, string fabricJarName, FileInfo connectorPluginJar, DirectoryInfo baseDir, string eventBusConnectionString)
+    public static Instance Run(EventBusClient eventBusClient, Guid? playerId, Guid buildplateId, BuildplateSource buildplateSource, Guid instanceId, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, long? shutdownTime, string publicAddress, int port, int serverInternalPort, string javaCmd, FileInfo fountainBridgeJar, DirectoryInfo serverTemplateDir, string fabricJarName, FileInfo connectorPluginJar, DirectoryInfo baseDir, string eventBusConnectionString)
     {
         if (playerId is null && buildplateSource is BuildplateSource.PLAYER)
         {
@@ -36,10 +36,10 @@ public sealed class Instance
 
     private readonly EventBusClient _eventBusClient;
 
-    private readonly string? _playerId;
-    private readonly string _buildplateId;
+    private readonly Guid? _playerId;
+    private readonly Guid _buildplateId;
     private readonly BuildplateSource _buildplateSource;
-    public readonly string InstanceId;
+    public readonly Guid InstanceId;
     private readonly bool _survival;
     private readonly bool _night;
     private readonly bool _saveEnabled;
@@ -79,7 +79,7 @@ public sealed class Instance
 
     private volatile bool _hostPlayerConnected;
 
-    private Instance(EventBusClient eventBusClient, string? playerId, string buildplateId, BuildplateSource buildplateSource, string instanceId, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, long? shutdownTime, string publicAddress, int port, int serverInternalPort, string javaCmd, FileInfo fountainBridgeJar, DirectoryInfo serverTemplateDir, string fabricJarName, FileInfo connectorPluginJar, DirectoryInfo baseDir, string eventBusConnectionString)
+    private Instance(EventBusClient eventBusClient, Guid? playerId, Guid buildplateId, BuildplateSource buildplateSource, Guid instanceId, bool survival, bool night, bool saveEnabled, InventoryType inventoryType, long? shutdownTime, string publicAddress, int port, int serverInternalPort, string javaCmd, FileInfo fountainBridgeJar, DirectoryInfo serverTemplateDir, string fabricJarName, FileInfo connectorPluginJar, DirectoryInfo baseDir, string eventBusConnectionString)
     {
         _eventBusClient = eventBusClient;
 
@@ -144,7 +144,7 @@ public sealed class Instance
 
             BuildplateLoadResponse? buildplateLoadResponse = _buildplateSource switch
             {
-                BuildplateSource.PLAYER => await SendEventBusRequestRaw<BuildplateLoadResponse>("load", new BuildplateLoadRequest(_playerId!, _buildplateId), true),
+                BuildplateSource.PLAYER => await SendEventBusRequestRaw<BuildplateLoadResponse>("load", new BuildplateLoadRequest(_playerId!.Value, _buildplateId), true),
                 BuildplateSource.SHARED => await SendEventBusRequestRaw<BuildplateLoadResponse>("loadShared", new SharedBuildplateLoadRequest(_buildplateId), true),
                 BuildplateSource.ENCOUNTER => await SendEventBusRequestRaw<BuildplateLoadResponse>("loadEncounter", new EncounterBuildplateLoadRequest(_buildplateId), true),
                 _ => throw new UnreachableException(),
@@ -565,7 +565,7 @@ public sealed class Instance
     {
         Debug.Assert(_publisher is not null);
 
-        _publisher.PublishAsync("buildplates", status, InstanceId).ContinueWith(task =>
+        _publisher.PublishAsync("buildplates", status, InstanceId.ToString()).ContinueWith(task =>
         {
             if (!task.Result)
             {
@@ -582,7 +582,7 @@ public sealed class Instance
 
     private Task<T?> SendEventBusRequest<T>(string type, object obj, bool returnResponse)
     {
-        var request = new RequestWithInstanceId(InstanceId, obj);
+        var request = new RequestWithInstanceId(InstanceId.ToString(), obj);
 
         return SendEventBusRequestRaw<T>(type, request, returnResponse);
     }
@@ -1087,16 +1087,16 @@ public sealed class Instance
     }
 
     private sealed record BuildplateLoadRequest(
-        string PlayerId,
-        string BuildplateId
+        Guid PlayerId,
+        Guid BuildplateId
     );
 
     private sealed record SharedBuildplateLoadRequest(
-        string SharedBuildplateId
+        Guid SharedBuildplateId
     );
 
     private sealed record EncounterBuildplateLoadRequest(
-        string EncounterBuildplateId
+        Guid EncounterBuildplateId
     );
 
     private sealed record BuildplateLoadResponse(

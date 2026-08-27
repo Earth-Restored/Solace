@@ -1,16 +1,18 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Solace.DB;
 
 namespace Solace.ApiServer.Controllers.XboxLive;
 
 [Route("")]
 [Route("accounts.xboxlive.com")]
-internal sealed class AccountsController : SolaceControllerBase
+internal sealed class AccountsController : LoginServerControllerBase
 {
-    private readonly LiveDbContext _dbContext;
+    private readonly EarthDbContext _dbContext;
 
-    public AccountsController(LiveDbContext context)
+    public AccountsController(EarthDbContext context, CryptoSecrets cryptoSecrets)
+        : base(cryptoSecrets)
     {
         _dbContext = context;
     }
@@ -87,7 +89,7 @@ internal sealed class AccountsController : SolaceControllerBase
             RequirePasskeyForPurchase: false,
             RequirePasskeyForSignIn: false,
             SubscriptionEntitlementInfo: null,
-            UserHash: token.UserId,
+            UserHash: token.UserId.ToString(),
             UserKey: null,
             UserXuid: 0
         ));

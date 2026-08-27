@@ -1,22 +1,25 @@
-﻿using BitcoderCZ.Utils;
+﻿using System.Diagnostics.CodeAnalysis;
+using BitcoderCZ.Utils;
+using Solace.Common;
 using Solace.Common.Utils;
 
 namespace Solace.DB.Models.Player;
 
-public sealed class Hotbar
+public sealed class HotbarEF : IEntityWithId<Guid>, IVersionedEntity, IMergeable<HotbarEF>
 {
-    public Item?[] Items { get; set; }
+    public Guid Id { get; set; }
 
-    public Hotbar()
-    {
-        Items = new Item[7];
-    }
+    public int Version { get; set; } = 1;
 
-    public void LimitToInventory(Inventory inventory)
+    public Account Account { get; set; } = null!;
+
+    public Item?[] Items { get; set; } = new Item[7];
+
+    public void LimitToInventory(InventoryEF inventory)
     {
         ThrowHelper.ThrowIfNull(inventory);
 
-        Dictionary<string, int?> usedStackableItemCounts = [];
+        Dictionary<string, int> usedStackableItemCounts = [];
         Dictionary<string, HashSet<string>> usedNonStackableItemInstances = [];
 
         for (int index = 0; index < Items.Length; index++)
@@ -47,7 +50,7 @@ public sealed class Hotbar
             {
                 int inventoryCount = inventory.GetItemCount(item.Uuid);
 
-                int usedCount = usedStackableItemCounts.GetValueOrDefault(item.Uuid) ?? 0;
+                int usedCount = usedStackableItemCounts.GetValueOrDefault(item.Uuid);
                 if (inventoryCount - usedCount > 0)
                 {
                     if (inventoryCount - usedCount < item.Count)
@@ -68,9 +71,73 @@ public sealed class Hotbar
         }
     }
 
+    public async Task MergeWith(HotbarEF other, ValueMerger merger)
+    {
+        merger.CurrentUserId = Id.ToString();
+        merger.CurrentUsername = Account?.Username;
+
+        for (var i = 0; i < Items.Length; i++)
+        {
+            Items[i] = await merger.AutoMerge(Items[i], other.Items[i], $"Hotbar slot {i + 1}", null);
+        }
+    }
+
     public sealed record Item(
         string Uuid,
         int Count,
         string? InstanceId
-    );
+    ) : ICloneable<Item>
+    {
+        public Item DeepCopy()
+            => new Item(this);
+
+        public sealed class Comparer : IEqualityComparer<Item>
+        {
+            public static Comparer Instance { get; } = new Comparer();
+
+            private Comparer()
+            {
+            }
+
+            public bool Equals(Item? x, Item? y)
+                => x == y || (x?.Equals(y) ?? false);
+
+            public int GetHashCode([DisallowNull] Item obj)
+                => obj.GetHashCode();
+        }
+    }
+
+    public sealed class Legacy : IEquatable<Legacy>
+    {
+        public Item?[] Items { get; set; }
+
+        public Legacy()
+        {
+            Items = new Item[7];
+        }
+
+        public bool Equals(Legacy? other)
+            => other is not null && Items.SequenceEqual(other.Items);
+
+        public override bool Equals(object? obj)
+            => Equals(obj as Legacy);
+
+        public override int GetHashCode()
+        {
+            var hash = new HashCode();
+
+            foreach (var item in Items)
+            {
+                hash.Add(item);
+            }
+
+            return hash.ToHashCode();
+        }
+
+        public sealed record Item(
+            string Uuid,
+            int Count,
+            string? InstanceId
+        );
+    }
 }

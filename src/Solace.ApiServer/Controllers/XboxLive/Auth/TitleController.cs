@@ -9,7 +9,14 @@ namespace Solace.ApiServer.Controllers.XboxLive.Auth;
 [Route("title.auth.xboxlive.com/title/authenticate")]
 internal sealed class TitleController : SolaceControllerBase
 {
-    private static Config config => Program.config;
+    private static Config Config => Program.config;
+
+    private readonly CryptoSecrets _cryptoSecrets;
+
+    public TitleController(CryptoSecrets cryptoSecrets)
+    {
+        _cryptoSecrets = cryptoSecrets;
+    }
 
     internal sealed record AuthenticateRequest(
         AuthenticateRequest.PropertiesR Properties,
@@ -37,7 +44,7 @@ internal sealed class TitleController : SolaceControllerBase
     public ContentHttpResult Authenticate([FromBody] AuthenticateRequest request)
 #pragma warning restore IDE0060 // Remove unused parameter
     {
-        var tokenValidity = ValidityDatePair.Create(config.XboxLive.TokenValidityMinutes);
+        var tokenValidity = ValidityDatePair.Create(Config.XboxLive.TokenValidityMinutes);
         var token = new Tokens.Xbox.TitleToken()
         {
             Tid = "2037747551",
@@ -46,7 +53,7 @@ internal sealed class TitleController : SolaceControllerBase
         return JsonPascalCase(new AuthenticateResponse(
             tokenValidity.IssuedStr,
             tokenValidity.ExpiresStr,
-            JwtUtils.Sign<Tokens.Xbox.AuthToken>(token, config.XboxLive.AuthTokenSecretBytes, tokenValidity),
+            JwtUtils.Sign<Tokens.Xbox.AuthToken>(token, _cryptoSecrets.LiveAuthTokenSecret, tokenValidity),
             new()
             {
                 ["xdi"] = new()

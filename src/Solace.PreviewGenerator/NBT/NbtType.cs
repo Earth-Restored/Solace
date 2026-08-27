@@ -64,7 +64,7 @@ public sealed class NbtType
 
     public static NbtType ByType(Type tagClass)
     {
-        NbtType? type = BY_CLASS.GetOrDefault(tagClass);
+        var type = BY_CLASS.GetValueOrDefault(tagClass);
         return type is null ? throw new ArgumentException("Tag of class " + tagClass + " does not exist", nameof(tagClass)) : type;
     }
 
@@ -90,6 +90,9 @@ public sealed class NbtType
 
 public static class NbtTypeEnumExtensions
 {
-    public static string GetName(this NbtType.EnumE e)
-        => "TAG_" + Enum.GetName(e);
+    extension(NbtType.EnumE @enum)
+    {
+        public string GetName()
+            => "TAG_" + Enum.GetName(@enum);
+    }
 }

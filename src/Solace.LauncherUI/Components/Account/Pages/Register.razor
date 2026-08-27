@@ -95,6 +95,9 @@ error.Description))}";
 
         Logger.LogInformation("User created a new account with password.");
 
+        // Assign the default role to every new user
+        await UserManager.AddToRoleAsync(user, ApplicationRole.Default);
+
         // Assign owner role if first user
         if (firstUser)
         {

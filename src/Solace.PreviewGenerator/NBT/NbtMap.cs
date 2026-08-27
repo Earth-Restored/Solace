@@ -15,7 +15,7 @@ public sealed class NbtMap// : IDictionary<string, object>
     private static readonly long[] EMPTY_LONG_ARRAY = [];
 
     [JsonInclude, JsonPropertyName("map")]
-    public readonly IDictionary<string, object> _map;
+    public readonly IReadOnlyDictionary<string, object> _map;
 
     public int Count => _map.Count;
 
@@ -29,16 +29,19 @@ public sealed class NbtMap// : IDictionary<string, object>
         _map = new Dictionary<string, object>();
     }
 
-    internal NbtMap(IDictionary<string, object> map)
+    internal NbtMap(IReadOnlyDictionary<string, object> map)
     {
         _map = map;
     }
 
-    public static NbtMapBuilder Builder() => [];
+    public static NbtMapBuilder Builder()
+        => [];
 
-    public static NbtMap FromMap(IDictionary<string, object> map) => new NbtMap(map.AsReadOnly());
+    public static NbtMap FromMap(IReadOnlyDictionary<string, object> map)
+        => new NbtMap(map);
 
-    public NbtMapBuilder ToBuilder() => NbtMapBuilder.From(this);
+    public NbtMapBuilder ToBuilder()
+        => NbtMapBuilder.From(this);
 
     public bool ContainsKey(string key)
         => _map.ContainsKey(key);
@@ -56,15 +59,15 @@ public sealed class NbtMap// : IDictionary<string, object>
     }
 
     public object Get(string key)
-        => NbtUtils.Copy(_map.GetOrDefault(key)!);
+        => NbtUtils.Copy(_map.GetValueOrDefault(key)!);
 
-    public ICollection<string> KeySet()
+    public IEnumerable<string> KeySet()
         => _map.Keys;
 
-    public ICollection<KeyValuePair<string, object>> EntrySet()
+    public IReadOnlyCollection<KeyValuePair<string, object>> EntrySet()
         => _map;
 
-    public ICollection<object> Values()
+    public IEnumerable<object> Values()
         => _map.Values;
 
     public bool Getbool(string key)
@@ -72,7 +75,7 @@ public sealed class NbtMap// : IDictionary<string, object>
 
     public bool Getbool(string key, bool defaultValue)
     {
-        object? tag = _map.GetOrDefault(key);
+        object? tag = _map.GetValueOrDefault(key);
         if (tag is byte b)
         {
             return b != 0;
@@ -85,7 +88,7 @@ public sealed class NbtMap// : IDictionary<string, object>
 
     public byte GetByte(string key, byte defaultValue)
     {
-        object? tag = _map.GetOrDefault(key);
+        object? tag = _map.GetValueOrDefault(key);
         if (tag is byte b)
         {
             return b;
@@ -98,7 +101,7 @@ public sealed class NbtMap// : IDictionary<string, object>
 
     public short GetShort(string key, short defaultValue)
     {
-        object? tag = _map.GetOrDefault(key);
+        object? tag = _map.GetValueOrDefault(key);
         if (tag is short s)
         {
             return s;
@@ -111,7 +114,7 @@ public sealed class NbtMap// : IDictionary<string, object>
 
     public int GetInt(string key, int defaultValue)
     {
-        object? tag = _map.GetOrDefault(key);
+        object? tag = _map.GetValueOrDefault(key);
         if (tag is int i)
         {
             return i;
@@ -124,7 +127,7 @@ public sealed class NbtMap// : IDictionary<string, object>
 
     public long GetLong(string key, long defaultValue)
     {
-        object? tag = _map.GetOrDefault(key);
+        object? tag = _map.GetValueOrDefault(key);
         if (tag is long l)
         {
             return l;
@@ -137,7 +140,7 @@ public sealed class NbtMap// : IDictionary<string, object>
 
     public float GetFloat(string key, float defaultValue)
     {
-        object? tag = _map.GetOrDefault(key);
+        object? tag = _map.GetValueOrDefault(key);
         if (tag is float f)
         {
             return f;
@@ -150,7 +153,7 @@ public sealed class NbtMap// : IDictionary<string, object>
 
     public double GetDouble(string key, double defaultValue)
     {
-        object? tag = _map.GetOrDefault(key);
+        object? tag = _map.GetValueOrDefault(key);
         if (tag is double d)
         {
             return d;
@@ -163,7 +166,7 @@ public sealed class NbtMap// : IDictionary<string, object>
 
     public string? Getstring(string key, string? defaultValue)
     {
-        object? tag = _map.GetOrDefault(key);
+        object? tag = _map.GetValueOrDefault(key);
         if (tag is string s)
         {
             return s;
@@ -176,7 +179,7 @@ public sealed class NbtMap// : IDictionary<string, object>
 
     public byte[]? GetByteArray(string key, byte[]? defaultValue)
     {
-        object? tag = _map.GetOrDefault(key);
+        object? tag = _map.GetValueOrDefault(key);
         if (tag is byte[] bytes)
         {
             return (byte[])bytes.Clone();
@@ -189,7 +192,7 @@ public sealed class NbtMap// : IDictionary<string, object>
 
     public int[]? GetIntArray(string key, int[]? defaultValue)
     {
-        object? tag = _map.GetOrDefault(key);
+        object? tag = _map.GetValueOrDefault(key);
         if (tag is int[] ints)
         {
             return (int[])ints.Clone();
@@ -202,7 +205,7 @@ public sealed class NbtMap// : IDictionary<string, object>
 
     public long[]? GetLongArray(string key, long[]? defaultValue)
     {
-        object? tag = _map.GetOrDefault(key);
+        object? tag = _map.GetValueOrDefault(key);
         if (tag is long[] longs)
         {
             return (long[])longs.Clone();
@@ -215,7 +218,7 @@ public sealed class NbtMap// : IDictionary<string, object>
 
     public NbtMap? GetCompound(string key, NbtMap? defaultValue)
     {
-        object? tag = _map.GetOrDefault(key);
+        object? tag = _map.GetValueOrDefault(key);
         if (tag is NbtMap nm)
         {
             return nm;
@@ -326,7 +329,7 @@ public sealed class NbtMap// : IDictionary<string, object>
     public override string ToString()
         => MapToString(_map);
 
-    internal static string MapToString(IDictionary<string, object> map)
+    internal static string MapToString(IReadOnlyDictionary<string, object> map)
     {
         if (map.Count == 0)
         {

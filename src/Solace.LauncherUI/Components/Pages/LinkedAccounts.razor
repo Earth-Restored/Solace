@@ -1,0 +1,747 @@
+@page "/LinkedAccounts"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using System.Linq
+@using Solace.DB
+@using Solace.DB.Utils
+@using Solace.BuildplateRenderer
+@using Solace.LauncherUI.Data
+@using Solace.LauncherUI.Utils
+@using System.ComponentModel.DataAnnotations
+@using System.Diagnostics
+@using System.Security.Cryptography
+@using AccountConstants = Solace.Common.Constants.AccountConstants
+@attribute [Authorize(Policy = Permissions.LinkPlayers)]
+@rendermode InteractiveServer
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject IDbContextFactory<ApplicationDbContext> AppDbFactory
+@inject IDbContextFactory<EarthDbContext> EarthDbFactory
+@inject ILogger<LinkedAccounts> Logger
+
+<div class="container mt-3" style="max-width: 900px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="m-0 text-dark font-weight-bold">Linked Accounts</h3>
+        @if (LinkedAccountsList.Count < MaxLinkedAccounts)
+        {
+            <button class="btn btn-success btn-sm" @onclick="ShowLinkModal">
+                <i class="bi bi-plus"></i> Link New (@LinkedAccountsList.Count/@MaxLinkedAccounts)
+            </button>
+        }
+    </div>
+
+    <div class="d-flex gap-2 mb-3 bg-light p-2 rounded shadow-sm">
+        @if (!LinkedAccountsList.Any())
+        {
+            <span class="text-muted small">No accounts linked.</span>
+        }
+        else
+        {
+            @foreach (var account in LinkedAccountsList)
+            {
+                <button class="btn btn-sm @(SelectedAccount?.Id == account.Id ? "btn-primary font-weight-bold" : "btn-outline-secondary")" @onclick="async () => await SelectAccount(account.Id)">
+                    @account.Username
+                </button>
+            }
+        }
+    </div>
+
+    @if (SelectedAccount is not null)
+    {
+        <div class="row g-3">
+            <div class="col-md-5">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Settings</h6>
+                        <button class="btn btn-danger btn-sm py-0 px-2" @onclick="UnlinkCurrentAccount">Unlink</button>
+                    </div>
+                    <div class="card-body p-2 d-flex flex-column justify-content-center">
+                        @if (!string.IsNullOrEmpty(UpdateErrorMessage))
+                        {
+                            <div class="alert alert-danger py-1 px-2 mb-2 small" role="alert">@UpdateErrorMessage</div>
+                        }
+                        @if (!string.IsNullOrEmpty(UpdateSuccessMessage))
+                        {
+                            <div class="alert alert-success py-1 px-2 mb-2 small" role="alert">@UpdateSuccessMessage</div>
+                        }
+
+                        @if (!IsChangingUsername && !IsChangingPassword)
+                        {
+                            <div class="d-flex flex-column gap-2">
+                                <div class="bg-light p-2 rounded border text-center">
+                                    <span class="text-muted small me-2">Active Account:</span>
+                                    <strong class="text-dark">@SelectedAccount.Username</strong>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-primary w-50" @onclick="EnableChangeUsername">
+                                        <i class="bi bi-person me-1"></i> Username
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary w-50" @onclick="EnableChangePassword">
+                                        <i class="bi bi-key me-1"></i> Password
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else if (IsChangingUsername)
+                        {
+                            <EditForm Model="@UsernameModel" OnValidSubmit="UpdateUsername" class="d-flex flex-column gap-1">
+                                <DataAnnotationsValidator />
+                                <div class="d-flex gap-2">
+                                    <InputText class="form-control form-control-sm" @bind-Value="UsernameModel.Username" placeholder="New Username" />
+                                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelActions">Cancel</button>
+                                </div>
+                                <ValidationMessage For="@(() => UsernameModel.Username)" class="text-danger small" style="font-size: 0.75rem;" />
+                            </EditForm>
+                        }
+                        else if (IsChangingPassword)
+                        {
+                            <EditForm Model="@PasswordModel" OnValidSubmit="UpdatePassword" class="d-flex flex-column gap-1">
+                                <DataAnnotationsValidator />
+                                <div class="input-group input-group-sm">
+                                    <InputText type="@(ShowPassword ? "text" : "password")" class="form-control" @bind-Value="PasswordModel.Password" placeholder="New Pass" />
+                                    <InputText type="@(ShowPassword ? "text" : "password")" class="form-control" @bind-Value="PasswordModel.ConfirmPassword" placeholder="Confirm" />
+                                    <button class="btn btn-outline-secondary" type="button" @onclick="() => ShowPassword = !ShowPassword">
+                                        <i class="bi @(ShowPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                                    </button>
+                                </div>
+                                <div class="d-flex gap-2 mt-1">
+                                    <button type="submit" class="btn btn-primary btn-sm w-50">Save</button>
+                                    <button type="button" class="btn btn-secondary btn-sm w-50" @onclick="CancelActions">Cancel</button>
+                                </div>
+                                <ValidationMessage For="@(() => PasswordModel.Password)" class="text-danger small" style="font-size: 0.75rem;" />
+                                <ValidationMessage For="@(() => PasswordModel.ConfirmPassword)" class="text-danger small" style="font-size: 0.75rem;" />
+                            </EditForm>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-7">
+                <div class="card shadow-sm border-left-primary h-100">
+                    <div class="card-header bg-secondary text-white py-2">
+                        <h6 class="mb-0">Statistics</h6>
+                    </div>
+                    <div class="card-body p-2 d-flex flex-column justify-content-center">
+
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="position-relative d-inline-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                <svg width="50" height="50" viewBox="0 0 50 50" style="transform: rotate(-90deg); position: absolute; top: 0; left: 0;">
+                                    <circle cx="25" cy="25" r="20" stroke="#e6e6e6" stroke-width="4" fill="transparent" />
+                                    <circle cx="25" cy="25" r="20" stroke="#28a745" stroke-width="4" fill="transparent" stroke-dasharray="125.66" stroke-dashoffset="@(125.66 - (125.66 * GetLevelProgressPercentage() / 100))" stroke-linecap="round" style="transition: stroke-dashoffset 0.3s ease;" />
+                                </svg>
+                                <div class="text-center d-flex flex-column align-items-center justify-content-center" style="z-index: 2;">
+                                    <span class="m-0 font-weight-bold text-dark">@SelectedAccount.Level</span>
+                                </div>
+                            </div>
+
+                            <div class="row flex-grow-1 g-3">
+                                <div class="col-6">
+                                    <div class="d-flex justify-content-between mb-1 small">
+                                        <span class="text-muted">XP (@GetLevelProgressPercentage().ToString("F0")%)</span>
+                                        <span class="font-weight-bold">@SelectedAccount.Experience/@GetRequiredExperienceForNextLevel()</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: @GetLevelProgressPercentage()%;"></div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="d-flex justify-content-between mb-1 small">
+                                        <span class="text-danger"><i class="bi bi-heart"></i> HP</span>
+                                        <span class="font-weight-bold">@SelectedAccount.Health/@SelectedAccount.MaxHealth</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: @(((double)SelectedAccount.Health / SelectedAccount.MaxHealth) * 100)%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-2 bg-light p-2 rounded border d-flex gap-4 align-items-center">
+                            <span class="text-muted small"><i class="bi bi-gem text-warning"></i> Rubies</span>
+                            <span class="small">Purchased: <strong class="text-primary">@SelectedAccount.PurchasedRubies</strong></span>
+                            <span class="small">Earned: <strong class="text-success">@SelectedAccount.EarnedRubies</strong></span>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 mt-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white py-2 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Buildplates</h6>
+                        <div class="d-flex gap-2 align-items-center">
+                            <div class="input-group input-group-sm" style="width: 220px;">
+                                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                                <input class="form-control form-control-sm" placeholder="Search by name..." value="@_buildplateSearchTerm" @oninput="HandleSearchInput" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-2">
+                        @if (PlayerBuildplates is null)
+                        {
+                            <div class="text-muted small">Loading buildplates...</div>
+                        }
+                        else if (!PlayerBuildplates.Any())
+                        {
+                            <div class="text-muted small">No buildplates for this account.</div>
+                        }
+                        else if (!PaginatedBuildplates.Any())
+                        {
+                            <div class="text-muted small">No buildplates match your search.</div>
+                        }
+                        else
+                        {
+                            <div class="row g-3">
+                                @foreach (var bp in PaginatedBuildplates)
+                                {
+                                    <div class="col-12 col-md-6 col-lg-4" @key="bp.Id">
+                                        <div class="card h-100 shadow-sm">
+                                            <BuildplatePreview BuildplateId="@bp.Id" IsTemplate="false" PlayerId="@SelectedAccount.Id" Size="@bp.Size" BlocksPerMeter="@bp.BlocksPerMeter" ResourcePackManager="@_resourcePackManager" />
+                                            <div class="card-body p-2">
+                                                <div class="fw-bold text-truncate">@bp.Name</div>
+                                                <div class="small text-muted">Size: @bp.Size x @bp.Size</div>
+                                                <div class="small text-muted">BPM: @bp.BlocksPerMeter</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            @if (TotalPages > 1)
+                            {
+                                <nav aria-label="Buildplates pagination" class="mt-3 d-flex justify-content-center">
+                                    <ul class="pagination pagination-sm mb-0">
+                                        <li class="page-item @(_buildplateCurrentPage <= 1 ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => ChangePage(_buildplateCurrentPage - 1)">&laquo; Prev</button>
+                                        </li>
+                                        <li class="page-item disabled">
+                                            <span class="page-link text-dark fw-semibold bg-light">Page @_buildplateCurrentPage of @TotalPages</span>
+                                        </li>
+                                        <li class="page-item @(_buildplateCurrentPage >= TotalPages ? "disabled" : "")">
+                                            <button class="page-link" @onclick="() => ChangePage(_buildplateCurrentPage + 1)">Next &raquo;</button>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 mt-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white py-2 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Inventory</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <PlayerInventoryViewer AccountId="SelectedAccount.Id" PageSize="14" />
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    }
+    else if (!LinkedAccountsList.Any())
+    {
+        <div class="text-center p-4 border rounded bg-light">
+            <p class="text-muted mb-2">No game accounts connected.</p>
+            <button class="btn btn-primary btn-sm" @onclick="ShowLinkModal">Link First Account</button>
+        </div>
+    }
+
+    @if (IsLinkModalVisible)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content shadow-lg">
+                    <div class="modal-header py-2">
+                        <h6 class="modal-title font-weight-bold">Link Account</h6>
+                        <button type="button" class="btn-close" @onclick="CloseLinkModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (!string.IsNullOrEmpty(LinkErrorMessage))
+                        {
+                            <div class="alert alert-danger py-1 px-2 mb-2 small" role="alert">@LinkErrorMessage</div>
+                        }
+                        <EditForm Model="@LinkFormModel" OnValidSubmit="HandleLinkAccount">
+                            <DataAnnotationsValidator />
+                            <div class="mb-2">
+                                <InputText class="form-control" @bind-Value="LinkFormModel.Username" placeholder="Username" />
+                                <ValidationMessage For="@(() => LinkFormModel.Username)" class="text-danger small" />
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="input-group">
+                                    <InputText type="@(ShowLinkPassword ? "text" : "password")" class="form-control" @bind-Value="LinkFormModel.Password" placeholder="Password" />
+                                    <button class="btn btn-outline-secondary" type="button" @onclick="() => ShowLinkPassword = !ShowLinkPassword">
+                                        <i class="bi @(ShowLinkPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                                    </button>
+                                </div>
+                                <ValidationMessage For="@(() => LinkFormModel.Password)" class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseLinkModal">Cancel</button>
+                                <button type="submit" class="btn btn-success btn-sm">Link</button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private const int MaxLinkedAccounts = 3;
+
+    public sealed class InGameAccount
+    {
+        public Guid Id { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public int Level { get; set; }
+        public int Experience { get; set; }
+        public int Health { get; set; }
+        public int MaxHealth { get; set; }
+        public int PurchasedRubies { get; set; }
+        public int EarnedRubies { get; set; }
+
+        public static InGameAccount FromDb(DB.Models.Account account)
+        {
+            Debug.Assert(account.Profile is not null);
+
+            return new InGameAccount()
+            {
+                Id = account.Id,
+                Username = account.Username ?? "[null]",
+                Level = account.Profile.Level,
+                Experience = account.Profile.Experience,
+                Health = account.Profile.Health,
+                MaxHealth = 20, // boosts?
+                PurchasedRubies = account.Profile.Rubies.Purchased,
+                EarnedRubies = account.Profile.Rubies.Earned,
+            };
+        }
+    }
+
+    public sealed class LinkAccountForm
+    {
+        [Required(ErrorMessage = "Username cannot be empty.")]
+        @* [StringLength(AccountConstants.UsernameLengthMax, MinimumLength = AccountConstants.UsernameLengthMin, ErrorMessage = $"Username must be between {AccountConstants.UsernameLengthMinStr} and {AccountConstants.UsernameLengthMaxStr} characters.")] *@
+        public string Username { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password cannot be empty.")]
+        @* [StringLength(AccountConstants.PasswordLengthMax, MinimumLength = AccountConstants.PasswordLengthMin, ErrorMessage = $"Password must be between {AccountConstants.PasswordLengthMinStr} and {AccountConstants.PasswordLengthMaxStr} characters.")] *@
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public sealed class ChangeUsernameForm
+    {
+        [Required(ErrorMessage = "Username cannot be empty.")]
+        [StringLength(AccountConstants.UsernameLengthMax, MinimumLength = AccountConstants.UsernameLengthMin, ErrorMessage = $"Username must be between {AccountConstants.UsernameLengthMinStr} and {AccountConstants.UsernameLengthMaxStr} characters.")]
+        public string Username { get; set; } = string.Empty;
+    }
+
+    public sealed class ChangePasswordForm
+    {
+        [Required(ErrorMessage = "Password cannot be empty.")]
+        [StringLength(AccountConstants.PasswordLengthMax, MinimumLength = AccountConstants.PasswordLengthMin, ErrorMessage = $"Password must be between {AccountConstants.PasswordLengthMinStr} and {AccountConstants.PasswordLengthMaxStr} characters.")]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Please retype your password.")]
+        [Compare(nameof(Password), ErrorMessage = "Passwords do not match.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    private string _currentUserId = string.Empty;
+
+    private List<InGameAccount> LinkedAccountsList { get; set; } = new();
+    private InGameAccount? SelectedAccount { get; set; }
+
+    private List<PlayerBuildplate>? PlayerBuildplates { get; set; }
+
+    private ResourcePackManager _resourcePackManager = null!;
+
+    private string _buildplateSearchTerm = "";
+    private int _buildplateCurrentPage = 1;
+    private int _buildplatePageSize = 6;
+
+    private ChangeUsernameForm UsernameModel { get; set; } = new();
+    private ChangePasswordForm PasswordModel { get; set; } = new();
+    private LinkAccountForm LinkFormModel { get; set; } = new();
+
+    private bool IsChangingUsername { get; set; } = false;
+    private bool IsChangingPassword { get; set; } = false;
+    private bool IsLinkModalVisible { get; set; } = false;
+    private Solace.StaticData.StaticData staticData = new StaticData.StaticData(Program.StaticDataDir);
+
+    private bool ShowPassword { get; set; } = false;
+    private bool ShowLinkPassword { get; set; } = false;
+
+    private string? LinkErrorMessage { get; set; }
+    private string? UpdateErrorMessage { get; set; }
+    private string? UpdateSuccessMessage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _resourcePackManager = await ResourcePackManagerSingleton.GetResourcePackManagerAsync();
+        await using var appDb = await AppDbFactory.CreateDbContextAsync();
+        await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var authUser = authState.User;
+        _currentUserId = UserManager.GetUserId(authUser)!;
+
+        var user = await appDb.Users
+            .FirstAsync(user => user.Id == _currentUserId);
+
+        bool linkedAccountsChanged = false;
+
+        var countBefore = user.LinkedInGameAccounts.Count;
+        user.LinkedInGameAccounts = [.. user.LinkedInGameAccounts.Distinct()];
+        if (countBefore != user.LinkedInGameAccounts.Count)
+        {
+            linkedAccountsChanged = true;
+        }
+
+        for (var i = 0; i < user.LinkedInGameAccounts.Count; i++)
+        {
+            var linkedAccountId = user.LinkedInGameAccounts[i];
+
+            var linkedAccount = await earthDb.Accounts
+                .AsNoTracking()
+                .Include(account => account.Profile)
+                .FirstOrDefaultAsync(account => account.Id == linkedAccountId);
+
+            if (linkedAccount is null)
+            {
+                user.LinkedInGameAccounts.RemoveAt(i);
+                linkedAccountsChanged = true;
+                i--;
+                continue;
+            }
+
+            LinkedAccountsList.Add(InGameAccount.FromDb(linkedAccount));
+        }
+
+        if (linkedAccountsChanged)
+        {
+            await appDb.SaveChangesAsync();
+        }
+
+        if (LinkedAccountsList is [var firstAccount, ..])
+        {
+            await SelectAccount(firstAccount.Id);
+        }
+    }
+
+    private async Task SelectAccount(Guid accountId)
+    {
+        UpdateErrorMessage = null;
+        UpdateSuccessMessage = null;
+        IsChangingUsername = false;
+        IsChangingPassword = false;
+        ShowPassword = false;
+
+        SelectedAccount = LinkedAccountsList.FirstOrDefault(a => a.Id == accountId);
+        if (SelectedAccount is not null)
+        {
+            UsernameModel = new ChangeUsernameForm { Username = SelectedAccount.Username };
+            PasswordModel = new ChangePasswordForm();
+
+            await LoadPlayerBuildplates(SelectedAccount.Id);
+        }
+        else
+        {
+            PlayerBuildplates = null;
+        }
+    }
+
+    private void EnableChangeUsername()
+    {
+        UpdateErrorMessage = null;
+        UpdateSuccessMessage = null;
+        IsChangingPassword = false;
+        IsChangingUsername = true;
+
+        if (SelectedAccount is not null)
+        {
+            UsernameModel.Username = SelectedAccount.Username;
+        }
+    }
+
+    private void EnableChangePassword()
+    {
+        UpdateErrorMessage = null;
+        UpdateSuccessMessage = null;
+        IsChangingUsername = false;
+        IsChangingPassword = true;
+        PasswordModel = new ChangePasswordForm();
+    }
+
+    private void CancelActions()
+    {
+        IsChangingUsername = false;
+        IsChangingPassword = false;
+        ShowPassword = false;
+        UpdateErrorMessage = null;
+    }
+
+    private async Task UpdateUsername()
+    {
+        UpdateErrorMessage = null;
+        UpdateSuccessMessage = null;
+
+        if (SelectedAccount is null)
+        {
+            return;
+        }
+
+        string username = UsernameModel.Username.Trim();
+
+        await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
+
+        if (await earthDb.Accounts.AnyAsync(account => account.Username == username && account.Id != SelectedAccount.Id))
+        {
+            UpdateErrorMessage = "Username must be unique.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(username) || username.Length < AccountConstants.UsernameLengthMin || username.Length > AccountConstants.UsernameLengthMax)
+        {
+            UpdateErrorMessage = $"Username must be {AccountConstants.UsernameLengthMin}-{AccountConstants.UsernameLengthMax} characters long.";
+            return;
+        }
+
+        if (!AccountConstants.GetUsernameRegex().IsMatch(username))
+        {
+            UpdateErrorMessage = $"Username must contain only: {AccountConstants.UsernameAllowedCharacters}.";
+            return;
+        }
+
+        var account = await earthDb.Accounts.FirstAsync(account => account.Id == SelectedAccount.Id);
+        account.Username = username;
+
+        try
+        {
+            await earthDb.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation)
+        {
+            Logger.LogDebug("Concurrency conflict hit for username '{Username}'", username);
+            UpdateErrorMessage = "Username must be unique.";
+            return;
+        }
+
+        SelectedAccount.Username = username;
+        UpdateSuccessMessage = "Username successfully synchronized!";
+        IsChangingUsername = false;
+    }
+
+    private async Task UpdatePassword()
+    {
+        UpdateErrorMessage = null;
+        UpdateSuccessMessage = null;
+
+        if (SelectedAccount is null)
+        {
+            return;
+        }
+
+        string password = PasswordModel.Password.Trim();
+
+        if (string.IsNullOrWhiteSpace(password) || password.Length < AccountConstants.PasswordLengthMin || password.Length > AccountConstants.PasswordLengthMax)
+        {
+            UpdateErrorMessage = $"Password must be {AccountConstants.PasswordLengthMin}-{AccountConstants.PasswordLengthMax} characters long.";
+            return;
+        }
+
+        await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
+        var account = await earthDb.Accounts.FirstAsync(account => account.Id == SelectedAccount.Id);
+
+        byte[] passwordSalt = new byte[16];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(passwordSalt);
+
+        account.PasswordHash = AccountConstants.HashPassword(password, passwordSalt);
+        account.PasswordSalt = passwordSalt;
+
+        await earthDb.SaveChangesAsync();
+
+        UpdateSuccessMessage = "Password successfully synchronized!";
+        IsChangingPassword = false;
+    }
+
+    private async Task UnlinkCurrentAccount()
+    {
+        if (SelectedAccount is null) return;
+
+        await using var appDb = await AppDbFactory.CreateDbContextAsync();
+
+        var user = await appDb.Users
+            .FirstAsync(user => user.Id == _currentUserId);
+
+        user.LinkedInGameAccounts.Remove(SelectedAccount.Id);
+        await appDb.SaveChangesAsync();
+
+        LinkedAccountsList.Remove(SelectedAccount);
+
+        SelectedAccount = LinkedAccountsList.FirstOrDefault();
+
+        if (SelectedAccount is not null)
+        {
+            await SelectAccount(SelectedAccount.Id);
+        }
+    }
+
+    private void ShowLinkModal()
+    {
+        LinkErrorMessage = null;
+        LinkFormModel = new LinkAccountForm();
+        IsLinkModalVisible = true;
+    }
+
+    private void CloseLinkModal()
+    {
+        IsLinkModalVisible = false;
+        ShowLinkPassword = false;
+    }
+
+    private async Task HandleLinkAccount()
+    {
+        LinkErrorMessage = null;
+
+        if (LinkedAccountsList.Count >= MaxLinkedAccounts)
+        {
+            LinkErrorMessage = "Maximum account linkage threshold reached (Max MaxLinkedAccounts).";
+            return;
+        }
+
+        string username = LinkFormModel.Username.Trim();
+        string password = LinkFormModel.Password.Trim();
+
+        await using var appDb = await AppDbFactory.CreateDbContextAsync();
+        await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
+
+        var dbAccount = await earthDb.Accounts
+            .AsNoTracking()
+            .Include(account => account.Profile)
+            .FirstOrDefaultAsync(account => account.Username == username);
+
+        if (dbAccount is null)
+        {
+            LinkErrorMessage = "Username or password is incorrect.";
+            return;
+        }
+
+        byte[] passwordHash = AccountConstants.HashPassword(password, dbAccount.PasswordSalt);
+
+        if (!passwordHash.AsSpan().SequenceEqual(dbAccount.PasswordHash))
+        {
+            LinkErrorMessage = "Username or password is incorrect.";
+            return;
+        }
+
+        if (LinkedAccountsList.Any(item => item.Id == dbAccount.Id))
+        {
+            LinkErrorMessage = "This specific account is already linked to your profile.";
+            return;
+        }
+
+        var user = await appDb.Users
+            .FirstAsync(user => user.Id == _currentUserId);
+
+        if (user.LinkedInGameAccounts.Any(accountId => accountId == dbAccount.Id))
+        {
+            LinkErrorMessage = "This specific account is already linked to your profile.";
+            return;
+        }
+
+        user.LinkedInGameAccounts.Add(dbAccount.Id);
+
+        await appDb.SaveChangesAsync();
+
+        var newAccount = InGameAccount.FromDb(dbAccount);
+
+        LinkedAccountsList.Add(newAccount);
+        await SelectAccount(newAccount.Id);
+        CloseLinkModal();
+    }
+
+    private int GetRequiredExperienceForNextLevel()
+    {
+        if (SelectedAccount is null) return 100;
+
+        int levelIndex = SelectedAccount.Level - 1;
+        return levelIndex < staticData.Levels.Levels.Length ? staticData.Levels.Levels[levelIndex].ExperienceRequired : 9999;
+    }
+
+    private double GetLevelProgressPercentage()
+    {
+        if (SelectedAccount is null) return 0;
+
+        double requiredXp = GetRequiredExperienceForNextLevel();
+        return double.Min((SelectedAccount.Experience / requiredXp) * 100, 100);
+    }
+
+    private async Task LoadPlayerBuildplates(Guid accountId)
+    {
+        PlayerBuildplates = null;
+        await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
+
+        var dbList = await earthDb.PlayerBuildplates
+            .AsNoTracking()
+            .Where(bp => bp.AccountId == accountId)
+            .ToListAsync();
+
+        PlayerBuildplates = dbList.Select(db => new PlayerBuildplate
+        {
+            Id = db.Id,
+            Name = db.Name,
+            Size = db.Size,
+            BlocksPerMeter = db.Scale,
+            ServerDataObjectId = db.ServerDataObjectId,
+            PreviewObjectId = db.PreviewObjectId,
+        }).ToList();
+
+        StateHasChanged();
+    }
+
+    private IEnumerable<PlayerBuildplate> FilteredBuildplates
+        => PlayerBuildplates?.Where(bp => string.IsNullOrWhiteSpace(_buildplateSearchTerm) || bp.Name.Contains(_buildplateSearchTerm, StringComparison.OrdinalIgnoreCase))
+        ?? Enumerable.Empty<PlayerBuildplate>();
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling((double)FilteredBuildplates.Count() / _buildplatePageSize));
+
+    private IEnumerable<PlayerBuildplate> PaginatedBuildplates
+        => FilteredBuildplates.Skip((_buildplateCurrentPage - 1) * _buildplatePageSize).Take(_buildplatePageSize);
+
+    private void HandleSearchInput(ChangeEventArgs e)
+    {
+        _buildplateSearchTerm = e.Value?.ToString() ?? "";
+        _buildplateCurrentPage = 1;
+    }
+
+    private void ChangePage(int newPage)
+    {
+        if (newPage >= 1 && newPage <= TotalPages)
+        {
+            _buildplateCurrentPage = newPage;
+        }
+    }
+
+    public sealed class PlayerBuildplate
+    {
+        public required Guid Id { get; set; }
+        public required string Name { get; set; }
+        public int Size { get; set; }
+        public int BlocksPerMeter { get; set; }
+
+        public required string ServerDataObjectId { get; set; }
+        public required string PreviewObjectId { get; set; }
+    }
+}

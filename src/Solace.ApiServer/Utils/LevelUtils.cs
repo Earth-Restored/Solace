@@ -1,40 +1,37 @@
-﻿using Solace.DB;
+﻿using Microsoft.EntityFrameworkCore;
+using Solace.DB;
 using Solace.DB.Models.Player;
+using Solace.DB.Utils;
 using Solace.StaticData;
-using static Solace.DB.Models.Player.Tokens;
+using static Solace.DB.Models.Player.TokensEF;
 
 namespace Solace.ApiServer.Utils;
 
 public sealed class LevelUtils
 {
 #pragma warning disable IDE0060 // Remove unused parameter
-    public static EarthDB.Query CheckAndHandlePlayerLevelUp(string playerId, long currentTime, StaticData.StaticData staticData)
+    public static async Task CheckAndHandlePlayerLevelUpAsync(EarthDbContext.Results results, Guid accountId, long currentTime, StaticData.StaticData staticData)
 #pragma warning restore IDE0060 // Remove unused parameter
     {
-        var getQuery = new EarthDB.Query(true);
-        getQuery.Get("profile", playerId, typeof(Profile));
-        getQuery.Then(results =>
+        var profile = await results.EarthDb.Profiles
+            .AsTracking()
+            .FirstOrNewAsync(profile => profile.Id == accountId);
+
+        bool changed = false;
+        while (profile.Level - 1 < staticData.Levels.Levels.Length && profile.Experience >= staticData.Levels.Levels[profile.Level - 1].ExperienceRequired)
         {
-            Profile profile = results.Get<Profile>("profile");
-            var updateQuery = new EarthDB.Query(true);
-            bool changed = false;
-            while (profile.Level - 1 < staticData.Levels.Levels.Length && profile.Experience >= staticData.Levels.Levels[profile.Level - 1].ExperienceRequired)
-            {
-                changed = true;
-                profile.Level++;
-                Rewards rewards = MakeLevelRewards(staticData.Levels.Levels[profile.Level - 2]);
-                updateQuery.Then(TokenUtils.AddToken(playerId, new LevelUpToken(profile.Level, rewards.ToDBRewardsModel())), false);
-            }
+            changed = true;
+            profile.Level++;
+            Rewards rewards = MakeLevelRewards(staticData.Levels.Levels[profile.Level - 2]);
+            await TokenUtils.AddTokenAsync(results, accountId, new LevelUpToken(profile.Level, rewards.ToDBRewardsModel()));
+        }
 
-            if (changed)
-            {
-                updateQuery.Update("profile", playerId, profile);
-            }
+        if (changed)
+        {
+            await results.EarthDb.SaveChangesAsync();
 
-            return updateQuery;
-        });
-
-        return getQuery;
+            results.Profile = profile.Version;
+        }
     }
 
     public static Rewards MakeLevelRewards(PlayerLevels.Level level)

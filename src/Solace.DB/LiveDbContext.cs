@@ -1,8 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Solace.ApiServer.Models;
+using Solace.DB.Models;
 
-namespace Solace.ApiServer;
+namespace Solace.DB;
 
+[Obsolete("Use EarthDbContext instead.")]
 public class LiveDbContext : DbContext
 {
     public LiveDbContext(DbContextOptions<LiveDbContext> options)
@@ -10,5 +11,5 @@ public class LiveDbContext : DbContext
     {
     }
 
-    public DbSet<Account> Accounts { get; set; }
+    public DbSet<Account.Legacy> Accounts { get; set; }
 }

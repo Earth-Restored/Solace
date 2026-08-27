@@ -27,16 +27,23 @@ internal static class ApiServer
     public static Process? Run(Settings settings, ILogger logger)
     {
         logger.Debug($"Running {DispName}");
-        return Process.Start(new ProcessStartInfo(Path.GetFullPath(Path.Combine(Program.ProgramsDir, ExeName)),
-        [
+
+        var arguments = new List<string>(7)
+        {
             $"--port={settings.ApiPort}",
             $"--earth-db={settings.EarthDatabaseConnectionString}",
-            $"--live-db={settings.LiveDatabaseConnectionString}",
             $"--eventbus=localhost:{settings.EventBusPort}",
             $"--objectstore=localhost:{settings.ObjectStorePort}",
             $"--logger-url={Program.LoggerAddress}",
             $"--dir={Program.StaticDataDir}",
-        ])
+        };
+
+        if (settings.OnlyAllowLocalLogin is true)
+        {
+            arguments.Add($"--local-login-only");
+        }
+
+        return Process.Start(new ProcessStartInfo(Path.GetFullPath(Path.Combine(Program.ProgramsDir, ExeName)), arguments)
         {
             WorkingDirectory = Path.GetFullPath(Program.ProgramsDir),
             CreateNoWindow = false,

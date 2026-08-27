@@ -2,14 +2,17 @@
 
 public static class StreamExtensions
 {
-    public static ValueTask<T?> AsJsonAsync<T>(this Stream stream, CancellationToken cancellationToken)
-        => Json.DeserializeAsync<T>(stream, cancellationToken);
-
-    public static async Task<string> ReadAsString(this Stream stream, CancellationToken cancellationToken = default)
+    extension(Stream stream)
     {
-        using (var reader = new StreamReader(stream))
+        public ValueTask<T?> AsJsonAsync<T>(CancellationToken cancellationToken)
+            => Json.DeserializeAsync<T>(stream, cancellationToken);
+
+        public async Task<string> ReadAsString(CancellationToken cancellationToken = default)
         {
-            return await reader.ReadToEndAsync(cancellationToken);
+            using (var reader = new StreamReader(stream))
+            {
+                return await reader.ReadToEndAsync(cancellationToken);
+            }
         }
     }
 }

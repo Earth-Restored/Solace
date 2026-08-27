@@ -5,6 +5,7 @@ namespace Solace.LauncherUI;
 public class ApplicationRole : IdentityRole
 {
     public const string Owner = "owner";
+    public const string Default = "everyone";
 
     public string Color { get; set; } = "#99AAB5";
     public int Position { get; set; }

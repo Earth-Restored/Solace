@@ -3,10 +3,11 @@ using System.Globalization;
 using Serilog;
 using Serilog.Configuration;
 using Serilog.Core;
+using Serilog.Events;
 
 namespace Solace.LauncherUI;
 
-public class LogsLogService : ILogEventSink
+public sealed class LogsLogService : ILogEventSink
 {
     private readonly ConcurrentDictionary<string, ConcurrentQueue<LogEvent>> _logsByComponent = new(StringComparer.Ordinal);
 
@@ -40,14 +41,31 @@ public class LogsLogService : ILogEventSink
     }
 
     public void Emit(Serilog.Events.LogEvent logEvent)
-        => AddExternalLogs(
+    {
+        if (logEvent.Properties.TryGetValue("SourceContext", out var sourceContext))
+        {
+            var contextStr = sourceContext.ToString().Trim('"');
+            if (contextStr.StartsWith("Microsoft.AspNetCore", StringComparison.Ordinal) &&
+                logEvent.Level < LogEventLevel.Warning)
+            {
+                return;
+            }
+        }
+
+        AddExternalLogs(
             new LogEvent
             {
                 Timestamp = logEvent.Timestamp.UtcDateTime,
                 Level = logEvent.Level.ToString(),
                 RenderedMessage = logEvent.RenderMessage(CultureInfo.InvariantCulture),
-                Properties = new LogEventProperties { ComponentName = "Launcher" }
+
+                Exception = logEvent.Exception?.ToString(),
+                Properties = new LogEventProperties
+                {
+                    ComponentName = "Launcher",
+                },
             });
+    }
 
     public IEnumerable<string> GetKnownComponents()
         => _logsByComponent.Keys.OrderBy(k => k);

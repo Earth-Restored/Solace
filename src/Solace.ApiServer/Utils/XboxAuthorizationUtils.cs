@@ -2,7 +2,7 @@
 
 internal static class XboxAuthorizationUtils
 {
-    public static (string UserId, string TokenString)? Parse(string? authorization)
+    public static (Guid UserId, string TokenString)? Parse(string? authorization)
     {
         if (authorization is null)
         {
@@ -39,6 +39,11 @@ internal static class XboxAuthorizationUtils
             return null;
         }
 
-        return (part2[parts3[0]].ToString(), part2[parts3[1]].ToString());
+        if (!Guid.TryParse(part2[parts3[0]], out var userId))
+        {
+            return null;
+        }
+
+        return (userId, part2[parts3[1]].ToString());
     }
 }

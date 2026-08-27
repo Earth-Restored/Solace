@@ -2,8 +2,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Solace.LauncherUI.Data;
 
-// Add profile data for application users by adding properties to the ApplicationUser class
-public class ApplicationUser : IdentityUser
+public sealed class ApplicationUser : IdentityUser
 {
+    public List<Guid> LinkedInGameAccounts { get; set; } = [];
 }
-

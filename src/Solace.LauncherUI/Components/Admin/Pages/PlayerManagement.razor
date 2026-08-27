@@ -1,14 +1,17 @@
 @page "/Admin/Players"
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
 @using Serilog
 @using System.Security.Claims
 @using Solace.DB
 @using Solace.DB.Models.Player
 @using Solace.LauncherUI.Utils
+@using System.Diagnostics
 @attribute [Authorize(Policy = Permissions.ViewPlayers)]
 @rendermode InteractiveServer
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IDbContextFactory<EarthDbContext> EarthDbFactory
 
 <PageTitle>Player Management - Solace</PageTitle>
 
@@ -67,8 +70,7 @@
                                     <td>
                                         @if (player.Username is not null)
                                         {
-                                            <input type="text" class="form-control form-control-sm" @bind="_editUsername"
-                                                   placeholder="Username" minlength="1" />
+                                            <input type="text" class="form-control form-control-sm" @bind="_editUsername" placeholder="Username" minlength="1" />
                                         }
                                         else
                                         {
@@ -79,177 +81,168 @@
                                         }
                                     </td>
                                     <td>
-                                        <input type="number" class="form-control form-control-sm text-center mx-auto"
-                                               style="max-width: 80px;" @bind="_editLevel" min="1" />
+                                        <input type="number" class="form-control form-control-sm text-center mx-auto" style="max-width: 80px;" @bind="_editLevel" min="1" />
                                     </td>
                                     <td>
                                         <div class="input-group input-group-sm mx-auto" style="max-width: 120px;">
                                             <span class="input-group-text"><i class="bi bi-gem text-danger"></i></span>
-                                            <input type="number" class="form-control text-center" @bind="_editTotalRubies"
-                                                   min="0" />
+                                            <input type="number" class="form-control text-center" @bind="_editTotalRubies" min="0" />
                                         </div>
                                     </td>
                                     <td class="text-end pe-4">
-                                        <button class="btn btn-sm btn-success me-1" @onclick="() => SaveEditAsync(player)"><i
-                                            class="bi bi-check-lg"></i></button>
-                                            <button class="btn btn-sm btn-outline-secondary" @onclick="CancelEdit"><i
-                                                class="bi bi-x-lg"></i></button>
-                                            </td>
-                                        </tr>
-                                    }
+                                        <button class="btn btn-sm btn-success me-1" @onclick="() => SaveEditAsync(player)"><i class="bi bi-check-lg"></i></button>
+                                        <button class="btn btn-sm btn-outline-secondary" @onclick="CancelEdit"><i class="bi bi-x-lg"></i></button>
+                                    </td>
+                                </tr>
+                            }
                             else
-                                    {
-                                        <tr>
-                                            <td><code class="text-primary small">@player.Id</code></td>
-                                            <td>
-                                                @if (string.IsNullOrEmpty(player.Username))
-                                                {
-                                                    <span class="text-muted fst-italic">No Username</span>
-                                                    <span class="badge rounded-pill bg-info text-dark ms-1" style="font-size: 0.75rem;">
-                                                        Microsoft Account
-                                                    </span>
-                                                }
-                                                else
-                                                {
-                                                    @player.Username
-                                                }
-                                            </td>
-                                            <td class="text-center"><span class="badge bg-info text-dark">Lv. @player.Profile.Level</span>
-                                            </td>
-                                            <td class="text-center text-danger fw-bold"
-                                                title="Purchased: @player.Profile.Rubies.Purchased | Earned: @player.Profile.Rubies.Earned">
-                                                <i class="bi bi-gem me-1"></i>@player.Profile.Rubies.Total
-                                            </td>
-                                            @if (HasPermission(Permissions.ManagePlayers))
-                                            {
-                                                <td class="text-end pe-4">
-                                                    <a href="/Admin/Players/@(player.Id)/Buildplates" class="btn btn-sm btn-outline-info"
-                                                           title="Buildplates">
-                                                        <i class="bi bi-boxes"></i>
-                                                    </a>
-                                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => StartEdit(player)">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-danger"
-                                                            @onclick="() => DeletePlayerAsync(player.Id, player.Username)" title="Delete">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
-                                                </td>
-                                            }
-                                        </tr>
-                                    }
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="d-md-none">
-                    @foreach (var player in _players)
-                    {
-                        @if (_editingId == player.Id)
-                        {
-                            <div class="card mb-3 shadow-sm border-start border-warning border-4 bg-warning-subtle">
-                                <div class="card-body">
-                                    <div class="mb-1">
-                                        <small class="text-muted d-block">ID: @player.Id</small>
-                                    </div>
-                            
-                                    <div class="mb-2">
-                                        @if (player.Username is not null)
-                                        {
-                                            <label class="form-label small text-muted mb-0">Username</label>
-                                            <input type="text" class="form-control form-control-sm" @bind="_editUsername" placeholder="Username"
-                                                   minlength="1" />
-                                        }
-                                        else
+                            {
+                                <tr>
+                                    <td><code class="text-primary small">@player.Id</code></td>
+                                    <td>
+                                        @if (string.IsNullOrEmpty(player.Username))
                                         {
                                             <span class="text-muted fst-italic">No Username</span>
                                             <span class="badge rounded-pill bg-info text-dark ms-1" style="font-size: 0.75rem;">
                                                 Microsoft Account
                                             </span>
                                         }
-                                    </div>
-                            
-                                    <div class="row mb-3">
-                                        <div class="col-6">
-                                            <label class="form-label small text-muted mb-0">Level</label>
-                                            <input type="number" class="form-control form-control-sm" @bind="_editLevel" min="1" />
-                                        </div>
-                                        <div class="col-6">
-                                            <label class="form-label small text-muted mb-0">Rubies</label>
-                                            <div class="input-group input-group-sm">
-                                                <span class="input-group-text"><i class="bi bi-gem text-danger"></i></span>
-                                                <input type="number" class="form-control" @bind="_editTotalRubies" min="0" />
-                                            </div>
-                                        </div>
-                                    </div>
-                            
-                                    <div class="d-flex justify-content-end gap-2 mt-3">
-                                        <button class="btn btn-sm btn-outline-secondary w-50" @onclick="CancelEdit"><i
-                                            class="bi bi-x-lg me-1"></i>Cancel</button>
-                                            <button class="btn btn-sm btn-success w-50" @onclick="() => SaveEditAsync(player)"><i
-                                                class="bi bi-check-lg me-1"></i>Save</button>
-                                            </div>
-                                        </div>
-                                    </div>
+                                        else
+                                        {
+                                            @player.Username
+                                        }
+                                    </td>
+                                    <td class="text-center"><span class="badge bg-info text-dark">Lv. @player.Profile!.Level</span>
+                                    </td>
+                                    <td class="text-center text-danger fw-bold" title="Purchased: @player.Profile.Rubies.Purchased | Earned: @player.Profile.Rubies.Earned">
+                                        <i class="bi bi-gem me-1"></i>@player.Profile.Rubies.Total
+                                    </td>
+                                    @if (HasPermission(Permissions.ManagePlayers))
+                                    {
+                                        <td class="text-end pe-4">
+                                            <a href="/Admin/Players/@(player.Id)/Buildplates" class="btn btn-sm btn-outline-info" title="Buildplates">
+                                                <i class="bi bi-boxes"></i>
+                                            </a>
+                                            <a href="/Admin/Players/@(player.Id)/Inventory" class="btn btn-sm btn-outline-secondary" title="Inventory">
+                                                <i class="bi bi-bag-fill"></i>
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="() => StartEdit(player)">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePlayerAsync(player.Id, player.Username)" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="d-md-none">
+            @foreach (var player in _players)
+            {
+                @if (_editingId == player.Id)
+                {
+                    <div class="card mb-3 shadow-sm border-start border-warning border-4 bg-warning-subtle">
+                        <div class="card-body">
+                            <div class="mb-1">
+                                <small class="text-muted d-block">ID: @player.Id</small>
+                            </div>
+
+                            <div class="mb-2">
+                                @if (player.Username is not null)
+                                {
+                                    <label class="form-label small text-muted mb-0">Username</label>
+                                    <input type="text" class="form-control form-control-sm" @bind="_editUsername" placeholder="Username" minlength="1" />
                                 }
                                 else
                                 {
-                                    <div class="card mb-3 shadow-sm border-start border-primary border-4">
-                                        <div class="card-body">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <div class="text-truncate me-2">
-                                                    <small class="text-muted d-block">ID: @player.Id</small>
-                                                    @if (string.IsNullOrEmpty(player.Username))
-                                                    {
-                                                        <span class="text-muted fst-italic">No Username</span>
-                                                        <span class="badge rounded-pill bg-info text-dark ms-1" style="font-size: 0.75rem;">
-                                                            Microsoft Account
-                                                        </span>
-                                                    }
-                                                    else
-                                                    {
-                                                        @player.Username
-                                                    }
-                                                </div>
-                                                <div class="text-end">
-                                                    <span class="badge bg-info text-dark d-block mb-1">Lv. @player.Profile.Level</span>
-                                                    <span class="text-danger fw-bold small"><i class="bi bi-gem"></i>
-                                                        @player.Profile.Rubies.Total</span>
-                                                    </div>
-                                                </div>
-                                                @if (HasPermission(Permissions.ManagePlayers))
-                                                {
-                                                    <div class="text-end mt-2">
-                                                        <a href="/Admin/Players/@(player.Id)/Buildplates" class="btn btn-sm btn-outline-info w-100 mb-1">
-                                                            <i class="bi bi-boxes me-1"></i>Manage Buildplates
-                                                        </a>
-                                                        <button class="btn btn-sm btn-outline-primary w-100" @onclick="() => StartEdit(player)">
-                                                            <i class="bi bi-pencil me-1"></i>Edit Player
-                                                        </button>
-                                                        <button class="btn btn-sm btn-outline-danger w-100"
-                                                                @onclick="() => DeletePlayerAsync(player.Id, player.Username)">
-                                                            <i class="bi bi-trash me-1"></i>Delete
-                                                        </button>
-                                                    </div>
-                                                }
-                                            </div>
-                                        </div>
-                                    }
+                                    <span class="text-muted fst-italic">No Username</span>
+                                    <span class="badge rounded-pill bg-info text-dark ms-1" style="font-size: 0.75rem;">
+                                        Microsoft Account
+                                    </span>
                                 }
                             </div>
-                        }
+
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="form-label small text-muted mb-0">Level</label>
+                                    <input type="number" class="form-control form-control-sm" @bind="_editLevel" min="1" />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small text-muted mb-0">Rubies</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text"><i class="bi bi-gem text-danger"></i></span>
+                                        <input type="number" class="form-control" @bind="_editTotalRubies" min="0" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2 mt-3">
+                                <button class="btn btn-sm btn-outline-secondary w-50" @onclick="CancelEdit"><i class="bi bi-x-lg me-1"></i>Cancel</button>
+                                <button class="btn btn-sm btn-success w-50" @onclick="() => SaveEditAsync(player)"><i class="bi bi-check-lg me-1"></i>Save</button>
+                            </div>
+                        </div>
                     </div>
+                }
+                else
+                {
+                    <div class="card mb-3 shadow-sm border-start border-primary border-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="text-truncate me-2">
+                                    <small class="text-muted d-block">ID: @player.Id</small>
+                                    @if (string.IsNullOrEmpty(player.Username))
+                                    {
+                                        <span class="text-muted fst-italic">No Username</span>
+                                        <span class="badge rounded-pill bg-info text-dark ms-1" style="font-size: 0.75rem;">
+                                            Microsoft Account
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        @player.Username
+                                    }
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-info text-dark d-block mb-1">Lv. @player.Profile!.Level</span>
+                                    <span class="text-danger fw-bold small"><i class="bi bi-gem"></i>
+                                        @player.Profile.Rubies.Total</span>
+                                    </div>
+                                </div>
+                                @if (HasPermission(Permissions.ManagePlayers))
+                                {
+                                    <div class="text-end mt-2">
+                                        <a href="/Admin/Players/@(player.Id)/Buildplates" class="btn btn-sm btn-outline-info w-100 mb-1">
+                                            <i class="bi bi-boxes me-1"></i>Manage Buildplates
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-primary w-100" @onclick="() => StartEdit(player)">
+                                            <i class="bi bi-pencil me-1"></i>Edit Player
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger w-100" @onclick="() => DeletePlayerAsync(player.Id, player.Username)">
+                                            <i class="bi bi-trash me-1"></i>Delete
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    </div>
 
 @code {
     private ClaimsPrincipal? _user;
-    private EarthDB? _earthDB;
-    private List<(string Id, string? Username, Profile Profile)>? _players;
+    private List<DB.Models.Account>? _players;
     private string? _errorMessage;
-    
+
     // Edit State
-    private string? _editingId;
+    private Guid? _editingId;
     private string? _editUsername;
     private int _editLevel = 1;
     private int _editTotalRubies = 0;
@@ -261,9 +254,11 @@
 
         try
         {
-            _earthDB = EarthDB.Open(Settings.Instance.EarthDatabaseConnectionString ?? "");
-            using var liveDb = DataUtils.OpenLiveDB(Settings.Instance);
-            _players = await DataUtils.GetFullProfilesAsync(_earthDB, liveDb, default).ToListAsync();
+            await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
+            _players = await earthDb.Accounts
+                .AsNoTracking()
+                .Include(account => account.Profile)
+                .ToListAsync();
         }
         catch (Exception ex)
         {
@@ -272,8 +267,10 @@
         }
     }
 
-    private void StartEdit((string Id, string? Username, Profile Profile) player)
+    private void StartEdit(DB.Models.Account player)
     {
+        Debug.Assert(player.Profile is not null);
+
         _editingId = player.Id;
         _editUsername = player.Username ?? "";
         _editLevel = player.Profile.Level;
@@ -285,14 +282,16 @@
         _editingId = null;
     }
 
-    private async Task SaveEditAsync((string Id, string? Username, Profile Profile) player)
+    private async Task SaveEditAsync(DB.Models.Account player)
     {
+        Debug.Assert(player.Profile is not null);
+
         if (!HasPermission(Permissions.ManagePlayers))
         {
             return;
         }
 
-        if (_earthDB is null || _players is null)
+        if (_players is null)
         {
             return;
         }
@@ -306,7 +305,7 @@
         _editTotalRubies = int.Max(_editTotalRubies, 0);
 
         int difference = _editTotalRubies - player.Profile.Rubies.Total;
-        
+
         if (difference > 0)
         {
             player.Profile.Rubies.Purchased += difference;
@@ -314,7 +313,7 @@
         else if (difference < 0)
         {
             int removeAmount = -difference;
-            
+
             int takeFromPurchased = Math.Min(player.Profile.Rubies.Purchased, removeAmount);
             player.Profile.Rubies.Purchased -= takeFromPurchased;
             removeAmount -= takeFromPurchased;
@@ -328,28 +327,24 @@
         var pIdx = _players.FindIndex(p => p.Id == player.Id);
         if (pIdx != -1)
         {
-            _players[pIdx] = (player.Id, _editUsername, player.Profile);
+            _players[pIdx] = player;
         }
 
-        using var liveDb = DataUtils.OpenLiveDB(Settings.Instance);
-        if (liveDb is not null)
-        {
-            await DataUtils.UpdateUsernameAsync(player.Id, _editUsername, liveDb);
-        }
-        
-        await DataUtils.UpdateProfileAsync(_earthDB, player.Id, player.Profile);
+        await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
+        earthDb.Update(player);
+        await earthDb.SaveChangesAsync();
 
         _editingId = null;
     }
 
-    private async Task DeletePlayerAsync(string id, string? username)
+    private async Task DeletePlayerAsync(Guid id, string? username)
     {
         if (!HasPermission(Permissions.ManagePlayers))
         {
             return;
         }
 
-        if (_earthDB is null || _players is null)
+        if (_players is null)
         {
             return;
         }
@@ -366,16 +361,21 @@
 
         try
         {
-            using var liveDb = DataUtils.OpenLiveDB(Settings.Instance);
-        
-            await DataUtils.DeletePlayerAsync(_earthDB, liveDb, id);
+            await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
+            var player = earthDb.Accounts.FirstOrDefaultAsync(player => player.Id == id);
+
+            if (player is not null)
+            {
+                earthDb.Remove(player);
+                await earthDb.SaveChangesAsync();
+            }
 
             if (_players != null)
             {
-                var playerToRemove = _players.FirstOrDefault(p => p.Id == id);
-                if (playerToRemove.Id != null)
+                var playerToRemove = _players.FindIndex(p => p.Id == id);
+                if (playerToRemove is not -1)
                 {
-                    _players.Remove(playerToRemove);
+                    _players.RemoveAt(playerToRemove);
                 }
             }
 

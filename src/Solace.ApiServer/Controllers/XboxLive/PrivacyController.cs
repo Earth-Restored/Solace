@@ -6,8 +6,12 @@ namespace Solace.ApiServer.Controllers.XboxLive;
 
 [Route("users")]
 [Route("privacy.xboxlive.com/users")]
-internal sealed partial class PrivacyController : SolaceControllerBase
+internal sealed partial class PrivacyController : LoginServerControllerBase
 {
+    public PrivacyController(CryptoSecrets cryptoSecrets) : base(cryptoSecrets)
+    {
+    }
+
     private sealed record PeopleResponse(
         object[] Users
     );
@@ -25,9 +29,9 @@ internal sealed partial class PrivacyController : SolaceControllerBase
 
         Match xuidMatch = GetXuidRegex().Match(xuidParam);
 
-        string? xuid = xuidMatch.Success ? xuidMatch.Groups[1].Value : null;
+        string? xuidString = xuidMatch.Success ? xuidMatch.Groups[1].Value : null;
 
-        if (xuid is null)
+        if (xuidString is null || !Guid.TryParse(xuidString, out var xuid))
         {
             return TypedResults.BadRequest();
         }
@@ -55,9 +59,9 @@ internal sealed partial class PrivacyController : SolaceControllerBase
 
         Match xuidMatch = GetXuidRegex().Match(xuidParam);
 
-        string? xuid = xuidMatch.Success ? xuidMatch.Groups[1].Value : null;
+        string? xuidString = xuidMatch.Success ? xuidMatch.Groups[1].Value : null;
 
-        if (xuid is null)
+        if (xuidString is null || !Guid.TryParse(xuidString, out var xuid))
         {
             return TypedResults.BadRequest();
         }

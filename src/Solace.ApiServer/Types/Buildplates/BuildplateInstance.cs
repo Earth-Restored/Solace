@@ -5,8 +5,8 @@ using static Solace.ApiServer.Types.Buildplates.BuildplateInstance;
 namespace Solace.ApiServer.Types.Buildplates;
 
 internal sealed record BuildplateInstance(
-    string InstanceId,
-    string PartitionId,
+    Guid InstanceId,
+    Guid PartitionId,
     string Fqdn,
     string IpV4Address,
     int Port,
@@ -33,9 +33,9 @@ internal sealed record BuildplateInstance(
     }
 
     internal sealed record GameplayMetadataR(
-        string WorldId,
-        string TemplateId,
-        string? SpawningPlayerId,
+        Guid WorldId,
+        Guid TemplateId,
+        Guid? SpawningPlayerId,
         string SpawningClientBuildNumber,
         string PlayerJoinCode,
         Dimension Dimension,

@@ -13,10 +13,10 @@ internal static class Tokens
     internal static class Live
     {
         internal sealed record UserToken(
-            string UserId,
+            Guid UserId,
             string Username,
-            string PasswordSalt,
-            string PasswordHash
+            string PasswordSalt, // base64
+            string PasswordHash // base64
         ) : ITokenData<UserToken>;
 
         internal sealed record DeviceToken()
@@ -45,17 +45,17 @@ internal static class Tokens
 
         internal sealed class UserToken : AuthToken, ITokenData<UserToken>
         {
-            public required string Xid { get; init; }
+            public required Guid Xid { get; init; }
 
-            public required string Uhs { get; init; }
+            public required Guid Uhs { get; init; }
 
-            public required string UserId { get; init; }
+            public required Guid UserId { get; init; }
 
             public required string Username { get; init; }
         }
 
         internal sealed record XapiToken(
-            string UserId,
+            Guid UserId,
             string Username
         ) : ITokenData<XapiToken>;
     }
@@ -63,7 +63,7 @@ internal static class Tokens
     internal static class Playfab
     {
         internal sealed record EntityToken(
-            string Id,
+            Guid Id,
             string Type
         ) : ITokenData<EntityToken>;
     }
@@ -73,16 +73,16 @@ internal static class Tokens
 #pragma warning restore CA1716 // Identifiers should not match keywords
     {
         internal sealed record XboxTicketToken(
-            string UserId,
+            Guid UserId,
             string Username
         ) : ITokenData<XboxTicketToken>;
 
         internal sealed record PlayfabXboxToken(
-            string UserId
+            Guid UserId
         ) : ITokenData<PlayfabXboxToken>;
 
         internal sealed record PlayfabSessionTicket(
-            string UserId
+            Guid UserId
         ) : ITokenData<PlayfabSessionTicket>;
     }
 }

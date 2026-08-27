@@ -17,144 +17,156 @@
 
         <ul class="nav nav-tabs" id="settingsTabs" role="tablist">
             <li class="nav-item">
-                <button class="nav-link @(activeTab == "network" ? "active" : "")"
-                        @onclick='() => activeTab = "network"'>Network</button>
+                <button class="nav-link @(activeTab == "network" ? "active" : "")" @onclick='() => activeTab = "network"'>Network</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link @(activeTab == "map" ? "active" : "")"
-                        @onclick='() => activeTab = "map"'>Map</button>
+                <button class="nav-link @(activeTab == "map" ? "active" : "")" @onclick='() => activeTab = "map"'>Map</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link @(activeTab == "database" ? "active" : "")"
-                        @onclick='() => activeTab = "database"'>Databases</button>
+                <button class="nav-link @(activeTab == "database" ? "active" : "")" @onclick='() => activeTab = "database"'>Databases</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link @(activeTab == "data" ? "active" : "")" @onclick='() => activeTab = "data"'>Data
-                    Handling</button>
-                </li>
-            </ul>
+                <button class="nav-link @(activeTab == "data" ? "active" : "")" @onclick='() => activeTab = "data"'>Data Handling</button>
+            </li>
+        </ul>
 
-            <div class="tab-content border border-top-0 p-4 bg-light">
-                @* --- Network Tab --- *@
-                <div class="tab-pane fade show @(activeTab == "network" ? "active" : "")">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">API Port</label>
-                            <InputNumber @bind-Value="SettingsModel.ApiPort" class="form-control" />
-                            <ValidationMessage For="@(() => SettingsModel.ApiPort)" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Event Bus Port</label>
-                            <InputNumber @bind-Value="SettingsModel.EventBusPort" class="form-control" />
-                            <ValidationMessage For="@(() => SettingsModel.EventBusPort)" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Object Store Port</label>
-                            <InputNumber @bind-Value="SettingsModel.ObjectStorePort" class="form-control" />
-                            <ValidationMessage For="@(() => SettingsModel.ObjectStorePort)" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">PC Ipv4 Address or Hostname (without port)</label>
-                            <InputText @bind-Value="SettingsModel.IPv4" class="form-control" placeholder="192.168.x.x" />
-                            <ValidationMessage For="@(() => SettingsModel.IPv4)" />
+        <div class="tab-content border border-top-0 p-4 bg-light">
+            @* --- Network Tab --- *@
+            <div class="tab-pane fade show @(activeTab == "network" ? "active" : "")">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">API Port</label>
+                        <InputNumber @bind-Value="SettingsModel.ApiPort" class="form-control" />
+                        <ValidationMessage For="@(() => SettingsModel.ApiPort)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Event Bus Port</label>
+                        <InputNumber @bind-Value="SettingsModel.EventBusPort" class="form-control" />
+                        <ValidationMessage For="@(() => SettingsModel.EventBusPort)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Object Store Port</label>
+                        <InputNumber @bind-Value="SettingsModel.ObjectStorePort" class="form-control" />
+                        <ValidationMessage For="@(() => SettingsModel.ObjectStorePort)" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">
+                            Buildplate Base Port
+                            <span class="text-secondary" style="cursor: help;" title="Base public port for buildplate instances. If multiple instances are running, the port number increments by 1 for each additional instance.">
+                                ?
+                            </span>
+                        </label>
+                        <InputNumber @bind-Value="SettingsModel.BuildplateBasePort" class="form-control" />
+                        <ValidationMessage For="@(() => SettingsModel.BuildplateBasePort)" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">PC Ipv4 Address or Hostname (without port)</label>
+                        <InputText @bind-Value="SettingsModel.IPv4" class="form-control" placeholder="192.168.x.x" />
+                        <ValidationMessage For="@(() => SettingsModel.IPv4)" />
+                    </div>
+
+                    <div class="col-12 mt-3">
+                        <div class="form-check form-switch">
+                            <InputCheckbox @bind-Value="SettingsModel.OnlyAllowLocalLogin" class="form-check-input" id="onlyAllowLocalLogin" />
+                            <label class="form-check-label" for="onlyAllowLocalLogin">
+                                Only Allow Local Login
+                                <span class="text-secondary" style="cursor: help;" title="Only APKs patched for custom login servers can connect. Microsoft login is unsupported.">
+                                    ⓘ
+                                </span>
+                            </label>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                @* --- Map Tab --- *@
-                <div class="tab-pane fade show @(activeTab == "map" ? "active" : "")">
-                    <div class="mb-3 form-check form-switch">
-                        <InputCheckbox @bind-Value="SettingsModel.EnableTileRendering" class="form-check-input"
-                                       id="enableRendering" />
-                        <label class="form-check-label" for="enableRendering">Enable Tile Rendering</label>
+            @* --- Map Tab --- *@
+            <div class="tab-pane fade show @(activeTab == "map" ? "active" : "")">
+                <div class="mb-3 form-check form-switch">
+                    <InputCheckbox @bind-Value="SettingsModel.EnableTileRendering" class="form-check-input" id="enableRendering" />
+                    <label class="form-check-label" for="enableRendering">Enable Tile Rendering</label>
+                </div>
+
+                <fieldset disabled="@(!SettingsModel.EnableTileRendering)">
+                    <div class="mb-3">
+                        <label class="form-label">Tile Data Source</label>
+                        <InputSelect @bind-Value="SettingsModel.TileDataSource" class="form-select">
+                            @foreach (var source in Enum.GetValues<Settings.TileDataSourceE>())
+                            {
+                                <option value="@source">@source</option>
+                            }
+                        </InputSelect>
                     </div>
 
-                    <fieldset disabled="@(!SettingsModel.EnableTileRendering)">
+                    @if (SettingsModel.TileDataSource == Settings.TileDataSourceE.MapTiler)
+                    {
                         <div class="mb-3">
-                            <label class="form-label">Tile Data Source</label>
-                            <InputSelect @bind-Value="SettingsModel.TileDataSource" class="form-select">
-                                @foreach (var source in Enum.GetValues<Settings.TileDataSourceE>())
-                                {
-                                    <option value="@source">@source</option>
-                                }
-                            </InputSelect>
+                            <label class="form-label">MapTiler API Key</label>
+                            <InputText @bind-Value="SettingsModel.MapTilerApiKey" class="form-control" />
+                            <ValidationMessage For="@(() => SettingsModel.MapTilerApiKey)" />
                         </div>
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Tile Database Connection String</label>
+                            <InputText @bind-Value="SettingsModel.TileDatabaseConnectionString" class="form-control" />
+                            <ValidationMessage For="@(() => SettingsModel.TileDatabaseConnectionString)" />
+                        </div>
+                    }
+                </fieldset>
+            </div>
 
-                        @if (SettingsModel.TileDataSource == Settings.TileDataSourceE.MapTiler)
-                        {
-                            <div class="mb-3">
-                                <label class="form-label">MapTiler API Key</label>
-                                <InputText @bind-Value="SettingsModel.MapTilerApiKey" class="form-control" />
-                                <ValidationMessage For="@(() => SettingsModel.MapTilerApiKey)" />
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="mb-3">
-                                <label class="form-label">Tile Database Connection String</label>
-                                <InputText @bind-Value="SettingsModel.TileDatabaseConnectionString" class="form-control" />
-                                <ValidationMessage For="@(() => SettingsModel.TileDatabaseConnectionString)" />
-                            </div>
-                        }
-                    </fieldset>
+            @* --- Database Tab --- *@
+            <div class="tab-pane fade show @(activeTab == "database" ? "active" : "")">
+                <div class="mb-3">
+                    <label class="form-label">Earth Database Connection String</label>
+                    <InputText @bind-Value="SettingsModel.EarthDatabaseConnectionString" class="form-control" />
+                    <ValidationMessage For="@(() => SettingsModel.EarthDatabaseConnectionString)" />
                 </div>
-
-                @* --- Database Tab --- *@
-                <div class="tab-pane fade show @(activeTab == "database" ? "active" : "")">
-                    <div class="mb-3">
-                        <label class="form-label">Earth Database Connection String</label>
-                        <InputText @bind-Value="SettingsModel.EarthDatabaseConnectionString" class="form-control" />
-                        <ValidationMessage For="@(() => SettingsModel.EarthDatabaseConnectionString)" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Live Database Connection String</label>
-                        <InputText @bind-Value="SettingsModel.LiveDatabaseConnectionString" class="form-control" />
-                        <ValidationMessage For="@(() => SettingsModel.LiveDatabaseConnectionString)" />
-                    </div>
-                </div>
-
-                @* --- Data Tab --- *@
-                <div class="tab-pane fade show @(activeTab == "data" ? "active" : "")">
-                    <div class="mb-3 form-check">
-                        <InputCheckbox @bind-Value="SettingsModel.GeneratePreviewOnImport" class="form-check-input"
-                                       id="genPreview" />
-                        <label class="form-check-label" for="genPreview">Generate Preview On Import</label>
-                    </div>
-                    <div class="mb-3 form-check">
-                        <InputCheckbox @bind-Value="SettingsModel.SkipFileChecks" class="form-check-input"
-                                       id="skipChecks" />
-                        <label class="form-check-label" for="skipChecks">Skip File Validation</label>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Static Data Path</label>
-                        <InputText @bind-Value="SettingsModel.StaticDataPath" class="form-control" />
-                        <ValidationMessage For="@(() => SettingsModel.StaticDataPath)" />
-                    </div>
-
-                    <hr />
-
-                    <div class="mb-3 form-check form-switch">
-                        <InputCheckbox @bind-Value="SettingsModel.LauncherBuildplatePreview" class="form-check-input"
-                                       id="buildPreview" />
-                        <label class="form-check-label" for="buildPreview">Enable Buildplate Preview in Launcher</label>
-                        <ValidationMessage For="@(() => SettingsModel.LauncherBuildplatePreview)" />
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label">Live Database Connection String</label>
+                    <InputText @bind-Value="SettingsModel.LiveDatabaseConnectionString" class="form-control" />
+                    <ValidationMessage For="@(() => SettingsModel.LiveDatabaseConnectionString)" />
                 </div>
             </div>
 
-            <div class="mt-4">
-                <button type="submit" class="btn btn-primary">Save Settings</button>
-                <button type="button" class="btn btn-secondary" @onclick="ResetToDefault">Reset to Defaults</button>
+            @* --- Data Tab --- *@
+            <div class="tab-pane fade show @(activeTab == "data" ? "active" : "")">
+                <div class="mb-3 form-check">
+                    <InputCheckbox @bind-Value="SettingsModel.GeneratePreviewOnImport" class="form-check-input" id="genPreview" />
+                    <label class="form-check-label" for="genPreview">Generate Preview On Import</label>
+                </div>
+                <div class="mb-3 form-check">
+                    <InputCheckbox @bind-Value="SettingsModel.SkipFileChecks" class="form-check-input" id="skipChecks" />
+                    <label class="form-check-label" for="skipChecks">Skip File Validation</label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Static Data Path</label>
+                    <InputText @bind-Value="SettingsModel.StaticDataPath" class="form-control" />
+                    <ValidationMessage For="@(() => SettingsModel.StaticDataPath)" />
+                </div>
+
+                <hr />
+
+                <div class="mb-3 form-check form-switch">
+                    <InputCheckbox @bind-Value="SettingsModel.LauncherBuildplatePreview" class="form-check-input" id="buildPreview" />
+                    <label class="form-check-label" for="buildPreview">Enable Buildplate Preview in Launcher</label>
+                    <ValidationMessage For="@(() => SettingsModel.LauncherBuildplatePreview)" />
+                </div>
             </div>
-        </EditForm>
-    </div>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+            <button type="button" class="btn btn-secondary" @onclick="ResetToDefault">Reset to Defaults</button>
+        </div>
+    </EditForm>
+</div>
 
 @code {
     private string activeTab = "network";
 
-    // Using a wrapper or the class directly.
-    // For validation, we ensure the properties have the Required attribute.
     private SettingsViewModel SettingsModel { get; set; } = new();
 
     protected override async Task OnInitializedAsync()
@@ -167,6 +179,7 @@
         SettingsModel.ApiPort = source.ApiPort;
         SettingsModel.EventBusPort = source.EventBusPort;
         SettingsModel.ObjectStorePort = source.ObjectStorePort;
+        SettingsModel.BuildplateBasePort = source.BuildplateBasePort;
         SettingsModel.IPv4 = source.IPv4;
         SettingsModel.EarthDatabaseConnectionString = source.EarthDatabaseConnectionString;
         SettingsModel.LiveDatabaseConnectionString = source.LiveDatabaseConnectionString;
@@ -178,6 +191,7 @@
         SettingsModel.SkipFileChecks = source.SkipFileChecks ?? false;
         SettingsModel.StaticDataPath = source.StaticDataPath;
         SettingsModel.LauncherBuildplatePreview = source.LauncherBuildplatePreview ?? false;
+        SettingsModel.OnlyAllowLocalLogin = source.OnlyAllowLocalLogin ?? false;
     }
 
     private void HandleSave()
@@ -187,6 +201,7 @@
             ApiPort = (ushort)SettingsModel.ApiPort!,
             EventBusPort = (ushort)SettingsModel.EventBusPort!,
             ObjectStorePort = (ushort)SettingsModel.ObjectStorePort!,
+            BuildplateBasePort = (ushort)SettingsModel.BuildplateBasePort!,
             IPv4 = SettingsModel.IPv4,
             EarthDatabaseConnectionString = SettingsModel.EarthDatabaseConnectionString,
             LiveDatabaseConnectionString = SettingsModel.LiveDatabaseConnectionString,
@@ -198,6 +213,7 @@
             SkipFileChecks = SettingsModel.SkipFileChecks,
             StaticDataPath = SettingsModel.StaticDataPath,
             LauncherBuildplatePreview = SettingsModel.LauncherBuildplatePreview,
+            OnlyAllowLocalLogin = SettingsModel.OnlyAllowLocalLogin,
         };
 
         Settings.Instance = settings;
@@ -219,21 +235,16 @@
     public class SettingsViewModel : IValidatableObject
     {
         [Required, Range(1, ushort.MaxValue, ErrorMessage = $"Port must be between 1 and 65535")]
-        public int? ApiPort
-        {
-            get;
-            set;
-        }
+        public int? ApiPort { get; set; }
+
         [Required, Range(1, ushort.MaxValue, ErrorMessage = $"Port must be between 1 and 65535")]
-        public int? EventBusPort
-        {
-            get; set;
-        }
+        public int? EventBusPort { get; set; }
+
         [Required, Range(1, ushort.MaxValue, ErrorMessage = $"Port must be between 1 and 65535")]
-        public int? ObjectStorePort
-        {
-            get; set;
-        }
+        public int? ObjectStorePort { get; set; }
+
+        [Required, Range(1, ushort.MaxValue, ErrorMessage = $"Port must be between 1 and 65535")]
+        public int? BuildplateBasePort { get; set; }
 
         [Required(AllowEmptyStrings = false)]
         public string? IPv4 { get; set; }
@@ -258,27 +269,26 @@
 
         public bool LauncherBuildplatePreview { get; set; }
 
+        public bool OnlyAllowLocalLogin { get; set; }
+
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             UriHostNameType nameType = Uri.CheckHostName(IPv4);
             if (nameType is not (UriHostNameType.Dns or UriHostNameType.IPv4))
             {
-                yield return new ValidationResult("PC address is not a valid IPv4 or hostname.", new[] {
-nameof(IPv4) });
+                yield return new ValidationResult("PC address is not a valid IPv4 or hostname.", new[] { nameof(IPv4) });
             }
 
             if (EnableTileRendering)
             {
                 if (TileDataSource is Settings.TileDataSourceE.MapTiler && string.IsNullOrWhiteSpace(MapTilerApiKey))
                 {
-                    yield return new ValidationResult("MapTiler API Key is required when using MapTiler source.", new[]
-{nameof(MapTilerApiKey) });
+                    yield return new ValidationResult("MapTiler API Key is required when using MapTiler source.", new[] { nameof(MapTilerApiKey) });
                 }
 
                 if (TileDataSource is Settings.TileDataSourceE.PostgreSQL && string.IsNullOrWhiteSpace(TileDatabaseConnectionString))
                 {
-                    yield return new ValidationResult("Tile database connection string is required for PostgreSQL source.", new[]
-{nameof(TileDatabaseConnectionString) });
+                    yield return new ValidationResult("Tile database connection string is required for PostgreSQL source.", new[] { nameof(TileDatabaseConnectionString) });
                 }
             }
 

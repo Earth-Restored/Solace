@@ -9,7 +9,14 @@ namespace Solace.ApiServer.Controllers.XboxLive.Auth;
 [Route("user.auth.xboxlive.com/user/authenticate")]
 internal sealed class UserController : SolaceControllerBase
 {
-    private static Config config => Program.config;
+    private static Config Config => Program.config;
+
+    private readonly CryptoSecrets _cryptoSecrets;
+
+    public UserController(CryptoSecrets cryptoSecrets)
+    {
+        _cryptoSecrets = cryptoSecrets;
+    }
 
     public sealed record AuthenticateRequest(
         AuthenticateRequest.PropertiesR Properties,
@@ -34,14 +41,14 @@ internal sealed class UserController : SolaceControllerBase
     [HttpPost]
     public Results<ContentHttpResult, UnauthorizedHttpResult> Authenticate([FromBody] AuthenticateRequest request)
     {
-        var ticket = JwtUtils.Verify<Tokens.Shared.XboxTicketToken>(request.Properties.RpsTicket, config.Login.XboxTokenSecretBytes)?.Data;
+        var ticket = JwtUtils.Verify<Tokens.Shared.XboxTicketToken>(request.Properties.RpsTicket, _cryptoSecrets.LoginXboxTokenSecret)?.Data;
 
         if (ticket is null)
         {
             return TypedResults.Unauthorized();
         }
 
-        var tokenValidity = ValidityDatePair.Create(config.XboxLive.TokenValidityMinutes);
+        var tokenValidity = ValidityDatePair.Create(Config.XboxLive.TokenValidityMinutes);
         var token = new Tokens.Xbox.UserToken()
         {
             Xid = ticket.UserId,
@@ -54,13 +61,13 @@ internal sealed class UserController : SolaceControllerBase
         return JsonPascalCase(new AuthenticateResponse(
             tokenValidity.IssuedStr,
             tokenValidity.ExpiresStr,
-            JwtUtils.Sign<Tokens.Xbox.AuthToken>(token, config.XboxLive.AuthTokenSecretBytes, tokenValidity),
+            JwtUtils.Sign<Tokens.Xbox.AuthToken>(token, _cryptoSecrets.LiveAuthTokenSecret, tokenValidity),
             new()
             {
                 ["xui"] = [
                     new()
                     {
-                        ["uhs"] = token.Uhs,
+                        ["uhs"] = token.Uhs.ToString(),
                     },
                 ],
             }

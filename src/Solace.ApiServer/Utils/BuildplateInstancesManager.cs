@@ -12,9 +12,9 @@ public sealed class BuildplateInstancesManager
     private Subscriber _subscriber = null!;
     private RequestSender _requestSender = null!;
 
-    private readonly Dictionary<string, TaskCompletionSource<bool>?> _pendingInstances = [];
-    private readonly Dictionary<string, InstanceInfo> _instances = [];
-    private readonly Dictionary<string, HashSet<string>> _instancesByBuildplateId = [];
+    private readonly Dictionary<Guid, TaskCompletionSource<bool>?> _pendingInstances = [];
+    private readonly Dictionary<Guid, InstanceInfo> _instances = [];
+    private readonly Dictionary<Guid, HashSet<Guid>> _instancesByBuildplateId = [];
 
     private BuildplateInstancesManager(EventBusClient eventBusClient)
     {
@@ -40,7 +40,7 @@ public sealed class BuildplateInstancesManager
         return buildplateInstancesManager;
     }
 
-    public async Task<string?> RequestBuildplateInstance(string? playerId, string? encounterId, string buildplateId, InstanceType type, long shutdownTime, bool night)
+    public async Task<Guid?> RequestBuildplateInstance(Guid? playerId, Guid? encounterId, Guid buildplateId, InstanceType type, long shutdownTime, bool night)
     {
         if (playerId is null && type is not InstanceType.ENCOUNTER)
         {
@@ -71,12 +71,12 @@ public sealed class BuildplateInstancesManager
 
         lock (_instances)
         {
-            HashSet<string>? instanceIds = _instancesByBuildplateId.GetOrDefault(buildplateId);
+            var instanceIds = _instancesByBuildplateId.GetValueOrDefault(buildplateId);
             if (instanceIds is not null)
             {
-                foreach (string loopInstanceId in instanceIds)
+                foreach (var loopInstanceId in instanceIds)
                 {
-                    InstanceInfo? instanceInfo = _instances.GetOrDefault(loopInstanceId);
+                    var instanceInfo = _instances.GetValueOrDefault(loopInstanceId);
                     if (instanceInfo is not null && !instanceInfo.ShuttingDown)
                     {
                         if (instanceInfo.Type == type &&
@@ -93,8 +93,8 @@ public sealed class BuildplateInstancesManager
         }
 
         Log.Information("Did not find existing instance, starting new instance");
-        string? instanceId = await _requestSender.RequestAsync("buildplates", "start", Json.Serialize(new StartRequest(playerId, encounterId, buildplateId, night, type, shutdownTime)));
-        if (instanceId is null)
+        string? instanceIdString = await _requestSender.RequestAsync("buildplates", "start", Json.Serialize(new StartRequest(playerId, encounterId, buildplateId, night, type, shutdownTime)));
+        if (!Guid.TryParse(instanceIdString, out var instanceId))
         {
             Log.Error("Buildplate start request was rejected/ignored");
             return null;
@@ -125,11 +125,11 @@ public sealed class BuildplateInstancesManager
         return instanceId;
     }
 
-    public InstanceInfo? GetInstanceInfo(string instanceId)
+    public InstanceInfo? GetInstanceInfo(Guid instanceId)
     {
         lock (_instances)
         {
-            return _instances.GetOrDefault(instanceId, null);
+            return _instances.GetValueOrDefault(instanceId);
         }
     }
 
@@ -182,8 +182,10 @@ public sealed class BuildplateInstancesManager
 
                         lock (_pendingInstances)
                         {
-                            TaskCompletionSource<bool>? completableFuture = _pendingInstances.JavaRemove(startNotification.InstanceId);
-                            completableFuture?.SetResult(true);
+                            if (_pendingInstances.Remove(startNotification.InstanceId, out var completableFuture))
+                            {
+                                completableFuture?.SetResult(true);
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -195,10 +197,15 @@ public sealed class BuildplateInstancesManager
                 break;
             case "ready":
                 {
-                    string instanceId = @event.Data;
+                    if (!Guid.TryParse(@event.Data, out var instanceId))
+                    {
+                        Log.Warning($"Failed to parse instance guid for 'ready': '{@event.Data}'");
+                        break;
+                    }
+
                     lock (_instances)
                     {
-                        InstanceInfo? instanceInfo = _instances.GetOrDefault(instanceId, null);
+                        InstanceInfo? instanceInfo = _instances.GetValueOrDefault(instanceId);
                         if (instanceInfo is not null)
                         {
                             Log.Information($"Buildplate instance {instanceId} is ready");
@@ -220,7 +227,12 @@ public sealed class BuildplateInstancesManager
                 break;
             case "shuttingDown":
                 {
-                    string instanceId = @event.Data;
+                    if (!Guid.TryParse(@event.Data, out var instanceId))
+                    {
+                        Log.Warning($"Failed to parse instance guid for 'shuttingDown': '{@event.Data}'");
+                        break;
+                    }
+
                     lock (_instances)
                     {
                         InstanceInfo? instanceInfo = _instances.GetValueOrDefault(instanceId);
@@ -245,15 +257,19 @@ public sealed class BuildplateInstancesManager
                 break;
             case "stopped":
                 {
-                    string instanceId = @event.Data;
+                    if (!Guid.TryParse(@event.Data, out var instanceId))
+                    {
+                        Log.Warning($"Failed to parse instance guid for 'stopped': '{@event.Data}'");
+                        break;
+                    }
+
                     lock (_instances)
                     {
-                        var instanceInfo = _instances.JavaRemove(instanceId);
-                        if (instanceInfo is not null)
+                        if (_instances.Remove(instanceId, out var instanceInfo))
                         {
                             Log.Information($"Buildplate instance {instanceId} has stopped");
 
-                            var instanceIds = _instancesByBuildplateId.GetOrDefault(instanceInfo.BuildplateId);
+                            var instanceIds = _instancesByBuildplateId.GetValueOrDefault(instanceInfo.BuildplateId);
                             instanceIds?.Remove(instanceInfo.InstanceId);
                         }
                     }
@@ -268,9 +284,9 @@ public sealed class BuildplateInstancesManager
     }
 
     private sealed record StartRequest(
-        string? PlayerId,
-        string? EncounterId,
-        string BuildplateId,
+        Guid? PlayerId,
+        Guid? EncounterId,
+        Guid BuildplateId,
         bool Night,
         InstanceType Type,
         long ShutdownTime
@@ -282,10 +298,10 @@ public sealed class BuildplateInstancesManager
     );
 
     private sealed record StartNotification(
-        string InstanceId,
-        string? PlayerId,
-        string? EncounterId,
-        string BuildplateId,
+        Guid InstanceId,
+        Guid? PlayerId,
+        Guid? EncounterId,
+        Guid BuildplateId,
         string Address,
         int Port,
         InstanceType Type
@@ -306,11 +322,11 @@ public sealed class BuildplateInstancesManager
     public sealed record InstanceInfo(
         InstanceType Type,
 
-        string InstanceId,
+        Guid InstanceId,
 
-        string? PlayerId,
-        string? EncounterId,
-        string BuildplateId,
+        Guid? PlayerId,
+        Guid? EncounterId,
+        Guid BuildplateId,
 
         string Address,
         int Port,

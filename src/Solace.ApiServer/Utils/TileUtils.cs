@@ -1,4 +1,5 @@
-﻿using Serilog;
+﻿using Microsoft.EntityFrameworkCore;
+using Serilog;
 using Solace.Common;
 using Solace.DB;
 using Solace.EventBus.Client;
@@ -8,30 +9,22 @@ namespace Solace.ApiServer.Utils;
 
 internal static class TileUtils
 {
-    private static EarthDB db => Program.DB;
-
-    private static RequestSender? _requestSender;
-
-    public static async Task<bool> TryWriteTile(int tileX, int tileY, Stream dest, CancellationToken cancellationToken)
+    public static async Task<bool> TryWriteTile(int tileX, int tileY, Stream dest, EarthDbContext earthDb, EventBusClient eventBus, ObjectStoreClient objectStore, CancellationToken cancellationToken)
     {
         ulong dbPos = ToDbPos(tileX, tileY);
 
-        var results = await new EarthDB.ObjectQuery(false)
-            .GetTile(dbPos)
-            .ExecuteAsync(db, cancellationToken);
+        var tile = await earthDb.Tiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(tile => tile.Id == dbPos, cancellationToken: cancellationToken);
 
-        string? tileObjectId = results.GetTile(dbPos);
-
-        await using var objectStoreClient = await Program.GetObjectStoreClient();
-
-        if (!string.IsNullOrEmpty(tileObjectId))
+        if (tile is not null)
         {
-            return await TryWriteTileFromObject(tileObjectId, dest, objectStoreClient, cancellationToken);
+            return await TryWriteTileFromObject(tile.ObjectStoreId, dest, objectStore, cancellationToken);
         }
 
         Log.Information("Rendering tile");
-        _requestSender ??= await Program.eventBus.AddRequestSenderAsync();
-        string? tilePng64 = await _requestSender.RequestAsync("tile", "renderTile", Json.Serialize(new RenderTileRequest(tileX, tileY, 16)));
+        await using var requestSender = await eventBus.AddRequestSenderAsync();
+        string? tilePng64 = await requestSender.RequestAsync("tile", "renderTile", Json.Serialize(new RenderTileRequest(tileX, tileY, 16)));
 
         if (tilePng64 is null)
         {
@@ -41,7 +34,7 @@ internal static class TileUtils
 
         byte[] tilePng = Convert.FromBase64String(tilePng64);
 
-        tileObjectId = await objectStoreClient.StoreAsync(tilePng);
+        var tileObjectId = await objectStore.StoreAsync(tilePng);
 
         if (string.IsNullOrEmpty(tileObjectId))
         {
@@ -49,11 +42,16 @@ internal static class TileUtils
             return false;
         }
 
-        Log.Debug($"Stored tile ({tileX}, {tileY}) to object store under id {tileObjectId}");
+        tile = new DB.Models.Global.Tile()
+        {
+            Id = dbPos,
+            ObjectStoreId = tileObjectId,
+        };
 
-        _ = await new EarthDB.ObjectQuery(true)
-            .UpdateTile(dbPos, tileObjectId)
-            .ExecuteAsync(db, cancellationToken);
+        earthDb.Tiles.Add(tile);
+        await earthDb.SaveChangesAsync(cancellationToken);
+
+        Log.Debug($"Stored tile ({tileX}, {tileY}) to object store under id {tileObjectId}");
 
         await dest.WriteAsync(tilePng, cancellationToken);
 

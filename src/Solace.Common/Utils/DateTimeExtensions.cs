@@ -2,6 +2,9 @@
 
 public static class DateTimeExtensions
 {
-    public static long ToUnixTimeMilliseconds(this DateTime dateTime)
-        => new DateTimeOffset(dateTime).ToUnixTimeMilliseconds();
+    extension(DateTime dateTime)
+    {
+        public long ToUnixTimeMilliseconds()
+            => new DateTimeOffset(dateTime).ToUnixTimeMilliseconds();
+    }
 }

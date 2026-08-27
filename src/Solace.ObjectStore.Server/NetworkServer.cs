@@ -170,7 +170,7 @@ public sealed partial class NetworkServer : IDisposable
 
     private static bool ValidateObjectId(string id)
     {
-        if (!GetRegex1().IsMatch(id))
+        if (!GetObjectIdRegex().IsMatch(id))
         {
             return false;
         }
@@ -179,5 +179,5 @@ public sealed partial class NetworkServer : IDisposable
     }
 
     [GeneratedRegex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")]
-    private static partial Regex GetRegex1();
+    private static partial Regex GetObjectIdRegex();
 }

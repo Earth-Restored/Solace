@@ -1,47 +1,44 @@
 ﻿<html>
+
 <head>
-    <title>Login</title>
-    <script src="/js/jquery-3.6.3.min.js"></script>
+  <title>Login</title>
+  <script src="/js/jquery-3.6.3.min.js"></script>
 </head>
+
 <body>
-    <h1>Login</h1>
-    <p>Please enter your existing password and press the button below to refresh your user token.</p>
-    <form id="loginForm">
-        <input id="username" type="text" /><br />
-        <input id="password" type="password" /><br />
-        <input type="submit" />
-    </form>
-    <script>$(document).ready(() => {
-          const params = window.location.href.split('?', 2)[1].split('&').map(param => {
-            const parts = param.split('=')
-            return [parts[0], decodeURIComponent(parts[1])]
-          }).reduce((params, param) => {
-            params[param[0]] = param[1]
-            return params
-          }, {})
+  <h1>Login</h1>
+  <p>Please enter your existing password and press the button below to refresh your user token.</p>
+  <form id="loginForm">
+    <input id="username" type="text" /><br />
+    <input id="password" type="password" /><br />
+    <input type="submit" />
+  </form>
+  <script>$(document).ready(() => {
+      const urlParams = new URLSearchParams(window.location.search);
 
-          const username = params['username']
-          const userToken = params['userToken']
+      const username = urlParams.get('username');
+      const userToken = urlParams.get('userToken');
 
-          $('#username').val(username).prop('disabled', true)
+      $('#username').val(username).prop('disabled', true)
 
-          $('#loginForm').submit(() => {
-            $.post('./reauthenticate', { userToken: userToken, password: $('#password').val() }).then(response => {
-              external.Property('DAToken', `<EncryptedData xmlns=\"http://www.w3.org/2001/04/xmlenc#\" Id=\"BinaryDAToken0\"><CipherData><CipherValue>${response.token}</CipherValue></CipherData></EncryptedData>`)
-              external.Property('DAStartTime', response.tokenIssuedAt)
-              external.Property('DAExpires', response.tokenExpires)
-              external.Property('DASessionKey', response.sessionKey)
-              external.Property('FirstName', response.username)
-              external.Property('LastName', response.username)
-              external.Property('SigninName', response.username)
-              external.Property('Username', response.username)
-              external.Property('CID', response.userId)
-              external.Property('PUID', response.userId)
-              external.FinalNext()
-            })
+      $('#loginForm').submit(() => {
+        $.post('./reauthenticate', { userToken: userToken, password: $('#password').val() }).then(response => {
+          external.Property('DAToken', `<EncryptedData xmlns=\"http://www.w3.org/2001/04/xmlenc#\" Id=\"BinaryDAToken0\"><CipherData><CipherValue>${response.token}</CipherValue></CipherData></EncryptedData>`)
+          external.Property('DAStartTime', response.tokenIssuedAt)
+          external.Property('DAExpires', response.tokenExpires)
+          external.Property('DASessionKey', response.sessionKey)
+          external.Property('FirstName', response.firstName)
+          external.Property('LastName', response.lastName)
+          external.Property('SigninName', response.username)
+          external.Property('Username', response.username)
+          external.Property('CID', response.userId)
+          external.Property('PUID', response.userId)
+          external.FinalNext()
+        })
 
-            return false
-          })
-        })</script>
+        return false
+      })
+    })</script>
 </body>
+
 </html>

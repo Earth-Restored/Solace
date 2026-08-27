@@ -1,5 +1,7 @@
 ﻿using System.IO.Compression;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Serilog;
 using Solace.Common;
 using Solace.Common.Utils;
@@ -15,6 +17,8 @@ public sealed record WorldData(
     bool Night
 )
 {
+    public const string MetadataFileName = "buildplate_metadata.json";
+
     public static async Task<WorldData?> LoadFromZipAsync(Stream stream, ILogger logger, CancellationToken cancellationToken = default)
     {
         Dictionary<string, byte[]> worldFileContents = [];
@@ -32,7 +36,7 @@ public sealed record WorldData(
 
                     var entryPath = entry.FullName.AsSpan().Trim(['/', '\\']);
 
-                    if (entryPath is not "buildplate_metadata.json")
+                    if (entryPath is not MetadataFileName)
                     {
                         // must be allocated here because of await
 #pragma warning disable CA2014 // Do not use stackalloc in loops
@@ -109,7 +113,7 @@ public sealed record WorldData(
             return null;
         }
 
-        byte[]? buildplateMetadataFileData = worldFileContents.GetValueOrDefault("buildplate_metadata.json");
+        byte[]? buildplateMetadataFileData = worldFileContents.GetValueOrDefault(MetadataFileName);
         string? buildplateMetadataString = buildplateMetadataFileData is not null
             ? Encoding.UTF8.GetString(buildplateMetadataFileData)
             : null;
@@ -128,7 +132,7 @@ public sealed record WorldData(
         {
             if (buildplateMetadataString is null)
             {
-                logger.Warning("World file does not contain buildplate_metadata.json, using default values");
+                logger.Warning($"World file does not contain {MetadataFileName}, using default values");
                 size = 16;
                 offset = 63;
                 night = false;
@@ -182,5 +186,33 @@ public sealed record WorldData(
         }
 
         return new WorldData(serverData, size, offset, night);
+    }
+
+    public static void WriteMetadata(Stream stream, BuildplateMetadataV1 data, JsonSerializerOptions? options = null)
+    {
+        var versionData = new BuildplateMetadataVersion(1);
+
+        var versionNode = JsonSerializer.SerializeToNode(versionData, options) as JsonObject;
+        var v1Node = JsonSerializer.SerializeToNode(data, options) as JsonObject;
+
+        if (versionNode is null || v1Node is null)
+        {
+            throw new InvalidOperationException("Failed to serialize metadata records to JsonNodes.");
+        }
+
+        var combinedObject = new JsonObject();
+
+        foreach (var property in versionNode)
+        {
+            combinedObject.Add(property.Key, property.Value?.DeepClone());
+        }
+
+        foreach (var property in v1Node)
+        {
+            combinedObject.Add(property.Key, property.Value?.DeepClone());
+        }
+
+        using var writer = new Utf8JsonWriter(stream);
+        combinedObject.WriteTo(writer, options);
     }
 }

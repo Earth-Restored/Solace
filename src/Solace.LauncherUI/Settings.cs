@@ -29,6 +29,8 @@ public sealed class Settings
         SkipFileChecks = false,
         StaticDataPath = "../staticdata",
         LauncherBuildplatePreview = false,
+        OnlyAllowLocalLogin = false,
+        BuildplateBasePort = 19132,
     };
 
     public static Settings Instance { get; set; } = Default;
@@ -51,9 +53,13 @@ public sealed class Settings
     public bool? GeneratePreviewOnImport { get; set; } // TODO: is this really needed?
     public bool? SkipFileChecks { get; set; }
 
-    public string? StaticDataPath {get;set;}
+    public string? StaticDataPath { get; set; }
 
     public bool? LauncherBuildplatePreview { get; set; }
+
+    public bool? OnlyAllowLocalLogin { get; set; }
+
+    public int? BuildplateBasePort { get; set; }
 
     public enum TileDataSourceE
     {
@@ -185,6 +191,18 @@ public sealed class Settings
         {
             Log.Warning($"StaticData path is invalid, using default: '{Default.StaticDataPath}'");
             settings.StaticDataPath = Default.StaticDataPath;
+        }
+
+        if (settings.OnlyAllowLocalLogin is null)
+        {
+            Log.Warning($"OnlyAllowLocalLogin is invalid, using default: '{Default.OnlyAllowLocalLogin}'");
+            settings.OnlyAllowLocalLogin = Default.OnlyAllowLocalLogin;
+        }
+
+        if (settings.BuildplateBasePort is null)
+        {
+            Log.Warning($"Buildplate base port is invalid, using default: '{Default.BuildplateBasePort}'");
+            settings.BuildplateBasePort = Default.BuildplateBasePort;
         }
 
         Log.Information("Loaded settings");

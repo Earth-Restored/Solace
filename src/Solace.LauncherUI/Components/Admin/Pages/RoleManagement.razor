@@ -39,7 +39,7 @@
                     <tbody>
                         @foreach (var role in _roles.OrderBy(r => r.Position))
                         {
-                            var canManage = role.Position > _userMinPosition && !role.IsBuiltIn;
+                            var canManage = role.Position > _userMinPosition && (!role.IsBuiltIn || role.Name == ApplicationRole.Default);
                             <tr style="border-left: 5px solid @role.Color">
                                 <td>@role.Position</td>
                                 <td>
@@ -47,7 +47,11 @@
                                 </td>
                                 <td>
                                     <strong>@role.Name</strong>
-                                    @if (role.IsBuiltIn)
+                                    @if (role.Name == ApplicationRole.Default)
+                                    {
+                                        <span class="badge bg-info text-dark ms-2">Default</span>
+                                    }
+                                    else if (role.IsBuiltIn)
                                     {
                                         <span class="badge bg-secondary ms-2">System</span>
                                     }
@@ -68,7 +72,7 @@
         <div class="d-md-none">
             @foreach (var role in _roles.OrderBy(r => r.Position))
             {
-                var canManage = role.Position > _userMinPosition && !role.IsBuiltIn;
+                var canManage = role.Position > _userMinPosition && (!role.IsBuiltIn || role.Name == ApplicationRole.Default);
 
                 <div class="card mb-3 shadow-sm border-0" style="border-left: 5px solid @role.Color">
                     <div class="card-body">
@@ -131,12 +135,12 @@
 
                     <div class="mb-3">
                         <label class="form-label">Role Name</label>
-                        <input class="form-control" @bind="_model.Name" disabled="@(_model.IsReadOnly)" />
+                        <input class="form-control" @bind="_model.Name" disabled="@(!_model.CanEditMetadata)" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Role Color</label>
                         <input type="color" class="form-control form-control-color" @bind="_model.Color"
-                               disabled="@_model.IsReadOnly" />
+                               disabled="@(!_model.CanEditMetadata)" />
                     </div>
 
                     <h6>Permissions</h6>
@@ -271,7 +275,13 @@
 
     private void PrepareCreate()
     {
-        _model = new RoleEditModel { Color = "#99AAB5", Position = RoleManager.Roles.Count(), };
+        _model = new RoleEditModel
+        {
+            Color = "#99AAB5",
+            Position = RoleManager.Roles.Count(),
+            CanEditMetadata = true,
+            IsReadOnly = false
+        };
         _modelPermissions.Clear();
         _isEditing = true;
     }
@@ -280,7 +290,9 @@
     {
         _errorMessage = null;
 
-        var canEdit = role.Position > _userMinPosition && !role.IsBuiltIn;
+        var isDefaultRole = role.Name == ApplicationRole.Default;
+        var canEditPermissions = role.Position > _userMinPosition && (!role.IsBuiltIn || isDefaultRole);
+        var canEditMetadata = !role.IsBuiltIn;
 
         _model = new RoleEditModel
         {
@@ -288,7 +300,8 @@
             Name = role.Name!,
             Color = role.Color,
             Position = role.Position,
-            IsReadOnly = !canEdit,
+            IsReadOnly = !canEditPermissions,
+            CanEditMetadata = canEditMetadata
         };
 
         var claims = await RoleManager.GetClaimsAsync(role);
@@ -319,12 +332,15 @@
         else
         {
             role = (await RoleManager.FindByIdAsync(_model.Id))!;
-            if (!string.IsNullOrWhiteSpace(_model.Name))
+            if (_model.CanEditMetadata && !string.IsNullOrWhiteSpace(_model.Name))
             {
                 role.Name = _model.Name.Trim();
             }
 
-            role.Color = _model.Color;
+            if (_model.CanEditMetadata)
+            {
+                role.Color = _model.Color;
+            }
         }
 
         var existingRole = await RoleManager.FindByNameAsync(role.Name!);
@@ -372,7 +388,7 @@
 
     private async Task MoveDown(ApplicationRole role)
     {
-        if (role.Position >= _roles.Count - 1 || role.Position <= _userMinPosition || role.IsBuiltIn)
+        if (role.Position >= _roles.Count - 2 || role.Position <= _userMinPosition || role.IsBuiltIn)
         {
             return;
         }
@@ -449,8 +465,19 @@
 
     private void TogglePermission(string perm, object? checkedValue)
     {
-        if (checkedValue is null ? false : (bool)checkedValue) _modelPermissions.Add(perm);
-        else _modelPermissions.Remove(perm);
+        if (_model.IsReadOnly)
+        {
+            return;
+        }
+
+        if (checkedValue is null ? false : (bool)checkedValue)
+        {
+            _modelPermissions.Add(perm);
+        }
+        else
+        {
+            _modelPermissions.Remove(perm);
+        }
     }
 
     private void ToggleDescription(string permName)
@@ -516,7 +543,7 @@
             @(canManage ? "Edit" : "View")
         </button>
 
-        @if (canManage)
+        @if (canManage && !role.IsBuiltIn)
         {
             <button class="btn btn-sm btn-outline-danger" @onclick="() => ConfirmDelete(role)">Delete</button>
             if (role.Position > 0 && role.Position > _userMinPosition + 1)
@@ -524,7 +551,8 @@
                 <button class="btn btn-sm btn-light" @onclick="() => MoveUp(role)">▲</button>
             }
 
-            if (role.Position < _roles.Count - 1)
+            // don't allow moving to the everyone role
+            if (role.Position < _roles.Count - 2)
             {
                 <button class="btn btn-sm btn-light" @onclick="() => MoveDown(role)">▼</button>
             }
@@ -542,5 +570,7 @@
         public int Position { get; set; }
 
         public bool IsReadOnly { get; set; }
+
+        public bool CanEditMetadata { get; set; }
     }
 }

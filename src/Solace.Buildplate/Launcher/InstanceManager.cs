@@ -29,19 +29,19 @@ public sealed class InstanceManager
     }
 
     private sealed record StartRequest(
-        string? PlayerId,
-        string? EncounterId,
-        string BuildplateId,
+        Guid? PlayerId,
+        Guid? EncounterId,
+        Guid BuildplateId,
         bool Night,
         InstanceType Type,
         long ShutdownTime
     );
 
     private sealed record StartNotification(
-        string InstanceId,
-        string? PlayerId,
-        string? EncounterId,
-        string BuildplateId,
+        Guid InstanceId,
+        Guid? PlayerId,
+        Guid? EncounterId,
+        Guid BuildplateId,
         string Address,
         int Port,
         InstanceType Type
@@ -156,7 +156,7 @@ public sealed class InstanceManager
                         return null;
                     }
 
-                    string instanceId = U.RandomUuid().ToString();
+                    var instanceId = Guid.CreateVersion7();
 
                     Log.Information($"Starting buildplate instance {instanceId}");
 
@@ -183,7 +183,7 @@ public sealed class InstanceManager
                         {
                             await instance.WaitForShutdownAsync();
 
-                            instanceManager.SendEventBusMessage("stopped", instance.InstanceId);
+                            instanceManager.SendEventBusMessage("stopped", instance.InstanceId.ToString());
                         }
                         catch (Exception ex)
                         {
@@ -195,7 +195,7 @@ public sealed class InstanceManager
                         instanceManager._lock.Exit();
                     }).Forget();
 
-                    return instanceId;
+                    return instanceId.ToString();
                 }
                 else if (request.Type is "preview")
                 {

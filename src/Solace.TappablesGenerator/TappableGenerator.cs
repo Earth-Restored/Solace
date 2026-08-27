@@ -34,16 +34,18 @@ public class TappableGenerator
     public static long GetMaxTappableLifetime()
         => MAX_DELAY + MAX_DURATION + 30 * 1000;
 
-    public Tappable[] GenerateTappables(int tileX, int tileY, long currentTime)
+    public IEnumerable<Tappable> GenerateTappables(int tileX, int tileY, long currentTime)
     {
         if (_staticData.TappablesConfig.Tappables.Length == 0)
         {
             return [];
         }
 
-        LinkedList<Tappable> tappables = new();
+        int count = _random.Next(MIN_COUNT, MAX_COUNT + 1);
+
+        var tappables = new List<Tappable>(count);
         Span<float> tileBounds = stackalloc float[4];
-        for (int count = _random.Next(MIN_COUNT, MAX_COUNT + 1); count > 0; count--)
+        for (; count > 0; count--)
         {
             long spawnDelay = _random.NextInt64(MIN_DELAY, MAX_DELAY + 1);
             long duration = _random.NextInt64(MIN_DURATION, MAX_DURATION + 1);
@@ -72,18 +74,18 @@ public class TappableGenerator
                 throw new InvalidOperationException();
             }
 
-            LinkedList<Tappable.Item> items = new();
+            var items = new List<Tappable.Item>(dropSet.Items.Length);
 
             foreach (string itemId in dropSet.Items)
             {
                 TappablesConfig.TappableConfig.ItemCount itemCount = tappableConfig.ItemCounts[itemId];
-                items.AddLast(new Tappable.Item(itemId, _random.Next(itemCount.Min, itemCount.Max + 1)));
+                items.Add(new Tappable.Item(itemId, _random.Next(itemCount.Min, itemCount.Max + 1)));
             }
 
-            Tappable.RarityE rarity = Enum.Parse<Tappable.RarityE>(items.Select(item => _staticData.Catalog.ItemsCatalog.GetItem(item.Id)!.Rarity).Max().ToString());
+            var rarity = Tappable.RarityE.FromStaticData(items.Max(item => _staticData.Catalog.ItemsCatalog.GetItem(item.Id)!.Rarity));
 
             var tappable = new Tappable(
-                U.RandomUuid().ToString(),
+                Guid.CreateVersion7(),
                 lat,
                 lon,
                 currentTime + spawnDelay,
@@ -92,10 +94,11 @@ public class TappableGenerator
                 rarity,
                 [.. items]
             );
-            tappables.AddLast(tappable);
+
+            tappables.Add(tappable);
         }
 
-        return [.. tappables];
+        return tappables;
     }
 
     private static void GetTileBounds(int tileX, int tileY, Span<float> dest)

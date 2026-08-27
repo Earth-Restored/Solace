@@ -54,13 +54,13 @@ public class EncounterGenerator
             float lon = _random.NextSingle(tileBounds[2], tileBounds[3]);
 
             var encounter = new Encounter(
-                U.RandomUuid().ToString(),
+                Guid.CreateVersion7(),
                 lat,
                 lon,
                 currentTime + spawnDelay,
                 encounterConfig.Duration * 1000,
                 encounterConfig.Icon,
-                Enum.Parse<Encounter.RarityE>(encounterConfig.Rarity.ToString()),
+                Encounter.RarityE.FromStaticData(encounterConfig.Rarity),
                 encounterConfig.EncounterBuildplateId
             );
 

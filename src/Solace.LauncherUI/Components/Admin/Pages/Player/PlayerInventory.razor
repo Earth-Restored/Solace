@@ -1,0 +1,46 @@
+@page "/Admin/Players/{AccountId:guid}/Inventory"
+@using Serilog
+@using Solace.DB
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@attribute [Authorize(Policy = Permissions.ManagePlayers)]
+@rendermode InteractiveServer
+@inject IDbContextFactory<EarthDbContext> EarthDbFactory
+
+<PageTitle>Player Inventory</PageTitle>
+
+<div class="admin-page-wrapper">
+    <a href="/Admin/Players" class="btn btn-link text-decoration-none p-0 mb-2">
+        <i class="bi bi-arrow-left"></i> Back to Players
+    </a>
+    <div class="d-flex align-items-baseline gap-2">
+        <h2 class="mb-0">
+            <i class="bi bi-bag-fill text-info me-2"></i>
+            Inventory for Player @(string.IsNullOrEmpty(_username) ? $"with id {AccountId}" : $"{_username} (ID: {AccountId})")
+        </h2>
+    </div>
+
+    <PlayerInventoryViewer AccountId="AccountId" IsEditable="true" />
+</div>
+
+@code {
+    [Parameter]
+    public Guid AccountId { get; set; }
+
+    private string? _username;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var earthDb = await EarthDbFactory.CreateDbContextAsync();
+            _username = (await earthDb.Accounts
+                .AsNoTracking()
+                .FirstOrDefaultAsync(account => account.Id == AccountId))?.Username;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to get username for player '{AccountId}'", AccountId);
+        }
+    }
+}

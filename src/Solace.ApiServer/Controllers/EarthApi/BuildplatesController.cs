@@ -18,7 +18,9 @@ using Solace.DB.Models.Global;
 using Solace.DB.Models.Player;
 using Solace.ObjectStore.Client;
 using Solace.StaticData;
-using Buildplates = Solace.DB.Models.Player.Buildplates;
+using LegacyBuildplates = Solace.DB.Models.Player.LegacyBuildplates;
+using Microsoft.EntityFrameworkCore;
+using Solace.DB.Utils;
 
 namespace Solace.ApiServer.Controllers.EarthApi;
 
@@ -27,51 +29,49 @@ namespace Solace.ApiServer.Controllers.EarthApi;
 [Route("1/api/v{version:apiVersion}")]
 internal sealed class BuildplatesController : SolaceControllerBase
 {
-    private static EarthDB earthDB => Program.DB;
-    private static BuildplateInstancesManager buildplateInstancesManager => Program.buildplateInstancesManager;
-    private static Catalog catalog => Program.staticData.Catalog;
-    private static TappablesManager tappablesManager => Program.tappablesManager;
+    private readonly EarthDbContext _earthDB;
+    private readonly BuildplateInstancesManager _buildplateInstancesManager;
+    private readonly Catalog _catalog;
+    private readonly TappablesManager _tappablesManager;
+    private readonly ObjectStoreClient _objectStore;
+
+    public BuildplatesController(EarthDbContext earthDB, BuildplateInstancesManager buildplateInstancesManager, StaticData.StaticData staticData, TappablesManager tappablesManager, ObjectStoreClient objectStore)
+    {
+        _earthDB = earthDB;
+        _buildplateInstancesManager = buildplateInstancesManager;
+        _catalog = staticData.Catalog;
+        _tappablesManager = tappablesManager;
+        _objectStore = objectStore;
+    }
 
     [HttpGet("buildplates")]
-    public async Task<Results<ContentHttpResult, BadRequest>> GetBuildplates(CancellationToken cancellationToken)
+    public async Task<Results<ContentHttpResult, BadRequest>> GetBuildplates()
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId))
+        if (!TryGetAccountId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
 
-        Buildplates buildplatesModel;
-        try
-        {
-            EarthDB.Results results = await new EarthDB.Query(false)
-                .Get("buildplates", playerId, typeof(Buildplates))
-                .ExecuteAsync(earthDB, cancellationToken);
-            buildplatesModel = results.Get<Buildplates>("buildplates");
-        }
-        catch (EarthDB.DatabaseException ex)
-        {
-            throw new ServerErrorException(ex);
-        }
+        var buildplates = _earthDB.PlayerBuildplates
+            .AsNoTracking()
+            .Where(buildplate => buildplate.AccountId == accountId);
 
-        await using var objectStoreClient = await Program.GetObjectStoreClient();
-
-        OwnedBuildplate[] ownedBuildplates = await Task.WhenAll(buildplatesModel.GetBuildplates().Select(async buildplateEntry =>
+        OwnedBuildplate[] ownedBuildplates = await Task.WhenAll(buildplates.AsEnumerable().Select(async buildplate =>
         {
-            byte[]? previewData = await objectStoreClient.GetAsync(buildplateEntry.Buildplate.PreviewObjectId);
+            byte[]? previewData = await _objectStore.GetAsync(buildplate.PreviewObjectId);
             if (previewData is null)
             {
-                Log.Error($"Preview object {buildplateEntry.Buildplate.PreviewObjectId} for buildplate {buildplateEntry.Id} could not be loaded from object store");
+                Log.Error($"Preview object {buildplate.PreviewObjectId} for buildplate {buildplate.Id} could not be loaded from object store");
                 return null!;
             }
 
             string model = Encoding.ASCII.GetString(previewData);
             return new OwnedBuildplate(
-                buildplateEntry.Id,
+                buildplate.Id.ToString(),
                 "00000000-0000-0000-0000-000000000000",
-                new Dimension(buildplateEntry.Buildplate.Size, buildplateEntry.Buildplate.Size),
-                new Offset(0, buildplateEntry.Buildplate.Offset, 0),
-                buildplateEntry.Buildplate.Scale,
+                new Dimension(buildplate.Size, buildplate.Size),
+                new Offset(0, buildplate.Offset, 0),
+                buildplate.Scale,
                 OwnedBuildplate.TypeE.SURVIVAL,
                 SurfaceOrientation.HORIZONTAL,
                 model,
@@ -79,7 +79,7 @@ internal sealed class BuildplatesController : SolaceControllerBase
                 false,    // TODO
                 0,    // TODO
                 false,    // TODO
-                TimeFormatter.FormatTime(buildplateEntry.Buildplate.LastModified),
+                TimeFormatter.FormatTime(buildplate.LastModified),
                 0,    // TODO
                 ""
             );
@@ -89,106 +89,101 @@ internal sealed class BuildplatesController : SolaceControllerBase
     }
 
     [HttpPost("multiplayer/buildplate/{buildplateId}/instances")]
-    public async Task<Results<ContentHttpResult, InternalServerError, NotFound, BadRequest>> CreateBuildInstance(string buildplateId, CancellationToken cancellationToken)
+    public async Task<Results<ContentHttpResult, InternalServerError, NotFound, BadRequest>> CreateBuildInstance(Guid buildplateId, CancellationToken cancellationToken)
     {
+        if (!TryGetAccountId(out var accountId))
+        {
+            return TypedResults.BadRequest();
+        }
+
         // TODO: coordinates etc.
 
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return string.IsNullOrEmpty(playerId)
-            ? TypedResults.BadRequest()
-            : await GetNewBuildplateInstanceResponse(playerId, buildplateId, BuildplateInstancesManager.InstanceType.BUILD, cancellationToken);
+        return await GetNewBuildplateInstanceResponse(accountId, buildplateId, BuildplateInstancesManager.InstanceType.BUILD, cancellationToken);
     }
 
     [HttpPost("multiplayer/buildplate/{buildplateId}/play/instances")]
-    public async Task<Results<ContentHttpResult, InternalServerError, NotFound, BadRequest>> CreatePlayInstance(string buildplateId, CancellationToken cancellationToken)
+    public async Task<Results<ContentHttpResult, InternalServerError, NotFound, BadRequest>> CreatePlayInstance(Guid buildplateId, CancellationToken cancellationToken)
     {
+        if (!TryGetAccountId(out var accountId))
+        {
+            return TypedResults.BadRequest();
+        }
+
         // TODO: coordinates etc.
 
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return string.IsNullOrEmpty(playerId)
-            ? TypedResults.BadRequest()
-            : await GetNewBuildplateInstanceResponse(playerId, buildplateId, BuildplateInstancesManager.InstanceType.PLAY, cancellationToken);
+        return await GetNewBuildplateInstanceResponse(accountId, buildplateId, BuildplateInstancesManager.InstanceType.PLAY, cancellationToken);
     }
 
     [HttpPost("buildplates/{buildplateId}/share")]
-    public async Task<Results<ContentHttpResult, BadRequest, NotFound, InternalServerError>> ShareBuildplate(string buildplateId, CancellationToken cancellationToken)
+    public async Task<Results<ContentHttpResult, BadRequest, NotFound, InternalServerError>> ShareBuildplate(Guid buildplateId, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId))
+        if (!TryGetAccountId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
 
         long requestStartedOn = HttpContext.GetTimestamp();
 
-        DB.Models.Player.Inventory inventory;
-        Hotbar hotbar;
-        Buildplates.Buildplate? buildplate;
-        try
-        {
-            EarthDB.Results results = await new EarthDB.Query(false)
-                .Get("inventory", playerId, typeof(DB.Models.Player.Inventory))
-                .Get("hotbar", playerId, typeof(Hotbar))
-                .Get("buildplates", playerId, typeof(Buildplates))
-                .ExecuteAsync(earthDB, cancellationToken);
-
-            inventory = results.Get<DB.Models.Player.Inventory>("inventory");
-            hotbar = results.Get<Hotbar>("hotbar");
-            buildplate = results.Get<Buildplates>("buildplates").GetBuildplate(buildplateId);
-        }
-        catch (EarthDB.DatabaseException exception)
-        {
-            throw new ServerErrorException(exception);
-        }
+        var buildplate = await _earthDB.PlayerBuildplates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId && buildplate.AccountId == accountId, cancellationToken: cancellationToken);
 
         if (buildplate is null)
         {
             return TypedResults.NotFound();
         }
 
-        await using var objectStoreClient = await Program.GetObjectStoreClient();
+        var inventory = await _earthDB.Inventories
+            .AsNoTracking()
+            .FirstOrNewAsync(inventory => inventory.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
 
-        byte[]? serverData = await objectStoreClient.GetAsync(buildplate.ServerDataObjectId);
+        var hotbar = await _earthDB.Hotbars
+            .AsNoTracking()
+            .FirstOrNewAsync(hotbar => hotbar.Id == accountId, trackNew: false, cancellationToken: cancellationToken);
+
+        byte[]? serverData = await _objectStore.GetAsync(buildplate.ServerDataObjectId);
         if (serverData is null)
         {
             Log.Error($"Data object {buildplate.ServerDataObjectId} for buildplate {buildplateId} could not be loaded from object store");
             return TypedResults.InternalServerError();
         }
 
-        string? sharedBuildplateServerDataObjectId = await objectStoreClient.StoreAsync(serverData);
+        string? sharedBuildplateServerDataObjectId = await _objectStore.StoreAsync(serverData);
         if (sharedBuildplateServerDataObjectId is null)
         {
             Log.Error("Could not store data object for shared buildplate in object store");
             return TypedResults.InternalServerError();
         }
 
-        string sharedBuildplateId = U.RandomUuid().ToString();
-        var sharedBuildplate = new SharedBuildplates.SharedBuildplate(
-            playerId,
-            buildplate.Size,
-            buildplate.Offset,
-            buildplate.Scale,
-            buildplate.Night,
-            requestStartedOn,
-            buildplate.LastModified,
-            sharedBuildplateServerDataObjectId
-        );
+        var sharedBuildplate = new SharedBuildplateEF()
+        {
+            AccountId = accountId,
+            Size = buildplate.Size,
+            Offset = buildplate.Offset,
+            Scale = buildplate.Scale,
+            Night = buildplate.Night,
+            Created = requestStartedOn,
+            BuildplateLastModifed = buildplate.LastModified,
+            ServerDataObjectId = sharedBuildplateServerDataObjectId,
+            LastViewed = requestStartedOn,
+            NumberOfTimesViewed = 0,
+        };
 
         for (int index = 0; index < 7; index++)
         {
-            Hotbar.Item? item = hotbar.Items[index];
-            SharedBuildplates.SharedBuildplate.HotbarItem? sharedBuildplateHotbarItem;
+            var item = hotbar.Items[index];
+            SharedBuildplateEF.HotbarItem? sharedBuildplateHotbarItem;
             if (item is null)
             {
                 sharedBuildplateHotbarItem = null;
             }
             else if (item.InstanceId is null)
             {
-                sharedBuildplateHotbarItem = new SharedBuildplates.SharedBuildplate.HotbarItem(item.Uuid, item.Count, null, 0);
+                sharedBuildplateHotbarItem = new SharedBuildplateEF.HotbarItem(item.Uuid, item.Count, null, 0);
             }
             else
             {
-                sharedBuildplateHotbarItem = new SharedBuildplates.SharedBuildplate.HotbarItem(item.Uuid, 1, item.InstanceId, inventory.GetItemInstance(item.Uuid, item.InstanceId)?.Wear ?? 0);
+                sharedBuildplateHotbarItem = new SharedBuildplateEF.HotbarItem(item.Uuid, 1, item.InstanceId, inventory.GetItemInstance(item.Uuid, item.InstanceId)?.Wear ?? 0);
             }
 
             sharedBuildplate.Hotbar[index] = sharedBuildplateHotbarItem;
@@ -196,66 +191,44 @@ internal sealed class BuildplatesController : SolaceControllerBase
 
         try
         {
-            EarthDB.Results results = await new EarthDB.Query(true)
-                .Get("sharedBuildplates", "", typeof(SharedBuildplates))
-                .Then(results1 =>
-                {
-                    SharedBuildplates sharedBuildplates = results1.Get<SharedBuildplates>("sharedBuildplates");
-
-                    sharedBuildplates.AddSharedBuildplate(sharedBuildplateId, sharedBuildplate);
-
-                    return new EarthDB.Query(true)
-                        .Update("sharedBuildplates", "", sharedBuildplates);
-                })
-                .ExecuteAsync(earthDB, cancellationToken);
+            _earthDB.SharedBuildplates.Add(sharedBuildplate);
+            await _earthDB.SaveChangesAsync(cancellationToken);
         }
-        catch (EarthDB.DatabaseException exception)
+        catch (Exception ex)
         {
-            await objectStoreClient.DeleteAsync(sharedBuildplateServerDataObjectId);
-            throw new ServerErrorException(exception);
+            Log.Error(ex, $"Failed to store shared buildplate: {ex.Message}");
+            await _objectStore.DeleteAsync(sharedBuildplateServerDataObjectId);
+            return TypedResults.InternalServerError();
         }
 
-        return EarthJson($"minecraftearth://sharedbuildplate?id={sharedBuildplateId}");
+        return EarthJson($"minecraftearth://sharedbuildplate?id={sharedBuildplate.Id}");
     }
 
     [HttpGet("buildplates/shared/{sharedBuildplateId}")]
-    public async Task<Results<ContentHttpResult, BadRequest, NotFound, InternalServerError>> GetSharedBuildplate(string sharedBuildplateId, CancellationToken cancellationToken)
+    public async Task<Results<ContentHttpResult, BadRequest, NotFound, InternalServerError>> GetSharedBuildplate(Guid sharedBuildplateId, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId))
+        if (!TryGetAccountId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
 
-        SharedBuildplates.SharedBuildplate? sharedBuildplate;
-        try
-        {
-            EarthDB.Results results = await new EarthDB.Query(false)
-                    .Get("sharedBuildplates", "", typeof(SharedBuildplates))
-                        .ExecuteAsync(earthDB, cancellationToken);
-            SharedBuildplates sharedBuildplates = results.Get<SharedBuildplates>("sharedBuildplates");
-            sharedBuildplate = sharedBuildplates.GetSharedBuildplate(sharedBuildplateId);
-        }
-        catch (EarthDB.DatabaseException exception)
-        {
-            throw new ServerErrorException(exception);
-        }
+        var sharedBuildplate = await _earthDB.SharedBuildplates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(sharedBuildplate => sharedBuildplate.Id == sharedBuildplateId, cancellationToken: cancellationToken);
 
         if (sharedBuildplate is null)
         {
             return TypedResults.NotFound();
         }
-        
-        await using var objectStoreClient = await Program.GetObjectStoreClient();
 
-        byte[]? serverData = await objectStoreClient.GetAsync(sharedBuildplate.ServerDataObjectId);
+        byte[]? serverData = await _objectStore.GetAsync(sharedBuildplate.ServerDataObjectId);
         if (serverData is null)
         {
             Log.Error($"Data object {sharedBuildplate.ServerDataObjectId} for shared buildplate {sharedBuildplateId} could not be loaded from object store");
             return TypedResults.InternalServerError();
         }
 
-        string? preview = await buildplateInstancesManager.GetBuildplatePreviewAsync(serverData, sharedBuildplate.Night);
+        string? preview = await _buildplateInstancesManager.GetBuildplatePreviewAsync(serverData, sharedBuildplate.Night);
         if (preview is null)
         {
             Log.Error("Could not get preview for buildplate");
@@ -263,7 +236,7 @@ internal sealed class BuildplatesController : SolaceControllerBase
         }
 
         return EarthJson(new SharedBuildplate(
-            sharedBuildplate.PlayerId,    // TODO: supposed to return username here, not player ID
+            sharedBuildplate.AccountId.ToString(),    // TODO: supposed to return username here, not player ID
             TimeFormatter.FormatTime(sharedBuildplate.Created),
             new SharedBuildplate.BuildplateDataR(
                 new Dimension(sharedBuildplate.Size, sharedBuildplate.Size),
@@ -279,7 +252,7 @@ internal sealed class BuildplatesController : SolaceControllerBase
                     item.Uuid,
                     item.Count,
                     item.InstanceId,
-                    item.InstanceId is not null ? ItemWear.WearToHealth(item.Uuid, item.Wear, catalog.ItemsCatalog) : 0.0f
+                    item.InstanceId is not null ? ItemWear.WearToHealth(item.Uuid, item.Wear, _catalog.ItemsCatalog) : 0.0f
                 ) : null)],
                 [.. sharedBuildplate.Hotbar
                     .Where(item => item is not null && item.InstanceId is null)
@@ -310,10 +283,9 @@ internal sealed class BuildplatesController : SolaceControllerBase
     }
 
     [HttpPost("multiplayer/buildplate/shared/{sharedBuildplateId}/play/instances")]
-    public async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> GetSharedBuildplateInstance(string sharedBuildplateId, CancellationToken cancellationToken)
+    public async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> GetSharedBuildplateInstance(Guid sharedBuildplateId, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId))
+        if (!TryGetAccountId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
@@ -322,7 +294,7 @@ internal sealed class BuildplatesController : SolaceControllerBase
 
         SharedBuildplateInstanceRequest sharedBuildplateInstanceRequest = (await Request.Body.AsJsonAsync<SharedBuildplateInstanceRequest>(cancellationToken))!;
 
-        return await GetNewSharedBuildplateInstanceResponse(playerId, sharedBuildplateId, sharedBuildplateInstanceRequest.FullSize ? BuildplateInstancesManager.InstanceType.SHARED_PLAY : BuildplateInstancesManager.InstanceType.SHARED_BUILD, cancellationToken);
+        return await GetNewSharedBuildplateInstanceResponse(accountId, sharedBuildplateId, sharedBuildplateInstanceRequest.FullSize ? BuildplateInstancesManager.InstanceType.SHARED_PLAY : BuildplateInstancesManager.InstanceType.SHARED_BUILD, cancellationToken);
     }
 
     private sealed record EncounterInstanceRequest(
@@ -330,10 +302,9 @@ internal sealed class BuildplatesController : SolaceControllerBase
     );
 
     [HttpPost("multiplayer/encounters/{encounterId}/instances")]
-    public async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> CreateEncounterInstance(string encounterId, CancellationToken cancellationToken)
+    public async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> CreateEncounterInstance(Guid encounterId, CancellationToken cancellationToken)
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId))
+        if (!TryGetAccountId(out _))
         {
             return TypedResults.BadRequest();
         }
@@ -342,39 +313,29 @@ internal sealed class BuildplatesController : SolaceControllerBase
 
         return encounterInstanceRequest is null
             ? TypedResults.BadRequest()
-            : await GetNewEncounterBuildplateInstanceResponse(encounterId, encounterInstanceRequest.TileId, tappablesManager, cancellationToken);
+            : await GetNewEncounterBuildplateInstanceResponse(encounterId, encounterInstanceRequest.TileId, _tappablesManager, cancellationToken);
     }
 
     // TODO: should we restrict this to matching player ID?
     [HttpGet("multiplayer/partitions/{partitionId}/instances/{instanceId}")]
 #pragma warning disable IDE0060 // Remove unused parameter
-    public async Task<Results<ContentHttpResult, BadRequest, NotFound>> GetInstanceStatus(string partitionId, string instanceId, CancellationToken cancellationToken)
+    public async Task<Results<ContentHttpResult, BadRequest, NotFound>> GetInstanceStatus(Guid partitionId, Guid instanceId, CancellationToken cancellationToken)
 #pragma warning restore IDE0060 // Remove unused parameter
     {
-        string? playerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(playerId))
+        if (!TryGetAccountId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
 
-        BuildplateInstancesManager.InstanceInfo? instanceInfo = buildplateInstancesManager.GetInstanceInfo(instanceId);
+        BuildplateInstancesManager.InstanceInfo? instanceInfo = _buildplateInstancesManager.GetInstanceInfo(instanceId);
         if (instanceInfo is null || instanceInfo.ShuttingDown)
         {
             return TypedResults.NotFound();
         }
 
-        Buildplates.Buildplate? buildplate;
-        try
-        {
-            EarthDB.Results results = await new EarthDB.Query(false)
-                    .Get("buildplates", playerId, typeof(Buildplates))
-                    .ExecuteAsync(earthDB, cancellationToken);
-            buildplate = results.Get<Buildplates>("buildplates").GetBuildplate(instanceInfo.BuildplateId);
-        }
-        catch (EarthDB.DatabaseException ex)
-        {
-            throw new ServerErrorException(ex);
-        }
+        var buildplate = await _earthDB.PlayerBuildplates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(buildplate => buildplate.Id == instanceInfo.BuildplateId && buildplate.AccountId == accountId, cancellationToken: cancellationToken);
 
         if (buildplate is null)
         {
@@ -389,7 +350,7 @@ internal sealed class BuildplatesController : SolaceControllerBase
         int waitCount = 0;
         do
         {
-            instanceInfo1 = buildplateInstancesManager.GetInstanceInfo(instanceId);
+            instanceInfo1 = _buildplateInstancesManager.GetInstanceInfo(instanceId);
             if (instanceInfo1 is null || instanceInfo1.ShuttingDown)
             {
                 return TypedResults.NotFound();
@@ -413,41 +374,30 @@ internal sealed class BuildplatesController : SolaceControllerBase
         return EarthJson(buildplateInstance);
     }
 
-    private static async Task<Results<ContentHttpResult, InternalServerError, NotFound, BadRequest>> GetNewBuildplateInstanceResponse(string playerId, string buildplateId, BuildplateInstancesManager.InstanceType type, CancellationToken cancellationToken)
+    private async Task<Results<ContentHttpResult, InternalServerError, NotFound, BadRequest>> GetNewBuildplateInstanceResponse(Guid accountId, Guid buildplateId, BuildplateInstancesManager.InstanceType type, CancellationToken cancellationToken)
     {
-        Buildplates.Buildplate? buildplate;
-        
-        try
-        {
-            EarthDB.Results results = await new EarthDB.Query(false)
-                .Get("buildplates", playerId, typeof(Buildplates))
-                .ExecuteAsync(earthDB, cancellationToken);
-
-            buildplate = results.Get<Buildplates>("buildplates").GetBuildplate(buildplateId);
-        }
-        catch (EarthDB.DatabaseException exception)
-        {
-            throw new ServerErrorException(exception);
-        }
+        var buildplate = await _earthDB.PlayerBuildplates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(buildplate => buildplate.Id == buildplateId, cancellationToken);
 
         if (buildplate is null)
         {
             return TypedResults.NotFound();
         }
 
-        string? instanceId = await buildplateInstancesManager.RequestBuildplateInstance(playerId, null, buildplateId, type, 0, buildplate.Night);
+        var instanceId = await _buildplateInstancesManager.RequestBuildplateInstance(accountId, null, buildplateId, type, 0, buildplate.Night);
         if (instanceId is null)
         {
             return TypedResults.InternalServerError();
         }
 
-        BuildplateInstancesManager.InstanceInfo? instanceInfo = buildplateInstancesManager.GetInstanceInfo(instanceId);
+        var instanceInfo = _buildplateInstancesManager.GetInstanceInfo(instanceId.Value);
         if (instanceInfo is null)
         {
             return TypedResults.InternalServerError();
         }
 
-        BuildplateInstance? buildplateInstance = await InstanceInfoToApiResponse(instanceInfo, cancellationToken);
+        var buildplateInstance = await InstanceInfoToApiResponse(instanceInfo, cancellationToken);
 
         if (buildplateInstance is null)
         {
@@ -457,39 +407,30 @@ internal sealed class BuildplatesController : SolaceControllerBase
         return EarthJson(buildplateInstance);
     }
 
-    private static async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> GetNewSharedBuildplateInstanceResponse(string playerId, string sharedBuildplateId, BuildplateInstancesManager.InstanceType type, CancellationToken cancellationToken)
+    private async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> GetNewSharedBuildplateInstanceResponse(Guid accountId, Guid sharedBuildplateId, BuildplateInstancesManager.InstanceType type, CancellationToken cancellationToken)
     {
-        SharedBuildplates.SharedBuildplate? sharedBuildplate;
-        try
-        {
-            EarthDB.Results results = await new EarthDB.Query(false)
-                .Get("sharedBuildplates", "", typeof(SharedBuildplates))
-                .ExecuteAsync(earthDB, cancellationToken);
-            sharedBuildplate = results.Get<SharedBuildplates>("sharedBuildplates").GetSharedBuildplate(sharedBuildplateId);
-        }
-        catch (EarthDB.DatabaseException exception)
-        {
-            throw new ServerErrorException(exception);
-        }
+        var sharedBuildplate = await _earthDB.SharedBuildplates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(sharedBuildplate => sharedBuildplate.Id == sharedBuildplateId, cancellationToken);
 
         if (sharedBuildplate is null)
         {
             return TypedResults.NotFound();
         }
 
-        string? instanceId = await buildplateInstancesManager.RequestBuildplateInstance(playerId, null, sharedBuildplateId, type, 0, sharedBuildplate.Night);
+        var instanceId = await _buildplateInstancesManager.RequestBuildplateInstance(accountId, null, sharedBuildplateId, type, 0, sharedBuildplate.Night);
         if (instanceId is null)
         {
             return TypedResults.InternalServerError();
         }
 
-        BuildplateInstancesManager.InstanceInfo? instanceInfo = buildplateInstancesManager.GetInstanceInfo(instanceId);
+        var instanceInfo = _buildplateInstancesManager.GetInstanceInfo(instanceId.Value);
         if (instanceInfo is null)
         {
             return TypedResults.InternalServerError();
         }
 
-        BuildplateInstance? buildplateInstance = await InstanceInfoToApiResponse(instanceInfo, cancellationToken);
+        var buildplateInstance = await InstanceInfoToApiResponse(instanceInfo, cancellationToken);
         if (buildplateInstance is null)
         {
             return TypedResults.InternalServerError();
@@ -498,28 +439,28 @@ internal sealed class BuildplatesController : SolaceControllerBase
         return EarthJson(buildplateInstance);
     }
 
-    private static async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> GetNewEncounterBuildplateInstanceResponse(string encounterId, string tileId, TappablesManager tappablesManager, CancellationToken cancellationToken)
+    private async Task<Results<ContentHttpResult, NotFound, BadRequest, InternalServerError>> GetNewEncounterBuildplateInstanceResponse(Guid encounterId, string tileId, TappablesManager tappablesManager, CancellationToken cancellationToken)
     {
-        TappablesManager.Encounter? encounter = tappablesManager.GetEncounterWithId(encounterId, tileId);
+        var encounter = tappablesManager.GetEncounterWithId(encounterId, tileId);
         if (encounter is null)
         {
             return TypedResults.NotFound();
         }
 
-        string? instanceId = await buildplateInstancesManager.RequestBuildplateInstance(null, encounterId, encounter.EncounterBuildplateId, BuildplateInstancesManager.InstanceType.ENCOUNTER, encounter.SpawnTime + encounter.ValidFor, false);
+        var instanceId = await _buildplateInstancesManager.RequestBuildplateInstance(null, encounterId, encounter.EncounterBuildplateId, BuildplateInstancesManager.InstanceType.ENCOUNTER, encounter.SpawnTime + encounter.ValidFor, false);
 
         if (instanceId is null)
         {
             return TypedResults.InternalServerError();
         }
 
-        BuildplateInstancesManager.InstanceInfo? instanceInfo = buildplateInstancesManager.GetInstanceInfo(instanceId);
+        var instanceInfo = _buildplateInstancesManager.GetInstanceInfo(instanceId.Value);
         if (instanceInfo is null)
         {
             return TypedResults.InternalServerError();
         }
 
-        BuildplateInstance? buildplateInstance = await InstanceInfoToApiResponse(instanceInfo, cancellationToken);
+        var buildplateInstance = await InstanceInfoToApiResponse(instanceInfo, cancellationToken);
         if (buildplateInstance is null)
         {
             return TypedResults.InternalServerError();
@@ -536,7 +477,7 @@ internal sealed class BuildplatesController : SolaceControllerBase
         ENCOUNTER
     }
 
-    private static async Task<BuildplateInstance?> InstanceInfoToApiResponse(BuildplateInstancesManager.InstanceInfo instanceInfo, CancellationToken cancellationToken)
+    private async Task<BuildplateInstance?> InstanceInfoToApiResponse(BuildplateInstancesManager.InstanceInfo instanceInfo, CancellationToken cancellationToken)
     {
         var (fullsize, gameplayMode, source) = instanceInfo.Type switch
         {
@@ -557,18 +498,9 @@ internal sealed class BuildplatesController : SolaceControllerBase
                 {
                     Debug.Assert(instanceInfo.PlayerId is not null);
 
-                    Buildplates.Buildplate? buildplate;
-                    try
-                    {
-                        EarthDB.Results results = await new EarthDB.Query(false)
-                            .Get("buildplates", instanceInfo.PlayerId, typeof(Buildplates))
-                            .ExecuteAsync(earthDB, cancellationToken);
-                        buildplate = results.Get<Buildplates>("buildplates").GetBuildplate(instanceInfo.BuildplateId);
-                    }
-                    catch (EarthDB.DatabaseException exception)
-                    {
-                        throw new ServerErrorException(exception);
-                    }
+                    var buildplate = await _earthDB.PlayerBuildplates
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(buildplate => buildplate.Id == instanceInfo.BuildplateId && buildplate.AccountId == instanceInfo.PlayerId, cancellationToken);
 
                     if (buildplate is null)
                     {
@@ -583,18 +515,9 @@ internal sealed class BuildplatesController : SolaceControllerBase
                 break;
             case Source.SHARED:
                 {
-                    SharedBuildplates.SharedBuildplate? sharedBuildplate;
-                    try
-                    {
-                        EarthDB.Results results = await new EarthDB.Query(false)
-                            .Get("sharedBuildplates", "", typeof(SharedBuildplates))
-                            .ExecuteAsync(earthDB, cancellationToken);
-                        sharedBuildplate = results.Get<SharedBuildplates>("sharedBuildplates").GetSharedBuildplate(instanceInfo.BuildplateId);
-                    }
-                    catch (EarthDB.DatabaseException exception)
-                    {
-                        throw new ServerErrorException(exception);
-                    }
+                    var sharedBuildplate = await _earthDB.SharedBuildplates
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(sharedBuildplate => sharedBuildplate.Id == instanceInfo.BuildplateId, cancellationToken);
 
                     if (sharedBuildplate is null)
                     {
@@ -609,28 +532,15 @@ internal sealed class BuildplatesController : SolaceControllerBase
                 break;
             case Source.ENCOUNTER:
                 {
-                    EncounterBuildplates.EncounterBuildplate? encounterBuildplate;
-
-                    try
-                    {
-                        EarthDB.Results results = await new EarthDB.Query(false)
-                            .Get("encounterBuildplates", "", typeof(EncounterBuildplates))
-                            .ExecuteAsync(earthDB, cancellationToken);
-                        encounterBuildplate = results.Get<EncounterBuildplates>("encounterBuildplates").GetEncounterBuildplate(instanceInfo.BuildplateId);
-                    }
-                    catch (EarthDB.DatabaseException exception)
-                    {
-                        throw new ServerErrorException(exception);
-                    }
-
-                    if (encounterBuildplate is null)
+                    BuildplateGeometry? geometry = await GetEncounterBuildplateGeometry(instanceInfo.BuildplateId, cancellationToken);
+                    if (geometry is null)
                     {
                         return null;
                     }
 
-                    size = encounterBuildplate.Size;
-                    offset = encounterBuildplate.Offset;
-                    scale = encounterBuildplate.Scale;
+                    size = geometry.Size;
+                    offset = geometry.Offset;
+                    scale = geometry.Scale;
                 }
 
                 break;
@@ -640,7 +550,7 @@ internal sealed class BuildplatesController : SolaceControllerBase
 
         return new BuildplateInstance(
             instanceInfo.InstanceId,
-            "00000000-0000-0000-0000-000000000000",
+            Guid.Empty,
             "d.projectearth.dev",    // TODO
             instanceInfo.Address,
             instanceInfo.Port,
@@ -653,10 +563,10 @@ internal sealed class BuildplatesController : SolaceControllerBase
             }),
             new BuildplateInstance.GameplayMetadataR(
                 instanceInfo.BuildplateId,
-                "00000000-0000-0000-0000-000000000000",
+                Guid.Empty, // TODO - grab from buildplate
                 instanceInfo.PlayerId,
                 "2020.1217.02",
-                "CK06Yzm2",    // TODO
+                "CK06Yzm2", // TODO
                 new Dimension(size, size),
                 new Offset(0, offset, 0),
                 !fullsize ? scale : 1,
@@ -664,13 +574,33 @@ internal sealed class BuildplatesController : SolaceControllerBase
                 gameplayMode,
                 SurfaceOrientation.HORIZONTAL,
                 null,
-                null,    // TODO
+                null, // TODO
                 []
             ),
             "776932eeeb69",
             //new Coordinate(50.99636722700025f, -0.7234904312500047f)
             new Coordinate(0.0f, 0.0f)    // TODO
         );
+    }
+
+    private sealed record BuildplateGeometry(int Size, int Offset, int Scale);
+
+    private async Task<BuildplateGeometry?> GetEncounterBuildplateGeometry(Guid buildplateId, CancellationToken cancellationToken)
+    {
+        var encounterBuildplate = await _earthDB.EncounterBuildplates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(encounterBuildplate => encounterBuildplate.Id == buildplateId, cancellationToken);
+        if (encounterBuildplate is not null)
+        {
+            return new BuildplateGeometry(encounterBuildplate.Size, encounterBuildplate.Offset, encounterBuildplate.Scale);
+        }
+
+        var templateBuildplate = await _earthDB.TemplateBuildplates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(templateBuildplate => templateBuildplate.Id == buildplateId, cancellationToken);
+        return templateBuildplate is null
+            ? null
+            : new BuildplateGeometry(templateBuildplate.Size, templateBuildplate.Offset, templateBuildplate.Scale);
     }
 
     private sealed record SharedBuildplateInstanceRequest(

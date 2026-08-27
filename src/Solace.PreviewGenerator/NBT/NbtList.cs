@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace Solace.PreviewGenerator.NBT;
 
 #pragma warning disable CA1010 // Generic interface should also be implemented
-public sealed class NbtList : IList
+public sealed class NbtList : IList, IList<object>
 #pragma warning restore CA1010 // Generic interface should also be implemented
 {
     public static readonly NbtList EMPTY = new NbtList(NbtType.End);
@@ -91,4 +91,16 @@ public sealed class NbtList : IList
 
     public IEnumerator GetEnumerator()
         => _array.GetEnumerator();
+
+    void ICollection<object>.Add(object item)
+        => throw new InvalidOperationException();
+
+    public void CopyTo(object[] array, int arrayIndex)
+        => _array.CopyTo(array, arrayIndex);
+
+    bool ICollection<object>.Remove(object item) 
+        => throw new InvalidOperationException();
+
+    IEnumerator<object> IEnumerable<object>.GetEnumerator()
+        => _array.Cast<object>().GetEnumerator();
 }

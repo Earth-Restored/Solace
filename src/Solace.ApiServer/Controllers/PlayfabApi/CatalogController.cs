@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 using Solace.ApiServer.Models.Playfab;
 using Solace.Common.Utils;
 using CItem = Solace.StaticData.Playfab.Item;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Solace.ApiServer.Controllers.PlayfabApi;
 
@@ -23,63 +24,16 @@ internal sealed class CatalogController : SolaceControllerBase
         Converters = { new UtcDateTimeConverter() },
     };
 
-    private static StaticData.StaticData StaticData => Program.staticData;
+    private static volatile Item[]? itemData;
+    private static readonly Lock InitLock = new Lock();
 
-    private static readonly Item[] itemData;
+    private readonly StaticData.StaticData _staticData;
 
-    static CatalogController()
+    public CatalogController(StaticData.StaticData staticData)
     {
-        var brfPrice = new Item.PriceR([
-            new([new("ecd19d3c-7635-402c-a185-eb11cb6c6946", "ecd19d3c-7635-402c-a185-eb11cb6c6946", "ecd19d3c-7635-402c-a185-eb11cb6c6946", 0)]),
-            new([new("0113e233-7637-48e7-91b0-349fdc74713d", "0113e233-7637-48e7-91b0-349fdc74713d", "0113e233-7637-48e7-91b0-349fdc74713d", 0)])
-        ], []);
+        InitItemData(staticData);
 
-        itemData = [
-            // required for shop to load for some reason...
-            new Item(
-                new("B63A0803D3653643", "namespace", "namespace"),
-                new("B63A0803D3653643", "namespace", "namespace"),
-                Guid.Parse("230f5996-04b2-4f0e-83e5-4056c7f1d946"),
-                "bundle",
-                [new("FriendlyId", Guid.Parse("53bee6fe-c9d9-43c9-b3af-4c5438fba4b7"))],
-                null,
-                new() { ["en-US"] = "Bold Rabbit Feet", ["NEUTRAL"] = "Bold Rabbit Feet", ["neutral"] = "Bold Rabbit Feet", },
-                new() { ["en-US"] = "§", ["NEUTRAL"] = "§", ["neutral"] = "§", },
-                new() { ["en-US"] = new(["Animal"]), ["NEUTRAL"] = new(["Animal"]), ["neutral"] = new(["Animal"]), },
-                "PersonaDurable",
-                new("301F442C3B63DC20", "master_player_account", "master_player_account"),
-                new("301F442C3B63DC20", "master_player_account", "master_player_account"),
-                false, // IsStackable
-                ["android.amazonappstore", "android.googleplay",  "b.store",  "ios.store",  "nx.store",  "oculus.store.gearvr", "oculus.store.rift", "uwp.store",  "uwp.store.mobile",  "xboxone.store", "title.bedrockvanilla", "title.earth"],
-                ["230f5996-04b2-4f0e-83e5-4056c7f1d946", "4f7cdadd-a33c-489d-8969-752ca689f567", "is_achievement", "earth_achievement", "tag.animal", "1P"],
-                new(2020, 12, 7, 22, 46, 33, 066, DateTimeKind.Utc),
-                new(2023, 8, 10, 14, 11, 19, 81, DateTimeKind.Utc),
-                null,
-                [new Dictionary<string,object>() {
-                    ["Id"] = "f4a2cf48-45c1-4fda-86d0-9d24c069f0a9",
-                    ["Url"] = "https://xforgeassets001.xboxlive.com/pf-title-b63a0803d3653643-20ca2/f4a2cf48-45c1-4fda-86d0-9d24c069f0a9/primary.zip",
-                    ["MaxClientVersion"] = "65535.65535.65535",
-                    ["MinClientVersion"] = "1.13.0",
-                    ["Tags"] = Array.Empty<string>(),
-                    ["Type"] = "personabinary",
-                }],
-                [new("e7314d2a-8097-48f0-b0e8-039084a22049", "Thumbnail", "Thumbnail", "/playfab/images/shoes_bold_striped_rabbit_thumbnail_0.png")],
-                [new(Guid.Parse("8eb22e2c-db50-4e30-a3d2-0c355e479e74"), 1)],
-                brfPrice,
-                brfPrice,
-                [],
-                Item.DisplayPropertiesR.CreatePersona(
-                    "Minecraft",
-                    0,
-                    true,
-                    "rare",
-                    [new("persona_piece", Guid.Parse("4f7cdadd-a33c-489d-8969-752ca689f567"), "1.1.0"),],
-                    Guid.Parse("53bee6fe-c9d9-43c9-b3af-4c5438fba4b7"),
-                    "persona_feet"
-                )
-            ),
-            .. StaticData.Playfab.Items.Select(item => CIItemToItem(item.Value)),
-        ];
+        _staticData = staticData;
     }
 
     private sealed record CatalogSearchRequest(
@@ -95,6 +49,8 @@ internal sealed class CatalogController : SolaceControllerBase
     [HttpPost("Search")]
     public async Task<Results<ContentHttpResult, BadRequest>> SearchAsync()
     {
+        Debug.Assert(itemData is not null);
+
         var cancellationToken = Request.HttpContext.RequestAborted;
 
         var request = await Request.Body.AsJsonAsync<CatalogSearchRequest>(cancellationToken);
@@ -213,7 +169,7 @@ internal sealed class CatalogController : SolaceControllerBase
             ));
         }
 
-        if (!StaticData.Playfab.Items.TryGetValue(itemId, out var cItem))
+        if (!_staticData.Playfab.Items.TryGetValue(itemId, out var cItem))
         {
             // TODO: fake not found
             return TypedResults.NotFound();
@@ -387,6 +343,74 @@ internal sealed class CatalogController : SolaceControllerBase
         builder.ComplexType<Item.DisplayPropertiesR.Tab.ScreenLayoutQuery.Query>();
 
         return builder.GetEdmModel();
+    }
+
+    [MemberNotNull(nameof(itemData))]
+    private static void InitItemData(StaticData.StaticData staticData)
+    {
+        if (itemData is not null)
+        {
+            return;
+        }
+
+        using var _0 = InitLock.EnterScope();
+
+        if (itemData is not null)
+        {
+            return;
+        }
+
+        var brfPrice = new Item.PriceR([
+            new([new("ecd19d3c-7635-402c-a185-eb11cb6c6946", "ecd19d3c-7635-402c-a185-eb11cb6c6946", "ecd19d3c-7635-402c-a185-eb11cb6c6946", 0)]),
+            new([new("0113e233-7637-48e7-91b0-349fdc74713d", "0113e233-7637-48e7-91b0-349fdc74713d", "0113e233-7637-48e7-91b0-349fdc74713d", 0)])
+        ], []);
+
+        itemData = [
+            // required for shop to load for some reason...
+            new Item(
+                new("B63A0803D3653643", "namespace", "namespace"),
+                new("B63A0803D3653643", "namespace", "namespace"),
+                Guid.Parse("230f5996-04b2-4f0e-83e5-4056c7f1d946"),
+                "bundle",
+                [new("FriendlyId", Guid.Parse("53bee6fe-c9d9-43c9-b3af-4c5438fba4b7"))],
+                null,
+                new() { ["en-US"] = "Bold Rabbit Feet", ["NEUTRAL"] = "Bold Rabbit Feet", ["neutral"] = "Bold Rabbit Feet", },
+                new() { ["en-US"] = "§", ["NEUTRAL"] = "§", ["neutral"] = "§", },
+                new() { ["en-US"] = new(["Animal"]), ["NEUTRAL"] = new(["Animal"]), ["neutral"] = new(["Animal"]), },
+                "PersonaDurable",
+                new("301F442C3B63DC20", "master_player_account", "master_player_account"),
+                new("301F442C3B63DC20", "master_player_account", "master_player_account"),
+                false, // IsStackable
+                ["android.amazonappstore", "android.googleplay",  "b.store",  "ios.store",  "nx.store",  "oculus.store.gearvr", "oculus.store.rift", "uwp.store",  "uwp.store.mobile",  "xboxone.store", "title.bedrockvanilla", "title.earth"],
+                ["230f5996-04b2-4f0e-83e5-4056c7f1d946", "4f7cdadd-a33c-489d-8969-752ca689f567", "is_achievement", "earth_achievement", "tag.animal", "1P"],
+                new(2020, 12, 7, 22, 46, 33, 066, DateTimeKind.Utc),
+                new(2023, 8, 10, 14, 11, 19, 81, DateTimeKind.Utc),
+                null,
+                [new Dictionary<string,object>() {
+                    ["Id"] = "f4a2cf48-45c1-4fda-86d0-9d24c069f0a9",
+                    ["Url"] = "https://xforgeassets001.xboxlive.com/pf-title-b63a0803d3653643-20ca2/f4a2cf48-45c1-4fda-86d0-9d24c069f0a9/primary.zip",
+                    ["MaxClientVersion"] = "65535.65535.65535",
+                    ["MinClientVersion"] = "1.13.0",
+                    ["Tags"] = Array.Empty<string>(),
+                    ["Type"] = "personabinary",
+                }],
+                [new("e7314d2a-8097-48f0-b0e8-039084a22049", "Thumbnail", "Thumbnail", "/playfab/images/shoes_bold_striped_rabbit_thumbnail_0.png")],
+                [new(Guid.Parse("8eb22e2c-db50-4e30-a3d2-0c355e479e74"), 1)],
+                brfPrice,
+                brfPrice,
+                [],
+                Item.DisplayPropertiesR.CreatePersona(
+                    "Minecraft",
+                    0,
+                    true,
+                    "rare",
+                    [new("persona_piece", Guid.Parse("4f7cdadd-a33c-489d-8969-752ca689f567"), "1.1.0"),],
+                    Guid.Parse("53bee6fe-c9d9-43c9-b3af-4c5438fba4b7"),
+                    "persona_feet"
+                )
+            ),
+            .. staticData.Playfab.Items.Select(item => CIItemToItem(item.Value)),
+        ];
     }
 
     private sealed record Item(

@@ -41,7 +41,7 @@ public sealed class Playfab
             ShopNotSearchQueryTags = [.. File.ReadLines(Path.Combine(dir, "shop_not_search_query_tags.txt"))
                 .Where(line => !string.IsNullOrWhiteSpace(line) && line.Length > 0)];
 
-            LinkedList<Item> items = [];
+            List<Item> items = [];
             foreach (string file in Directory.EnumerateFiles(Path.Combine(dir, "items")))
             {
                 if (Path.GetExtension(file) != ".json")
@@ -55,11 +55,11 @@ public sealed class Playfab
 
                     Debug.Assert(item is not null);
 
-                    items.AddLast(item);
+                    items.Add(item);
                 }
             }
 
-            items.AddLast(new Item(
+            items.Add(new Item(
                 true,
                 new Item.QueryManifestData(
                     "0.25.0",

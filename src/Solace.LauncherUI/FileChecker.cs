@@ -28,7 +28,7 @@ internal static class FileChecker
     [
         ("server_jars/buildplate-connector-plugin-{{version}}-SNAPSHOT-jar-with-dependencies.jar", BuildplateLauncher.MinimumBuildplateConnectorPluginVersion),
         ("server_jars/fountain-{{version}}-SNAPSHOT-jar-with-dependencies.jar", BuildplateLauncher.MinimumFountainBridgeVersion),
-        ("server_template_dir/mods/fountain-{{version}}.jar", new Version(0, 0, 1)),
+        ("server_template_dir/mods/fountain-{{version}}.jar", new Version(0, 0, 2)),
         ("server_template_dir/mods/vienna-{{version}}.jar", new Version(0, 0, 1)),
     ];
 
@@ -50,7 +50,7 @@ internal static class FileChecker
         Debug.Assert(added);
     }
 
-    public static async Task<bool> CheckAsync(Settings settings, bool checkImporter, ILogger logger, CancellationToken cancellationToken)
+    public static async Task<bool> CheckAsync(Settings settings, ILogger logger, CancellationToken cancellationToken)
     {
         if (settings.SkipFileChecks is not true)
         {
@@ -133,128 +133,117 @@ internal static class FileChecker
             error = true;
         }
 
-        if (checkImporter)
+        if (!Directory.EnumerateFiles(Path.Combine(Program.StaticDataDir, "server_template_dir", "mods")).Any(path => Path.GetFileName(path).StartsWith("fabric-api", StringComparison.OrdinalIgnoreCase) && path.EndsWith(".jar", StringComparison.OrdinalIgnoreCase)))
         {
-            // todo:
-            // if (!BuildplateImporter.Check(settings, logger))
-            // {
-            //     error = true;
-            // }
+            logger.Warning("Fabric api mod not found, downloading");
+
+            var response = await httpClient.GetAsync("https://cdn.modrinth.com/data/P7dR8mSH/versions/xklQBMta/fabric-api-0.97.0%2B1.20.4.jar", cancellationToken);
+            using (var fs = File.OpenWriteNew(Path.Combine(Program.StaticDataDir, "server_template_dir", "mods", "fabric-api-0.97.0+1.20.4.jar")))
+            {
+                await response.Content.CopyToAsync(fs, cancellationToken);
+            }
+
+            logger.Information("Downloaded fabric api");
         }
-        else
+
+        if (!File.Exists(Path.Combine(Program.StaticDataDir, "server_template_dir", BuildplateLauncher.ServerJarName)))
         {
-            if (!Directory.EnumerateFiles(Path.Combine(Program.StaticDataDir, "server_template_dir", "mods")).Any(path => Path.GetFileName(path).StartsWith("fabric-api", StringComparison.OrdinalIgnoreCase) && path.EndsWith(".jar", StringComparison.OrdinalIgnoreCase)))
+            logger.Warning("Fabric server not found, downloading");
+
+            var response = await httpClient.GetAsync("https://meta.fabricmc.net/v2/versions/loader/1.20.4/0.15.10/1.0.1/server/jar", cancellationToken);
+            using (var fs = File.OpenWriteNew(Path.Combine(Program.StaticDataDir, "server_template_dir", BuildplateLauncher.ServerJarName)))
             {
-                logger.Warning("Fabric api mod not found, downloading");
-
-                var response = await httpClient.GetAsync("https://cdn.modrinth.com/data/P7dR8mSH/versions/xklQBMta/fabric-api-0.97.0%2B1.20.4.jar", cancellationToken);
-                using (var fs = File.OpenWriteNew(Path.Combine(Program.StaticDataDir, "server_template_dir", "mods", "fabric-api-0.97.0+1.20.4.jar")))
-                {
-                    await response.Content.CopyToAsync(fs, cancellationToken);
-                }
-
-                logger.Information("Downloaded fabric api");
+                await response.Content.CopyToAsync(fs, cancellationToken);
             }
 
-            if (!File.Exists(Path.Combine(Program.StaticDataDir, "server_template_dir", BuildplateLauncher.ServerJarName)))
+            logger.Information("Downloaded fabric server");
+        }
+
+        string eulaPath = Path.GetFullPath(Path.Combine(Program.StaticDataDir, "server_template_dir", "eula.txt"));
+        if (!File.Exists(eulaPath))
+        {
+            logger.Information("Detected that server was not setup, running");
+
+            string javaExe = JavaLocator.Locate(logger);
+
+            bool useShellExecute = false;
+
+            using var serverProcess = new ConsoleProcess(javaExe, useShellExecute, !useShellExecute);
+
+            if (!useShellExecute)
             {
-                logger.Warning("Fabric server not found, downloading");
-
-                var response = await httpClient.GetAsync("https://meta.fabricmc.net/v2/versions/loader/1.20.4/0.15.10/1.0.1/server/jar", cancellationToken);
-                using (var fs = File.OpenWriteNew(Path.Combine(Program.StaticDataDir, "server_template_dir", BuildplateLauncher.ServerJarName)))
+                serverProcess.StandartTextReceived += (sender, e) =>
                 {
-                    await response.Content.CopyToAsync(fs, cancellationToken);
-                }
-
-                logger.Information("Downloaded fabric server");
+                    if (!string.IsNullOrWhiteSpace(e.Data))
+                    {
+                        logger.Debug($"[server] {e.Data}");
+                    }
+                };
+                serverProcess.ErrorTextReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrWhiteSpace(e.Data))
+                    {
+                        logger.Error($"[server] {e.Data}");
+                    }
+                };
             }
 
-            string eulaPath = Path.GetFullPath(Path.Combine(Program.StaticDataDir, "server_template_dir", "eula.txt"));
-            if (!File.Exists(eulaPath))
+            await serverProcess.ExecuteAsync(Path.GetFullPath(Path.Combine(Program.StaticDataDir, "server_template_dir")), ["-jar", BuildplateLauncher.ServerJarName, "-nogui"]);
+            logger.Information("Server process started, waiting for exit");
+            await serverProcess.Process.WaitForExitAsync(cancellationToken);
+
+            int exitCode = serverProcess.Process.ExitCode;
+            logger.Information($"Server process exited with exit code {exitCode}");
+            if (exitCode != 0)
             {
-                logger.Information("Detected that server was not setup, running");
+                error = true;
+            }
+        }
 
-                string javaExe = JavaLocator.Locate(logger);
-
-                bool useShellExecute = false;
-
-                using var serverProcess = new ConsoleProcess(javaExe, useShellExecute, !useShellExecute);
-
-                if (!useShellExecute)
-                {
-                    serverProcess.StandartTextReceived += (sender, e) =>
-                    {
-                        if (!string.IsNullOrWhiteSpace(e.Data))
-                        {
-                            logger.Debug($"[server] {e.Data}");
-                        }
-                    };
-                    serverProcess.ErrorTextReceived += (sender, e) =>
-                    {
-                        if (!string.IsNullOrWhiteSpace(e.Data))
-                        {
-                            logger.Error($"[server] {e.Data}");
-                        }
-                    };
-                }
-
-                await serverProcess.ExecuteAsync(Path.GetFullPath(Path.Combine(Program.StaticDataDir, "server_template_dir")), ["-jar", BuildplateLauncher.ServerJarName, "-nogui"]);
-                logger.Information("Server process started, waiting for exit");
-                await serverProcess.Process.WaitForExitAsync(cancellationToken);
-
-                int exitCode = serverProcess.Process.ExitCode;
-                logger.Information($"Server process exited with exit code {exitCode}");
-                if (exitCode != 0)
-                {
-                    error = true;
-                }
+        if (File.Exists(eulaPath) && !(await File.ReadAllTextAsync(eulaPath, cancellationToken)).Contains("eula=true", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.Information($"Server eula not accepted, open '{eulaPath}' and set 'eula=true'");
+            logger.Information("Waiting for you to make the change");
+            while (!(await File.ReadAllTextAsync(eulaPath, cancellationToken)).Contains("eula=true", StringComparison.OrdinalIgnoreCase))
+            {
+                await Task.Delay(1000, cancellationToken);
             }
 
-            if (File.Exists(eulaPath) && !(await File.ReadAllTextAsync(eulaPath, cancellationToken)).Contains("eula=true", StringComparison.OrdinalIgnoreCase))
+            logger.Information("Running server to download/generate rest of the files, close it after it starts up");
+
+            string javaExe = JavaLocator.Locate(logger);
+
+            bool useShellExecute = true;
+
+            using var serverProcess = new ConsoleProcess(javaExe, useShellExecute, !useShellExecute);
+
+            if (!useShellExecute)
             {
-                logger.Information($"Server eula not accepted, open '{eulaPath}' and set 'eula=true'");
-                logger.Information("Waiting for you to make the change");
-                while (!(await File.ReadAllTextAsync(eulaPath, cancellationToken)).Contains("eula=true", StringComparison.OrdinalIgnoreCase))
+                serverProcess.StandartTextReceived += (sender, e) =>
                 {
-                    await Task.Delay(1000, cancellationToken);
-                }
-
-                logger.Information("Running server to download/generate rest of the files, close it after it starts up");
-
-                string javaExe = JavaLocator.Locate(logger);
-
-                bool useShellExecute = true;
-
-                using var serverProcess = new ConsoleProcess(javaExe, useShellExecute, !useShellExecute);
-
-                if (!useShellExecute)
-                {
-                    serverProcess.StandartTextReceived += (sender, e) =>
+                    if (!string.IsNullOrWhiteSpace(e.Data))
                     {
-                        if (!string.IsNullOrWhiteSpace(e.Data))
-                        {
-                            logger.Debug($"[server] {e.Data}");
-                        }
-                    };
-                    serverProcess.ErrorTextReceived += (sender, e) =>
-                    {
-                        if (!string.IsNullOrWhiteSpace(e.Data))
-                        {
-                            logger.Error($"[server] {e.Data}");
-                        }
-                    };
-                }
-
-                await serverProcess.ExecuteAsync(Path.GetFullPath(Path.Combine(Program.StaticDataDir, "server_template_dir")), ["-jar", BuildplateLauncher.ServerJarName, "-nogui"]);
-                logger.Information("Server process started, waiting for exit");
-                await serverProcess.Process.WaitForExitAsync(cancellationToken);
-
-                int exitCode = serverProcess.Process.ExitCode;
-                logger.Information($"Server process exited with exit code {exitCode}");
-                if (exitCode != 0)
+                        logger.Debug($"[server] {e.Data}");
+                    }
+                };
+                serverProcess.ErrorTextReceived += (sender, e) =>
                 {
-                    error = true;
-                }
+                    if (!string.IsNullOrWhiteSpace(e.Data))
+                    {
+                        logger.Error($"[server] {e.Data}");
+                    }
+                };
+            }
+
+            await serverProcess.ExecuteAsync(Path.GetFullPath(Path.Combine(Program.StaticDataDir, "server_template_dir")), ["-jar", BuildplateLauncher.ServerJarName, "-nogui"]);
+            logger.Information("Server process started, waiting for exit");
+            await serverProcess.Process.WaitForExitAsync(cancellationToken);
+
+            int exitCode = serverProcess.Process.ExitCode;
+            logger.Information($"Server process exited with exit code {exitCode}");
+            if (exitCode != 0)
+            {
+                error = true;
             }
         }
 

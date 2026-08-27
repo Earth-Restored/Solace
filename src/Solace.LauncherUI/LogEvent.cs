@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace Solace.LauncherUI;
 
 public sealed class LogEvent
@@ -8,10 +11,15 @@ public sealed class LogEvent
 
     public string? RenderedMessage { get; set; }
 
+    public string? Exception { get; set; }
+
     public LogEventProperties? Properties { get; set; }
 }
 
 public sealed class LogEventProperties
 {
     public string? ComponentName { get; set; }
+
+    // [JsonExtensionData]
+    // public IDictionary<string, JsonElement>? AdditionalProperties { get; set; }
 }

@@ -5,6 +5,7 @@ using Solace.ApiServer.Models;
 using Solace.ApiServer.Models.Playfab;
 using Solace.ApiServer.Utils;
 using Solace.Common.Utils;
+using Serilog;
 
 namespace Solace.ApiServer.Controllers.PlayfabApi;
 
@@ -12,7 +13,14 @@ namespace Solace.ApiServer.Controllers.PlayfabApi;
 [Route("20CA2.playfabapi.com/Client")]
 internal sealed partial class ClientController : SolaceControllerBase
 {
-    private static Config config => Program.config;
+    private static Config Config => Program.config;
+
+    private readonly CryptoSecrets _cryptoSecrets;
+
+    public ClientController(CryptoSecrets cryptoSecrets)
+    {
+        _cryptoSecrets = cryptoSecrets;
+    }
 
     private sealed record GetUserPublisherDataRequest(
         GetUserPublisherDataRequest.EntityR Entity,
@@ -51,7 +59,7 @@ internal sealed partial class ClientController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var token = JwtUtils.Verify<Tokens.Shared.PlayfabSessionTicket>(tokenString, config.PlayfabApi.SessionTicketSecretBytes);
+        var token = JwtUtils.Verify<Tokens.Shared.PlayfabSessionTicket>(tokenString, _cryptoSecrets.PlayfabSessionTicketSecret);
         if (token is null)
         {
             return TypedResults.Forbid();
@@ -120,7 +128,7 @@ internal sealed partial class ClientController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var token = JwtUtils.Verify<Tokens.Shared.PlayfabSessionTicket>(tokenString, config.PlayfabApi.SessionTicketSecretBytes);
+        var token = JwtUtils.Verify<Tokens.Shared.PlayfabSessionTicket>(tokenString, _cryptoSecrets.PlayfabSessionTicketSecret);
         if (token is null)
         {
             return TypedResults.Forbid();
@@ -171,6 +179,6 @@ internal sealed partial class ClientController : SolaceControllerBase
             }
         ));
 
-    [GeneratedRegex("^[0-9A-F]{16}-(.*)$")]
+    [GeneratedRegex("^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}-(.*)$")]
     private static partial Regex GetAuthRegex();
 }

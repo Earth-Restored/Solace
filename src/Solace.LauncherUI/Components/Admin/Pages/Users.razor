@@ -178,7 +178,7 @@
                         {
                             <h6>Role Assignments</h6>
                             <div class="row mt-2">
-                                @foreach (var role in _roles.OrderBy(r => r.Position))
+@foreach (var role in _roles.OrderBy(r => r.Position).Where(r => r.Name != ApplicationRole.Default))
                                 {
                                     var isAssigned = _modelAssignedRoles.Contains(role.Name!);
 
@@ -290,7 +290,7 @@
         var currentUserRoles = user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
 
         _userMinPosition = _roles
-            .Where(r => currentUserRoles.Contains(r.Name!))
+            .Where(r => currentUserRoles.Contains(r.Name!) && r.Name != ApplicationRole.Default)
             .Select(r => r.Position)
             .DefaultIfEmpty(9999)
             .Min();
@@ -348,13 +348,15 @@
         foreach (var user in _users)
         {
             var userRoles = await UserManager.GetRolesAsync(user);
-            _userRolesMap[user.Id] = userRoles.ToList();
+            _userRolesMap[user.Id] = userRoles
+                .Where(roleName => roleName != ApplicationRole.Default)
+                .ToList();
         }
     }
     private int GetMinPositionForRoles(IEnumerable<string> roleNames)
     {
         return _roles
-            .Where(r => roleNames.Contains(r.Name!))
+            .Where(r => roleNames.Contains(r.Name!) && r.Name != ApplicationRole.Default)
             .Select(r => r.Position)
             .DefaultIfEmpty(9999)
             .Min();

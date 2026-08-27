@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 using Solace.Common;
@@ -75,7 +76,10 @@ public sealed class Catalog
         public Item? GetItem(string id)
             => itemsById.GetValueOrDefault(id);
 
-        public record Item(
+        public bool TryGetItem(string id, [MaybeNullWhen(false)] out Item item)
+            => itemsById.TryGetValue(id, out item);
+
+        public sealed record Item(
             string Id,
             string Name,
             int Aux,
@@ -106,7 +110,7 @@ public sealed class Catalog
                 MOB,
                 ENVIRONMENT_BLOCK,
                 BOOST,
-                ADVENTURE_SCROLL
+                ADVENTURE_SCROLL,
 #pragma warning restore CA1707 // Identifiers should not contain underscores
             }
 
@@ -130,7 +134,7 @@ public sealed class Catalog
                 BOOST_RETENTION,
                 BOOST_SMELTING,
                 BOOST_STRENGTH,
-                BOOST_TAPPABLE_RADIUS
+                BOOST_TAPPABLE_RADIUS,
 #pragma warning restore CA1707 // Identifiers should not contain underscores
             }
 
@@ -142,7 +146,7 @@ public sealed class Catalog
                 RARE,
                 EPIC,
                 LEGENDARY,
-                OOBE
+                OOBE,
             }
 
             [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -156,7 +160,7 @@ public sealed class Catalog
                 INTERACT_AND_BUILD,
                 DESTROY,
                 USE,
-                CONSUME
+                CONSUME,
 #pragma warning restore CA1707 // Identifiers should not contain underscores
             }
 
@@ -503,8 +507,10 @@ public sealed class Catalog
     public sealed class NFCBoostsCatalogR
     {
         private sealed record NFCBoostsCatalogFile(
-        // TODO
+            NFCBoost[] MiniFigs
         );
+
+        public readonly NFCBoost[] MiniFigs;
 
         internal NFCBoostsCatalogR(string file)
         {
@@ -514,12 +520,64 @@ public sealed class Catalog
                 nfcBoostsCatalogFile = Json.Deserialize<NFCBoostsCatalogFile>(stream);
             }
 
-            // TODO
+            MiniFigs = nfcBoostsCatalogFile?.MiniFigs ?? [];
         }
 
-        public sealed record BoostInfo
-        {
+        public sealed record NFCBoost(
+            string Id,
+            BoostInfo BoostMetadata,
+            string Name,
+            bool Deprecated,
+            string ToolsVersion,
+            Rewards Rewards
+        );
 
+        public sealed record BoostInfo(
+            string Name,
+            string Attribute,
+            bool CanBeDeactivated,
+            bool CanBeRemoved,
+            string? ActiveDuration,
+            bool Additive,
+            int? Level,
+            Effect[] Effects,
+            string? Scenario,
+            string? Cooldown
+        );
+
+        public sealed record Effect(
+            string Type,
+            string? Duration,
+            double? Value,
+            string? Unit,
+            string Targets,
+            string[] Items,
+            string[] ItemScenarios,
+            string Activation,
+            string? ModifiesType
+        );
+
+        public sealed record Rewards(
+            int? Rubies,
+            int? ExperiencePoints,
+            int? Level,
+            Rewards.RewardItem[] Inventory,
+            string[] Buildplates,
+            Rewards.RewardChallenge[] Challenges,
+            string[] PersonaItems,
+            Rewards.RewardUtilityBlock[] UtilityBlocks
+        )
+        {
+            public sealed record RewardItem(
+                string Id,
+                int Amount
+            );
+
+            public sealed record RewardChallenge(
+                string Id
+            );
+
+            public sealed record RewardUtilityBlock();
         }
     }
 }

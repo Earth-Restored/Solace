@@ -9,16 +9,20 @@ namespace Solace.ApiServer.Controllers.PlayfabApi;
 
 [Route("Authentication")]
 [Route("20CA2.playfabapi.com/Authentication")]
-internal sealed class AuthenticationController : SolaceControllerBase
+internal sealed class AuthenticationController : LoginServerControllerBase
 {
-    private static Config config => Program.config;
+    public AuthenticationController(CryptoSecrets cryptoSecrets) : base(cryptoSecrets)
+    {
+    }
+
+    private static Config Config => Program.config;
 
     private sealed record GetEntityTokenRequest(
         GetEntityTokenRequest.EntityR Entity
     )
     {
         internal sealed record EntityR(
-            string Id,
+            Guid Id,
             string Type
         );
     }
@@ -30,7 +34,7 @@ internal sealed class AuthenticationController : SolaceControllerBase
     )
     {
         internal sealed record EntityR(
-            string Id,
+            Guid Id,
             string Type,
             string TypeString
         );
@@ -66,9 +70,9 @@ internal sealed class AuthenticationController : SolaceControllerBase
                         return TypedResults.Forbid();
                     }
 
-                    var entityTokenValidity = ValidityDatePair.Create(config.PlayfabApi.EntityTokenValidityMinutes);
+                    var entityTokenValidity = ValidityDatePair.Create(Config.PlayfabApi.EntityTokenValidityMinutes);
                     var entityToken = new Tokens.Playfab.EntityToken(request.Entity.Id, request.Entity.Type);
-                    string entityTokenSting = JwtUtils.Sign(entityToken, config.PlayfabApi.EntityTokenSecretBytes, entityTokenValidity);
+                    string entityTokenSting = JwtUtils.Sign(entityToken, CryptoSecrets.PlayfabEntityTokenSecret, entityTokenValidity);
 
                     return JsonPascalCase(new PlayfabOkResponse(
                         200,

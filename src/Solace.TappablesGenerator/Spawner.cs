@@ -99,7 +99,7 @@ public class Spawner
 
         List<Tappable> tappables = [];
         List<Encounter> encounters = [];
-        foreach (ActiveTiles.ActiveTile activeTile in activeTiles)
+        foreach (var activeTile in activeTiles)
         {
             DoSpawnCyclesForTile(activeTile.TileX, activeTile.TileY, spawnCycleTime, spawnCycleIndex, tappables, encounters);
         }
@@ -138,7 +138,7 @@ public class Spawner
 
     private void DoSpawnCyclesForTile(int tileX, int tileY, long spawnCycleTime, int spawnCycleIndex, List<Tappable> tappables, List<Encounter> encounters)
     {
-        int lastSpawnCycle = _lastSpawnCycleForTile.GetOrDefault((tileX << 16) + tileY, 0);
+        int lastSpawnCycle = _lastSpawnCycleForTile.GetValueOrDefault((tileX << 16) + tileY);
         int cyclesToSpawn = Math.Min(spawnCycleIndex - lastSpawnCycle, _maxTappableLifetimeIntervals);
         for (int index = 0; index < cyclesToSpawn; index++)
         {

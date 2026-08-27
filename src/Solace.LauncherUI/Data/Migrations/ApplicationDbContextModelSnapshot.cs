@@ -15,7 +15,7 @@ namespace Solace.LauncherUI.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
@@ -195,6 +195,10 @@ namespace Solace.LauncherUI.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("INTEGER");
 
+                    b.PrimitiveCollection<string>("LinkedInGameAccounts")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("INTEGER");
 
@@ -247,11 +251,10 @@ namespace Solace.LauncherUI.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("BuildplateId")
-                        .IsRequired()
+                    b.Property<Guid>("BuildplateId")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("PlayerId")
+                    b.Property<Guid?>("PlayerId")
                         .HasColumnType("TEXT");
 
                     b.Property<byte[]>("PreviewData")

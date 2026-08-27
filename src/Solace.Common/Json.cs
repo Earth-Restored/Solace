@@ -25,6 +25,9 @@ public static class Json
     public static string SerializeIndented<T>(T value)
         => JsonSerializer.Serialize(value, optionsIndented);
 
+    public static void SerializeIndented<T>(Stream utf8Stream, T value)
+        => JsonSerializer.Serialize(utf8Stream, value, optionsIndented);
+
     public static string Serialize<T>(T value, JsonSerializerOptions options)
         => JsonSerializer.Serialize(value, options);
 
