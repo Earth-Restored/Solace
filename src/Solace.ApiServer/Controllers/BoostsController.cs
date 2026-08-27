@@ -9,8 +9,8 @@ using Solace.Db.Earth.Models.Player;
 using Solace.StaticData;
 using Effect = Solace.ApiServer.Types.Common.Effect;
 using Microsoft.EntityFrameworkCore;
-using Solace.Common;
 using Solace.Db.Earth.Models;
+using Solace.Common;
 
 namespace Solace.ApiServer.Controllers;
 
@@ -86,7 +86,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             }
             else
             {
-                var nfcBoost = _catalog.NfcBoostsCatalog.MiniFigs.Values.FirstOrDefault(m => IdTranslator.ToGuid(m.Id) == activeBoost.ItemId);
+                var nfcBoost = _catalog.NfcBoostsCatalog.MiniFigs.Values.FirstOrDefault(miniFig => MiniFigIdTranslator.ToGuid(miniFig.Id) == activeBoost.ItemId);
                 if (nfcBoost is not null)
                 {
                     miniFigs[index] = new Types.Boost.Boosts.MiniFig(
@@ -308,7 +308,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        TimeSpan duration = TimeSpan.Zero;
+        var duration = TimeSpan.Zero;
         if (!string.IsNullOrEmpty(miniFig.BoostMetadata.ActiveDuration) && TimeSpan.TryParse(miniFig.BoostMetadata.ActiveDuration, out var parsedActiveDuration))
         {
             duration = parsedActiveDuration;
@@ -323,7 +323,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        var itemId = IdTranslator.ToGuid(productId);
+        var itemId = MiniFigIdTranslator.ToGuid(productId);
 
         var boosts = await _earthDb.Boosts
             .AsTracking()
@@ -383,6 +383,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             boosts.ActiveBoosts[newIndex] = new BoostsEF.ActiveBoost(Guid.NewGuid(), itemId, requestStartedOn, duration);
             if (miniFig.BoostMetadata.Effects.Any(effect => string.Equals(effect.Type, "Health", StringComparison.OrdinalIgnoreCase)))
             {
+                // TODO: determine if we should add new player health straight away
                 profileChanged = true;
             }
         }
@@ -477,7 +478,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
                 return true;
             }
 
-            var nfcBoost = catalog.NfcBoostsCatalog.MiniFigs.Values.FirstOrDefault(m => IdTranslator.ToGuid(m.Id) == activeBoost.ItemId);
+            var nfcBoost = catalog.NfcBoostsCatalog.MiniFigs.Values.FirstOrDefault(m => MiniFigIdTranslator.ToGuid(m.Id) == activeBoost.ItemId);
             if (nfcBoost?.BoostMetadata?.Effects.Any(effect => string.Equals(effect.Type, "Health", StringComparison.OrdinalIgnoreCase)) == true)
             {
                 return true;

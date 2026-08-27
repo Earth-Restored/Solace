@@ -38,17 +38,12 @@ public sealed class GenoaAuthenticationHandler : AuthenticationHandler<Authentic
             return AuthenticateResult.NoResult();
         }
 
-        if (!Request.Headers.ContainsKey("Authorization"))
-        {
-            return AuthenticateResult.Fail("Missing Authorization Header");
-        }
-
         string? encryptedToken;
         try
         {
             if (!Request.Headers.TryGetValue("Authorization", out var authorization))
             {
-                return AuthenticateResult.Fail("Invalid Authorization Header");
+                return AuthenticateResult.Fail("Missing Authorization Header");
             }
 
             var authHeader = AuthenticationHeaderValue.Parse(authorization.ToString());
@@ -74,7 +69,12 @@ public sealed class GenoaAuthenticationHandler : AuthenticationHandler<Authentic
         string decryptedUserId;
         try
         {
-            decryptedUserId = _protector.Unprotect(encryptedToken);
+            decryptedUserId = _protector.Unprotect(encryptedToken, out var expiration);
+
+            if (expiration < DateTimeOffset.UtcNow)
+            {
+                return AuthenticateResult.Fail("Invalid or expired session token.");
+            }
         }
         catch (CryptographicException)
         {

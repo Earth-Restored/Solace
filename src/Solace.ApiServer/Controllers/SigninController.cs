@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
 using Solace.Common.Utils;
-using Solace.Common;
 using Solace.Db.Earth;
 using Microsoft.AspNetCore.DataProtection;
 using Solace.ApiServer.Authentication;
@@ -103,7 +102,7 @@ internal sealed partial class SigninController : SolaceControllerBase
                 return TypedResults.BadRequest();
             }
 
-            userId = IdTranslator.ToGuid(userIdString);
+            userId = ProfileIdTranslator.ToGuid(userIdString);
 
             await _earthDb.EnsureAccountExists(userId);
         }

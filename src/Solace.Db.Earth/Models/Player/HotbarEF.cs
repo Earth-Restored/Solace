@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using Solace.Common;
+﻿using Solace.Common;
 
 namespace Solace.Db.Earth.Models.Player;
 

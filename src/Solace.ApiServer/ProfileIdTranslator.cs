@@ -4,9 +4,9 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Solace.Common;
+namespace Solace.ApiServer;
 
-public static class IdTranslator
+public static class ProfileIdTranslator
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Guid ToGuid(ReadOnlySpan<char> idString)

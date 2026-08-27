@@ -15,7 +15,6 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Solace.Common.Asp;
 using Solace.Db;
 using Solace.Db.Playfab;
-using System.IO.Compression;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif

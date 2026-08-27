@@ -9,9 +9,4 @@ public sealed record NonStackableItemInstance(
 {
     public NonStackableItemInstance DeepCopy()
         => new(this);
-
-    public sealed record Legacy(
-        string InstanceId,
-        int Wear
-    );
 }

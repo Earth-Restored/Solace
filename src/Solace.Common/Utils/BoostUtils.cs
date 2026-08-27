@@ -83,7 +83,7 @@ internal static class BoostUtils
             }
             else
             {
-                var nfcBoost = catalog.NfcBoostsCatalog.MiniFigs.Values.FirstOrDefault(m => IdTranslator.ToGuid(m.Id) == activeBoost.ItemId);
+                var nfcBoost = catalog.NfcBoostsCatalog.MiniFigs.Values.FirstOrDefault(m => MiniFigIdTranslator.ToGuid(m.Id) == activeBoost.ItemId);
                 if (nfcBoost is not null && nfcBoost.BoostMetadata is not null)
                 {
                     var effects = nfcBoost.BoostMetadata.Effects.Select(effect =>
