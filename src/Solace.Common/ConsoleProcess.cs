@@ -281,17 +281,22 @@ public sealed class ConsoleProcess : IDisposable
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             // todo: currently not tested
-            string arguments = FormatStandardArguments(args);
-            string command = $"'{_filePath}' {arguments}";
+            var osxArgs = args.Select(a => $"'{a.Replace("'", "'\\''")}'");
+            string innerCommand = $"'{_filePath.Replace("'", "'\\''")}' {string.Join(" ", osxArgs)}";
+
+            string escapedCommand = innerCommand.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
 #if KEEP_WINDOW_OPEN
-            string appleScript = $"tell application \"Terminal\" to do script \"{command.Replace("\"", "\\\"")}\"";
+            string appleScript = $"tell application \"Terminal\" to do script \"{escapedCommand}\"";
 #else
-            string appleScript = $"tell application \"Terminal\" to do script \"{command.Replace("\"", "\\\"")}; exit\"";
+            string appleScript = $"tell application \"Terminal\" to do script \"{escapedCommand}; exit\"";
 #endif
 
+            Process.StartInfo.UseShellExecute = false;
             Process.StartInfo.FileName = "osascript";
-            Process.StartInfo.Arguments = $"-e \"{appleScript}\"";
+            Process.StartInfo.Arguments = "";
+            Process.StartInfo.ArgumentList.Add("-e");
+            Process.StartInfo.ArgumentList.Add(appleScript);
         }
         else
         {
