@@ -1,11 +1,17 @@
 @page "/About"
+@using System.Reflection
+@using Solace.WebPortal.Common
+@using Solace.WebPortal.Common.Features.About
+@inject PersistentComponentState ApplicationState
+@inject HttpClient Http
+@implements IDisposable
 
 <PageTitle>About - Solace</PageTitle>
 
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-8 text-center">
-            
+
             <h1 class="display-4 fw-bold mb-3">Solace</h1>
             <p class="lead mb-4">
                 A replacement server software for <strong>Minecraft Earth™</strong>.
@@ -17,17 +23,28 @@
                 <div class="card-body p-4">
                     <h3 class="h5 mb-3">Project Origins</h3>
                     <p class="text-muted">
-                        Based on the original <a href="https://github.com/Project-Genoa/Vienna" target="_blank"
-                                                 class="text-decoration-none">Vienna</a> project.
+                        Based on the original <a href="https://github.com/Project-Genoa/Vienna" target="_blank" class="text-decoration-none">Vienna</a> project.
                     </p>
                     <p>
-                        Developed by <a href="https://github.com/BitcoderCZ" target="_blank"
-                                        class="fw-bold text-primary">Bitcoder</a>.
+                        Developed by <a href="https://github.com/BitcoderCZ" target="_blank" class="fw-bold text-primary">Bitcoder</a>.
                     </p>
-                    
+
+                    <div class="my-3">
+                        @if (_serverInfo is not null)
+                        {
+                            <span class="badge bg-secondary fs-6">Version @_serverInfo.Version.ToString(3)</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary fs-6">
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                Loading version...
+                            </span>
+                        }
+                    </div>
+
                     <div class="mt-4">
-                        <a href="https://github.com/Earth-Restored/Solace/issues/new/choose" target="_blank"
-                               class="btn btn-outline-danger">
+                        <a href="https://github.com/Earth-Restored/Solace/issues/new/choose" target="_blank" class="btn btn-outline-danger">
                             <i class="bi bi-bug-fill me-2"></i>Report Bug / Request Feature
                         </a>
                     </div>
@@ -55,3 +72,40 @@
         </div>
     </div>
 </div>
+
+@code {
+    private ServerInfo? _serverInfo;
+
+    private PersistingComponentStateSubscription _subscription;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _subscription = ApplicationState.RegisterOnPersisting(PersistConfig);
+
+        if (ApplicationState.TryTakeFromJson<ServerInfo>("server-info", out var restored) && restored is not null)
+        {
+            _serverInfo = restored;
+        }
+        else if (!RendererInfo.IsInteractive)
+        {
+            _serverInfo = new(Assembly.GetExecutingAssembly().GetName().Version!);
+        }
+        else
+        {
+            var serverInfo = await Http.GetFromJsonAsync<ServerInfo>("api/about/info");
+            if (serverInfo is not null)
+            {
+                _serverInfo = serverInfo;
+            }
+        }
+    }
+
+    private Task PersistConfig()
+    {
+        ApplicationState.PersistAsJson("server-info", _serverInfo);
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+        => _subscription.Dispose();
+}
