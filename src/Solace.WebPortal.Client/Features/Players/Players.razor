@@ -22,7 +22,7 @@
             <div class="d-flex align-items-center gap-2 mb-1">
                 <h2 class="h3 mb-0">Players</h2>
                 <span class="badge bg-dark-subtle text-dark border p-2">
-                    @(_pagedView?.MatchingItems?.ToString() ?? "?")/@(_pagedView?.TotalItems?.ToString() ?? "?")
+                    @(_linkedPagedView?.MatchingItems?.ToString() ?? "?")/@(_linkedPagedView?.TotalItems?.ToString() ?? "?")
                 </span>
             </div>
             <p class="text-muted small mb-0">Manage accounts and player statistics</p>
@@ -31,7 +31,101 @@
         <SearchBar @bind-Value="_searchTerm" Placeholder="username or ID" Style="max-width: 400px;" QueryStringKey="q" OnSearch="SearchAsync" OnClear="ClearSearch" />
     </div>
 
-    <PagedDataView @ref="_pagedView" TData="List<AccountViewModel>" SearchQueryStringKey="q" PageQueryStringKey="p" Provider="FetchDataAsync" OnDataLoaded="HandleDataLoaded" Context="data">
+    <PagedDataView @ref="_unlinkedPagedView" TData="List<AccountViewModel>" SearchQueryStringKey="uq" PageQueryStringKey="up" Provider="FetchUnlinkedDataAsync" Context="unlinkedData" HideIfEmpty="true">
+        <ChildContent Context="unlinkedPlayers">
+            <div class="card border-warning mb-4 shadow-sm">
+                <div class="card-header bg-warning bg-opacity-10 border-warning text-warning-emphasis d-flex align-items-center gap-2 py-2">
+                    <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+                    <h5 class="mb-0 fs-6 fw-bold">Unlinked Profiles</h5>
+                    <span class="badge bg-warning ms-auto">
+                        @(_unlinkedPagedView?.TotalItems?.ToString() ?? "?") Unlinked
+                    </span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="d-none d-md-block">
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>User ID</th>
+                                        <th>Username</th>
+                                        <th class="text-end pe-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var player in unlinkedPlayers)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span role="button" class="text-primary small text-decoration-none user-select-all" @onclick="() => CopyIdAsync(player.Id)" title="Click to copy ID">
+                                                    <code>@player.Id</code>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @if (string.IsNullOrEmpty(player.Username))
+                                                {
+                                                    <span class="text-muted fst-italic">No Username</span>
+                                                }
+                                                else
+                                                {
+                                                    @player.Username
+                                                }
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                @if (HasPermission(Permissions.ManagePlayers))
+                                                {
+                                                    <button class="btn btn-sm btn-warning me-1" @onclick="() => OpenLinkModal(player.Id)" title="Link to Account">
+                                                        <i class="bi bi-link-45deg me-1"></i>Link Account
+                                                    </button>
+                                                }
+                                                <a href="/Players/@(player.Id)" class="btn btn-sm btn-outline-primary me-1" title="Profile">
+                                                    <i class="bi bi-person-fill me-1"></i>Profile
+                                                </a>
+                                                @if (HasPermission(Permissions.ManagePlayers))
+                                                {
+                                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => OpenDeletePlayerModal(player.Id, player.Username)" title="Delete">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="d-md-none p-2">
+                        @foreach (var player in unlinkedPlayers)
+                        {
+                            <div class="card mb-2 shadow-sm border-start border-warning border-4">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <small class="text-muted" role="button" @onclick="() => CopyIdAsync(player.Id)">
+                                            ID: <span class="text-primary">@player.Id</span>
+                                        </small>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        @if (HasPermission(Permissions.ManagePlayers))
+                                        {
+                                            <button class="btn btn-sm btn-warning flex-fill" @onclick="() => OpenLinkModal(player.Id)">
+                                                <i class="bi bi-link-45deg me-1"></i>Link Account
+                                            </button>
+                                        }
+                                        <a href="/Players/@(player.Id)" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-person-fill"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </ChildContent>
+    </PagedDataView>
+
+    <PagedDataView @ref="_linkedPagedView" TData="List<AccountViewModel>" SearchQueryStringKey="q" PageQueryStringKey="p" Provider="FetchLinkedDataAsync" OnDataLoaded="HandleDataLoaded" Context="data">
         <ChildContent Context="players">
             <div class="d-none d-md-block">
                 <div class="table-responsive">
@@ -170,21 +264,72 @@
     </PagedDataView>
 </div>
 
-@if (_showDeleteConfirm && _playerToDeleteId.HasValue)
+@if (_showLinkModal && _profileToLinkId.HasValue)
 {
-    <DeleteConfirmModal Visible="true" IsBusy="_isDeletingPlayer" Message="Are you sure you want to permanently delete player" ItemName="@(string.IsNullOrWhiteSpace(_playerToDeleteUsername) ? $"with id '{_playerToDeleteId}'" : _playerToDeleteUsername)" LoadingButtonText="Deleting..." ErrorMessage="@_deletePlayerErrorMessage" ModalSizeClass="modal-md" OnCancel="CloseDeletePlayerModal" OnConfirm="ConfirmDeletePlayerAsync" />
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fs-6 fw-bold">
+                        <i class="bi bi-link-45deg me-1"></i> Link Profile to Account
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseLinkModal" disabled="@_isLinking"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(_linkErrorMessage))
+                    {
+                        <div class="alert alert-danger py-2 small mb-3">@_linkErrorMessage</div>
+                    }
+                    <div class="mb-3">
+                        <label for="accountIdentifierInput" class="form-label small fw-semibold">Account Email</label>
+                        <input type="email" id="accountIdentifierInput" class="form-control" placeholder="user@example.com" @bind="_accountToLinkInput" @bind:event="oninput" disabled="@_isLinking" />
+                        <div class="form-text small">Enter the target account's email address to link to profile <code>@_profileToLinkId</code>.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" @onclick="CloseLinkModal" disabled="@_isLinking">Cancel</button>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="ConfirmLinkAccountAsync" disabled="@(string.IsNullOrWhiteSpace(_accountToLinkInput) || _isLinking)">
+                        @if (_isLinking)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            <span>Linking...</span>
+                        }
+                        else
+                        {
+                            <span>Link Account</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showDeleteConfirm && _profileToDeleteId.HasValue)
+{
+    <DeleteConfirmModal Visible="true" IsBusy="_isDeletingPlayer" Message="Are you sure you want to permanently delete player" ItemName="@(string.IsNullOrWhiteSpace(_playerToDeleteUsername) ? $"with id '{_profileToDeleteId}'" : _playerToDeleteUsername)" LoadingButtonText="Deleting..." ErrorMessage="@_deletePlayerErrorMessage" ModalSizeClass="modal-md" OnCancel="CloseDeletePlayerModal" OnConfirm="ConfirmDeletePlayerAsync" />
 }
 
 @code {
-    private PagedDataView<List<AccountViewModel>>? _pagedView;
+    private PagedDataView<List<AccountViewModel>>? _linkedPagedView;
+    private PagedDataView<List<AccountViewModel>>? _unlinkedPagedView;
 
     private ClaimsPrincipal? _user;
     private string _searchTerm = string.Empty;
+
+    // Delete Modal State
     private bool _showDeleteConfirm;
-    private Guid? _playerToDeleteId;
+    private Guid? _profileToDeleteId;
     private string? _playerToDeleteUsername;
     private bool _isDeletingPlayer;
     private string? _deletePlayerErrorMessage;
+
+    // Link Modal State
+    private bool _showLinkModal;
+    private Guid? _profileToLinkId;
+    private string _accountToLinkInput = string.Empty;
+    private bool _isLinking;
+    private string? _linkErrorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -211,9 +356,14 @@
 
     private async Task SearchAsync()
     {
-        if (_pagedView is not null)
+        if (_linkedPagedView is not null)
         {
-            await _pagedView.SearchAsync(_searchTerm);
+            await _linkedPagedView.SearchAsync(_searchTerm);
+        }
+
+        if (_unlinkedPagedView is not null)
+        {
+            await _unlinkedPagedView.SearchAsync(_searchTerm);
         }
     }
 
@@ -223,11 +373,11 @@
         await SearchAsync();
     }
 
-    private async Task<PagedResult<List<AccountViewModel>>?> FetchDataAsync(PagedSearchQuery query)
+    private async Task<PagedResult<List<AccountViewModel>>?> FetchLinkedDataAsync(PagedSearchQuery query)
     {
         try
         {
-            var uri = $"api/players?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? "")}&page={query.Page}&pageSize={query.PageSize}";
+            var uri = $"api/players/linked?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? "")}&page={query.Page}&pageSize={query.PageSize}";
             var response = await Http.GetFromJsonAsync<PagedSearchResult<List<PlayerDto>>>(uri);
 
             if (response is null)
@@ -242,13 +392,114 @@
         catch (Exception exception)
         {
             Logger.LogError(exception, "Failed to get accounts");
-            _pagedView?.ErrorMessage = "Failed to load players.";
+            if (_linkedPagedView is not null)
+            {
+                _linkedPagedView.ErrorMessage = "Failed to load players.";
+            }
+            return null;
+        }
+    }
+
+    private async Task<PagedResult<List<AccountViewModel>>?> FetchUnlinkedDataAsync(PagedSearchQuery query)
+    {
+        try
+        {
+            var uri = $"api/players/unlinked?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? "")}&page={query.Page}&pageSize={query.PageSize}";
+            var response = await Http.GetFromJsonAsync<PagedSearchResult<List<PlayerDto>>>(uri);
+
+            if (response is null)
+            {
+                return null;
+            }
+
+            var viewModels = response.Data.Select(AccountViewModel.FromDto).ToList();
+
+            return new PagedSearchResult<List<AccountViewModel>>(viewModels, response.TotalCount, response.MatchingCount);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to get unlinked accounts");
+            if (_unlinkedPagedView is not null)
+            {
+                _unlinkedPagedView.ErrorMessage = "Failed to load unlinked players.";
+            }
             return null;
         }
     }
 
     private void HandleDataLoaded(PagedResult<List<AccountViewModel>> result)
     {
+    }
+
+    private void OpenLinkModal(Guid playerId)
+    {
+        if (!HasPermission(Permissions.ManagePlayers))
+        {
+            return;
+        }
+
+        _profileToLinkId = playerId;
+        _accountToLinkInput = string.Empty;
+        _linkErrorMessage = null;
+        _showLinkModal = true;
+    }
+
+    private void CloseLinkModal()
+    {
+        _showLinkModal = false;
+        _profileToLinkId = null;
+        _accountToLinkInput = string.Empty;
+        _linkErrorMessage = null;
+    }
+
+    private async Task ConfirmLinkAccountAsync()
+    {
+        if (!_profileToLinkId.HasValue || string.IsNullOrWhiteSpace(_accountToLinkInput))
+        {
+            return;
+        }
+
+        _isLinking = true;
+        _linkErrorMessage = null;
+
+        try
+        {
+            var uri = $"api/players/{_profileToLinkId.Value}/link?accountName={Uri.EscapeDataString(_accountToLinkInput.Trim())}";
+            using var response = await Http.PostAsync(uri, null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Logger.LogInformation("Successfully linked profile {PlayerId} with account {Account}", _profileToLinkId.Value, _accountToLinkInput);
+                CloseLinkModal();
+
+                if (_unlinkedPagedView is not null)
+                {
+                    await _unlinkedPagedView.ReloadCurrentPageAsync();
+                }
+
+                if (_linkedPagedView is not null)
+                {
+                    await _linkedPagedView.ReloadCurrentPageAsync();
+                }
+            }
+            else if (response.StatusCode is System.Net.HttpStatusCode.NotFound)
+            {
+                _linkErrorMessage = "The specified account does not exist.";
+            }
+            else
+            {
+                _linkErrorMessage = $"Failed to link profile (error {response.StatusCode}).";
+            }
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to link profile {PlayerId}", _profileToLinkId);
+            _linkErrorMessage = "An unexpected error occurred while linking the account.";
+        }
+        finally
+        {
+            _isLinking = false;
+        }
     }
 
     private void OpenDeletePlayerModal(Guid id, string? username)
@@ -258,7 +509,7 @@
             return;
         }
 
-        _playerToDeleteId = id;
+        _profileToDeleteId = id;
         _playerToDeleteUsername = username;
         _deletePlayerErrorMessage = null;
         _showDeleteConfirm = true;
@@ -267,19 +518,19 @@
     private void CloseDeletePlayerModal()
     {
         _showDeleteConfirm = false;
-        _playerToDeleteId = null;
+        _profileToDeleteId = null;
         _playerToDeleteUsername = null;
         _deletePlayerErrorMessage = null;
     }
 
     private async Task ConfirmDeletePlayerAsync()
     {
-        if (_playerToDeleteId is null)
+        if (_profileToDeleteId is null)
         {
             return;
         }
 
-        var playerId = _playerToDeleteId.Value;
+        var playerId = _profileToDeleteId.Value;
         _isDeletingPlayer = true;
         _deletePlayerErrorMessage = null;
 
@@ -289,9 +540,14 @@
 
             if (response is { IsSuccessStatusCode: true } or { StatusCode: System.Net.HttpStatusCode.NotFound })
             {
-                if (_pagedView is not null)
+                if (_unlinkedPagedView is not null)
                 {
-                    await _pagedView.ReloadCurrentPageAsync();
+                    await _unlinkedPagedView.ReloadCurrentPageAsync();
+                }
+
+                if (_linkedPagedView is not null)
+                {
+                    await _linkedPagedView.ReloadCurrentPageAsync();
                 }
 
                 Logger.LogInformation("Deleted player {PlayerId}", playerId);

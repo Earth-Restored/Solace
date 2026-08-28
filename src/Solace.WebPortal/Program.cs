@@ -270,7 +270,10 @@ internal sealed partial class Program2
             app.UseHsts();
         }
 
-        app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+        app.UseWhen(
+            context => !context.Request.Path.StartsWithSegments("/api"),
+            appBuilder => appBuilder.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true)
+        );
 
         app.UseAntiforgery();
 

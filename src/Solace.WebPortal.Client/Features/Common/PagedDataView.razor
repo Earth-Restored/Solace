@@ -24,10 +24,13 @@ else if (Data is not null && !IsLoading)
 {
     @if (MatchingItems is 0)
     {
-        <div class="alert alert-info text-center py-4">
-            <i class="bi bi-info-circle fs-4 mb-2"></i>
-            <span>No items found.</span>
-        </div>
+        @if (!HideIfEmpty)
+        {
+            <div class="alert alert-info text-center py-4">
+                <i class="bi bi-info-circle fs-4 mb-2"></i>
+                <span>No items found.</span>
+            </div>
+        }
     }
     else
     {
@@ -69,6 +72,8 @@ else if (Data is not null && !IsLoading)
 @code {
     [Parameter] public string? PageQueryStringKey { get; set; }
     [Parameter] public string? SearchQueryStringKey { get; set; }
+
+    [Parameter] public bool HideIfEmpty { get; set; }
 
     [Parameter, EditorRequired]
     public Func<PagedSearchQuery, Task<PagedResult<TData>?>> Provider { get; set; } = default!;
@@ -247,7 +252,7 @@ else if (Data is not null && !IsLoading)
                     TotalItems = result.TotalCount;
                     MatchingItems = result.TotalCount;
                 }
-                
+
                 StateHasChanged();
 
                 TotalPages = int.Max(1, (int)double.Ceiling((double)MatchingItems / Query.PageSize));

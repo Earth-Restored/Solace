@@ -435,7 +435,7 @@ public sealed class EarthDbContext : DbContext
             Id = id,
             WebPortalAccountId = webPortalAccountId,
             CreatedDate = DateTimeOffset.UtcNow,
-            Username = null,
+            Username = "",
             ProfilePictureUrl = null,
         };
 

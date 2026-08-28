@@ -7,30 +7,32 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <BasePath />
-    <ResourcePreloader />
-    <script>
-        window.esmsInitOptions = { shimMode: true };
+
+    <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+                    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/",
+                    "skinview3d": "https://cdn.jsdelivr.net/npm/skinview3d@3.4.2/+esm?external=three"
+                }
+            }
     </script>
-    <script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+
+    <ImportMap />
+
+    <ResourcePreloader />
+
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["bi-icons.css"]" />
     <link rel="stylesheet" href="@Assets["Solace.WebPortal.styles.css"]" />
-    <ImportMap />
     <link rel="icon" type="image/png" href="favicon.png" />
+
     <script>
-        @((MarkupString)CaptchaValidator.ManagerScript)
+            @((MarkupString)CaptchaValidator.ManagerScript)
     </script>
     @((MarkupString)CaptchaValidator.Script)
-    <script type="importmap-shim">
-        {
-            "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/",
-            "skinview3d": "https://cdn.jsdelivr.net/npm/skinview3d@3.4.2/+esm?external=three"
-            }
-        }
-    </script>
+
     <HeadOutlet @rendermode="PageRenderMode" />
 </head>
 
@@ -71,7 +73,6 @@
 
         const textArea = document.createElement("textarea");
         textArea.value = text;
-
         textArea.style.position = "fixed";
         textArea.style.opacity = "0";
         textArea.style.left = "-9999px";

@@ -27,7 +27,13 @@ public static partial class DeletePlayer
         var buildplateObjects = await earthDb.PlayerBuildplates
            .AsNoTracking()
            .Where(bp => bp.ProfileId == command.Id)
-           .Select(bp => new { bp.ServerDataObjectId, bp.PreviewObjectId })
+           .Select(bp => new { bp.ServerDataObjectId, bp.PreviewObjectId, })
+           .ToListAsync(cancellationToken);
+
+        var sharedBuildplateObjects = await earthDb.SharedBuildplates
+           .AsNoTracking()
+           .Where(bp => bp.ProfileId == command.Id)
+           .Select(bp => new { bp.ServerDataObjectId, })
            .ToListAsync(cancellationToken);
 
         var rowsDeleted = await earthDb.Profiles
@@ -44,6 +50,11 @@ public static partial class DeletePlayer
             await objectStore.DeleteAsync(bp.ServerDataObjectId, cancellationToken);
 
             await objectStore.DeleteAsync(bp.PreviewObjectId, cancellationToken);
+        }
+
+        foreach (var bp in sharedBuildplateObjects)
+        {
+            await objectStore.DeleteAsync(bp.ServerDataObjectId, cancellationToken);
         }
 
         return TypedResults.Ok();

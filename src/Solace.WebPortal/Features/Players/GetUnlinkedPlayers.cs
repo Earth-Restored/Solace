@@ -13,10 +13,10 @@ using Solace.WebPortal.Common.Features.Players;
 namespace Solace.WebPortal.Features.Players;
 
 [Handler]
-[MapGet("")]
+[MapGet("unlinked")]
 [MapGroup<PlayersGroup>]
 [Authorize(Policy = Permissions.ViewPlayers)]
-public static partial class GetPlayers
+public static partial class GetUnlinkedPlayers
 {
     private static async ValueTask<Results<Ok<PagedSearchResult<List<PlayerDto>>>, UnauthorizedHttpResult>> HandleAsync(
         PagedSearchQuery query,
@@ -37,6 +37,7 @@ public static partial class GetPlayers
 
         var dbQuery = earthDb.Profiles
             .AsNoTracking()
+            .Where(profile => profile.WebPortalAccountId == null)
             .Include(profile => profile.Boosts)
             .Select(profile => new { profile.Id, profile.WebPortalAccountId, profile.Username, profile.Health, profile.Level, profile.Experience, PurchasedRubies = profile.Rubies.Purchased, EarnedRubies = profile.Rubies.Earned, profile.Boosts, });
 

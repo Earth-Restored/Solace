@@ -140,7 +140,7 @@
         if (firstRender)
         {
 #pragma warning disable BL0016
-            _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("importShim", "./Features/Buildplates/BuildplatePreview.razor.js");
+            _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Features/Buildplates/BuildplatePreview.razor.js");
 #pragma warning restore BL0016
 
 #pragma warning disable BL0016
