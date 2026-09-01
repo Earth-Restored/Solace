@@ -14,7 +14,7 @@ public static partial class PlayfabApiUtils
 
     public static Guid RubyCurrencyId { get; } = Guid.Parse("8b77345d-6250-4321-b3c2-373468b39457");
 
-    public static Union<EntityToken, Results<ForbidHttpResult, BadRequest>> PlayfabAuth(CryptoSecrets cryptoSecrets, HttpRequest request, ILogger logger)
+    public static PlayfabAuthResult PlayfabAuth(CryptoSecrets cryptoSecrets, HttpRequest request, ILogger logger)
     {
         if (!request.Headers.TryGetValue("X-EntityToken", out var tokenString) || tokenString.Count < 1)
         {
@@ -29,4 +29,6 @@ public static partial class PlayfabApiUtils
 
         return token;
     }
+
+    public readonly union PlayfabAuthResult(EntityToken, Results<ForbidHttpResult, BadRequest>);
 }

@@ -29,12 +29,11 @@ public sealed partial class GetMutedPeople(
         Debug.Assert(httpContext is not null);
 
         var authUnion = AuthUtils.XboxLiveAuth(httpContext.Request, cryptoSecrets, logger);
-        if (authUnion.IsB)
+        if (authUnion is not XapiToken token)
         {
-            return authUnion.B.Result is UnauthorizedHttpResult unauthorized ? unauthorized : (BadRequest)authUnion.B.Result;
+            var results = (Results<UnauthorizedHttpResult, BadRequest>)authUnion.Value!;
+            return results.Result is UnauthorizedHttpResult unauthorized ? unauthorized : (BadRequest)results.Result;
         }
-
-        var token = authUnion.A;
 
         var xuidMatch = XuidUtils.GetXuidRegex().Match(query.XuidParam);
 

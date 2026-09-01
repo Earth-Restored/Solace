@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Solace.AuthServer.Features.Common;
-using Solace.Common;
 using Solace.Common.Asp.Auth;
 
 namespace Solace.AuthServer.Features.XboxLive;
 
 public static class AuthUtils
 {
-    public static Union<XapiToken, Results<UnauthorizedHttpResult, BadRequest>> XboxLiveAuth(HttpRequest request, CryptoSecrets cryptoSecrets, ILogger logger)
+    public static XboxLiveAuthResult XboxLiveAuth(HttpRequest request, CryptoSecrets cryptoSecrets, ILogger logger)
     {
         var authorization = XboxAuthorizationUtils.Parse(request.Headers["Authorization"].FirstOrDefault());
 
@@ -25,4 +24,6 @@ public static class AuthUtils
 
         return token;
     }
+
+    public readonly union XboxLiveAuthResult(XapiToken, Results<UnauthorizedHttpResult, BadRequest>);
 }
