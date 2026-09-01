@@ -31,19 +31,6 @@ public sealed class CryptoSecrets
         PlayfabSessionTicketName,
     ];
 
-    private readonly ImmutableArray<byte> _loginUserTokenSecret;
-    private readonly ImmutableArray<byte> _loginDeviceTokenSecret;
-    private readonly ImmutableArray<byte> _loginXboxTokenSecret;
-    private readonly ImmutableArray<byte> _loginUserTokenSessionKey;
-    private readonly string _loginUserTokenSessionKeyBase64;
-
-    private readonly ImmutableArray<byte> _liveAuthTokenSecret;
-    private readonly ImmutableArray<byte> _liveXapiTokenSecret;
-    private readonly ImmutableArray<byte> _livePlayfabTokenSecret;
-
-    private readonly ImmutableArray<byte> _playfabEntityTokenSecret;
-    private readonly ImmutableArray<byte> _playfabSessionTicketSecret;
-
     public CryptoSecrets(ImmutableArray<byte> loginUserTokenSecret, ImmutableArray<byte> loginDeviceTokenSecret, ImmutableArray<byte> loginXboxTokenSecret, ImmutableArray<byte> loginUserTokenSessionKey, ImmutableArray<byte> liveAuthTokenSecret, ImmutableArray<byte> liveXapiTokenSecret, ImmutableArray<byte> livePlayfabTokenSecret, ImmutableArray<byte> playfabEntityTokenSecret, ImmutableArray<byte> playfabSessionTicketSecret)
     {
         ThrowHelper.ThrowIfNullOrEmpty(loginUserTokenSecret);
@@ -58,34 +45,34 @@ public sealed class CryptoSecrets
         ThrowHelper.ThrowIfNullOrEmpty(playfabEntityTokenSecret);
         ThrowHelper.ThrowIfNullOrEmpty(playfabSessionTicketSecret);
 
-        _loginUserTokenSecret = loginUserTokenSecret;
-        _loginDeviceTokenSecret = loginDeviceTokenSecret;
-        _loginXboxTokenSecret = loginXboxTokenSecret;
-        _loginUserTokenSessionKey = loginUserTokenSessionKey;
-        _loginUserTokenSessionKeyBase64 = Convert.ToBase64String(ImmutableCollectionsMarshal.AsArray(loginUserTokenSessionKey)!);
+        LoginUserTokenSecret = loginUserTokenSecret;
+        LoginDeviceTokenSecret = loginDeviceTokenSecret;
+        LoginXboxTokenSecret = loginXboxTokenSecret;
+        LoginUserTokenSessionKey = loginUserTokenSessionKey;
+        LoginUserTokenSessionKeyBase64 = Convert.ToBase64String(ImmutableCollectionsMarshal.AsArray(loginUserTokenSessionKey)!);
 
-        _liveAuthTokenSecret = liveAuthTokenSecret;
-        _liveXapiTokenSecret = liveXapiTokenSecret;
-        _livePlayfabTokenSecret = livePlayfabTokenSecret;
+        LiveAuthTokenSecret = liveAuthTokenSecret;
+        LiveXapiTokenSecret = liveXapiTokenSecret;
+        LivePlayfabTokenSecret = livePlayfabTokenSecret;
 
-        _playfabEntityTokenSecret = playfabEntityTokenSecret;
-        _playfabSessionTicketSecret = playfabSessionTicketSecret;
+        PlayfabEntityTokenSecret = playfabEntityTokenSecret;
+        PlayfabSessionTicketSecret = playfabSessionTicketSecret;
     }
 
     public CryptoSecrets(IReadOnlyDictionary<string, string> secrets)
     {
-        _loginUserTokenSecret = GetSecret(LoginUserTokenName);
-        _loginDeviceTokenSecret = GetSecret(LoginDeviceTokenName);
-        _loginXboxTokenSecret = GetSecret(LoginXboxTokenName);
-        _loginUserTokenSessionKey = GetSecret(LoginUserTokenSessionKeyName);
-        _loginUserTokenSessionKeyBase64 = secrets[LoginUserTokenSessionKeyName];
+        LoginUserTokenSecret = GetSecret(LoginUserTokenName);
+        LoginDeviceTokenSecret = GetSecret(LoginDeviceTokenName);
+        LoginXboxTokenSecret = GetSecret(LoginXboxTokenName);
+        LoginUserTokenSessionKey = GetSecret(LoginUserTokenSessionKeyName);
+        LoginUserTokenSessionKeyBase64 = secrets[LoginUserTokenSessionKeyName];
 
-        _liveAuthTokenSecret = GetSecret(LiveAuthTokenName);
-        _liveXapiTokenSecret = GetSecret(LiveXapiTokenName);
-        _livePlayfabTokenSecret = GetSecret(LivePlayfabTokenName);
+        LiveAuthTokenSecret = GetSecret(LiveAuthTokenName);
+        LiveXapiTokenSecret = GetSecret(LiveXapiTokenName);
+        LivePlayfabTokenSecret = GetSecret(LivePlayfabTokenName);
 
-        _playfabEntityTokenSecret = GetSecret(PlayfabEntityTokenName);
-        _playfabSessionTicketSecret = GetSecret(PlayfabSessionTicketName);
+        PlayfabEntityTokenSecret = GetSecret(PlayfabEntityTokenName);
+        PlayfabSessionTicketSecret = GetSecret(PlayfabSessionTicketName);
 
         ImmutableArray<byte> GetSecret(string name)
         {
@@ -105,22 +92,22 @@ public sealed class CryptoSecrets
         }
     }
 
-    public ImmutableArray<byte> LoginUserTokenSecret => _loginUserTokenSecret;
+    public ImmutableArray<byte> LoginUserTokenSecret { get; }
 
-    public ImmutableArray<byte> LoginDeviceTokenSecret => _loginDeviceTokenSecret;
+    public ImmutableArray<byte> LoginDeviceTokenSecret { get; }
 
-    public ImmutableArray<byte> LoginXboxTokenSecret => _loginXboxTokenSecret;
+    public ImmutableArray<byte> LoginXboxTokenSecret { get; }
 
-    public ImmutableArray<byte> LoginUserTokenSessionKey => _loginUserTokenSessionKey;
-    public string LoginUserTokenSessionKeyBase64 => _loginUserTokenSessionKeyBase64;
+    public ImmutableArray<byte> LoginUserTokenSessionKey { get; }
+    public string LoginUserTokenSessionKeyBase64 { get; }
 
-    public ImmutableArray<byte> LiveAuthTokenSecret => _liveAuthTokenSecret;
+    public ImmutableArray<byte> LiveAuthTokenSecret { get; }
 
-    public ImmutableArray<byte> LiveXapiTokenSecret => _liveXapiTokenSecret;
+    public ImmutableArray<byte> LiveXapiTokenSecret { get; }
 
-    public ImmutableArray<byte> LivePlayfabTokenSecret => _livePlayfabTokenSecret;
+    public ImmutableArray<byte> LivePlayfabTokenSecret { get; }
 
-    public ImmutableArray<byte> PlayfabEntityTokenSecret => _playfabEntityTokenSecret;
+    public ImmutableArray<byte> PlayfabEntityTokenSecret { get; }
 
-    public ImmutableArray<byte> PlayfabSessionTicketSecret => _playfabSessionTicketSecret;
+    public ImmutableArray<byte> PlayfabSessionTicketSecret { get; }
 }

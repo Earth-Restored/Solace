@@ -34,6 +34,7 @@
   <Project Path="src/Solace.WebPortal.Client/Solace.WebPortal.Client.csproj" />
   <Project Path="src/Solace.WebPortal.Common/Solace.WebPortal.Common.csproj" />
   <Folder Name="/tests/">
+    <Project Path="tests/Solace.Common.Asp.Tests/Solace.Common.Asp.Tests.csproj" />
     <Project Path="tests/Solace.Common.Test/Solace.Common.Test.csproj" />
   </Folder>
 </Solution>
