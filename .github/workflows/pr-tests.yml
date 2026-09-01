@@ -1,0 +1,32 @@
+name: PR Tests
+
+on:
+  pull_request:
+    branches: [ main, dev, aspire ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '11.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run Tests
+        run: dotnet test -- --report-trx
+
+      - name: Upload Test Artifacts
+        uses: actions/upload-artifact@v7
+        if: always() # Ensures test results upload even if test runs fail
+        with:
+          name: test-results
+          path: '**/*.trx'
