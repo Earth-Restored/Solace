@@ -155,11 +155,11 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
 
         LogDeleteObject(id);
 
-        await _dataStore.DeleteAsync(id, context.CancellationToken);
+        var exists = await _dataStore.DeleteAsync(id, context.CancellationToken);
 
         return new DeleteObjectResponse
         {
-            Success = true,
+            Success = exists,
         };
     }
 
