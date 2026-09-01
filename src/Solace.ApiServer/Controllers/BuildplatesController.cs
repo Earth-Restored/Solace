@@ -1,4 +1,4 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -458,30 +458,7 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
             return TypedResults.NotFound();
         }
 
-        // TODO: the client is supposed to poll until the buildplate server is ready, but instead it just crashes if we tell it that the buildplate server is not ready yet
-        // TODO: so instead we just stall the request until it's ready, this is really ugly and eventually we need to figure out why it's crashing and implement this properly
-        // TODO: this also relies on the buildplate server starting in less than ~20 seconds as the client will eventually time out the HTTP request and crash anyway
-        //BuildplateInstance buildplateInstance = this.instanceInfoToApiResponse(instanceInfo);
-        BuildplateInstancesManager.InstanceInfo? instanceInfo1;
-        var waitCount = 0;
-        do
-        {
-            instanceInfo1 = _buildplateInstancesManager.GetInstanceInfo(instanceId);
-            if (instanceInfo1 is null || instanceInfo1.ShuttingDown)
-            {
-                return TypedResults.NotFound();
-            }
-
-            if (!instanceInfo1.Ready)
-            {
-                await Task.Delay(1000, cancellationToken);
-
-                waitCount++;
-            }
-        }
-        while (!instanceInfo1.Ready && waitCount < 35);
-        var buildplateInstance = await InstanceInfoToApiResponse(instanceInfo1, cancellationToken);
-
+        var buildplateInstance = await InstanceInfoToApiResponse(instanceInfo, cancellationToken);
         if (buildplateInstance is null)
         {
             return TypedResults.NotFound();
@@ -671,19 +648,18 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
 
         return new BuildplateInstance(
             instanceInfo.InstanceId,
-            Guid.Empty,
+            instanceInfo.BuildplateId,
             "d.projectearth.dev",    // TODO
             instanceInfo.Address,
             instanceInfo.Port,
             instanceInfo.Ready,
             instanceInfo.Ready ? BuildplateInstance.ApplicationStatusE.READY : BuildplateInstance.ApplicationStatusE.UNKNOWN,
-#pragma warning disable MA0140 // Both if and else branch have identical code
-            instanceInfo.Ready ? BuildplateInstance.ServerStatusE.RUNNING : BuildplateInstance.ServerStatusE.RUNNING,
-#pragma warning restore MA0140 // Both if and else branch have identical code
+            instanceInfo.Ready ? BuildplateInstance.ServerStatusE.RUNNING : BuildplateInstance.ServerStatusE.QUEUED,
             Common.Json.Serialize(new Dictionary<string, object>(StringComparer.Ordinal)
             {
                 { "buildplateid", instanceInfo.BuildplateId }
             }),
+            "776932eeeb69",
             new BuildplateInstance.GameplayMetadataR(
                 instanceInfo.BuildplateId,
                 Guid.Empty, // TODO - grab from buildplate
@@ -700,7 +676,6 @@ internal sealed partial class BuildplatesController : SolaceControllerBase
                 null, // TODO
                 [with(StringComparer.Ordinal)]
             ),
-            "776932eeeb69",
             //new Coordinate(50.99636722700025f, -0.7234904312500047f)
             new Coordinate(0.0f, 0.0f)    // TODO
         );

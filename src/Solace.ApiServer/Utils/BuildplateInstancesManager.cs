@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using Solace.Common;
 using Solace.Common.Utils;
@@ -106,7 +106,7 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
         TaskCompletionSource<bool> completableFuture = new();
         lock (_instances)
         {
-            if (_instances.ContainsKey(instanceId))
+            if (_instances.TryGetValue(instanceId, out var existingInfo) && existingInfo.Ready)
             {
                 completableFuture.SetResult(true);
             }
@@ -199,14 +199,6 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
 
                             _instancesByBuildplateId.ComputeIfAbsent(startNotification.BuildplateId, buildplateId => [])!.Add(startNotification.InstanceId);
                         }
-
-                        lock (_pendingInstances)
-                        {
-                            if (_pendingInstances.Remove(startNotification.InstanceId, out var completableFuture))
-                            {
-                                completableFuture?.SetResult(true);
-                            }
-                        }
                     }
                     catch (Exception exception)
                     {
@@ -240,6 +232,14 @@ internal sealed partial class BuildplateInstancesManager : IAsyncDisposable
                                 true,
                                 instanceInfo.ShuttingDown
                             );
+                        }
+                    }
+
+                    lock (_pendingInstances)
+                    {
+                        if (_pendingInstances.Remove(instanceId, out var completableFuture))
+                        {
+                            completableFuture?.SetResult(true);
                         }
                     }
                 }

@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using Solace.ApiServer.Types.Common;
 using static Solace.ApiServer.Types.Buildplates.BuildplateInstance;
 
@@ -14,8 +14,8 @@ internal sealed record BuildplateInstance(
     ApplicationStatusE ApplicationStatus,
     ServerStatusE ServerStatus,
     string Metadata,
-    GameplayMetadataR GameplayMetadata,
     string RoleInstance,    // TODO: find out what this is
+    GameplayMetadataR GameplayMetadata,
     Coordinate HostCoordinate
 )
 {
@@ -30,6 +30,10 @@ internal sealed record BuildplateInstance(
     internal enum ServerStatusE
     {
         [JsonStringEnumMemberName("Running")] RUNNING,
+        [JsonStringEnumMemberName("Creating")] CREATING,
+        [JsonStringEnumMemberName("Queued")] QUEUED,
+        [JsonStringEnumMemberName("Inactive")] INACTIVE,
+        [JsonStringEnumMemberName("Unknown")] UNKNOWN,
     }
 
     internal sealed record GameplayMetadataR(
