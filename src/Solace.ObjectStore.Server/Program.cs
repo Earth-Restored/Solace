@@ -1,7 +1,9 @@
 ﻿using BitcoderCZ.IO;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Solace.Common;
 using Solace.ObjectStore.Server.Services;
 using System.Diagnostics;
+using System.Net;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
@@ -62,6 +64,26 @@ internal static partial class App
         var builder = WebApplication.CreateSlimBuilder(args);
 
         builder.AddServiceDefaults();
+        builder.WebHost.UseKestrelHttpsConfiguration();
+
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            var urls = builder.Configuration["ASPNETCORE_URLS"]?
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (urls != null && urls.Length >= 2)
+            {
+                if (Uri.TryCreate(urls[0], UriKind.Absolute, out var httpUri))
+                {
+                    options.ListenAnyIP(httpUri.Port, listen => listen.Protocols = HttpProtocols.Http1);
+                }
+
+                if (Uri.TryCreate(urls[1], UriKind.Absolute, out var grpcUri))
+                {
+                    options.ListenAnyIP(grpcUri.Port, listen => listen.Protocols = HttpProtocols.Http2);
+                }
+            }
+        });
 
         builder.Services.AddGrpc();
 
@@ -89,6 +111,8 @@ internal static partial class App
         }
 
         app.MapGrpcService<ObjectStoreServiceImpl>();
+
+        app.MapDefaultEndpoints();
 
         app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
 

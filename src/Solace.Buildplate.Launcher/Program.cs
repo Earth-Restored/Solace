@@ -7,6 +7,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using BitcoderCZ.IO;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
@@ -77,7 +79,7 @@ internal static partial class App
             return 8;
         }
 
-        var builder = Host.CreateApplicationBuilder(args);
+        var builder = WebApplication.CreateSlimBuilder(args);
 
         if (!builder.Configuration.GetValue<bool>("AcceptMinecraftEula"))
         {
@@ -86,18 +88,21 @@ internal static partial class App
         }
 
         builder.AddServiceDefaults();
+        builder.WebHost.UseKestrelHttpsConfiguration();
 
         builder.Services.AddSingleton<StartupDependencies>();
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().Starter);
         builder.Services.AddSingleton<InstanceManager>();
 
-        using var app = builder.Build();
+        await using var app = builder.Build();
 
         var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
         GlobalLoggerFactory.Initialize(loggerFactory);
 
         var programLogger = loggerFactory.CreateLogger(nameof(Program));
+
+        app.MapDefaultEndpoints();
 
         {
             var staticDataPath = builder.Configuration["StaticDataPath"];
@@ -108,7 +113,7 @@ internal static partial class App
         // init stuff that requires logger but needs to be injected
         var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
 
-        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
+        var eventBusConnectionString = builder.Configuration["services:event-bus:grpc:0"];
         Debug.Assert(eventBusConnectionString is not null);
 
         LogConnectingToEventBus(programLogger);
@@ -186,10 +191,9 @@ internal static partial class App
 
         LogStarted(programLogger, publicEndPoint, baseInstancePublicPort);
 
-        while (true)
-        {
-            await Task.Delay(1000);
-        }
+        await app.RunAsync();
+
+        return 0;
     }
 
     public static string? ResolveVersionedFile(string? path, Version minimumVersion, ILogger logger)

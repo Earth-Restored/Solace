@@ -37,6 +37,7 @@
     <Project Path="tests/Solace.Common.Asp.Tests/Solace.Common.Asp.Tests.csproj" />
     <Project Path="tests/Solace.Common.Test/Solace.Common.Test.csproj" />
     <Project Path="tests/Solace.EventBus.Tests/Solace.EventBus.Tests.csproj" />
+    <Project Path="tests/Solace.IntegrationTests/Solace.IntegrationTests.csproj" />
     <Project Path="tests/Solace.ObjectStore.Tests/Solace.ObjectStore.Tests.csproj" />
   </Folder>
 </Solution>

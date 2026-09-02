@@ -21,6 +21,8 @@ public sealed class SeedClientWorker(IServiceProvider serviceProvider, IConfigur
             authServerEndpoint = configuration["services:auth-server:http:0"]!;
         }
 
+        Debug.Assert(authServerEndpoint is not null);
+
         var authServerOidcConfig = configuration.GetSection("Oidc:AuthServer").Get<Solace.Common.Asp.Oidc.OidcClientConfiguration>();
         Debug.Assert(authServerOidcConfig is not null);
 

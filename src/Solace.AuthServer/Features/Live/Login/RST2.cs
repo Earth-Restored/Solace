@@ -86,7 +86,7 @@ public sealed partial class RST2
         {
             // device token request
 
-            // todo: use UsernameToken
+            // todo: use UsernameToken - must be same as deviceaddcredential
 
             if (requestSecurityToken.RequestType is not "http://schemas.xmlsoap.org/ws/2005/02/trust/Issue" ||
                 requestSecurityToken.AppliesTo is not { EndpointReference.Address: "http://Passport.NET/tb" })

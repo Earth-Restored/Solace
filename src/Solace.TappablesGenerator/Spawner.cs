@@ -1,19 +1,23 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Solace.EventBus.Client;
 
 namespace Solace.TappablesGenerator;
 
-internal sealed partial class Spawner : IAsyncDisposable
+internal sealed partial class Spawner : IHostedService, IAsyncDisposable
 {
     private static readonly TimeSpan SPAWN_INTERVAL = TimeSpan.FromSeconds(15);
 
+    private readonly EventBusClient _eventBus;
     private readonly ActiveTiles _activeTiles;
     private readonly TappableGenerator _tappableGenerator;
     private readonly EncounterGenerator _encounterGenerator;
     private Publisher? _publisher;
+    private CancellationTokenSource _cts = new();
+    private volatile Task? _task;
 
     private readonly ILogger<Spawner> _logger;
 
@@ -23,8 +27,10 @@ internal sealed partial class Spawner : IAsyncDisposable
     private int _spawnCycleIndex;
     private readonly ConcurrentDictionary<int, int> _lastSpawnCycleForTile = [];
 
-    public Spawner(ActiveTiles activeTiles, TappableGenerator tappableGenerator, EncounterGenerator encounterGenerator, ILogger<Spawner> logger)
+    public Spawner(EventBusClient eventBus, ActiveTiles activeTiles, TappableGenerator tappableGenerator, EncounterGenerator encounterGenerator, ILogger<Spawner> logger)
     {
+        _eventBus = eventBus;
+
         _activeTiles = activeTiles;
 
         _tappableGenerator = tappableGenerator;
@@ -41,16 +47,63 @@ internal sealed partial class Spawner : IAsyncDisposable
     internal async Task InitializeAsync(EventBusClient eventBusClient)
         => _publisher = await eventBusClient.AddPublisherAsync();
 
-    public async Task RunAsync()
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var nextTime = DateTimeOffset.UtcNow + SPAWN_INTERVAL;
-        while (true)
+        if (_publisher is null)
         {
-            await Task.Delay(int.Max(0, (int)(nextTime - DateTimeOffset.UtcNow).TotalMilliseconds));
+            _publisher = await _eventBus.AddPublisherAsync();
+        }
 
-            nextTime += SPAWN_INTERVAL;
+        if (_task is not null)
+        {
+            _cts.Cancel();
 
-            await DoSpawnCycleAsync();
+            while (_task is not null)
+            {
+                await Task.Delay(1, cancellationToken);
+            }
+
+            _cts = new CancellationTokenSource();
+        }
+
+#pragma warning disable CA2016 // Forward the 'CancellationToken' parameter to methods
+        _task = Task.Run(async () =>
+        {
+            var cancellationToken = _cts.Token;
+
+            var nextTime = DateTimeOffset.UtcNow + SPAWN_INTERVAL;
+
+            try
+            {
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    await Task.Delay(int.Max(0, (int)(nextTime - DateTimeOffset.UtcNow).TotalMilliseconds), cancellationToken);
+
+                    nextTime += SPAWN_INTERVAL;
+
+                    await DoSpawnCycleAsync(cancellationToken);
+                }
+            }
+            finally
+            {
+                _task = null;
+            }
+        });
+#pragma warning restore CA2016 // Forward the 'CancellationToken' parameter to methods
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        if (_task is not null)
+        {
+            _cts.Cancel();
+
+            while (_task is not null)
+            {
+                await Task.Delay(1, cancellationToken);
+            }
+
+            _cts = new CancellationTokenSource();
         }
     }
 

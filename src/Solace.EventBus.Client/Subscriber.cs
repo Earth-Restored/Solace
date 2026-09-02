@@ -14,6 +14,7 @@ public sealed class Subscriber : IAsyncDisposable
 
     private CancellationTokenSource? _cts;
     private Task? _loopTask;
+    private byte _disposed;
 
     private SemaphoreSlim? _semaphore;
     private const int MaxDegreeOfParallelism = 4;
@@ -154,23 +155,30 @@ public sealed class Subscriber : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        if (_cts is not null)
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
-            _cts.Cancel();
-            if (_loopTask is not null)
-            {
-                try
-                {
-                    await _loopTask;
-                }
-                catch
-                {
-                }
-            }
-
-            _cts.Dispose();
+            return;
         }
 
+        var cancellationSource = _cts;
+        if (cancellationSource is null)
+        {
+            return;
+        }
+
+        cancellationSource.Cancel();
+        if (_loopTask is not null)
+        {
+            try
+            {
+                await _loopTask;
+            }
+            catch
+            {
+            }
+        }
+
+        cancellationSource.Dispose();
         _semaphore?.Dispose();
     }
 }

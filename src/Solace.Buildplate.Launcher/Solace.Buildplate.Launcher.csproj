@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-	  <AssemblyName>BuildplateLauncher</AssemblyName>
+    <AssemblyName>BuildplateLauncher</AssemblyName>
   </PropertyGroup>
 
   <Target Name="MoveDependenciesToShared" AfterTargets="Publish" Condition="'$(UseSharedLibs)' == 'true'">
@@ -28,8 +28,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Cyotek.Data.Nbt" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="ReentrantAsyncLock" />
   </ItemGroup>
 

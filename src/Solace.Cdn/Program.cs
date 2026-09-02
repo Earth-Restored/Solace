@@ -102,9 +102,11 @@ internal sealed partial class App
         app.MapGet("/tile/{_0}/{_1}/{tilePos1}_{tilePos2}_{zoom}.png", HandleGetTile)
         .CacheOutput(policy => policy.Expire(TimeSpan.FromHours(1)));
 
+        app.MapDefaultEndpoints();
+
         var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
 
-        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
+        var eventBusConnectionString = builder.Configuration["services:event-bus:grpc:0"];
         Debug.Assert(eventBusConnectionString is not null);
 
         LogConnectingToEventBus(programLogger);
@@ -122,7 +124,7 @@ internal sealed partial class App
 
         LogConnectedToEventBus(programLogger);
 
-        var objectStoreConnectionString = builder.Configuration["services:object-store:http:0"];
+        var objectStoreConnectionString = builder.Configuration["services:object-store:grpc:0"];
         Debug.Assert(objectStoreConnectionString is not null);
 
         LogConnectingToObjectStore(programLogger);

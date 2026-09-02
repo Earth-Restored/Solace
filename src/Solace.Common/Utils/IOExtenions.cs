@@ -45,7 +45,7 @@ public static class IOExtenions
 
             var bestMatch = Directory.EnumerateFiles(directory)
                 .Select(Path.GetFileName)
-                .OfType<string>()
+                .WhereNotNull()
                 .Select(name => new { Name = name, Match = regex.Match(name) })
                 .Where(x => x.Match.Success)
                 .Select(x =>
