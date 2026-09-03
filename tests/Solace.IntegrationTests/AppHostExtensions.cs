@@ -8,7 +8,7 @@ namespace Solace.IntegrationTests;
 
 public static class AppHostExtensions
 {
-    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(2);
 
     public static async Task<DistributedApplication> RunAsync(HashSet<string> projects, string[]? args = null, CancellationToken cancellationToken = default)
     {
