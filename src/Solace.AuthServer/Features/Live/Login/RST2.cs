@@ -240,7 +240,7 @@ public sealed partial class RST2
             {
                 var deviceTokenXml = new XmlDocument();
                 deviceTokenXml.LoadXml(deviceDATokenXMLString);
-                deviceTokenString = deviceTokenXml.SelectSingleNode("/EncryptedData/CipherData/CipherValue")?.InnerText ?? string.Empty;
+                deviceTokenString = deviceTokenXml.SelectSingleNode("/EncryptedData/CipherData/CipherValue")?.InnerText;
             }
 
             if (requestMultipleSecurityTokens.SecurityTokenRequests is null)
@@ -257,7 +257,8 @@ public sealed partial class RST2
                 requestMultipleSecurityTokens.SecurityTokenRequests[0].AppliesTo?.EndpointReference?.Address is not "http://Passport.NET/tb" ||
                 requestMultipleSecurityTokens.SecurityTokenRequests[1].RequestType is not "http://schemas.xmlsoap.org/ws/2005/02/trust/Issue" ||
                 requestMultipleSecurityTokens.SecurityTokenRequests[1].AppliesTo?.EndpointReference?.Address is not "cobrandid=90023&scope=service%3A%3Auser.auth.xboxlive.com%3A%3Ambi_ssl" ||
-                userTokenString is null)
+                userTokenString is null ||
+                deviceTokenString is null)
             {
                 return TypedResults.BadRequest();
             }

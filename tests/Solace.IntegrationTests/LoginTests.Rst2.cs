@@ -1,9 +1,12 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Web;
 using System.Xml.Linq;
 using Aspire.Hosting.Testing;
+using Microsoft.Extensions.Logging.Abstractions;
 using Solace.Common.Asp;
 using Solace.Common.Asp.Auth;
 using Solace.Db.Earth;
@@ -257,6 +260,52 @@ public sealed partial class LoginTests
                 .Select(e => e.Value.Trim())
                 .FirstOrDefault();
             await Assert.That(nonce).IsNotNullOrWhiteSpace();
+
+            var innerXml = DecryptRstrPayload(ImmutableCollectionsMarshal.AsArray(cryptoSecrets.LoginUserTokenSessionKey)!, nonce!, cipherValue!);
+
+            var innerDoc = XDocument.Parse(innerXml);
+            var xboxTokenJwt = innerDoc.Descendants()
+                .FirstOrDefault(e => e.Name.LocalName == "BinarySecurityToken" && e.Attribute("Id")?.Value == "Compact1")
+                ?.Value.Trim();
+
+            await Assert.That(xboxTokenJwt).IsNotNullOrWhiteSpace();
+
+            await Assert.That(JwtUtils.Verify<AuthServer.Features.Common.XboxTicketToken>(xboxTokenJwt!, cryptoSecrets.LoginXboxTokenSecret, NullLogger.Instance, allowExpired: false)).IsNotNull();
+        }
+
+        static string DecryptRstrPayload(byte[] sessionKey, string nonceBase64, string cipherTextBase64)
+        {
+            var nonce = Convert.FromBase64String(nonceBase64);
+            var fullCipherBytes = Convert.FromBase64String(cipherTextBase64);
+
+            byte[] messageKey;
+            using (var hmac = new HMACSHA256(sessionKey))
+            {
+                hmac.TransformBlock([0, 0, 0, 1], 0, 4, null, 0);
+                var labelBytes = Encoding.UTF8.GetBytes("WS-SecureConversationWS-SecureConversation");
+                hmac.TransformBlock(labelBytes, 0, labelBytes.Length, null, 0);
+                hmac.TransformBlock([0], 0, 1, null, 0);
+                hmac.TransformBlock(nonce, 0, nonce.Length, null, 0);
+                hmac.TransformFinalBlock([0, 0, 1, 0], 0, 4);
+
+                messageKey = hmac.Hash!;
+            }
+
+            var iv = fullCipherBytes.AsSpan(0, 16).ToArray();
+            var cipherBytes = fullCipherBytes.AsSpan(16).ToArray();
+
+            using var aes = Aes.Create();
+            aes.KeySize = 256;
+            aes.BlockSize = 128;
+            aes.Mode = CipherMode.CBC;
+            aes.Padding = PaddingMode.PKCS7;
+            aes.Key = messageKey;
+            aes.IV = iv;
+
+            using var decryptor = aes.CreateDecryptor(messageKey, iv);
+            var plainTextBytes = decryptor.TransformFinalBlock(cipherBytes, 0, cipherBytes.Length);
+
+            return Encoding.UTF8.GetString(plainTextBytes);
         }
     }
 }
