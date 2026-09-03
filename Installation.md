@@ -67,24 +67,7 @@ curl -sSl https://raw.githubusercontent.com/Earth-Restored/Solace/main/install.s
 
 * For iOS you can use [this patcher](https://github.com/catdogmat/ProjectEarthiOSPatcher), but it is not officially supported. Installation methods other than AltStore may not work
 
-| Feature | Project Earth patcher | MCE Patcher |
-| ------- | --------------------- | ----------- |
-| Target Device | Android | Android |
-| Patcher Runs On | Android | Windows, Linux, macOS |
-| Login | Microsoft account only | Microsoft or custom |
-| Shop | Requires that you have played the game before it shut down using the microsoft account | Always works if you use custom login |
-
-##### Project Earth patcher
-
-1. Download [the patcher](https://archive.org/download/dev.projectearth.patcher-1.0/dev.projectearth.patcher-1.0.apk)
-2. Install the patcher on your device
-3. Make sure you have a LEGAL copy of Minecraft Earth installed on that same device
-4. Open the patcher, press on the 3 dots then go to Settings
-5. Under Locator Server, set the following: `http://{ip}:8080`, replace `{ip}` with your PC's ip or hostnamr, **make sure you have http:// instead of https://**
-6. Now go back and start patching
-7. Once that's done, congratulations! You can now open the newly installed app and play Minecraft Earth!
-
-##### MCE patcher
+##### Android
 
 1. Download [the patcher](https://github.com/Earth-Restored/Minecraft_Earth_Patcher/releases) (UI is highly recommended) or build it from source
 2. Acquire a Minecraft Earth apk, such as by dumping in from you phone.
