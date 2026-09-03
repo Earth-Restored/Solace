@@ -4,6 +4,7 @@ using Aspire.Hosting;
 using Aspire.Hosting.Testing;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Solace.Db.Earth;
 using Solace.WebPortal.Common.Features.Roles;
 using Solace.WebPortal.Data;
 using TUnit.Core.Interfaces;
@@ -16,6 +17,11 @@ public sealed partial class LoginTests : IAsyncInitializer, IAsyncDisposable
 
     private const string AccountEmail = "test@solace.com";
     private const string AccountPassword = "aA1234$";
+
+    private const string ProfileUsername = "profile";
+    private Guid _profileId;
+
+    private string _earthConnectionString = null!;
 
     private DistributedApplication _app = null!;
     private HttpClient _authServerClient = null!;
@@ -74,6 +80,18 @@ public sealed partial class LoginTests : IAsyncInitializer, IAsyncDisposable
         });
 
         await webPortalDb.SaveChangesAsync();
+
+        var earthConnectionString = await _app.GetConnectionStringAsync("EarthDb");
+        Debug.Assert(earthConnectionString is not null);
+        _earthConnectionString = earthConnectionString;
+
+        await using var earthDb = EarthDbContext.CreateFromConnection(earthConnectionString);
+
+        var profile = await earthDb.GetOrCreateAccount(Guid.CreateVersion7(), null);
+        profile.Username = ProfileUsername;
+        await earthDb.SaveChangesAsync();
+
+        _profileId = profile.Id;
     }
 
     private static string ExtractInputValue(string html, string inputName)

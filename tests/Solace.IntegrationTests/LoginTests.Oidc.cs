@@ -115,7 +115,7 @@ public sealed partial class LoginTests
         await Assert.That(createProfileToken).IsNotEmpty();
 
         // Create profile
-        const string newUsername = "test_player";
+        const string newUsername = "oidc_profile";
         var createProfileContent = new FormUrlEncodedContent(
         [
             new KeyValuePair<string, string>("_handler", "create_profile_form"),

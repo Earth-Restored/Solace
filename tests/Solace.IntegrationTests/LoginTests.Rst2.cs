@@ -18,21 +18,14 @@ public sealed partial class LoginTests
     [Test]
     public async Task Login_Rst2(CancellationToken cancellationToken)
     {
-        var earthConnectionString = await _app.GetConnectionStringAsync("EarthDb", cancellationToken);
-        Debug.Assert(earthConnectionString is not null);
-
-        await using var earthDb = EarthDbContext.CreateFromConnection(earthConnectionString);
+        await using var earthDb = EarthDbContext.CreateFromConnection(_earthConnectionString);
 
         var cryptoSecrets = await earthDb.GetOrInitializeSecretsAsync();
 
-        var profile = await earthDb.GetOrCreateAccount(Guid.CreateVersion7(), null);
-        profile.Username = "rst2";
-        await earthDb.SaveChangesAsync(cancellationToken);
-
         var liveValidity = ValidityDatePair.Create(TimeSpan.FromMinutes(10));
         var liveToken = new AuthServer.Features.Live.Login.UserToken(
-            profile.Id,
-            profile.Username
+            _profileId,
+            ProfileUsername
         );
         var liveTokenString = JwtUtils.Sign(liveToken, cryptoSecrets.LoginUserTokenSecret, liveValidity);
 
