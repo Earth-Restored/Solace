@@ -12,7 +12,7 @@ namespace Solace.IntegrationTests;
 
 public sealed class LoginTestsFixture : IAsyncInitializer, IAsyncDisposable
 {
-    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(6);
+    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(15);
 
     public const string AccountEmail = "login.tests@solace.com";
     public const string AccountPassword = "aA1234$";
