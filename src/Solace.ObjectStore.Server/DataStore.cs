@@ -95,7 +95,7 @@ internal sealed class DataStore
         }
     }
 
-    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
 
@@ -107,7 +107,10 @@ internal sealed class DataStore
         {
             // throws if parent directory does not exist - guard with Exists
             file.Delete();
+            return true;
         }
+
+        return false;
     }
 
     internal sealed class DataStoreException : Exception

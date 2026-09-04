@@ -8,6 +8,8 @@ using Microsoft.Extensions.Hosting;
 using Solace.Common;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
@@ -66,9 +68,10 @@ internal static partial class App
             };
         }
 
-        var builder = Host.CreateApplicationBuilder(args);
+        var builder = WebApplication.CreateSlimBuilder(args);
 
         builder.AddServiceDefaults();
+        builder.WebHost.UseKestrelHttpsConfiguration();
 
         builder.Services.AddSingleton<StartupDependencies>();
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
@@ -82,6 +85,8 @@ internal static partial class App
         GlobalLoggerFactory.Initialize(loggerFactory);
 
         var programLogger = loggerFactory.CreateLogger(nameof(App));
+
+        app.MapDefaultEndpoints();
 
         ITileDataSource tileDataSource;
         if (!string.IsNullOrWhiteSpace(builder.Configuration["TileSource:TileJsonUrl"]))
@@ -124,7 +129,7 @@ internal static partial class App
                 maxZoom = tilesResponse.MaxZoom.Value;
             }
 
-            if (tilesResponse is null or { TileUrls: { IsDefaultOrEmpty: true, }, })
+            if (tilesResponse is null or { TileUrls.IsDefaultOrEmpty: true, })
             {
                 LogNoTileUrl(programLogger);
                 return 5;
@@ -187,7 +192,7 @@ internal static partial class App
 
         LogLoadedStaticData(programLogger);
 
-        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
+        var eventBusConnectionString = builder.Configuration["services:event-bus:grpc:0"];
         Debug.Assert(eventBusConnectionString is not null);
 
         LogConnectingToEventBus(programLogger);
@@ -211,17 +216,7 @@ internal static partial class App
         startupDeps.StaticData = staticData;
         startupDeps.EventBus = eventBusClient;
 
-        try
-        {
-            var renderer = app.Services.GetRequiredService<EventBusTileRenderer>();
-            await renderer.RunAsync();
-        }
-        catch (IOException exception)
-        {
-            LogFatalErrorDuringServerStartup(programLogger, exception);
-            loggerFactory.Dispose();
-            return 10;
-        }
+        await app.RunAsync();
 
         return 0;
     }
@@ -286,7 +281,4 @@ internal static partial class App
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Connected to event bus")]
     private static partial void LogConnectedToEventBus(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Critical, Message = "Fatal error during server startup")]
-    private static partial void LogFatalErrorDuringServerStartup(ILogger logger, Exception exception);
 }

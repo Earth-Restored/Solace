@@ -7,7 +7,7 @@ namespace Solace.WebPortal.Features.Home;
 
 [Handler]
 [MapGet("/api/config/public-endpoints")]
-public static partial class GetInfo
+public static partial class GetPublicEndpoints
 {
     public sealed record Query;
 

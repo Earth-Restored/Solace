@@ -271,7 +271,7 @@ internal sealed partial class Program2
         }
 
         app.UseWhen(
-            context => !context.Request.Path.StartsWithSegments("/api"),
+            context => !context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase),
             appBuilder => appBuilder.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true)
         );
 
@@ -282,6 +282,8 @@ internal sealed partial class Program2
             .AddInteractiveWebAssemblyRenderMode()
             .AddAdditionalAssemblies(typeof(Client._Imports).Assembly);
 
+        app.MapDefaultEndpoints();
+
         app.MapSolaceWebPortalEndpoints();
 
         // Add additional endpoints required by the Identity /Account Razor components.
@@ -291,7 +293,7 @@ internal sealed partial class Program2
 
         var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
 
-        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
+        var eventBusConnectionString = builder.Configuration["services:event-bus:grpc:0"];
         Debug.Assert(eventBusConnectionString is not null);
 
         LogConnectingToEventBus(programLogger);
@@ -310,7 +312,7 @@ internal sealed partial class Program2
 
         LogConnectedToEventBus(programLogger);
 
-        var objectStoreConnectionString = builder.Configuration["services:object-store:http:0"];
+        var objectStoreConnectionString = builder.Configuration["services:object-store:grpc:0"];
         Debug.Assert(objectStoreConnectionString is not null);
 
         LogConnectingToObjectStore(programLogger);

@@ -7,6 +7,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 #pragma warning restore MA0048 // File name must match type name
 
 var migrationMode = builder.Configuration.GetValue<bool>("migration-mode");
+var testMode = builder.Configuration.GetValue<bool>("TestMode");
 
 builder.AddDockerComposeEnvironment("solace-prod")
     .WithProperties(env =>
@@ -44,8 +45,13 @@ builder.AddContainer("nginx", "nginx", "alpine")
     .WithLifetime(ContainerLifetime.Persistent);
 
 var postgres = builder.AddPostgres("postgres")
-    .WithDataVolume()
     .WithPgAdmin();
+
+if (builder.Configuration.GetValue("UseVolumes", true))
+{
+    postgres.WithDataVolume();
+}
+
 var earthDb = postgres.AddDatabase("EarthDb");
 var playfabDb = postgres.AddDatabase("PlayfabDb");
 var webPortalDb = postgres.AddDatabase("WebPortalDb");
@@ -58,6 +64,8 @@ if (builder.Configuration.GetValue<bool>("Shared:ResolvePaths", false))
 
 var objectStore = builder.AddProject<Projects.Solace_ObjectStore_Server>("object-store")
     .WithHttpEndpoint(name: "http")
+    .WithEndpoint(name: "grpc", scheme: "http")
+    .WithHttpHealthCheck("/health")
     .WithEnvironment("DataDirectory", objectStoreDataDirectory)
     .PublishAsDockerComposeService((resource, service) =>
     {
@@ -80,7 +88,9 @@ if (migrationMode)
 }
 
 var eventBus = builder.AddProject<Projects.Solace_EventBus_Server>("event-bus")
-    .WithHttpEndpoint(name: "http");
+    .WithHttpEndpoint(name: "http")
+    .WithEndpoint(name: "grpc", scheme: "http")
+    .WithHttpHealthCheck("/health");
 
 var staticDataPath = builder.Configuration["Shared:StaticDataPath"]!;
 if (builder.Configuration.GetValue<bool>("Shared:ResolvePaths", false))
@@ -108,6 +118,8 @@ var buildplateServerSetup = builder.AddProject<Projects.Solace_Buildplate_Server
     });
 
 var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate_Launcher>("buildplate-launcher")
+    .WithHttpEndpoint(name: "http")
+    .WithHttpHealthCheck("/health")
     .WithReference(eventBus)
     .WaitFor(eventBus)
     .WithReference(buildplateServerSetup)
@@ -130,6 +142,8 @@ var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate_Launcher>
     });
 
 var buildplateUpdater = builder.AddProject<Projects.Solace_Buildplate_Updater>("buildplate-updater")
+    .WithHttpEndpoint(name: "http")
+    .WithHttpHealthCheck("/health")
     .WithReference(eventBus)
     .WaitFor(eventBus)
     .WithReference(buildplateServerSetup)
@@ -160,6 +174,7 @@ var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
     {
         endpoint.TargetHost = "*";
     })
+    .WithHttpHealthCheck("/health")
     .WithReference(earthDb)
     .WaitFor(earthDb)
     .WithReference(playfabDb)
@@ -204,6 +219,7 @@ var cdn = builder.AddProject<Projects.Solace_Cdn>("cdn")
     {
         endpoint.TargetHost = "*";
     })
+    .WithHttpHealthCheck("/health")
     .WithReference(earthDb)
     .WaitFor(earthDb)
     .WithReference(eventBus)
@@ -241,6 +257,7 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
     {
         endpoint.TargetHost = "*";
     })
+    .WithHttpHealthCheck("/health")
     .WithReference(earthDb)
     .WaitFor(earthDb)
     .WithReference(playfabDb)
@@ -257,7 +274,6 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
     .WithEnvironmentParameter(captchaCloudflareTurnstileSiteKey, prefixToRemove: "Shared:")
     .WithEnvironmentParameter(captchaCloudflareTurnstileSecretKey, prefixToRemove: "Shared:")
     .WithEnvironment("StaticDataPath", staticDataPath)
-    .WithEnvironment("services__web-portal__http__0", (string)$"http://localhost:{webPortalPort}/")
     .PublishAsDockerComposeService((resource, service) =>
     {
         service.AddVolume(new Aspire.Hosting.Docker.Resources.ServiceNodes.Volume
@@ -292,6 +308,7 @@ var locator = builder.AddProject<Projects.Solace_Locator>("locator")
     {
         endpoint.TargetHost = "*";
     })
+    .WithHttpHealthCheck("/health")
     .WithReference(apiServer)
     .WaitFor(apiServer)
     .WithReference(cdn)
@@ -303,6 +320,8 @@ var locator = builder.AddProject<Projects.Solace_Locator>("locator")
     });
 
 var tappableGenerator = builder.AddProject<Projects.Solace_TappablesGenerator>("tappable-generator")
+    .WithHttpEndpoint(name: "http")
+    .WithHttpHealthCheck("/health")
     .WithReference(eventBus)
     .WaitFor(eventBus)
     .WithEnvironment("StaticDataPath", staticDataPath)
@@ -324,6 +343,8 @@ var tileJsonUrl = builder.AddConfigParameter("TileRenderer:TileSource:TileJsonUr
 var tileDbConnString = builder.AddConfigParameter("TileRenderer:TileSource:TileDatabaseConnectionString");
 
 var tileRenderer = builder.AddProject<Projects.Solace_TileRenderer>("tile-renderer")
+    .WithHttpEndpoint(name: "http")
+    .WithHttpHealthCheck("/health")
     .WithReference(eventBus)
     .WaitFor(eventBus)
     .WithEnvironment("StaticDataPath", staticDataPath)
@@ -360,6 +381,7 @@ var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
     {
         endpoint.TargetHost = "*";
     })
+    .WithHttpHealthCheck("/health")
     .WithReference(authServer)
     .WaitFor(authServer)
     .WithReference(earthDb)
@@ -434,5 +456,7 @@ var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
             ReadOnly = false,
         });
     });
+
+authServer.WithReference(webPortal);
 
 builder.Build().Run();

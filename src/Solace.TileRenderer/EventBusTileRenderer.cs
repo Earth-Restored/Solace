@@ -1,15 +1,17 @@
 ﻿using System.Text.Json;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SkiaSharp;
 using Solace.EventBus.Client;
 
 namespace Solace.TileRenderer;
 
-internal sealed partial class EventBusTileRenderer : IAsyncDisposable
+internal sealed partial class EventBusTileRenderer : IHostedService, IAsyncDisposable
 {
     private readonly ITileDataSource _dataSource;
     private readonly EventBusClient _eventBus;
     private readonly VectorTileRenderer _renderer;
+    private RequestHandler? _handler;
 
     private readonly ILogger<EventBusTileRenderer> _logger;
 
@@ -21,9 +23,14 @@ internal sealed partial class EventBusTileRenderer : IAsyncDisposable
         _logger = logger;
     }
 
-    public async Task RunAsync()
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _eventBus.AddRequestHandlerAsync("tile",
+        if (_handler is not null)
+        {
+            return;
+        }
+
+        _handler = await _eventBus.AddRequestHandlerAsync("tile",
         async (request, cancellationToken) =>
         {
             if (request.Type is "renderTile")
@@ -71,12 +78,23 @@ internal sealed partial class EventBusTileRenderer : IAsyncDisposable
         });
 
         LogStarted();
+    }
 
-        await Task.Delay(Timeout.Infinite);
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        if (_handler is not null)
+        {
+            await _handler.DisposeAsync();
+        }
     }
 
     public async ValueTask DisposeAsync()
-        => await _eventBus.DisposeAsync();
+    {
+        if (_handler is not null)
+        {
+            await _handler.DisposeAsync();
+        }
+    }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Could not deserialise renderTile request")]
     private partial void LogCouldNotDeserialiseRenderTileRequest(Exception exception);

@@ -146,6 +146,8 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
         using var safeWriter = new SafeStreamWriter<EventMessage>(responseStream);
         _state.Subscribers.GetOrAdd(request.QueueName, static _ => new())[id] = safeWriter;
 
+        await safeWriter.WriteAsync(new EventMessage { SubscriptionReady = true, }, context.CancellationToken);
+
         await context.CancellationToken.AsTask()
             .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
@@ -524,6 +526,8 @@ internal sealed partial class EventBusServiceImpl : EventBusService.EventBusServ
                             }
 
                             registeredQueues.Add(queue);
+
+                            await connection.Writer.WriteAsync(new ServerMessage { HandlerReady = true, }, context.CancellationToken);
                         }
 
                         break;

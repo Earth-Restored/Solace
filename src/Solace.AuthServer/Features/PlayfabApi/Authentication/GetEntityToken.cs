@@ -40,12 +40,11 @@ public sealed partial class GetEntityToken(
 
         var tokenUnion = PlayfabApiUtils.PlayfabAuth(cryptoSecrets, httpContext.Request, logger);
 
-        if (tokenUnion.IsB)
+        if (tokenUnion is not EntityToken token)
         {
-            return tokenUnion.B.Result is ForbidHttpResult forbid ? forbid : (BadRequest)tokenUnion.B.Result;
+            var results = (Results<ForbidHttpResult, BadRequest>)tokenUnion.Value!;
+            return results.Result is ForbidHttpResult forbid ? forbid : (BadRequest)results.Result;
         }
-
-        var token = tokenUnion.A;
 
         switch (command.Entity.Type)
         {

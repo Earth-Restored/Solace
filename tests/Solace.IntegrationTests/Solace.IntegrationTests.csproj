@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <NoWarn>$(NoWarn);CA1707;MA0002</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="./../../staticdata/**/*">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>staticdata\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Testing" />
+    <PackageReference Include="TUnit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Solace.AppHost/Solace.AppHost.csproj" />
+    <ProjectReference Include="../../src/Solace.AuthServer/Solace.AuthServer.csproj" />
+    <ProjectReference Include="../../src/Solace.Db.Earth/Solace.Db.Earth.csproj" />
+    <ProjectReference Include="../../src/Solace.WebPortal/Solace.WebPortal.csproj" />
+  </ItemGroup>
+
+</Project>

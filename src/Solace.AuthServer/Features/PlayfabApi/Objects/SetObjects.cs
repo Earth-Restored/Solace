@@ -48,12 +48,11 @@ public sealed partial class SetObjects(
 
         var tokenUnion = PlayfabApiUtils.PlayfabAuth(cryptoSecrets, httpContext.Request, logger);
 
-        if (tokenUnion.IsB)
+        if (tokenUnion is not EntityToken token)
         {
-            return tokenUnion.B.Result is ForbidHttpResult forbid ? forbid : (BadRequest)tokenUnion.B.Result;
+            var results = (Results<ForbidHttpResult, BadRequest>)tokenUnion.Value!;
+            return results.Result is ForbidHttpResult forbid ? forbid : (BadRequest)results.Result;
         }
-
-        var token = tokenUnion.A;
 
         if (token.Id != command.Entity.Id || token.Type != command.Entity.Type)
         {

@@ -1,6 +1,6 @@
 ﻿namespace Solace.Common.Exceptions;
 
-public class UnsupportedOperationException : Exception
+public sealed class UnsupportedOperationException : Exception
 {
     public UnsupportedOperationException()
         : base()

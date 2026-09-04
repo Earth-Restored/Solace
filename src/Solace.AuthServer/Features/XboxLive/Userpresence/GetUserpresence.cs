@@ -53,9 +53,10 @@ public sealed partial class GetUserpresence(
         Debug.Assert(httpContext is not null);
 
         var authUnion = AuthUtils.XboxLiveAuth(httpContext.Request, cryptoSecrets, logger);
-        if (authUnion.IsB)
+        if (authUnion is not XapiToken)
         {
-            return authUnion.B.Result is UnauthorizedHttpResult unauthorized ? unauthorized : (BadRequest)authUnion.B.Result;
+            var results = (Results<UnauthorizedHttpResult, BadRequest>)authUnion.Value!;
+            return results.Result is UnauthorizedHttpResult unauthorized ? unauthorized : (BadRequest)results.Result;
         }
 
         var xuidMatch = XuidUtils.GetXuidRegex().Match(query.XuidParam);

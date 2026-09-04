@@ -16,6 +16,7 @@ public sealed class RequestHandler : IAsyncDisposable
 
     private CancellationTokenSource? _cts;
     private Task? _loopTask;
+    private readonly TaskCompletionSource _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private SemaphoreSlim? _semaphore;
     private const int MaxDegreeOfParallelism = 4;
@@ -50,6 +51,12 @@ public sealed class RequestHandler : IAsyncDisposable
             {
                 await foreach (var serverMessage in _call.ResponseStream.ReadAllAsync(_cts.Token))
                 {
+                    if (serverMessage.HandlerReady)
+                    {
+                        _ready.TrySetResult();
+                        continue;
+                    }
+
                     if (_activeRequestStreams.TryGetValue(serverMessage.CorrelationId, out var existingWriter))
                     {
                         if (serverMessage.PayloadCase is ServerMessage.PayloadOneofCase.BinaryData && !serverMessage.BinaryData.IsEmpty)
@@ -192,10 +199,13 @@ public sealed class RequestHandler : IAsyncDisposable
             }
             catch (Exception exception) when (exception is not (OperationCanceledException or RpcException { StatusCode: StatusCode.Cancelled, }))
             {
+                _ready.TrySetException(exception);
                 await _onError(exception);
             }
             finally
             {
+                _ready.TrySetCanceled();
+
                 foreach (var writer in _activeRequestStreams.Values)
                 {
                     writer.TryComplete(new InvalidOperationException("Connection lost before stream completed."));
@@ -204,6 +214,8 @@ public sealed class RequestHandler : IAsyncDisposable
                 _activeRequestStreams.Clear();
             }
         });
+
+        await _ready.Task;
     }
 
     public async ValueTask DisposeAsync()
@@ -229,6 +241,8 @@ public sealed class RequestHandler : IAsyncDisposable
 
             _call?.Dispose();
             _cts.Dispose();
+
+            _cts = null;
         }
 
         _semaphore?.Dispose();

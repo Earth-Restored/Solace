@@ -5,6 +5,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Solace.Common;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif
@@ -63,9 +65,10 @@ internal static partial class App
             };
         }
 
-        var builder = Host.CreateApplicationBuilder(args);
+        var builder = WebApplication.CreateSlimBuilder(args);
 
         builder.AddServiceDefaults();
+        builder.WebHost.UseKestrelHttpsConfiguration();
 
         builder.Services.AddSingleton<StartupDependencies>();
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
@@ -82,6 +85,8 @@ internal static partial class App
 
         var programLogger = loggerFactory.CreateLogger(nameof(Program));
 
+        app.MapDefaultEndpoints();
+
         LogLoadingStaticData(programLogger);
         StaticData.StaticDataProvider staticData;
         try
@@ -97,7 +102,7 @@ internal static partial class App
 
         LogLoadedStaticData(programLogger);
 
-        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
+        var eventBusConnectionString = builder.Configuration["services:event-bus:grpc:0"];
         Debug.Assert(eventBusConnectionString is not null);
 
         LogConnectingToEventBus(programLogger);
@@ -123,28 +128,14 @@ internal static partial class App
         // init stuff that needs async initialization
         var spawner = app.Services.GetRequiredService<Spawner>();
         await app.Services.GetRequiredService<ActiveTiles>().InitializeAsync(eventBusClient, new ActiveTiles.ActiveTileListener(
-            async (activeTiles, cancellationToken) =>
-            {
-                await spawner.SpawnTilesAsync(activeTiles, cancellationToken);
-            },
+            spawner.SpawnTilesAsync,
             async (activeTile, cancellationToken) =>
             {
                 // empty
             }
         ));
-        await spawner.InitializeAsync(eventBusClient);
 
-        try
-        {
-            await spawner.RunAsync();
-        }
-        catch (IOException exception)
-        {
-            Console.Error.WriteLine(exception.ToString());
-            LogFatalErrorDuringServerStartup(programLogger, exception);
-            loggerFactory.Dispose();
-            return 1;
-        }
+        await app.RunAsync();
 
         return 0;
     }
@@ -175,7 +166,4 @@ internal static partial class App
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Connected to event bus")]
     private static partial void LogConnectedToEventBus(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Critical, Message = "Fatal error during server startup")]
-    private static partial void LogFatalErrorDuringServerStartup(ILogger logger, Exception exception);
 }

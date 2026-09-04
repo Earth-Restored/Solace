@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -42,7 +44,7 @@ internal sealed partial class Program
             return;
         }
 
-        var builder = Host.CreateApplicationBuilder(args);
+        var builder = WebApplication.CreateSlimBuilder(args);
 
         if (!builder.Configuration.GetValue<bool>("AcceptMinecraftEula", false))
         {
@@ -51,6 +53,7 @@ internal sealed partial class Program
         }
 
         builder.AddServiceDefaults();
+        builder.WebHost.UseKestrelHttpsConfiguration();
 
         builder.Services.AddSingleton<StartupDependencies>();
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
@@ -64,7 +67,9 @@ internal sealed partial class Program
 
         var programLogger = loggerFactory.CreateLogger(nameof(Program));
 
-        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
+        app.MapDefaultEndpoints();
+
+        var eventBusConnectionString = builder.Configuration["services:event-bus:grpc:0"];
         Debug.Assert(eventBusConnectionString is not null);
 
         LogConnectingToEventBus(programLogger);
@@ -86,17 +91,7 @@ internal sealed partial class Program
         var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
         startupDeps.EventBus = eventBusClient;
 
-        try
-        {
-            var renderer = app.Services.GetRequiredService<EventBusBuildplateUpdater>();
-            await renderer.RunAsync();
-        }
-        catch (IOException exception)
-        {
-            LogFatalErrorDuringServerStartup(programLogger, exception);
-            loggerFactory.Dispose();
-            return;
-        }
+        await app.RunAsync();
     }
 
     internal sealed class StartupDependencies
@@ -115,7 +110,4 @@ internal sealed partial class Program
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Connected to event bus")]
     private static partial void LogConnectedToEventBus(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Critical, Message = "Fatal error during server startup")]
-    private static partial void LogFatalErrorDuringServerStartup(ILogger logger, Exception exception);
 }

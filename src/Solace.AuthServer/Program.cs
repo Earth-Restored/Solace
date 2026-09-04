@@ -130,6 +130,8 @@ internal sealed partial class Program2
                     options.Authority = webPortalEndpoint;
                 }
 
+                Debug.Assert(options.Authority is not null);
+
                 options.ClientId = oidcConfig.ClientId;
                 options.ClientSecret = oidcConfig.ClientSecret;
                 options.ResponseType = OpenIdConnectResponseType.Code;
@@ -208,7 +210,7 @@ internal sealed partial class Program2
             startupDeps.Secrets = await earthDb.GetOrInitializeSecretsAsync();
         }
 
-        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
+        var eventBusConnectionString = builder.Configuration["services:event-bus:grpc:0"];
         Debug.Assert(eventBusConnectionString is not null);
 
         LogConnectingToEventBus(programLogger);
@@ -304,6 +306,8 @@ internal sealed partial class Program2
         app.MapGet("/logout", (string? returnUrl) =>
             Results.SignOut(new AuthenticationProperties { RedirectUri = returnUrl },
                 [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
+
+        app.MapDefaultEndpoints();
 
         await app.RunAsync();
 

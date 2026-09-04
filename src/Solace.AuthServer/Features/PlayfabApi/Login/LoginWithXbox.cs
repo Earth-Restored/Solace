@@ -104,7 +104,7 @@ public sealed partial class LoginWithXbox(
         object[] Variables
     );
 
-    private async ValueTask<Results<Ok<OkResponse<Response>>, ForbidHttpResult, NotFound, BadRequest>> HandleAsync(
+    private async ValueTask<Results<Ok<OkResponse<Response>>, ForbidHttpResult, NotFound, BadRequest<string>>> HandleAsync(
         Command command,
         CancellationToken cancellationToken
     )
@@ -113,14 +113,14 @@ public sealed partial class LoginWithXbox(
 
         if (!PlayfabApiUtils.GetTitleIdRegex().IsMatch(command.TitleId))
         {
-            return TypedResults.BadRequest();
+            return TypedResults.BadRequest("");
         }
 
         var authorization = XboxAuthorizationUtils.Parse(command.XboxToken);
 
         if (authorization is not { } authValue)
         {
-            return TypedResults.BadRequest();
+            return TypedResults.BadRequest("");
         }
 
         var xboxToken = JwtUtils.Verify<PlayfabXboxToken>(authValue.TokenString, cryptoSecrets.LivePlayfabTokenSecret, logger);

@@ -157,6 +157,8 @@ internal sealed partial class App
         app.MapGet("/api/v1.0/player/environment", LocatorHandler);
         app.MapGet("/api/v1.1/player/environment", LocatorHandler);
 
+        app.MapDefaultEndpoints();
+
         app.Run();
     }
 

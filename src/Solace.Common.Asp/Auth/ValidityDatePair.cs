@@ -20,7 +20,7 @@ public readonly struct ValidityDatePair
         Issued = RoundToSeconds(issued);
         Expires = RoundToSeconds(expires);
 
-        DateTimeOffset RoundToSeconds(DateTimeOffset dto)
+        static DateTimeOffset RoundToSeconds(DateTimeOffset dto)
         {
             return new DateTimeOffset(dto.Ticks - (dto.Ticks % TimeSpan.TicksPerSecond), TimeSpan.Zero);
         }

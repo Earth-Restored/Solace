@@ -68,14 +68,4 @@ public static class Json
     [RequiresDynamicCode(SerializationRequiresDynamicCodeMessage)]
     public static ValueTask<T?> DeserializeAsync<T>(Stream utf8Stream, CancellationToken cancellationToken)
         => JsonSerializer.DeserializeAsync<T>(utf8Stream, deseralizeOptions, cancellationToken);
-
-    [RequiresUnreferencedCode(SerializationUnreferencedCodeMessage)]
-    [RequiresDynamicCode(SerializationRequiresDynamicCodeMessage)]
-    public static object? Deserialize(string json, Type returnType)
-        => JsonSerializer.Deserialize(json, returnType, deseralizeOptions);
-
-    [RequiresUnreferencedCode(SerializationUnreferencedCodeMessage)]
-    [RequiresDynamicCode(SerializationRequiresDynamicCodeMessage)]
-    public static object? Deserialize(string json, Type returnType, JsonSerializerOptions options)
-        => JsonSerializer.Deserialize(json, returnType, options);
 }

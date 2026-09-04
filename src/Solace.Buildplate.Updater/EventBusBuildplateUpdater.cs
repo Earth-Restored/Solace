@@ -1,18 +1,21 @@
 using System.Buffers.Text;
 using System.Diagnostics;
 using System.Runtime.Versioning;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Solace.EventBus.Client;
 
 namespace Solace.Buildplate.Updater;
 
-internal sealed partial class EventBusBuildplateUpdater : IAsyncDisposable
+internal sealed partial class EventBusBuildplateUpdater : IHostedService, IAsyncDisposable
 {
     private readonly EventBusClient _eventBus;
 
     private readonly BuildplateUpdater _updater;
 
     private readonly ILogger<EventBusBuildplateUpdater> _logger;
+
+    private RequestHandler? _handler;
 
     public EventBusBuildplateUpdater(EventBusClient eventBus, BuildplateUpdater updater, ILogger<EventBusBuildplateUpdater> logger)
     {
@@ -24,9 +27,14 @@ internal sealed partial class EventBusBuildplateUpdater : IAsyncDisposable
     [SupportedOSPlatform("android")]
     [SupportedOSPlatform("linux")]
     [SupportedOSPlatform("windows")]
-    public async Task RunAsync()
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _eventBus.AddRequestHandlerAsync("buildplate-update",
+        if (_handler is not null)
+        {
+            await _handler.DisposeAsync();
+        }
+
+        _handler = await _eventBus.AddRequestHandlerAsync("buildplate-update",
         async (request, cancellationToken) =>
         {
             if (request.Type is "updateBuildplate")
@@ -78,8 +86,14 @@ internal sealed partial class EventBusBuildplateUpdater : IAsyncDisposable
         });
 
         LogStarted();
+    }
 
-        await Task.Delay(Timeout.Infinite);
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        if (_handler is not null)
+        {
+            await _handler.DisposeAsync();
+        }
     }
 
     public async ValueTask DisposeAsync()

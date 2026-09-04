@@ -1,6 +1,8 @@
 using Immediate.Apis.Shared;
 using Immediate.Handlers.Shared;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
+using Solace.AuthServer.Features.Common;
 using Solace.Common.Asp.Auth;
 using Solace.Common.Asp.Json;
 
@@ -10,6 +12,7 @@ namespace Solace.AuthServer.Features.XboxLive.Auth;
 [MapPost("title.auth.xboxlive.com/title/authenticate")]
 public sealed partial class AuthenticateTitle(
     CryptoSecrets cryptoSecrets,
+    ILogger<AuthenticateTitle> logger,
     IOptions<AuthSettings> authSettingsOption
 )
 {
@@ -37,17 +40,31 @@ public sealed partial class AuthenticateTitle(
         Dictionary<string, Dictionary<string, string>> DisplayClaims
     );
 
-    private async ValueTask<Response> HandleAsync(
-       Command _,
+    private async ValueTask<Results<Ok<Response>, UnauthorizedHttpResult>> HandleAsync(
+       Command command,
        CancellationToken cancellationToken)
     {
+        var deviceToken = JwtUtils.Verify<DeviceToken>(command.Properties.DeviceToken, cryptoSecrets.LiveAuthTokenSecret, logger)?.Data;
+
+        if (deviceToken is null)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var ticket = JwtUtils.Verify<XboxTicketToken>(command.Properties.RpsTicket, cryptoSecrets.LoginXboxTokenSecret, logger)?.Data;
+
+        if (ticket is null)
+        {
+            return TypedResults.Unauthorized();
+        }
+
         var tokenValidity = ValidityDatePair.Create(authSettingsOption.Value.TokenValidityMinutes);
         var token = new TitleToken()
         {
             Tid = "2037747551",
         };
 
-        return new Response(
+        return TypedResults.Ok(new Response(
             tokenValidity.IssuedStr,
             tokenValidity.ExpiresStr,
             JwtUtils.Sign<AuthToken>(token, cryptoSecrets.LiveAuthTokenSecret, tokenValidity),
@@ -58,6 +75,6 @@ public sealed partial class AuthenticateTitle(
                     ["tid"] = token.Tid,
                 },
             }
-        );
+        ));
     }
 }
