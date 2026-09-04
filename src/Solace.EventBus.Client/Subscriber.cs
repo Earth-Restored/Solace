@@ -14,6 +14,7 @@ public sealed class Subscriber : IAsyncDisposable
 
     private CancellationTokenSource? _cts;
     private Task? _loopTask;
+    private readonly TaskCompletionSource _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private byte _disposed;
 
     private SemaphoreSlim? _semaphore;
@@ -29,7 +30,7 @@ public sealed class Subscriber : IAsyncDisposable
         _onError = onError;
     }
 
-    public Task StartAsync()
+    public async Task StartAsync()
     {
         _cts = new CancellationTokenSource();
         _semaphore = new SemaphoreSlim(MaxDegreeOfParallelism);
@@ -42,6 +43,12 @@ public sealed class Subscriber : IAsyncDisposable
             {
                 await foreach (var msg in streamCall.ResponseStream.ReadAllAsync(_cts.Token))
                 {
+                    if (msg.SubscriptionReady)
+                    {
+                        _ready.TrySetResult();
+                        continue;
+                    }
+
                     if (msg.StreamId is not 0)
                     {
                         if (_activeStreams.TryGetValue(msg.StreamId, out var existingWriter))
@@ -134,6 +141,8 @@ public sealed class Subscriber : IAsyncDisposable
             }
             catch (Exception exception) when (exception is not (OperationCanceledException or RpcException { StatusCode: StatusCode.Cancelled, }))
             {
+                _ready.TrySetException(exception);
+
                 foreach (var writer in _activeStreams.Values)
                 {
                     writer.TryComplete(exception);
@@ -143,6 +152,8 @@ public sealed class Subscriber : IAsyncDisposable
             }
             finally
             {
+                _ready.TrySetCanceled();
+
                 foreach (var writer in _activeStreams.Values)
                 {
                     writer.TryComplete();
@@ -150,7 +161,7 @@ public sealed class Subscriber : IAsyncDisposable
             }
         });
 
-        return Task.CompletedTask;
+        await _ready.Task;
     }
 
     public async ValueTask DisposeAsync()
@@ -179,6 +190,7 @@ public sealed class Subscriber : IAsyncDisposable
         }
 
         cancellationSource.Dispose();
+        _cts = null;
         _semaphore?.Dispose();
     }
 }

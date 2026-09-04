@@ -61,6 +61,8 @@ message EventMessage {
         string string_data = 2;
         bytes binary_data = 6;
     }
+
+    bool subscription_ready = 7;
 }
 
 message RequestMessage {
@@ -151,6 +153,7 @@ message ServerMessage {
     google.protobuf.Timestamp timestamp = 4;
     bool is_stream = 6;
     bool is_last_chunk = 7;
+    bool handler_ready = 8;
 
     oneof payload {
         string string_data = 3;
