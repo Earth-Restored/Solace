@@ -33,8 +33,6 @@ public static class AppHostExtensions
         await app.StartAsync(cancellationToken)
             .WithTimeout(DefaultTimeout);
 
-        // also test existing profile
-
         return app;
     }
 

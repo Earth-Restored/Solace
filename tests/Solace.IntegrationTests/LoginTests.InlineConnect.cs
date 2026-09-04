@@ -7,7 +7,7 @@ public sealed partial class LoginTests
     [Test]
     public async Task Login_InlineConnect(CancellationToken cancellationToken)
     {
-        using var respones = await _authServerClient.GetAsync("/login.live.com/ppsecure/InlineConnect.srf", cancellationToken);
+        using var respones = await _fixture.AuthServerClient.GetAsync("/login.live.com/ppsecure/InlineConnect.srf", cancellationToken);
 
         await Assert.That(respones.StatusCode).IsEqualTo(HttpStatusCode.OK);
 

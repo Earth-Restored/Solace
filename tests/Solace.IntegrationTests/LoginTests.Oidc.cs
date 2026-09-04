@@ -16,7 +16,7 @@ public sealed partial class LoginTests
         };
         using var client = new HttpClient(handler);
 
-        var authServerUrl = _authServerClient.BaseAddress!;
+        var authServerUrl = _fixture.AuthServerClient.BaseAddress!;
 
         var loginUri = new Uri(authServerUrl, "/login");
         using var response1 = await client.GetAsync(loginUri, cancellationToken);
@@ -38,7 +38,7 @@ public sealed partial class LoginTests
         var loginPageUri = response2.Headers.Location!;
         if (!loginPageUri.IsAbsoluteUri)
         {
-            loginPageUri = new Uri(_webPortalClient.BaseAddress!, loginPageUri);
+            loginPageUri = new Uri(_fixture.WebPortalClient.BaseAddress!, loginPageUri);
         }
 
         using var response3 = await client.GetAsync(loginPageUri, cancellationToken);
@@ -51,8 +51,8 @@ public sealed partial class LoginTests
         var loginPostContent = new FormUrlEncodedContent(
         [
             new KeyValuePair<string, string>("_handler", "login"),
-            new KeyValuePair<string, string>("Input.Email", AccountEmail),
-            new KeyValuePair<string, string>("Input.Password", AccountPassword),
+            new KeyValuePair<string, string>("Input.Email", LoginTestsFixture.AccountEmail),
+            new KeyValuePair<string, string>("Input.Password", LoginTestsFixture.AccountPassword),
             new KeyValuePair<string, string>("Input.RememberMe", "false"),
             new KeyValuePair<string, string>("__RequestVerificationToken", loginToken),
         ]);
@@ -65,7 +65,7 @@ public sealed partial class LoginTests
         var authorizeUri2 = response4.Headers.Location!;
         if (!authorizeUri2.IsAbsoluteUri)
         {
-            authorizeUri2 = new Uri(_webPortalClient.BaseAddress!, authorizeUri2);
+            authorizeUri2 = new Uri(_fixture.WebPortalClient.BaseAddress!, authorizeUri2);
         }
 
         using var response5 = await client.GetAsync(authorizeUri2, cancellationToken);

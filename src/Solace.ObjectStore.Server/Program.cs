@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Solace.Common;
 using Solace.ObjectStore.Server.Services;
 using System.Diagnostics;
-using System.Net;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
 #endif

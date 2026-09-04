@@ -1,11 +1,9 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Web;
 using System.Xml.Linq;
-using Aspire.Hosting.Testing;
 using Microsoft.Extensions.Logging.Abstractions;
 using Solace.Common.Asp;
 using Solace.Common.Asp.Auth;
@@ -18,18 +16,18 @@ public sealed partial class LoginTests
     [Test]
     public async Task Login_Rst2(CancellationToken cancellationToken)
     {
-        await using var earthDb = EarthDbContext.CreateFromConnection(_earthConnectionString);
+        await using var earthDb = EarthDbContext.CreateFromConnection(_fixture.EarthConnectionString);
 
         var cryptoSecrets = await earthDb.GetOrInitializeSecretsAsync();
 
         var liveValidity = ValidityDatePair.Create(TimeSpan.FromMinutes(10));
         var liveToken = new AuthServer.Features.Live.Login.UserToken(
-            _profileId,
-            ProfileUsername
+            _fixture.ProfileId,
+            LoginTestsFixture.ProfileUsername
         );
         var liveTokenString = JwtUtils.Sign(liveToken, cryptoSecrets.LoginUserTokenSecret, liveValidity);
 
-        using var deviceCredsResponse = await _authServerClient.PostAsync("login.live.com/ppsecure/deviceaddcredential.srf", new StringContent("""
+        using var deviceCredsResponse = await _fixture.AuthServerClient.PostAsync("login.live.com/ppsecure/deviceaddcredential.srf", new StringContent("""
             <?xml version="1.0" encoding="UTF-8"?>
             <DeviceAddRequest>
                 <ClientInfo name="MSAAndroidApp" version="1.0"/>
@@ -57,7 +55,7 @@ public sealed partial class LoginTests
             puid = int.Parse(puidValue!, CultureInfo.InvariantCulture);
         }
 
-        using var rst2DeviceResponse = await _authServerClient.PostAsync("/login.live.com/RST2.srf", new StringContent($$"""
+        using var rst2DeviceResponse = await _fixture.AuthServerClient.PostAsync("/login.live.com/RST2.srf", new StringContent($$"""
             <?xml version="1.0" encoding="UTF-8"?>
             <s:Envelope
                 xmlns:s="http://www.w3.org/2003/05/soap-envelope"
@@ -157,7 +155,7 @@ public sealed partial class LoginTests
         var deviceDATokenValue = $"ct={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}&hashalg=SHA256&bver=11&appid=%7BF501FD64-9070-46AB-993C-6F7B71D8D883%7D&da={Uri.EscapeDataString(daXml)}&nonce=gx6kRw%2FSeJTtF6yAOUkkoGpEMvIzqbXq0WnaUkhQjSE%3D&hash=NECWvAvk4nCiX4K2yjgNnyQE8F0yzOA5qhGKvpnDETE%3D";
         var deviceDATokenXmlEscaped = HttpUtility.HtmlEncode(deviceDATokenValue);
 
-        using var rst2Response = await _authServerClient.PostAsync("/login.live.com/RST2.srf", new StringContent($$"""
+        using var rst2Response = await _fixture.AuthServerClient.PostAsync("/login.live.com/RST2.srf", new StringContent($$"""
         <?xml version="1.0" encoding="UTF-8"?>
         <s:Envelope
             xmlns:s="http://www.w3.org/2003/05/soap-envelope"
