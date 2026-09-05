@@ -34,10 +34,10 @@ Replacement server for Minecraft Earth™, based on [Vienna](https://github.com/
 | Crafting      | :white_check_mark: |                                                                                          |
 | Smelting      | :white_check_mark: |                                                                                          |
 | Boosts        | :white_check_mark: |                                                                                          |
-| Boost Minis   | :construction:     | List loads, activation does not work                                                     |
+| Boost Minis   | :white_check_mark: |                                                                                          |
 | Tappables     | :white_check_mark: | Map is not used for generation, e.g. tappables can spawn on water                        |
 | Buildplates   | :white_check_mark: |                                                                                          |
-| Store         | :white_check_mark: | Tab titles do not load                                                                   |
+| Store         | :white_check_mark: | 2 buildplates are missing                                                                |
 | Challenges    | :construction:     |                                                                                          |
 | Seasons       | :construction:     |                                                                                          |
 | Adventures    | :construction:     |                                                                                          |
@@ -55,18 +55,6 @@ Replacement server for Minecraft Earth™, based on [Vienna](https://github.com/
 For installation instructions, refer to [Installation.md](Installation.md)
 
 ## Common Errors & Troubleshooting
-
-### I cannot see the "Start Server" button when logged in
-
-**Cause:** Only the very first account created on the launcher is granted full administrative permissions by default. Subsequent accounts lack the necessary privileges to manage the server.
-
-**Solutions:**
-
-* **Option A (Grant Permissions):** Log into the original (first) account and use the Manage Users/Roles page to grant server permissions to your second account.
-* **Option B (Reset Database):** If you have lost access to the first account and need to start fresh, you can reset the user database.
-  * Navigate to: `launcher/Data/`
-  * **Delete** the `app.db` file.
-  * *Note: This will remove all existing accounts and allow you to register a new primary admin account.*
 
 ### When I open the app, I get "Cannot connect to the network! ..."
 
