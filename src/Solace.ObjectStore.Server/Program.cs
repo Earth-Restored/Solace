@@ -65,25 +65,6 @@ internal static partial class App
         builder.AddServiceDefaults();
         builder.WebHost.UseKestrelHttpsConfiguration();
 
-        builder.WebHost.ConfigureKestrel(options =>
-        {
-            var urls = builder.Configuration["ASPNETCORE_URLS"]?
-                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-            if (urls != null && urls.Length >= 2)
-            {
-                if (Uri.TryCreate(urls[0], UriKind.Absolute, out var httpUri))
-                {
-                    options.ListenAnyIP(httpUri.Port, listen => listen.Protocols = HttpProtocols.Http1);
-                }
-
-                if (Uri.TryCreate(urls[1], UriKind.Absolute, out var grpcUri))
-                {
-                    options.ListenAnyIP(grpcUri.Port, listen => listen.Protocols = HttpProtocols.Http2);
-                }
-            }
-        });
-
         builder.Services.AddGrpc();
 
         var dataDirectory = Path.GetFullPath(builder.Configuration.GetValue<string>("DataDirectory", "data/object_store"));

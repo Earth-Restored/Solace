@@ -1,5 +1,8 @@
 using System.Globalization;
+using System.Net;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Solace.AppHost;
 
 #pragma warning disable MA0048 // File name must match type name
@@ -64,8 +67,7 @@ if (builder.Configuration.GetValue<bool>("Shared:ResolvePaths", false))
 
 var objectStore = builder.AddProject<Projects.Solace_ObjectStore_Server>("object-store")
     .WithHttpEndpoint(name: "http")
-    .WithEndpoint(name: "grpc", scheme: "http")
-    .WithHttpHealthCheck("/health")
+    .WithHealthCheck("object-store-health-check")
     .WithEnvironment("DataDirectory", objectStoreDataDirectory)
     .PublishAsDockerComposeService((resource, service) =>
     {
@@ -81,6 +83,32 @@ var objectStore = builder.AddProject<Projects.Solace_ObjectStore_Server>("object
         service.Environment["DataDirectory"] = "/app/data/object_store";
     });
 
+builder.Services.AddHealthChecks()
+    .AddAsyncCheck("object-store-health-check", async (cancellationToken) =>
+    {
+        var endpoint = objectStore.GetEndpoint("http");
+        var healthUrl = $"{endpoint.Url}/health";
+
+        using var client = new HttpClient();
+        var request = new HttpRequestMessage(HttpMethod.Get, healthUrl)
+        {
+            Version = HttpVersion.Version20,
+            VersionPolicy = HttpVersionPolicy.RequestVersionExact
+        };
+
+        try
+        {
+            var response = await client.SendAsync(request, cancellationToken);
+            return response.IsSuccessStatusCode
+                ? HealthCheckResult.Healthy()
+                : HealthCheckResult.Unhealthy($"Returned HTTP {(int)response.StatusCode}");
+        }
+        catch (Exception exception)
+        {
+            return HealthCheckResult.Unhealthy("HTTP/2 health probe failed", exception);
+        }
+    });
+
 if (migrationMode)
 {
     builder.Build().Run();
@@ -89,8 +117,33 @@ if (migrationMode)
 
 var eventBus = builder.AddProject<Projects.Solace_EventBus_Server>("event-bus")
     .WithHttpEndpoint(name: "http")
-    .WithEndpoint(name: "grpc", scheme: "http")
-    .WithHttpHealthCheck("/health");
+    .WithHealthCheck("event-bus-health-check");
+
+builder.Services.AddHealthChecks()
+    .AddAsyncCheck("event-bus-health-check", async (cancellationToken) =>
+    {
+        var endpoint = eventBus.GetEndpoint("http");
+        var healthUrl = $"{endpoint.Url}/health";
+
+        using var client = new HttpClient();
+        var request = new HttpRequestMessage(HttpMethod.Get, healthUrl)
+        {
+            Version = HttpVersion.Version20,
+            VersionPolicy = HttpVersionPolicy.RequestVersionExact
+        };
+
+        try
+        {
+            var response = await client.SendAsync(request, cancellationToken);
+            return response.IsSuccessStatusCode
+                ? HealthCheckResult.Healthy()
+                : HealthCheckResult.Unhealthy($"Returned HTTP {(int)response.StatusCode}");
+        }
+        catch (Exception exception)
+        {
+            return HealthCheckResult.Unhealthy("HTTP/2 health probe failed", exception);
+        }
+    });
 
 var staticDataPath = builder.Configuration["Shared:StaticDataPath"]!;
 if (builder.Configuration.GetValue<bool>("Shared:ResolvePaths", false))

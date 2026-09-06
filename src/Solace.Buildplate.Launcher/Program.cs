@@ -113,7 +113,7 @@ internal static partial class App
         // init stuff that requires logger but needs to be injected
         var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
 
-        var eventBusConnectionString = builder.Configuration["services:event-bus:grpc:0"];
+        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
         Debug.Assert(eventBusConnectionString is not null);
 
         LogConnectingToEventBus(programLogger);

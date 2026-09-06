@@ -69,7 +69,7 @@ internal sealed partial class Program
 
         app.MapDefaultEndpoints();
 
-        var eventBusConnectionString = builder.Configuration["services:event-bus:grpc:0"];
+        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
         Debug.Assert(eventBusConnectionString is not null);
 
         LogConnectingToEventBus(programLogger);

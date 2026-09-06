@@ -190,7 +190,7 @@ internal static partial class App
         // init stuff that requires logger but needs to be injected
         var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
 
-        var eventBusConnectionString = builder.Configuration["services:event-bus:grpc:0"];
+        var eventBusConnectionString = builder.Configuration["services:event-bus:http:0"];
         Debug.Assert(eventBusConnectionString is not null);
 
         LogConnectingToEventBus(programLogger);
@@ -208,7 +208,7 @@ internal static partial class App
 
         LogConnectedToEventBus(programLogger);
 
-        var objectStoreConnectionString = builder.Configuration["services:object-store:grpc:0"];
+        var objectStoreConnectionString = builder.Configuration["services:object-store:http:0"];
         Debug.Assert(objectStoreConnectionString is not null);
 
         LogConnectingToObjectStore(programLogger);
