@@ -68,6 +68,17 @@ function Push-Project {
         if ($arch -eq "arm32") { "linux-arm" } else { "linux-$arch" }
     }
 
+    $csprojPath = Join-Path "src" $ProjectName "$ProjectName.csproj"
+    $executableName = $ProjectName
+
+    if (Test-Path $csprojPath) {
+        [xml]$csprojXml = Get-Content -Path $csprojPath
+        $assemblyNameNode = $csprojXml.SelectSingleNode("//AssemblyName")
+        if ($assemblyNameNode -and -not [string]::IsNullOrWhiteSpace($assemblyNameNode.InnerText)) {
+            $executableName = $assemblyNameNode.InnerText.Trim()
+        }
+    }
+
     $imageTag = if ($Registry) { "$Registry/$Username/solace-${PackageName}:latest" } else { "$Username/solace-${PackageName}:latest" }
     $dockerfilePath = $null
 
@@ -132,7 +143,7 @@ RUN case "`$TARGETARCH" in \
 FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble-chiseled AS final
 WORKDIR /app
 COPY --chown=`$APP_UID:`$APP_UID --from=build /app/publish .
-ENTRYPOINT ["./$ProjectName"]
+ENTRYPOINT ["./$executableName"]
 "@
 
         $dockerfilePath = [System.IO.Path]::GetTempFileName()

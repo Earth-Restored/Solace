@@ -1,0 +1,532 @@
+#!/usr/bin/env -S dotnet --
+#:package Spectre.Console
+
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.IO.Compression;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using Spectre.Console;
+
+AnsiConsole.Write(new FigletText("Solace Setup").LeftJustified().Color(Color.Green));
+AnsiConsole.MarkupLine("[bold cyan]Welcome to the Solace Setup Script[/]");
+AnsiConsole.WriteLine();
+
+var useDomain = AnsiConsole.Confirm("Are you using a [bold blue]domain name[/]?", defaultValue: false);
+var domain = "";
+var ip = "";
+var hasHttps = false;
+var useSubdomains = false;
+
+string? certPath = null;
+string? keyPath = null;
+
+if (useDomain)
+{
+    domain = AnsiConsole.Ask<string>("What is your [bold green]domain name[/]?");
+    hasHttps = AnsiConsole.Confirm("Do you have an [bold blue]HTTPS certificate[/]? (Use https, forces subdomains)", defaultValue: true);
+
+    if (hasHttps)
+    {
+        useSubdomains = true;
+
+        certPath = AnsiConsole.Prompt(
+            new TextPrompt<string>("Path to your [bold green]SSL certificate file (.crt/.pem)[/]:")
+                .Validate(path => File.Exists(path)
+                    ? ValidationResult.Success()
+                    : ValidationResult.Error("[red]File does not exist.[/]")));
+
+        keyPath = AnsiConsole.Prompt(
+            new TextPrompt<string>("Path to your [bold green]SSL private key file (.key)[/]:")
+                .Validate(path => File.Exists(path)
+                    ? ValidationResult.Success()
+                    : ValidationResult.Error("[red]File does not exist.[/]")));
+    }
+    else
+    {
+        useSubdomains = AnsiConsole.Confirm("Use [bold blue]subdomains[/] instead of ports for routing?", defaultValue: true);
+    }
+}
+else
+{
+    ip = AnsiConsole.Ask<string>("What is your server [bold green]IP address[/]?");
+}
+
+var endpoints = new List<EndpointConfig>
+{
+    new("web-portal", "SHARED_PUBLICENDPOINTS_WEBPORTAL", "", 80),
+    new("locator", "SHARED_PUBLICENDPOINTS_LOCATOR", "locator", 8080),
+    new("auth-server", "SHARED_PUBLICENDPOINTS_AUTHSERVER", "auth", 8088),
+    new("api-server", "SHARED_PUBLICENDPOINTS_APISERVER", "api", 8089),
+    new("cdn", "SHARED_PUBLICENDPOINTS_CDN", "cdn", 8090)
+};
+
+AnsiConsole.MarkupLine("\n[bold cyan]Endpoint Configuration:[/]");
+
+foreach (var ep in endpoints)
+{
+    if (useSubdomains)
+    {
+        if (ep.Name is "web-portal")
+        {
+            ep.Subdomain = "";
+        }
+        else
+        {
+            ep.Subdomain = AnsiConsole.Ask<string>($"Subdomain for [bold yellow]{ep.Name}[/]", ep.DefaultSubdomain);
+        }
+    }
+    else
+    {
+        ep.Port = AnsiConsole.Ask<int>($"Port for [bold yellow]{ep.Name}[/]", ep.DefaultPort);
+    }
+}
+
+foreach (var ep in endpoints)
+{
+    var scheme = hasHttps ? "https" : "http";
+    if (useDomain)
+    {
+        if (useSubdomains)
+        {
+            var host = string.IsNullOrEmpty(ep.Subdomain) ? domain : $"{ep.Subdomain}.{domain}";
+            ep.FinalUrl = $"{scheme}://{host}";
+        }
+        else
+        {
+            ep.FinalUrl = $"{scheme}://{domain}:{ep.Port}";
+        }
+    }
+    else
+    {
+        ep.FinalUrl = $"http://{ip}:{ep.Port}";
+    }
+}
+
+AnsiConsole.WriteLine();
+var jarPath = AnsiConsole.Prompt(
+    new TextPrompt<string>("(Optional) Path to [bold green]Minecraft Java edition 1.20.5 .jar[/] (Leave empty to skip):")
+        .AllowEmpty()
+        .Validate(path => string.IsNullOrWhiteSpace(path) || File.Exists(path)
+            ? ValidationResult.Success()
+            : ValidationResult.Error("[red]File does not exist.[/]")));
+
+AnsiConsole.WriteLine();
+AnsiConsole.MarkupLine("Please read the Minecraft EULA: [link]https://www.minecraft.net/en-us/eula[/]");
+var agreeEula = AnsiConsole.Confirm("Do you [bold green]agree[/] to the Minecraft EULA? (Required for buildplates)", defaultValue: false);
+AnsiConsole.WriteLine();
+
+// --- 2. Processing & Generation ---
+await AnsiConsole.Status()
+    .StartAsync("Applying setup...", async ctx =>
+    {
+        if (hasHttps && !string.IsNullOrWhiteSpace(certPath) && !string.IsNullOrWhiteSpace(keyPath))
+        {
+            ctx.Status("Copying HTTPS Certificates...");
+            var targetCertDir = Path.Combine(".", "certs");
+            Directory.CreateDirectory(targetCertDir);
+
+            File.Copy(certPath, Path.Combine(targetCertDir, Path.GetFileName(certPath)), overwrite: true);
+            File.Copy(keyPath, Path.Combine(targetCertDir, Path.GetFileName(keyPath)), overwrite: true);
+        }
+
+        if (!string.IsNullOrWhiteSpace(jarPath))
+        {
+            ctx.Status("Extracting Minecraft Resource Pack...");
+            var assetsDest = Path.Combine("staticdata", "resourcepacks", "java", "1. minecraft", "assets");
+            Directory.CreateDirectory(assetsDest);
+
+            using var archive = ZipFile.OpenRead(jarPath);
+            foreach (var entry in archive.Entries)
+            {
+                if (entry.FullName.StartsWith("assets/", StringComparison.Ordinal) && !entry.FullName.EndsWith('/'))
+                {
+                    var destFile = Path.Combine(assetsDest, entry.FullName["assets/".Length..]);
+                    Directory.CreateDirectory(Path.GetDirectoryName(destFile)!);
+                    entry.ExtractToFile(destFile, overwrite: true);
+                }
+            }
+        }
+
+        ctx.Status("Generating OIDC Certificates...");
+        var certDir = Path.Combine("certs", "web-portal");
+        Directory.CreateDirectory(certDir);
+
+        var encPassword = GenerateRandomPassword();
+        var signPassword = GenerateRandomPassword();
+
+        GenerateSelfSignedCert("OIDC Encryption", Path.Combine(certDir, "oidc-encryption-cert.pfx"), encPassword);
+        GenerateSelfSignedCert("OIDC Signing", Path.Combine(certDir, "oidc-signing-cert.pfx"), signPassword);
+
+        ctx.Status("Generating nginx.conf...");
+        var nginxConfig = GenerateNginxConfig(endpoints, domain, hasHttps, useSubdomains, certPath is null ? null : Path.GetFileName(certPath), keyPath is null ? null : Path.GetFileName(keyPath));
+        await File.WriteAllTextAsync("nginx.conf", nginxConfig);
+
+        ctx.Status("Updating .env file...");
+        EnvFile env;
+        if (File.Exists(".env"))
+        {
+            env = await EnvFile.LoadAsync(".env");
+        }
+        else
+        {
+            env = await EnvFile.ParseAsync(new StringReader(""));
+        }
+
+        env.Set("DASHBOARD_OTLP_PRIMARY_APIKEY", GenerateRandomHex(32));
+        env.Set("POSTGRES_PASSWORD", GenerateRandomPassword(24));
+        env.Set("SHARED_ACCEPTMINECRAFTEULA", agreeEula ? "true" : "false");
+        env.Set("SHARED_OIDC_WEBPORTAL_AUTHSERVER_CLIENTSECRET", GenerateRandomHex(32));
+        env.Set("SHARED_OIDC_WEBPORTAL_ENCRYPTIONCERTPASSWORD", encPassword);
+        env.Set("SHARED_OIDC_WEBPORTAL_SIGNINGCERTPASSWORD", signPassword);
+
+        foreach (var ep in endpoints)
+        {
+            env.Set(ep.EnvKey, ep.FinalUrl!);
+        }
+
+        await env.SaveAsync(".env");
+    });
+
+AnsiConsole.MarkupLine("[bold green]Setup Complete![/]");
+AnsiConsole.WriteLine();
+AnsiConsole.MarkupLine("[bold yellow]Final Step Required:[/]");
+AnsiConsole.MarkupLine("Please download [link]https://cdn.mceserv.net/availableresourcepack/resourcepacks/dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35[/] using Wayback Machine.");
+AnsiConsole.MarkupLine("Rename it to [bold white]vanilla.zip[/] and put it into [bold cyan]staticdata/resourcepacks/[/]");
+AnsiConsole.WriteLine();
+AnsiConsole.MarkupLine("Once done, you can run [bold green]docker compose up -d[/] to start the server.");
+
+// --- Helper Classes & Methods ---
+
+string GenerateRandomPassword(int length = 24)
+{
+    Span<byte> span = stackalloc byte[length];
+    RandomNumberGenerator.Fill(span);
+    return Convert.ToBase64String(span).Replace("+", "").Replace("/", "").Replace("=", "")[..length];
+}
+
+string GenerateRandomHex(int bytes = 32)
+{
+    Span<byte> span = stackalloc byte[bytes];
+    RandomNumberGenerator.Fill(span);
+    return Convert.ToHexString(span).ToLower();
+}
+
+void GenerateSelfSignedCert(string subject, string path, string password)
+{
+    using var rsa = RSA.Create(2048);
+    var req = new CertificateRequest($"CN={subject}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+    using var cert = req.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddYears(5));
+    File.WriteAllBytes(path, cert.Export(X509ContentType.Pfx, password));
+}
+
+string GenerateNginxConfig(List<EndpointConfig> eps, string dom, bool https, bool subdomains, string? certFile, string? keyFile)
+{
+    var sb = new StringBuilder();
+    sb.AppendLine("events { worker_connections 1024; }");
+    sb.AppendLine();
+    sb.AppendLine("http {");
+
+    if (https)
+    {
+        sb.AppendLine($"    ssl_certificate /etc/nginx/certs/{certFile};");
+        sb.AppendLine($"    ssl_certificate_key /etc/nginx/certs/{keyFile};");
+        sb.AppendLine("    ssl_protocols TLSv1.2 TLSv1.3;");
+        sb.AppendLine();
+    }
+
+    sb.AppendLine("    proxy_set_header Host $host;");
+    sb.AppendLine("    proxy_set_header X-Real-IP $remote_addr;");
+    sb.AppendLine("    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;");
+    sb.AppendLine("    proxy_set_header X-Forwarded-Proto $scheme;");
+    sb.AppendLine("    proxy_set_header X-Forwarded-Host $host;");
+    sb.AppendLine();
+
+    foreach (var ep in eps)
+    {
+        sb.AppendLine("    server {");
+        if (https && subdomains)
+        {
+            sb.AppendLine("        listen 443 ssl;");
+            var hostName = string.IsNullOrEmpty(ep.Subdomain) ? dom : $"{ep.Subdomain}.{dom}";
+            sb.AppendLine($"        server_name {hostName};");
+        }
+        else if (!https && subdomains)
+        {
+            sb.AppendLine("        listen 80;");
+            var hostName = string.IsNullOrEmpty(ep.Subdomain) ? dom : $"{ep.Subdomain}.{dom}";
+            sb.AppendLine($"        server_name {hostName};");
+        }
+        else // ports
+        {
+            sb.AppendLine($"        listen {ep.Port};");
+            sb.AppendLine("        server_name _;");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("        location / {");
+        sb.AppendLine($"            proxy_pass http://{ep.Name}:8080;");
+        sb.AppendLine("        }");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+    }
+
+    if (https)
+    {
+        sb.AppendLine("    server {");
+        sb.AppendLine("        listen 80;");
+        sb.AppendLine("        server_name _;");
+        sb.AppendLine("        return 301 https://$host$request_uri;");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+    }
+
+    sb.AppendLine("}");
+    return sb.ToString();
+}
+
+sealed class EndpointConfig
+{
+    public string Name { get; }
+    public string EnvKey { get; }
+    public string DefaultSubdomain { get; }
+    public int DefaultPort { get; }
+
+    public string? Subdomain { get; set; }
+    public int Port { get; set; }
+    public string? FinalUrl { get; set; }
+
+    public EndpointConfig(string name, string envKey, string defaultSubdomain, int defaultPort)
+    {
+        Name = name;
+        EnvKey = envKey;
+        DefaultSubdomain = defaultSubdomain;
+        DefaultPort = defaultPort;
+    }
+}
+
+sealed class EnvFile
+{
+    private abstract class Node
+    {
+    }
+
+    private sealed class KeyNode : Node
+    {
+        public string Key { get; set; }
+        public string? Value { get; set; }
+        public string? Comment { get; set; }
+
+        public KeyNode(string key, string? value, string? comment)
+        {
+            Key = key;
+            Value = value;
+            Comment = comment;
+        }
+    }
+
+    private sealed class RawNode : Node
+    {
+        public string Content { get; set; }
+        public RawNode(string content)
+        {
+            Content = content;
+        }
+    }
+
+    private readonly List<Node> _nodes = [];
+    private readonly Dictionary<string, KeyNode> _keyNodes = [with(StringComparer.Ordinal)];
+
+    public IEnumerable<string> Keys => _keyNodes.Keys;
+
+    public static async Task<EnvFile> LoadAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        using (var reader = File.OpenText(filePath))
+        {
+            return await ParseAsync(reader, cancellationToken);
+        }
+    }
+
+    public static async Task<EnvFile> ParseAsync(TextReader reader, CancellationToken cancellationToken = default)
+    {
+        var env = new EnvFile();
+
+        var pendingComments = new List<string>();
+        var pendingRawLines = new List<string>();
+
+        string? line;
+        while ((line = await reader.ReadLineAsync(cancellationToken)) is not null)
+        {
+            var trimmed = line.Trim();
+
+            if (trimmed.StartsWith('#'))
+            {
+                pendingComments.Add(ExtractCommentText(line));
+                pendingRawLines.Add(line);
+            }
+            else if (string.IsNullOrWhiteSpace(trimmed))
+            {
+                FlushPendingCommentsAsRaw(env, pendingRawLines, pendingComments);
+                env._nodes.Add(new RawNode(line));
+            }
+            else if (trimmed.Contains('='))
+            {
+                var eqIndex = trimmed.IndexOf('=');
+                var key = trimmed.AsSpan(0, eqIndex).Trim().ToString();
+                var val = trimmed.AsSpan(eqIndex + 1).Trim().ToString();
+
+                var comment = pendingComments.Count > 0
+                    ? string.Join(Environment.NewLine, pendingComments)
+                    : null;
+
+                pendingComments.Clear();
+                pendingRawLines.Clear();
+
+                var keyNode = new KeyNode(key, val, comment);
+                env._nodes.Add(keyNode);
+                env._keyNodes[key] = keyNode;
+            }
+            else
+            {
+                FlushPendingCommentsAsRaw(env, pendingRawLines, pendingComments);
+                env._nodes.Add(new RawNode(line));
+            }
+        }
+
+        FlushPendingCommentsAsRaw(env, pendingRawLines, pendingComments);
+
+        return env;
+    }
+
+    public bool ContainsKey(string key)
+        => _keyNodes.ContainsKey(key);
+
+    public bool TryGet(string key, [MaybeNullWhen(false)] out string? value, [MaybeNullWhen(false)] out string? comment)
+    {
+        if (_keyNodes.TryGetValue(key, out var node))
+        {
+            value = node.Value;
+            comment = node.Comment;
+            return true;
+        }
+
+        value = null;
+        comment = null;
+        return false;
+    }
+
+    public void SetIfEmpty(string key, string? value, string? comment = null)
+    {
+        ref var node = ref CollectionsMarshal.GetValueRefOrAddDefault(_keyNodes, key, out var exists);
+        if (!exists)
+        {
+            node = new KeyNode(key, value, comment);
+            return;
+        }
+
+        Debug.Assert(node is not null);
+
+        if (string.IsNullOrWhiteSpace(node.Value))
+        {
+            node.Value = value;
+        }
+
+        if (string.IsNullOrWhiteSpace(node.Comment))
+        {
+            node.Comment = comment;
+        }
+    }
+
+    public void Set(string key, string value, string? comment = null, bool overwriteComment = false)
+    {
+        if (_keyNodes.TryGetValue(key, out var existing))
+        {
+            existing.Value = value;
+            if (comment != null && (string.IsNullOrEmpty(existing.Comment) || overwriteComment))
+            {
+                existing.Comment = comment;
+            }
+        }
+        else
+        {
+            var node = new KeyNode(key, value, comment);
+            _nodes.Add(node);
+            _keyNodes[key] = node;
+        }
+    }
+
+    public bool Remove(string key)
+    {
+        if (_keyNodes.TryGetValue(key, out var node))
+        {
+            _keyNodes.Remove(key);
+            _nodes.Remove(node);
+            return true;
+        }
+
+        return false;
+    }
+
+    public async Task SaveAsync(string filePath, CancellationToken cancellationToken = default)
+        => await File.WriteAllTextAsync(filePath, ToString(), cancellationToken);
+
+    private static readonly string[] NewLines = ["\r\n", "\n"];
+
+    public override string ToString()
+    {
+        var sb = new StringBuilder();
+
+        foreach (var node in _nodes)
+        {
+            if (node is RawNode raw)
+            {
+                sb.AppendLine(raw.Content);
+            }
+            else if (node is KeyNode keyNode)
+            {
+                if (!string.IsNullOrEmpty(keyNode.Comment))
+                {
+                    var lines = keyNode.Comment.Split(NewLines, StringSplitOptions.None);
+                    foreach (var commentLine in lines)
+                    {
+                        sb.AppendLine($"# {commentLine}");
+                    }
+                }
+
+                sb.AppendLine($"{keyNode.Key}={keyNode.Value}");
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    private static void FlushPendingCommentsAsRaw(EnvFile env, List<string> rawLines, List<string> comments)
+    {
+        foreach (var raw in rawLines)
+        {
+            env._nodes.Add(new RawNode(raw));
+        }
+
+        rawLines.Clear();
+        comments.Clear();
+    }
+
+    private static string ExtractCommentText(string line)
+    {
+        var trimmed = line.TrimStart();
+        if (trimmed.StartsWith('#'))
+        {
+            var trimmedSpan = trimmed.AsSpan()[1..];
+            if (trimmedSpan.StartsWith(' '))
+            {
+                trimmedSpan = trimmedSpan[1..];
+            }
+
+            trimmed = trimmedSpan.ToString();
+        }
+
+        return trimmed;
+    }
+}

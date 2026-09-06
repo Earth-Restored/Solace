@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="set-env-file-defaults.cs" />
+    <Compile Remove="setup.cs" />
+    <Compile Remove="aspire-output/setup.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Aspire.Hosting.Docker" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
   </ItemGroup>
