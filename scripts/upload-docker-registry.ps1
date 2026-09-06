@@ -59,7 +59,7 @@ function Push-Project {
         [string[]]$Architectures = @("x64", "arm64", "arm32"),
         [string]$Username = $script:Username,
         [string]$Registry = $script:Registry,
-        [int]$MaxRetries = 1,
+        [int]$MaxRetries = 3,
         [int]$WaitSeconds = 10
     )
 
