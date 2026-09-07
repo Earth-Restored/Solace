@@ -1,14 +1,17 @@
 #!/usr/bin/env -S dotnet --
 #:package Spectre.Console
+#:package YamlDotNet
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Spectre.Console;
+using YamlDotNet.Serialization;
 
 AnsiConsole.Write(new FigletText("Solace Setup").LeftJustified().Color(Color.Green));
 AnsiConsole.MarkupLine("[bold cyan]Welcome to the Solace Setup Script[/]");
@@ -118,10 +121,26 @@ AnsiConsole.MarkupLine("Please read the Minecraft EULA: [link]https://www.minecr
 var agreeEula = AnsiConsole.Confirm("Do you [bold green]agree[/] to the Minecraft EULA? (Required for buildplates)", defaultValue: false);
 AnsiConsole.WriteLine();
 
-// --- 2. Processing & Generation ---
 await AnsiConsole.Status()
     .StartAsync("Applying setup...", async ctx =>
     {
+        ctx.Status("Creating Directories...");
+
+        Directory.CreateDirectory("data");
+        Directory.CreateDirectory("data/object_store");
+        Directory.CreateDirectory("dataprotection-keys");
+        Directory.CreateDirectory("certs");
+        Directory.CreateDirectory("certs/web-portal");
+        if (!OperatingSystem.IsWindows())
+        {
+            var unixAllReadWriteView = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute | UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+            File.SetUnixFileMode("data", unixAllReadWriteView);
+            File.SetUnixFileMode("data/object_store", unixAllReadWriteView);
+            File.SetUnixFileMode("dataprotection-keys", unixAllReadWriteView);
+            File.SetUnixFileMode("certs", unixAllReadWriteView);
+            File.SetUnixFileMode("certs/web-portal", unixAllReadWriteView);
+        }
+
         if (hasHttps && !string.IsNullOrWhiteSpace(certPath) && !string.IsNullOrWhiteSpace(keyPath))
         {
             ctx.Status("Copying HTTPS Certificates...");
@@ -164,6 +183,9 @@ await AnsiConsole.Status()
         var nginxConfig = GenerateNginxConfig(endpoints, domain, hasHttps, useSubdomains, certPath is null ? null : Path.GetFileName(certPath), keyPath is null ? null : Path.GetFileName(keyPath));
         await File.WriteAllTextAsync("nginx.conf", nginxConfig);
 
+        ctx.Status("Generating docker-compose.override.yml...");
+        await UpdateDockerComposeOverrideAsync("docker-compose.override.yml", endpoints, hasHttps, useSubdomains);
+
         ctx.Status("Updating .env file...");
         EnvFile env;
         if (File.Exists(".env"))
@@ -176,7 +198,7 @@ await AnsiConsole.Status()
         }
 
         env.Set("DASHBOARD_OTLP_PRIMARY_APIKEY", GenerateRandomHex(32));
-        env.Set("POSTGRES_PASSWORD", GenerateRandomPassword(24));
+        env.SetIfEmpty("POSTGRES_PASSWORD", GenerateRandomPassword(24));
         env.Set("SHARED_ACCEPTMINECRAFTEULA", agreeEula ? "true" : "false");
         env.Set("SHARED_OIDC_WEBPORTAL_AUTHSERVER_CLIENTSECRET", GenerateRandomHex(32));
         env.Set("SHARED_OIDC_WEBPORTAL_ENCRYPTIONCERTPASSWORD", encPassword);
@@ -198,8 +220,6 @@ AnsiConsole.MarkupLine("Rename it to [bold white]vanilla.zip[/] and put it into 
 AnsiConsole.WriteLine();
 AnsiConsole.MarkupLine("Once done, you can run [bold green]docker compose up -d[/] to start the server.");
 
-// --- Helper Classes & Methods ---
-
 string GenerateRandomPassword(int length = 24)
 {
     Span<byte> span = stackalloc byte[length];
@@ -211,7 +231,7 @@ string GenerateRandomHex(int bytes = 32)
 {
     Span<byte> span = stackalloc byte[bytes];
     RandomNumberGenerator.Fill(span);
-    return Convert.ToHexString(span).ToLower();
+    return Convert.ToHexString(span).ToLowerOrdinal();
 }
 
 void GenerateSelfSignedCert(string subject, string path, string password)
@@ -220,6 +240,76 @@ void GenerateSelfSignedCert(string subject, string path, string password)
     var req = new CertificateRequest($"CN={subject}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
     using var cert = req.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddYears(5));
     File.WriteAllBytes(path, cert.Export(X509ContentType.Pfx, password));
+}
+
+async Task UpdateDockerComposeOverrideAsync(string filePath, List<EndpointConfig> eps, bool https, bool subdomains)
+{
+    var requiredPorts = GetRequiredPorts(eps, https, subdomains);
+    var portList = requiredPorts.Select(p => $"{p}:{p}").ToList();
+
+    var deserializer = new DeserializerBuilder().Build();
+    var serializer = new SerializerBuilder().Build();
+
+    Dictionary<object, object> root = [];
+
+    if (File.Exists(filePath))
+    {
+        var existingContent = await File.ReadAllTextAsync(filePath);
+        if (!string.IsNullOrWhiteSpace(existingContent))
+        {
+            var deserialized = deserializer.Deserialize<object>(existingContent);
+            if (deserialized is Dictionary<object, object> map)
+            {
+                root = map;
+            }
+        }
+    }
+
+    var services = GetOrCreateMap(root, "services");
+    var nginx = GetOrCreateMap(services, "nginx");
+
+    nginx["ports"] = portList;
+
+    var newYaml = serializer.Serialize(root);
+    await File.WriteAllTextAsync(filePath, newYaml);
+}
+
+Dictionary<object, object> GetOrCreateMap(Dictionary<object, object> parent, string key)
+{
+    foreach (var entry in parent)
+    {
+        if (entry.Key?.ToString() == key && entry.Value is Dictionary<object, object> childMap)
+        {
+            return childMap;
+        }
+    }
+
+    var newMap = new Dictionary<object, object>();
+    parent[key] = newMap;
+    return newMap;
+}
+
+List<int> GetRequiredPorts(List<EndpointConfig> eps, bool https, bool subdomains)
+{
+    var ports = new HashSet<int>();
+
+    if (subdomains)
+    {
+        ports.Add(80);
+        if (https)
+        {
+            ports.Add(443);
+        }
+    }
+    else
+    {
+        foreach (var ep in eps)
+        {
+            ports.Add(ep.Port);
+        }
+    }
+
+    return [.. ports];
 }
 
 string GenerateNginxConfig(List<EndpointConfig> eps, string dom, bool https, bool subdomains, string? certFile, string? keyFile)
@@ -259,9 +349,9 @@ string GenerateNginxConfig(List<EndpointConfig> eps, string dom, bool https, boo
             var hostName = string.IsNullOrEmpty(ep.Subdomain) ? dom : $"{ep.Subdomain}.{dom}";
             sb.AppendLine($"        server_name {hostName};");
         }
-        else // ports
+        else
         {
-            sb.AppendLine($"        listen {ep.Port};");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        listen {ep.Port};");
             sb.AppendLine("        server_name _;");
         }
 
@@ -287,7 +377,7 @@ string GenerateNginxConfig(List<EndpointConfig> eps, string dom, bool https, boo
     return sb.ToString();
 }
 
-sealed class EndpointConfig
+internal sealed class EndpointConfig
 {
     public string Name { get; }
     public string EnvKey { get; }
@@ -307,7 +397,7 @@ sealed class EndpointConfig
     }
 }
 
-sealed class EnvFile
+internal sealed class EnvFile
 {
     private abstract class Node
     {

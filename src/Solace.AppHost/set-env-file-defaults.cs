@@ -57,7 +57,7 @@ var defaults = new Dictionary<string, string>(StringComparer.Ordinal)
 {
     { "NGINX_BINDMOUNT_0", "./nginx.conf" },
     { "NGINX_BINDMOUNT_1", "./certs" },
-    { "SHARED_CAPTCHA_PROVIDER", "None" },
+    { "SHARED_CAPTCHA_PROVIDER", "NoOp" },
     { "SHARED_FIXUPBUILDPLATESONIMPORT", "false" },
     { "TILERENDERER_TILESOURCE_TILEJSONURL", "https://tiles.openfreemap.org/planet" },
     { "WEBPORTAL_BUILDPLATEPREVIEW_ENABLED", "true" },

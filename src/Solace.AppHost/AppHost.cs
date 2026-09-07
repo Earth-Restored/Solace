@@ -39,14 +39,6 @@ builder.AddDockerComposeEnvironment("solace-prod")
         }
     });
 
-builder.AddContainer("nginx", "nginx", "alpine")
-    .WithHttpEndpoint(port: 80, targetPort: 80, name: "http")
-    .WithHttpsEndpoint(port: 443, targetPort: 443, name: "https")
-    .WithExternalHttpEndpoints()
-    .WithBindMount("./nginx.conf", "/etc/nginx/nginx.conf", isReadOnly: true)
-    .WithBindMount("./certs", "/etc/nginx/certs", isReadOnly: true)
-    .WithLifetime(ContainerLifetime.Persistent);
-
 var postgres = builder.AddPostgres("postgres")
     .WithPgAdmin();
 
@@ -511,5 +503,16 @@ var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
     });
 
 authServer.WithReference(webPortal);
+
+builder.AddContainer("nginx", "nginx", "alpine")
+    .WithExternalHttpEndpoints()
+    .WaitFor(webPortal)
+    .WaitFor(locator)
+    .WaitFor(authServer)
+    .WaitFor(apiServer)
+    .WaitFor(cdn)
+    .WithBindMount("./nginx.conf", "/etc/nginx/nginx.conf", isReadOnly: true)
+    .WithBindMount("./certs", "/etc/nginx/certs", isReadOnly: true)
+    .WithLifetime(ContainerLifetime.Persistent);
 
 builder.Build().Run();
