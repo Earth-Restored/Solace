@@ -156,7 +156,7 @@ var buildplateServerSetup = builder.AddProject<Projects.Solace_Buildplate_Server
             Type = "bind",
             Source = staticDataPath,
             Target = "/app/static-data",
-            ReadOnly = true,
+            ReadOnly = false,
         });
 
         service.Environment["StaticDataPath"] = "/app/static-data";
@@ -180,7 +180,7 @@ var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate_Launcher>
             Type = "bind",
             Source = staticDataPath,
             Target = "/app/static-data",
-            ReadOnly = true,
+            ReadOnly = false,
         });
 
         service.Environment["StaticDataPath"] = "/app/static-data";
@@ -203,7 +203,7 @@ var buildplateUpdater = builder.AddProject<Projects.Solace_Buildplate_Updater>("
             Type = "bind",
             Source = staticDataPath,
             Target = "/app/static-data",
-            ReadOnly = true,
+            ReadOnly = false,
         });
 
         service.Environment["StaticDataPath"] = "/app/static-data";

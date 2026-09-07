@@ -45,8 +45,9 @@
 5) Copy the `staticdata` folder to `src/Solace.AppHost/aspire-output`
 6) Run `dotnet set-env-file-defaults.cs -- ./aspire-output/.env` *(Add -o to overwrite existing values.)*
 7) Copy the contents of `template` to `aspire-output`
+8) Publish Solace.Db.Migrator, copy outputs to aspire-output/migrator
 
 ### Running published containers
 
 1) Run the setup script `dotnet setup.cs`
-2) Run either `./up.ps1` or `./up.sh` depending on your OS
+2) Run either `.\up.ps1` or `./up.sh` depending on your OS

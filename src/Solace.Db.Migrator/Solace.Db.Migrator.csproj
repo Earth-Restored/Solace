@@ -30,6 +30,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
     <PackageReference Include="OpenIddict.EntityFrameworkCore" />
     <PackageReference Include="Spectre.Console" />
+    <PackageReference Include="Spectre.Console.Cli" />
   </ItemGroup>
 
 </Project>

@@ -2,72 +2,44 @@
 
 ## Dependencies
 
-* Docker or podman with podman-compose
+* [Docker](https://www.docker.com/products/docker-desktop/) or [podman](https://podman-desktop.io/downloads) with [podman-compose](https://github.com/containers/podman-compose)
+* [.NET 11](https://dotnet.microsoft.com/en-us/download/dotnet/11.0)
 
 ## Setup Prerequisites
 
 * Before you start, you'll need to know the IP address of your PC
 * Windows
-  * Type `ipconfig` and press enter
-  * Look for either `Wireless LAN adapter Wi-Fi` if you use WiFi or `Ethernet adapter Ethernet` if you use ethernet
-  * Under it, there should be `IPv4 Address`
+  * Open Settings > Network & Internet > Wi-Fi, select Wi-Fi properties
+  * Find "IPv4 address"
 * Linux
   * Use a command such as `ip address`, `hostname -I` or `ifconfig -a`
 * The address will usually (but not always) be in the format `192.168.XXX.XXX`
 
-## Installation Methods
+## Server
 
-### Manual
+1. Download the latest 1.0.0+ release zip from [releases](https://github.com/Earth-Restored/Solace/releases)
+2. Extract the zip (on windows, make sure it is not a OneDrive backed up folder)
+3. Open terminal in the directory
+4. Run the setup script `dotnet setup.cs`
+5. Run either `.\up.ps1` or `./up.sh` depending on your OS
+6. 
 
-#### Server
+To stop the server, run `.\down.ps1` or `./down.sh`
 
-1. Clone the repository by running the following command on your terminal:
-
-    ```shell
-    git clone https://github.com/Earth-Restored/Solace.git
-    ```
-
-2. `cd` to the Solace directory, then run `publish.ps1 -profiles framework-dependent-{os}-{arch}`, replace `{os}` with you os (win, linux, osx) and `{arch}` with the cpu architecture (x64, x86, arm64, arm32), e.g. `framework-dependent-win-x64`
-3. Run "run_launcher.ps1"
-4. Now on the same device open http://localhost:5000, create an account, make sure you confirm your email on the page that opens, if you fail to do this, you need to [Delete account db (Option B)](README.md#i-cannot-see-the-start-server-button-when-logged-in), and login
-5. Under "Server Options", set "Network/IPv4 Address" to your PC's IP address and either disable "Map/Enable Tile Rendering" or set the "Map/MapTiler API Key" (it can be found [here](https://cloud.maptiler.com/account/keys/) when logged in)
-6. Under "Server Status", click "Start"
-7. Accept the Minecraft Server's EULA when prompted in the Launcher's logs
-8. Download and move the "resourcepack" file as described in the Launcher's logs
-
-#### Client
-
-* For iOS you can use [this patcher](https://github.com/catdogmat/ProjectEarthiOSPatcher), but it is not officially supported. Installation methods other than AltStore may not work
-
-| Feature | Project Earth patcher | MCE Patcher |
-| ------- | --------------------- | ----------- |
-| Target Device | Android | Android |
-| Patcher Runs On | Android | Windows, Linux, macOS |
-| Login | Microsoft account only | Microsoft or custom |
-| Shop | Requires that you have played the game before it shut down using the microsoft account | Always works if you use custom login |
-
-##### Project Earth patcher
-
-1. Download [the patcher](https://archive.org/download/dev.projectearth.patcher-1.0/dev.projectearth.patcher-1.0.apk)
-2. Install the patcher on your device
-3. Make sure you have a LEGAL copy of Minecraft Earth installed on that same device
-4. Open the patcher, press on the 3 dots then go to Settings
-5. Under Locator Server, set the following: `http://{ip}:8080`, replace `{ip}` with your PC's ip or hostnamr, **make sure you have http:// instead of https://**
-6. Now go back and start patching
-7. Once that's done, congratulations! You can now open the newly installed app and play Minecraft Earth!
-
-##### MCE patcher
+## Client
 
 1. Download [the patcher](https://github.com/Earth-Restored/Minecraft_Earth_Patcher/releases) (UI is highly recommended) or build it from source
-2. Acquire a Minecraft Earth apk, such as by dumping in from you phone.
-3. Run the patcher.
-4. Select the downloaded APK file.
-5. Change locator Hostname/IP to `{ip}:8080`, replace `{ip}` with your PC's ip or hostname
-    * If you want to use non microsoft login, change the options like so (enabled by default in simple UI mode. Use the same ip/hostname as the locator):
-    ![Correct options for replacement server](https://github.com/Earth-Restored/Solace/blob/main/images/patcher-login-server-options.png?raw=true)
-6. Click patch
-7. Move the patched apk to your phone and install it
-8. Once that's done, congratulations! You can now open the newly installed app and play Minecraft Earth!
+2. Extract the zip
+3.
+    * Android - Acquire a Minecraft Earth .apk, such as by dumping in from you phone.
+    * iOS - Acquire a Minecraft Earth .ipa file
+4. Run the patcher.
+5. Select your OS.
+6. Select the downloaded apk/ipa file.
+7. Enter the information as shown on the home page of web portal. (On iOS, **do not enable Use Custom Auth Server**, it is not yet properly impemented)
+8. Click patch
+9. Move the patched apk/ipa to your phone and install it
+10. Once that's done, congratulations! You can now open the newly installed app and play Minecraft Earth!
 
 ### Launcher Buildplate Preview
 

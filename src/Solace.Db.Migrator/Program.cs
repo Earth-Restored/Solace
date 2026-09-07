@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Reflection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -14,79 +15,134 @@ using Solace.ObjectStore.Client;
 using Solace.WebPortal.Data;
 using Solace.WebPortal.Utils;
 using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace Solace.Db.Migrator;
 
 internal static class Program
 {
+    private static async Task<int> Main(string[] args)
+    {
+        var app = new CommandApp<MigrateCommand>();
+        return await app.RunAsync(args);
+    }
+}
+
+public sealed class MigrationSettings : CommandSettings
+{
+    [CommandOption("--skip-intro")]
+    [Description("Skip the introductory panel and confirmation pause.")]
+    public bool SkipIntro { get; init; }
+
+    [CommandOption("-p|--old-path <PATH>")]
+    [Description("Path to old installation folder.")]
+    public string? OldPath { get; init; }
+
+    [CommandOption("--host <HOST>")]
+    [Description("PostgreSQL Host.")]
+    public string? PostgresHost { get; init; }
+
+    [CommandOption("--port <PORT>")]
+    [Description("PostgreSQL Port.")]
+    public int? PostgresPort { get; init; }
+
+    [CommandOption("-u|--user <USER>")]
+    [Description("PostgreSQL User.")]
+    public string? PostgresUser { get; init; }
+
+    [CommandOption("--password <PASSWORD>")]
+    [Description("PostgreSQL Password.")]
+    public string? PostgresPassword { get; init; }
+
+    [CommandOption("--endpoint <ENDPOINT>")]
+    [Description("Object Store Endpoint.")]
+    public string? ObjectStoreEndpoint { get; init; }
+
+    [CommandOption("-y|--yes")]
+    [Description("Skip confirmation prompt and start migration immediately.")]
+    public bool AutoConfirm { get; init; }
+}
+
+public sealed class MigrateCommand : AsyncCommand<MigrationSettings>
+{
     private static readonly Dictionary<Guid, long> _guidToLong = [];
 
-    private static async Task Main()
+    protected override async Task<int> ExecuteAsync(CommandContext context, MigrationSettings settings, CancellationToken cancellationToken)
     {
         var migratorVersion = Assembly.GetExecutingAssembly().GetName().Version!;
         var supportedVersion = typeof(Solace.Db.Earth.EarthDbContext).Assembly.GetName().Version!;
 
-        AnsiConsole.Write(
-            new Rule($"[bold blue]Solace Database Migrator[/] v{migratorVersion.ToString(3)}")
-                .RuleStyle("grey")
-                .LeftJustified());
-        AnsiConsole.WriteLine();
+        if (!settings.SkipIntro)
+        {
+            AnsiConsole.Write(
+                new Rule($"[bold blue]Solace Database Migrator[/] v{migratorVersion.ToString(3)}")
+                    .RuleStyle("grey")
+                    .LeftJustified());
+            AnsiConsole.WriteLine();
 
-        AnsiConsole.Write(
-            new Panel(
-                new Markup(
-                    $"""
+            AnsiConsole.Write(
+                new Panel(
+                    new Markup(
+                        $"""
                     1. Stop any running instance of the old Solace version ([bold cyan]v0.X.X[/]).
                     2. Run the new Solace version ([bold cyan]v{supportedVersion.ToString(3)}[/]) normally at least once to initialize the database schema.
                     3. 
                         a) If using Docker, start only [bold cyan]postgres[/] and [bold cyan]object-store[/].
                         b) If using AppHost, run [bold white on gray]dotnet run -- --migration-mode=true[/].
                     """
+                    )
                 )
-            )
-            {
-                Header = new PanelHeader("[bold yellow] Prerequisites [/]"),
-                Border = BoxBorder.Rounded,
-                BorderStyle = new Style(Color.Yellow),
-                Padding = new Padding(1, 0, 1, 0)
-            });
+                {
+                    Header = new PanelHeader("[bold yellow] Prerequisites [/]"),
+                    Border = BoxBorder.Rounded,
+                    BorderStyle = new Style(Color.Yellow),
+                    Padding = new Padding(1, 0, 1, 0)
+                });
+            AnsiConsole.WriteLine();
+
+            AnsiConsole.MarkupLine("[grey]Press any key to continue...[/]");
+            Console.ReadKey(intercept: true);
+
+            AnsiConsole.WriteLine();
+        }
+
+        var oldPath = settings.OldPath;
+        if (string.IsNullOrWhiteSpace(oldPath))
+        {
+            oldPath = AnsiConsole.Prompt(
+                new TextPrompt<string>("[yellow]Enter path to old installation (folder with components, data, launcher, staticdata):[/]")
+                    .Validate(path => Directory.Exists(path)
+                        ? ValidationResult.Success()
+                        : ValidationResult.Error("[red]Directory does not exist![/]")));
+        }
+        else if (!Directory.Exists(oldPath))
+        {
+            AnsiConsole.MarkupLine($"[red]Error: Specified old path directory '{oldPath}' does not exist![/]");
+            return 1;
+        }
+
+        var postgresHost = settings.PostgresHost
+            ?? AnsiConsole.Prompt(new TextPrompt<string>("[yellow]PostgreSQL Host:[/\\]").DefaultValue("localhost"));
+
+        var postgresPort = settings.PostgresPort
+            ?? AnsiConsole.Prompt(new TextPrompt<int>("[yellow]PostgreSQL Port:[/\\]"));
+
+        var postgresUser = settings.PostgresUser
+            ?? AnsiConsole.Prompt(new TextPrompt<string>("[yellow]PostgreSQL User:[/\\]").DefaultValue("postgres"));
+
+        var postgresPassword = settings.PostgresPassword
+            ?? AnsiConsole.Prompt(new TextPrompt<string>("[yellow]PostgreSQL Password:[/\\]").Secret());
+
+        var objectStoreEndpoint = settings.ObjectStoreEndpoint
+            ?? AnsiConsole.Prompt(new TextPrompt<string>("[yellow]Object Store Endpoint (http://localhost:XXXX/):[/\\]"));
+
         AnsiConsole.WriteLine();
 
-        AnsiConsole.MarkupLine("[grey]Press any key to continue...[/]");
-        Console.ReadKey(intercept: true);
-
-        AnsiConsole.WriteLine();
-
-        var oldPath = AnsiConsole.Prompt(
-            new TextPrompt<string>("[yellow]Enter path to old installation (folder with components, data, launcher, staticdata):[/]")
-                .Validate(path => Directory.Exists(path)
-                    ? ValidationResult.Success()
-                    : ValidationResult.Error("[red]Directory does not exist![/]")));
-
-        var postgresHost = AnsiConsole.Prompt(
-            new TextPrompt<string>("[yellow]PostgreSQL Host:[/]")
-                .DefaultValue("localhost"));
-
-        var postgresPort = AnsiConsole.Prompt(
-            new TextPrompt<int>("[yellow]PostgreSQL Port:[/]"));
-
-        var postgresUser = AnsiConsole.Prompt(
-            new TextPrompt<string>("[yellow]PostgreSQL User:[/]")
-                .DefaultValue("postgres"));
-
-        var postgresPassword = AnsiConsole.Prompt(
-            new TextPrompt<string>("[yellow]PostgreSQL Password:[/]")
-                .Secret());
-
-        var objectStoreEndpoint = AnsiConsole.Prompt(
-            new TextPrompt<string>("[yellow]Object Store Endpoint (http://localhost:XXXX/):[/]"));
-
-        AnsiConsole.WriteLine();
-
-        if (!AnsiConsole.Confirm("[bold green]Start migration with these settings?[/]", defaultValue: true))
+        var confirmed = settings.AutoConfirm || AnsiConsole.Confirm("[bold green]Start migration with these settings?[/]", defaultValue: true);
+        if (!confirmed)
         {
             AnsiConsole.MarkupLine("[bold red]Migration canceled by user.[/]");
-            return;
+            return 0;
         }
 
         AnsiConsole.WriteLine();
@@ -181,12 +237,15 @@ internal static class Program
                 Border = BoxBorder.Rounded,
                 Padding = new Padding(1, 1, 1, 1),
             });
+
+            return 0;
         }
         catch (Exception ex)
         {
             AnsiConsole.WriteLine();
             AnsiConsole.Write(new Rule("[bold red]Migration Failed[/]").RuleStyle("red"));
             AnsiConsole.WriteException(ex, ExceptionFormats.ShortenEverything | ExceptionFormats.ShowLinks);
+            return 1;
         }
     }
 
