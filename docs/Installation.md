@@ -7,46 +7,40 @@
 
 ## Setup Prerequisites
 
-* Before you start, you'll need to know the IP address of your PC
-* Windows
-  * Open Settings > Network & Internet > Wi-Fi, select Wi-Fi properties
-  * Find "IPv4 address"
-* Linux
-  * Use a command such as `ip address`, `hostname -I` or `ifconfig -a`
-* The address will usually (but not always) be in the format `192.168.XXX.XXX`
+You will need your local IP address so the patched app can connect to your server.
 
-## Server
+* **Windows:** Settings > Network & Internet > Wi-Fi (or Ethernet) > Wi-Fi properties > Find **IPv4 address**
+* **Linux:** Run `ip address`, `hostname -I`, or `ifconfig -a` in terminal
+* **macOS:** System Settings > Network > select your active connection > Details > Find **IP Address** (or run `ipconfig getifaddr en0` in terminal)
 
-1. Download the latest 1.0.0+ release zip from [releases](https://github.com/Earth-Restored/Solace/releases)
-2. Extract the zip (on windows, make sure it is not a OneDrive backed up folder)
-3. Open terminal in the directory
-4. Run the setup script `dotnet setup.cs`
-5. Run either `.\up.ps1` or `./up.sh` depending on your OS
-6. 
+*Note: Your local IP address will typically start with `192.168.x.x`, `10.x.x.x`, or `172.16.x.x`.*
 
-To stop the server, run `.\down.ps1` or `./down.sh`
+## Server Setup
 
-## Client
+1. Download the latest release from [Releases](https://github.com/Earth-Restored/Solace/releases).
+2. Extract the ZIP file. *(Note for Windows users: Avoid extracting to a OneDrive-backed folder).*
+3. Open a terminal inside the extracted directory.
+4. Run the setup script: `dotnet setup.cs`
+5. Start the server by running `.\up.ps1` (Windows) or `./up.sh` (Linux/macOS).
+6. Check logs with `docker compose logs web-portal`. Scroll up until you see `"SETUP: Initial owner account created!"` along with the admin email and password.
+   * *If you forget these credentials later, reset them by setting `WEBPORTAL_ADMINACCOUNTPASSWORD` in your `.env` file.*
+7. Open `http://localhost/` in a browser and log in with the admin credentials.
+8. **Recommended:** Create a separate account for in-game sign-in. New accounts have no permissions by default; use your admin account to create roles and assign them to users.
 
-1. Download [the patcher](https://github.com/Earth-Restored/Minecraft_Earth_Patcher/releases) (UI is highly recommended) or build it from source
-2. Extract the zip
-3.
-    * Android - Acquire a Minecraft Earth .apk, such as by dumping in from you phone.
-    * iOS - Acquire a Minecraft Earth .ipa file
-4. Run the patcher.
-5. Select your OS.
-6. Select the downloaded apk/ipa file.
-7. Enter the information as shown on the home page of web portal. (On iOS, **do not enable Use Custom Auth Server**, it is not yet properly impemented)
-8. Click patch
-9. Move the patched apk/ipa to your phone and install it
-10. Once that's done, congratulations! You can now open the newly installed app and play Minecraft Earth!
+To stop the server, run `.\down.ps1` (Windows) or `./down.sh` (Linux/macOS).
 
-### Launcher Buildplate Preview
+## Client Setup
 
-1. To enable the buildplate preview, you must first obtain the Minecraft 1.20.4 resource pack.
-2. The simplest method is to extract the files directly from the game's JAR:
-    * Locate and open '1.20.4.jar' in your Minecraft installation folder using an archive viewer (like 7-Zip).
-    * Navigate to the 'assets/minecraft/' directory.
-3. Copy all folders from 'assets/minecraft/' and paste them into:
-    * 'staticdata/resourcepacks/java/minecraft/'
-4. Finally, toggle 'Enable Buildplate Preview in Launcher' within ServerOptions/Data Handling.
+1. Download the [Minecraft Earth Patcher](https://github.com/Earth-Restored/Minecraft_Earth_Patcher/releases) or build it from source.
+2. Extract the downloaded archive.
+3. Obtain the required game package for your device:
+   * **Android:** Acquire a Minecraft Earth `.apk` file (e.g., dumped from your phone).
+   * **iOS:** Acquire a Minecraft Earth `.ipa` file.
+4. Launch the patcher and select your OS platform.
+5. Select your `.apk` or `.ipa` file.
+6. Enter the connection details displayed on the Web Portal home page (http://localhost/).
+   * *iOS Note:* **Do not enable "Use Custom Auth Server"** as it is not yet fully implemented.
+7. Click **Patch**.
+8. Transfer the patched `.apk` or `.ipa` file to your mobile device and install it.
+    * *iOS Note:* AltStore is recommended.
+9. Once that's done, congratulations! You can now open the newly installed Solace app and play Minecraft Earth!
