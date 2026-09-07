@@ -32,7 +32,7 @@
     },
     ```
 
-    * Change `BuildplateLauncher/PublicEndPoint` to an IP or hostname, without protocol or port
+    * Change `BuildplateLauncher/PublicEndpoint` to an IP or hostname, without protocol or port
 6) Run `dotnet run`
 7) The admin account email and password for web portal will be shown in the web portal logs. If forgotten, reset them by setting `WebPortal/AdminAccountPassword` in `appsettings.Development.json`
 

@@ -289,7 +289,7 @@ var cdn = builder.AddProject<Projects.Solace_Cdn>("cdn")
 var authServerPort = builder.Configuration.GetValue<int>("AuthServer:Port", 8088);
 var webPortalPort = builder.Configuration.GetValue<int>("WebPortal:Port", 5000);
 
-var webPortalPublicEndPoint = builder.AddConfigParameter("Shared:PublicEndpoints:WebPortal");
+var webPortalPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:WebPortal");
 var authServerOidcClientSecret = builder.AddConfigParameter("Shared:Oidc:WebPortal:AuthServer:ClientSecret");
 var captchaProvider = builder.AddConfigParameter("Shared:Captcha:Provider", defaultValue: "NoOp");
 var captchaCloudflareTurnstileSiteKey = builder.AddConfigParameter("Shared:Captcha:CloudflareTurnstileSiteKey");
@@ -314,7 +314,7 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
         prefixToRemove: "Shared:Oidc:WebPortal:AuthServer:",
         prefixToAdd: "Oidc:",
         authServerOidcClientSecret)
-    .WithEnvironmentParameter(webPortalPublicEndPoint, prefixToRemove: "Shared:")
+    .WithEnvironmentParameter(webPortalPublicEndpoint, prefixToRemove: "Shared:")
     .WithEnvironmentParameter(captchaProvider, prefixToRemove: "Shared:")
     .WithEnvironmentParameter(captchaCloudflareTurnstileSiteKey, prefixToRemove: "Shared:")
     .WithEnvironmentParameter(captchaCloudflareTurnstileSecretKey, prefixToRemove: "Shared:")
@@ -344,8 +344,8 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
 
 var locatorPort = builder.Configuration.GetValue<int>("Locator:Port", 8080);
 
-var apiServerPublicEndPoint = builder.AddConfigParameter("Shared:PublicEndpoints:ApiServer");
-var cdnPublicEndPoint = builder.AddConfigParameter("Shared:PublicEndpoints:Cdn");
+var apiServerPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:ApiServer");
+var cdnPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:Cdn");
 
 var locator = builder.AddProject<Projects.Solace_Locator>("locator")
     .WithHttpEndpoint(port: locatorPort, name: "http")
@@ -358,8 +358,8 @@ var locator = builder.AddProject<Projects.Solace_Locator>("locator")
     .WaitFor(apiServer)
     .WithReference(cdn)
     .WaitFor(cdn)
-    .WithEnvironmentParameter(apiServerPublicEndPoint, prefixToRemove: "Shared:")
-    .WithEnvironmentParameter(cdnPublicEndPoint, prefixToRemove: "Shared:")
+    .WithEnvironmentParameter(apiServerPublicEndpoint, prefixToRemove: "Shared:")
+    .WithEnvironmentParameter(cdnPublicEndpoint, prefixToRemove: "Shared:")
     .PublishAsDockerComposeService((resource, service) =>
     {
     });
@@ -409,8 +409,8 @@ var tileRenderer = builder.AddProject<Projects.Solace_TileRenderer>("tile-render
         service.Environment["StaticDataPath"] = "/app/static-data";
     });
 
-var locatorPublicEndPoint = builder.AddConfigParameter("Shared:PublicEndpoints:Locator");
-var authServerPublicEndPoint = builder.AddConfigParameter("Shared:PublicEndpoints:AuthServer");
+var locatorPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:Locator");
+var authServerPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:AuthServer");
 
 var adminAccountPassword = builder.AddConfigParameter("WebPortal:AdminAccountPassword", isSecret: true);
 
@@ -450,9 +450,9 @@ var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
     .WithEnvironmentParameter(captchaProvider, prefixToRemove: "Shared:")
     .WithEnvironmentParameter(captchaCloudflareTurnstileSiteKey, prefixToRemove: "Shared:")
     .WithEnvironmentParameter(captchaCloudflareTurnstileSecretKey, prefixToRemove: "Shared:")
-    .WithEnvironmentParameter(webPortalPublicEndPoint, prefixToRemove: "Shared:")
-    .WithEnvironmentParameter(locatorPublicEndPoint, prefixToRemove: "Shared:")
-    .WithEnvironmentParameter(authServerPublicEndPoint, prefixToRemove: "Shared:")
+    .WithEnvironmentParameter(webPortalPublicEndpoint, prefixToRemove: "Shared:")
+    .WithEnvironmentParameter(locatorPublicEndpoint, prefixToRemove: "Shared:")
+    .WithEnvironmentParameter(authServerPublicEndpoint, prefixToRemove: "Shared:")
     .WithEnvironmentParameter(adminAccountPassword, prefixToRemove: "WebPortal:")
     .WithEnvironmentParameter(buildplatePreviewEnabled, prefixToRemove: "WebPortal:")
     .WithEnvironmentParameter(buildplatePreviewGenerationMaxConcurrency, prefixToRemove: "WebPortal:")

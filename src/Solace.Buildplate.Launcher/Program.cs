@@ -133,7 +133,7 @@ internal static partial class App
 
         var javaCmd = JavaLocator.Locate(GlobalLoggerFactory.CreateLogger(nameof(JavaLocator)));
 
-        var publicEndPoint = builder.Configuration["PublicEndPoint"];
+        var publicEndPoint = builder.Configuration["PublicEndpoint"];
         Debug.Assert(publicEndPoint is not null);
 
         var baseInstancePublicPort = checked((ushort)builder.Configuration.GetValue<int>("BaseInstancePublicPort"));
