@@ -242,9 +242,9 @@ void GenerateSelfSignedCert(string subject, string path, string password)
     File.WriteAllBytes(path, cert.Export(X509ContentType.Pfx, password));
 }
 
-async Task UpdateDockerComposeOverrideAsync(string filePath, List<EndpointConfig> eps, bool https, bool subdomains)
+async Task UpdateDockerComposeOverrideAsync(string filePath, List<EndpointConfig> endpoints, bool https, bool subdomains)
 {
-    var requiredPorts = GetRequiredPorts(eps, https, subdomains);
+    var requiredPorts = GetRequiredPorts(endpoints, https, subdomains);
     var portList = requiredPorts.Select(p => $"{p}:{p}").ToList();
 
     var deserializer = new DeserializerBuilder().Build();
@@ -289,7 +289,7 @@ Dictionary<object, object> GetOrCreateMap(Dictionary<object, object> parent, str
     return newMap;
 }
 
-List<int> GetRequiredPorts(List<EndpointConfig> eps, bool https, bool subdomains)
+List<int> GetRequiredPorts(List<EndpointConfig> endpoints, bool https, bool subdomains)
 {
     var ports = new HashSet<int>();
 
@@ -303,78 +303,81 @@ List<int> GetRequiredPorts(List<EndpointConfig> eps, bool https, bool subdomains
     }
     else
     {
-        foreach (var ep in eps)
+        foreach (var endpoint in endpoints)
         {
-            ports.Add(ep.Port);
+            ports.Add(endpoint.Port);
         }
     }
 
     return [.. ports];
 }
 
-string GenerateNginxConfig(List<EndpointConfig> eps, string dom, bool https, bool subdomains, string? certFile, string? keyFile)
+string GenerateNginxConfig(List<EndpointConfig> endpoints, string domain, bool https, bool subdomains, string? certFile, string? keyFile)
 {
-    var sb = new StringBuilder();
-    sb.AppendLine("events { worker_connections 1024; }");
-    sb.AppendLine();
-    sb.AppendLine("http {");
+    var builder = new StringBuilder();
+    builder.AppendLine("events { worker_connections 1024; }");
+    builder.AppendLine();
+    builder.AppendLine("http {");
+    builder.AppendLine("    resolver 127.0.0.11 valid=10s ipv6=off;");
+    builder.AppendLine();
 
     if (https)
     {
-        sb.AppendLine($"    ssl_certificate /etc/nginx/certs/{certFile};");
-        sb.AppendLine($"    ssl_certificate_key /etc/nginx/certs/{keyFile};");
-        sb.AppendLine("    ssl_protocols TLSv1.2 TLSv1.3;");
-        sb.AppendLine();
+        builder.AppendLine($"    ssl_certificate /etc/nginx/certs/{certFile};");
+        builder.AppendLine($"    ssl_certificate_key /etc/nginx/certs/{keyFile};");
+        builder.AppendLine("    ssl_protocols TLSv1.2 TLSv1.3;");
+        builder.AppendLine();
     }
 
-    sb.AppendLine("    proxy_set_header Host $host;");
-    sb.AppendLine("    proxy_set_header X-Real-IP $remote_addr;");
-    sb.AppendLine("    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;");
-    sb.AppendLine("    proxy_set_header X-Forwarded-Proto $scheme;");
-    sb.AppendLine("    proxy_set_header X-Forwarded-Host $host;");
-    sb.AppendLine();
+    builder.AppendLine("    proxy_set_header Host $host;");
+    builder.AppendLine("    proxy_set_header X-Real-IP $remote_addr;");
+    builder.AppendLine("    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;");
+    builder.AppendLine("    proxy_set_header X-Forwarded-Proto $scheme;");
+    builder.AppendLine("    proxy_set_header X-Forwarded-Host $host;");
+    builder.AppendLine();
 
-    foreach (var ep in eps)
+    foreach (var endpoint in endpoints)
     {
-        sb.AppendLine("    server {");
+        builder.AppendLine("    server {");
         if (https && subdomains)
         {
-            sb.AppendLine("        listen 443 ssl;");
-            var hostName = string.IsNullOrEmpty(ep.Subdomain) ? dom : $"{ep.Subdomain}.{dom}";
-            sb.AppendLine($"        server_name {hostName};");
+            builder.AppendLine("        listen 443 ssl;");
+            var hostName = string.IsNullOrEmpty(endpoint.Subdomain) ? domain : $"{endpoint.Subdomain}.{domain}";
+            builder.AppendLine($"        server_name {hostName};");
         }
         else if (!https && subdomains)
         {
-            sb.AppendLine("        listen 80;");
-            var hostName = string.IsNullOrEmpty(ep.Subdomain) ? dom : $"{ep.Subdomain}.{dom}";
-            sb.AppendLine($"        server_name {hostName};");
+            builder.AppendLine("        listen 80;");
+            var hostName = string.IsNullOrEmpty(endpoint.Subdomain) ? domain : $"{endpoint.Subdomain}.{domain}";
+            builder.AppendLine($"        server_name {hostName};");
         }
         else
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        listen {ep.Port};");
-            sb.AppendLine("        server_name _;");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"        listen {endpoint.Port};");
+            builder.AppendLine("        server_name _;");
         }
 
-        sb.AppendLine();
-        sb.AppendLine("        location / {");
-        sb.AppendLine($"            proxy_pass http://{ep.Name}:8080;");
-        sb.AppendLine("        }");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        builder.AppendLine();
+        builder.AppendLine("        location / {");
+        builder.AppendLine($"            set $upstream_target http://{endpoint.Name}:8080;");
+        builder.AppendLine("            proxy_pass $upstream_target;");
+        builder.AppendLine("        }");
+        builder.AppendLine("    }");
+        builder.AppendLine();
     }
 
     if (https)
     {
-        sb.AppendLine("    server {");
-        sb.AppendLine("        listen 80;");
-        sb.AppendLine("        server_name _;");
-        sb.AppendLine("        return 301 https://$host$request_uri;");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        builder.AppendLine("    server {");
+        builder.AppendLine("        listen 80;");
+        builder.AppendLine("        server_name _;");
+        builder.AppendLine("        return 301 https://$host$request_uri;");
+        builder.AppendLine("    }");
+        builder.AppendLine();
     }
 
-    sb.AppendLine("}");
-    return sb.ToString();
+    builder.AppendLine("}");
+    return builder.ToString();
 }
 
 internal sealed class EndpointConfig

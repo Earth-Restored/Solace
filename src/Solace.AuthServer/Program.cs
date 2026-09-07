@@ -161,10 +161,10 @@ internal sealed partial class Program2
                     }
                 };
 
+                options.RequireHttpsMetadata = false;
+
                 if (builder.Environment.IsDevelopment())
                 {
-                    options.RequireHttpsMetadata = false; // Disable strict HTTPS check in dev
-
 #pragma warning disable MA0039 // Do not write your own certificate validation method
                     options.BackchannelHttpHandler = new HttpClientHandler
                     {

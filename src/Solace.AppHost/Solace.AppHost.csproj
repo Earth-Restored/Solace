@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <Compile Remove="set-env-file-defaults.cs" />
-    <Compile Remove="setup.cs" />
+    <Compile Remove="template/setup.cs" />
     <Compile Remove="aspire-output/setup.cs" />
   </ItemGroup>
 
