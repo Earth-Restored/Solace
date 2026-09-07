@@ -8,19 +8,11 @@ function Cleanup {
         Remove-Item -Path $TEMP_OVERRIDE -Force -ErrorAction SilentlyContinue
     }
     
-    if (Test-Path ".\down.ps1") {
-        & .\down.ps1
-    } else {
-        & bash .\down.sh
-    }
+    & .\down.ps1
 }
 
 try {
-    if (Test-Path ".\down.ps1") {
-        & .\down.ps1
-    } else {
-        & bash .\down.sh
-    }
+    & .\down.ps1
 
     if (Test-Path ".env") {
         Get-Content .env | ForEach-Object {
