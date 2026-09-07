@@ -2,7 +2,7 @@
 
 ## Dependencies
 
-* [Docker](https://www.docker.com/products/docker-desktop/) or [podman](https://podman-desktop.io/downloads) with [podman-compose](https://github.com/containers/podman-compose)
+* [Docker](https://www.docker.com/products/docker-desktop/)
 * [.NET 11](https://dotnet.microsoft.com/en-us/download/dotnet/11.0)
 
 ## Setup Prerequisites

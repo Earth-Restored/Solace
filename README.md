@@ -52,7 +52,15 @@ Replacement server for Minecraft Earth™, based on [Vienna](https://github.com/
 
 ## Installation
 
-For installation instructions, refer to [Installation.md](Installation.md)
+Refer to the [Installation Guide](docs/Installation.md) to get started.
+
+> [!IMPORTANT]
+> **Upgrading from pre-1.0.0?**
+> Follow the [Migration Guide](docs/MigratePre1.0.0.md) to manually migrate your data.
+
+## Building
+
+Refer to the [Build Guide](docs/Build.md) for instructions on building from source.
 
 ## Common Errors & Troubleshooting
 

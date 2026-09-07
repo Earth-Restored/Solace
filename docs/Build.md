@@ -43,7 +43,7 @@
 3) Navigate to `src/Solace.AppHost`
 4) Run `aspire publish`, this generates `docker-compose.yml` and `.env` inside `aspire-output`.
 5) Copy the `staticdata` folder to `src/Solace.AppHost/aspire-output`
-6) Run `dotnet set-env-file-defaults.cs -- ./aspire-output/.env` *(Add -o to overwrite existing values.)*
+6) Run `dotnet set-env-file-defaults.cs ./aspire-output/.env` *(Add -o to overwrite existing values.)*
 7) Copy the contents of `template` to `aspire-output`
 8) Publish Solace.Db.Migrator, copy outputs to aspire-output/migrator
 
