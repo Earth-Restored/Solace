@@ -371,7 +371,7 @@ done
 update_prebuilt() {
     echo "[Solace] Fetching available releases..."
     local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
-    local tags=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//')
+    local tags=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -E '^v?0\.')
     [ -z "$tags" ] && echo -e "${RED}[ERROR] Failed to fetch releases${RST}" && sleep 2 && return 1
     local sel=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
     [ -z "$sel" ] && return 1
@@ -461,7 +461,7 @@ JSONEOF
     else
         echo "[Solace] Fetching available releases..."
         local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
-        local tags=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -v "^dev-build$")
+        local tags=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -E '^v?0\.')
         [ -z "$tags" ] && echo -e "${RED}[ERROR] No releases found${RST}" && sleep 2 && return 1
         local sel=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
         [ -z "$sel" ] && return
@@ -579,7 +579,7 @@ JSONEOF
                         echo "[Solace] Switched to dev (dev-build)"
                     else
                         local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
-                        local tag=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -v "^dev-build$" | head -n1)
+                        local tag=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -E '^v?0\.' | head -n1)
                         [ -z "$tag" ] && echo -e "${RED}[ERROR] No release found${RST}" && sleep 2 && break
                         local zip_name="Solace-linux-${ARCH_PROFILE}.zip"
                         local tmp=$(mktemp -d "/tmp/solace_update_XXXXXX") || break
@@ -722,7 +722,7 @@ check_update() {
     [ "$INSTALL_MODE" = "source" ] && return
     [ "$INSTALL_BRANCH" = "dev" ] && return
     local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=1")
-    local latest=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -v "^dev-build$" | head -n1)
+    local latest=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -E '^v?0\.' | head -n1)
     [ -z "$latest" ] && return
     local dismissed=$(grep -o '"dismissedUpdate": *"[^"]*"' "$SETTINGS_FILE" 2>/dev/null | cut -d'"' -f4)
     [ "$dismissed" = "$latest" ] && return
@@ -766,7 +766,7 @@ update_menu() {
                 if [ "$INSTALL_BRANCH" = "main" ]; then
                     echo "[Solace] Fetching releases..."
                     local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
-                    local tags=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -v "^dev-build$")
+                    local tags=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -E '^v?0\.')
                     [ -z "$tags" ] && echo -e "${RED}[ERROR] No releases found${RST}" && sleep 2 && continue
                     local sel=$(echo "$tags" | fzf --height=40% --reverse --border --prompt="Version > " --no-multi)
                     [ -z "$sel" ] && continue
@@ -841,7 +841,7 @@ JSONEOF
                     echo "[Solace] Switched to dev (dev-build)"
                 else
                     local json=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=100")
-                    local tag=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -v "^dev-build$" | head -n1)
+                    local tag=$(echo "$json" | grep -o '"tag_name": *"[^"]*"' | sed 's/"tag_name": *"//;s/"//' | grep -E '^v?0\.' | head -n1)
                     [ -z "$tag" ] && echo -e "${RED}[ERROR] No release found${RST}" && sleep 2 && continue
                     local zip_name="Solace-linux-${ARCH_PROFILE}.zip"
                     local tmp=$(mktemp -d "/tmp/solace_update_XXXXXX") || continue
