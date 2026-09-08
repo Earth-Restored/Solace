@@ -281,7 +281,7 @@ static async Task<string> FetchOciTokenAsync(HttpClient http, string? challengeP
     return "";
 }
 
-sealed class EnvFile
+internal sealed class EnvFile
 {
     private abstract class Node
     {

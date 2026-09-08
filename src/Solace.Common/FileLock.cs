@@ -51,10 +51,13 @@ public sealed class FileLock
             FileStream lockFileStream;
             try
             {
-                lockFileStream = new FileStream(_file.Value, FileMode.OpenOrCreate, FileAccess.Read, FileShare.None, bufferSize: 1, FileOptions.DeleteOnClose);
+                // FileOptions.DeleteOnClose does not work in docker
+                lockFileStream = new FileStream(_file.Value, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, bufferSize: 1, FileOptions.None);
             }
             catch (UnauthorizedAccessException)
             {
+                retryCount++;
+
                 // The file exists and is read-only
                 FileAttributes attributes;
                 try
@@ -73,6 +76,7 @@ public sealed class FileLock
 
                 if (retryCount < 50)
                 {
+                    Thread.SpinWait(500);
                     continue;
                 }
 

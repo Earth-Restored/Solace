@@ -92,24 +92,61 @@ function Push-Project {
             }
         }) -join ","
 
+        $csprojCopyCommands = (Get-ChildItem -Path . -Filter "*.csproj" -Recurse |
+        Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' } |
+        ForEach-Object {
+            $relativePath = [System.IO.Path]::GetRelativePath($PWD.Path, $_.FullName).Replace('\', '/')
+            "COPY `"$relativePath`" `"$relativePath`""
+        }) -join "`n"
+
         $dockerfileContent = @"
 FROM --platform=`$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0-preview AS build
-ARG TARGETARCH
+ARG BUILDARCH
 
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+RUN --mount=type=cache,id=apt-cache-`$BUILDARCH,target=/var/cache/apt \
+    --mount=type=cache,id=apt-lists-`$BUILDARCH,target=/var/lib/apt/lists \
+    --mount=type=cache,id=downloads-`$BUILDARCH,target=/var/cache/downloads \
     apt-get update && apt-get install -y --no-install-recommends \
     curl \
     xz-utils \
-    && rm -rf /var/lib/apt/lists/* \
+    llvm \
     && ZIG_ARCH=`$(uname -m) \
-    && curl -sSL "https://ziglang.org/download/0.13.0/zig-linux-`$ZIG_ARCH-0.13.0.tar.xz" | tar -xJ -C /usr/local \
-    && ln -s "/usr/local/zig-linux-`$ZIG_ARCH-0.13.0/zig" /usr/local/bin/zig
+    && ZIG_FILE="zig-`$ZIG_ARCH-linux-0.16.0.tar.xz" \
+    && ZIG_PATH="/var/cache/downloads/`$ZIG_FILE" \
+    && if ! xz -t "`$ZIG_PATH" >/dev/null 2>&1; then \
+           rm -f "`$ZIG_PATH" "`$ZIG_PATH.tmp" \
+           && curl -fsSL "https://ziglang.org/download/0.16.0/`$ZIG_FILE" -o "`$ZIG_PATH.tmp" \
+           && mv "`$ZIG_PATH.tmp" "`$ZIG_PATH"; \
+       fi \
+    && tar -xJ -f "`$ZIG_PATH" -C /usr/local \
+    && ln -sf /usr/local/zig-*/zig /usr/local/bin/zig
+
+ENV NUGET_PACKAGES=/root/.nuget/packages
 
 WORKDIR /src
+
+COPY Directory.Build.props Directory.Packages.props ./
+$csprojCopyCommands
+
+ARG TARGETARCH
+
+RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages \
+    --mount=type=cache,id=nuget-global-v3-cache,target=/root/.local/share/NuGet/v3-cache \
+    case "`$TARGETARCH" in \
+        "amd64") RID="linux-x64" ;; \
+        "arm64") RID="linux-arm64" ;; \
+        "arm")   RID="linux-arm" ;; \
+        *)       RID="linux-`$TARGETARCH" ;; \
+    esac && \
+    dotnet restore "src/$ProjectName/$ProjectName.csproj" \
+        -r `$RID \
+        /p:PublishAot=true
+
 COPY . .
 
-RUN case "`$TARGETARCH" in \
+RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages \
+    --mount=type=cache,id=nuget-global-v3-cache,target=/root/.local/share/NuGet/v3-cache \
+    case "`$TARGETARCH" in \
         "amd64") ZIG_TARGET="x86_64-linux-gnu.2.34"    RID="linux-x64" ;; \
         "arm64") ZIG_TARGET="aarch64-linux-gnu.2.34"   RID="linux-arm64" ;; \
         "arm")   ZIG_TARGET="arm-linux-gnueabihf.2.34" RID="linux-arm" ;; \
@@ -117,13 +154,11 @@ RUN case "`$TARGETARCH" in \
     esac && \
     printf '#!/bin/sh\nfor arg do\n  shift\n  case "`$arg" in\n    -pie|-Wl,-pie|*-pie|-fuse-ld=*|-Wl,-fuse-ld=*|*--discard-all*|*--gc-sections*|*--icf*|--target=*)\n      ;;\n    *)\n      set -- "`$@" "`$arg"\n      ;;\n  esac\ndone\nexec zig cc -target %s "`$@"\n' "`$ZIG_TARGET" > /tmp/zig-cc && \
     chmod +x /tmp/zig-cc && \
-    printf '#!/bin/sh\nnum_files=0\nfor arg do\n  shift\n  case "`$arg" in\n    --strip-unneeded)\n      ;;\n    -*)\n      set -- "`$@" "`$arg"\n      ;;\n    *)\n      set -- "`$@" "`$arg"\n      num_files=`$((num_files + 1))\n      last_file="`$arg"\n      ;;\n  esac\ndone\nif [ "`$num_files" -eq 1 ]; then\n  zig objcopy "`$@" "`$last_file.tmp" && mv "`$last_file.tmp" "`$last_file"\nelse\n  exec zig objcopy "`$@"\nfi\n' > /tmp/zig-objcopy && \
-    chmod +x /tmp/zig-objcopy && \
-    dotnet publish "src/$ProjectName/$ProjectName.csproj" -c Release -r `$RID \
+    dotnet publish "src/$ProjectName/$ProjectName.csproj" -c Release -r `$RID --no-restore \
         /p:PublishAot=true \
         /p:CppCompilerAndLinker=/tmp/zig-cc \
         /p:LinkerFlavor=lld \
-        /p:ObjCopyName=/tmp/zig-objcopy \
+        /p:ObjCopyName=llvm-objcopy \
         /p:PublishTrimmed=true \
         /p:EnableTrimAnalyzer=true \
         /p:TrimmerRemoveSymbols=true \

@@ -44,7 +44,8 @@ var postgres = builder.AddPostgres("postgres")
 
 if (builder.Configuration.GetValue("UseVolumes", true))
 {
-    postgres.WithDataVolume();
+    var volumeName = builder.Configuration.GetValue<string?>("PostgresVolumeName", null);
+    postgres.WithDataVolume(string.IsNullOrWhiteSpace(volumeName) ? null : volumeName);
 }
 
 var earthDb = postgres.AddDatabase("EarthDb");

@@ -139,6 +139,17 @@ await AnsiConsole.Status()
             File.SetUnixFileMode("dataprotection-keys", unixAllReadWriteView);
             File.SetUnixFileMode("certs", unixAllReadWriteView);
             File.SetUnixFileMode("certs/web-portal", unixAllReadWriteView);
+
+            SetReadWrite("staticdata/server_template_dir");
+            SetReadWrite("staticdata/server_template_dir/mods");
+
+            static void SetReadWrite(string path)
+            {
+                var allReadWrite = UnixFileMode.UserRead | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+
+                Directory.CreateDirectory(path);
+                File.SetUnixFileMode(path, File.GetUnixFileMode(path) | allReadWrite);
+            }
         }
 
         if (hasHttps && !string.IsNullOrWhiteSpace(certPath) && !string.IsNullOrWhiteSpace(keyPath))
@@ -197,10 +208,10 @@ await AnsiConsole.Status()
             env = await EnvFile.ParseAsync(new StringReader(""));
         }
 
-        env.Set("DASHBOARD_OTLP_PRIMARY_APIKEY", GenerateRandomHex(32));
+        env.SetIfEmpty("DASHBOARD_OTLP_PRIMARY_APIKEY", GenerateRandomHex(32));
         env.SetIfEmpty("POSTGRES_PASSWORD", GenerateRandomPassword(24));
         env.Set("SHARED_ACCEPTMINECRAFTEULA", agreeEula ? "true" : "false");
-        env.Set("SHARED_OIDC_WEBPORTAL_AUTHSERVER_CLIENTSECRET", GenerateRandomHex(32));
+        env.SetIfEmpty("SHARED_OIDC_WEBPORTAL_AUTHSERVER_CLIENTSECRET", GenerateRandomHex(32));
         env.Set("SHARED_OIDC_WEBPORTAL_ENCRYPTIONCERTPASSWORD", encPassword);
         env.Set("SHARED_OIDC_WEBPORTAL_SIGNINGCERTPASSWORD", signPassword);
 
@@ -218,7 +229,7 @@ AnsiConsole.MarkupLine("[bold yellow]Final Step Required:[/]");
 AnsiConsole.MarkupLine("Please download [link]https://cdn.mceserv.net/availableresourcepack/resourcepacks/dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35[/] using Wayback Machine.");
 AnsiConsole.MarkupLine("Rename it to [bold white]vanilla.zip[/] and put it into [bold cyan]staticdata/resourcepacks/[/]");
 AnsiConsole.WriteLine();
-AnsiConsole.MarkupLine("Once done, you can run [bold green]docker compose up -d[/] to start the server.");
+AnsiConsole.MarkupLine("Once done, you can run [bold green]up.ps1[/] or[bold green]up.sh[/] to start the server.");
 
 string GenerateRandomPassword(int length = 24)
 {

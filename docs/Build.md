@@ -41,7 +41,7 @@
 1) Navigate to `scripts`
 2) Run `upload-docker-registry.ps1`, specify your username and optionally, the image registry and which projects/architectures to upload
 3) Navigate to `src/Solace.AppHost`
-4) Run `aspire publish`, this generates `docker-compose.yml` and `.env` inside `aspire-output`.
+4) Run `aspire publish -- --PostgresVolumeName="solace.prod-postgres-data"`, this generates `docker-compose.yml` and `.env` inside `aspire-output`.
 5) Copy the `staticdata` folder to `src/Solace.AppHost/aspire-output`
 6) Run `dotnet set-env-file-defaults.cs ./aspire-output/.env` *(Add -o to overwrite existing values.)*
 7) Copy the contents of `template` to `aspire-output`

@@ -1,0 +1,86 @@
+# ==============================================================================
+# Created by https://dockerignore.com/
+# LANGUAGE TEMPLATE for C#
+# Website: https://dotnet.microsoft.com/en-us/languages/csharp
+# Repository: https://github.com/dotnet/csharplang
+# ==============================================================================
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# TEMPLATE OVERVIEW & USAGE NOTES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# • TEMPLATE TYPE: LANGUAGE TEMPLATE
+# • PURPOSE: C#-specific patterns for Docker builds
+# • DESIGN PHILOSOPHY: Contains only C#-specific patterns (no security patterns)
+# • COMBINATION GUIDANCE: Combine with framework or common templates as needed
+# • SECURITY CONSIDERATIONS: Does NOT include security patterns (use common/security.dockerignore)
+# • BEST PRACTICES: Combine with security template for complete protection
+# • OFFICIAL SOURCES: C# community patterns and Docker best practices
+
+# ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+# Build Artifacts
+# ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+
+**/bin/
+**/obj/
+**/Debug/
+**/Release/
+**/amd64/
+**/arm64/
+**/docs/output/
+**/out/
+**/publish/
+**/x64/
+**/x86/
+
+# ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+# Cache & Temporary
+# ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+
+TemporaryGeneratedFile_*.cs
+
+# ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+# Testing
+# ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+
+**/TestResults/
+
+.coverage
+
+TestResult.xml
+*.coverage.xml
+*.testlog
+*.testrunconfig
+*.testsettings
+*.trx
+
+# ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+# Tools & Configuration
+# ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+
+**/.nuget/
+**/_ReSharper.*/
+**/_gh_pages/
+**/AnyCPU/
+**/Help/
+**/NuGet/
+**/docs/_site/
+**/packages/
+
+*.chm
+*.crunchsolution
+*.csproj.user
+*.fsproj.user
+*.ncrunchproject
+*.resharper
+*.resharper.user
+*.sln.docstates
+*.suo
+*.user
+*.userosscache
+*.vbproj.user
+*.vcxproj.filters
+*.vcxproj.user
+*.vsmdi
+*.vsp
+*.vspscc
+*.vspx
