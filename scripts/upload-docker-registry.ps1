@@ -14,6 +14,11 @@ function CheckDockerRegistryLogin {
         [Parameter(Mandatory = $true)][string]$Registry
     )
 
+    if ($Registry -like "localhost*" -or $Registry -like "127.0.0.1*") {
+        Write-Verbose "Skipping login for local registry $Registry."
+        return $true
+    }
+
     Write-Verbose "Validating credentials for $Registry against the server..."
 
     $loginOutput = "EOF" | docker login $Registry 2>&1
@@ -36,7 +41,7 @@ function DockerRegistryLogin {
     )
 
     Write-Information "Initiating login for user '$Username' to $Registry..."
-    
+
     $credential = Get-Credential -UserName $Username -Message "Enter your credentials for ${Registry}:"
     $token = $credential.GetNetworkCredential().Password
 
@@ -56,6 +61,7 @@ function Push-Project {
         [Parameter(Mandatory = $true)][string]$ProjectName,
         [Parameter(Mandatory = $true)][string]$PackageName,
         [Parameter(Mandatory = $true)][bool]$AOT,
+        [bool]$RequiresJava = $false,
         [string[]]$Architectures = @("x64", "arm64", "arm32"),
         [string]$Username = $script:Username,
         [string]$Registry = $script:Registry,
@@ -82,24 +88,62 @@ function Push-Project {
     $imageTag = if ($Registry) { "$Registry/$Username/solace-${PackageName}:latest" } else { "$Username/solace-${PackageName}:latest" }
     $dockerfilePath = $null
 
-    if ($AOT) {
-        $platforms = ($rids | ForEach-Object {
+    $platforms = ($rids | ForEach-Object {
             switch ($_) {
-                "linux-x64"   { "linux/amd64" }
+                "linux-x64" { "linux/amd64" }
                 "linux-arm64" { "linux/arm64" }
-                "linux-arm"   { "linux/arm/v7" }
-                default       { $_ -replace '^linux-', 'linux/' }
+                "linux-arm" { "linux/arm/v7" }
+                default { $_ -replace '^linux-', 'linux/' }
             }
         }) -join ","
 
-        $csprojCopyCommands = (Get-ChildItem -Path . -Filter "*.csproj" -Recurse |
-        Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' } |
-        ForEach-Object {
-            $relativePath = [System.IO.Path]::GetRelativePath($PWD.Path, $_.FullName).Replace('\', '/')
-            "COPY `"$relativePath`" `"$relativePath`""
-        }) -join "`n"
+    $useCustomDockerfile = $AOT -or $RequiresJava
 
-        $dockerfileContent = @"
+    if ($useCustomDockerfile) {
+        $csprojCopyCommands = (Get-ChildItem -Path . -Filter "*.csproj" -Recurse |
+            Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' } |
+            ForEach-Object {
+                $relativePath = [System.IO.Path]::GetRelativePath($PWD.Path, $_.FullName).Replace('\', '/')
+                "COPY `"$relativePath`" `"$relativePath`""
+            }) -join "`n"
+
+        $javaDownloadStage = if ($RequiresJava) {
+            @"
+ARG TARGETARCH
+RUN --mount=type=cache,id=java-tar-cache-`$TARGETARCH,target=/var/cache/java \
+    case "`$TARGETARCH" in \
+        "amd64") \
+            URL="https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jre/hotspot/normal/eclipse" ;; \
+        "arm64") \
+            URL="https://api.adoptium.net/v3/binary/latest/21/ga/linux/aarch64/jre/hotspot/normal/eclipse" ;; \
+        "arm") \
+            URL="https://download.bell-sw.com/java/21.0.6+10/bellsoft-jre21.0.6+10-linux-arm32-vfp-hflt.tar.gz" ;; \
+        *) \
+            echo "Unsupported architecture for Java 21: `$TARGETARCH" && exit 1 ;; \
+    esac && \
+    TAR_PATH="/var/cache/java/jre21-`$TARGETARCH.tar.gz" && \
+    if [ ! -s "`$TAR_PATH" ]; then \
+        echo "Downloading Java 21 JRE for `$TARGETARCH..." && \
+        curl -fsSL "`$URL" -o "`$TAR_PATH.tmp" && \
+        mv "`$TAR_PATH.tmp" "`$TAR_PATH"; \
+    fi && \
+    mkdir -p /opt/java/openjdk && \
+    tar -xzf "`$TAR_PATH" -C /opt/java/openjdk --strip-components=1
+"@
+        }
+        else { "" }
+
+        $javaFinalStage = if ($RequiresJava) {
+            @"
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH="/opt/java/openjdk/bin:${PATH}"
+COPY --from=build /opt/java/openjdk /opt/java/openjdk
+"@
+        }
+        else { "" }
+
+        if ($AOT) {
+            $dockerfileContent = @"
 FROM --platform=`$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0-preview AS build
 ARG BUILDARCH
 
@@ -130,8 +174,8 @@ $csprojCopyCommands
 
 ARG TARGETARCH
 
-RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages \
-    --mount=type=cache,id=nuget-global-v3-cache,target=/root/.local/share/NuGet/v3-cache \
+RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages,sharing=locked \
+    --mount=type=cache,id=nuget-global-v3-cache,target=/root/.local/share/NuGet/v3-cache,sharing=locked \
     case "`$TARGETARCH" in \
         "amd64") RID="linux-x64" ;; \
         "arm64") RID="linux-arm64" ;; \
@@ -144,8 +188,10 @@ RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages \
 
 COPY . .
 
-RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages \
-    --mount=type=cache,id=nuget-global-v3-cache,target=/root/.local/share/NuGet/v3-cache \
+$javaDownloadStage
+
+RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages,sharing=locked \
+    --mount=type=cache,id=nuget-global-v3-cache,target=/root/.local/share/NuGet/v3-cache,sharing=locked \
     case "`$TARGETARCH" in \
         "amd64") ZIG_TARGET="x86_64-linux-gnu.2.34"    RID="linux-x64" ;; \
         "arm64") ZIG_TARGET="aarch64-linux-gnu.2.34"   RID="linux-arm64" ;; \
@@ -174,12 +220,63 @@ RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages \
         /p:EFScaffoldModelStage=None \
         -o /app/publish
 
-# .net11 not available yet, todo: update to .net11
-FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble-chiseled AS final
+# todo: update to non preview when released
+FROM mcr.microsoft.com/dotnet/runtime-deps:11.0-preview-resolute-chiseled AS final
+$javaFinalStage
 WORKDIR /app
-COPY --chown=`$APP_UID:`$APP_UID --from=build /app/publish .
+COPY --from=build /app/publish .
 ENTRYPOINT ["./$executableName"]
 "@
+        }
+        else {
+            $dockerfileContent = @"
+FROM --platform=`$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0-preview AS build
+ARG TARGETARCH
+WORKDIR /src
+
+COPY Directory.Build.props Directory.Packages.props ./
+$csprojCopyCommands
+
+RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages,sharing=locked \
+    case "`$TARGETARCH" in \
+        "amd64") RID="linux-x64" ;; \
+        "arm64") RID="linux-arm64" ;; \
+        "arm")   RID="linux-arm" ;; \
+        *)       RID="linux-`$TARGETARCH" ;; \
+    esac && \
+    dotnet restore "src/$ProjectName/$ProjectName.csproj" -r `$RID
+
+COPY . .
+
+$javaDownloadStage
+
+RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages,sharing=locked \
+    case "`$TARGETARCH" in \
+        "amd64") RID="linux-x64" ;; \
+        "arm64") RID="linux-arm64" ;; \
+        "arm")   RID="linux-arm" ;; \
+        *)       RID="linux-`$TARGETARCH" ;; \
+    esac && \
+    dotnet publish "src/$ProjectName/$ProjectName.csproj" -c Release -r `$RID --no-restore -o /app/publish \
+        /p:DebuggerSupport=false \
+        /p:EnableUnsafeBinaryFormatterSerialization=false \
+        /p:EnableUnsafeUTF7Encoding=false \
+        /p:EventSourceSupport=false \
+        /p:HttpActivityPropagationSupport=false \
+        /p:MetadataUpdaterSupport=false \
+        /p:EFCoreCompileQueries=false \
+        /p:EFCorePrecompileQueries=false \
+        /p:EFPrecompileQueriesStage=None \
+        /p:EFScaffoldModelStage=None 
+
+# todo: update to non preview when released
+FROM mcr.microsoft.com/dotnet/runtime-deps:11.0-preview AS final
+$javaFinalStage
+WORKDIR /app
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "$executableName.dll"]
+"@
+        }
 
         $dockerfilePath = [System.IO.Path]::GetTempFileName()
         Set-Content -Path $dockerfilePath -Value $dockerfileContent -Encoding UTF8
@@ -194,7 +291,7 @@ ENTRYPOINT ["./$executableName"]
                 Write-Information "Publishing $ProjectName (Attempt $attempt of $MaxRetries)..."
             }
 
-            if ($AOT) {
+            if ($useCustomDockerfile) {
                 docker buildx build --platform $platforms --provenance=false --sbom=false -f $dockerfilePath -t $imageTag --push .
             }
             else {
@@ -254,19 +351,20 @@ else {
     DockerRegistryLogin -Registry $Registry -Username $Username
 }
 
+# non AOT, required java, ASPNETCORE is not supported, would need to asp flag and FROM mcr.microsoft.com/dotnet/aspnet:11.0-preview
 $projectList = @(
-    [pscustomobject]@{ProjectName = 'Solace.EventBus.Server'; PackageName = 'event-bus'; AOT = $true }
-    [pscustomobject]@{ProjectName = 'Solace.ObjectStore.Server'; PackageName = 'object-store'; AOT = $true }
-    [pscustomobject]@{ProjectName = 'Solace.Buildplate.ServerSetup'; PackageName = 'buildplate-server-setup'; AOT = $true }
-    [pscustomobject]@{ProjectName = 'Solace.Buildplate.Updater'; PackageName = 'buildplate-updater'; AOT = $true }
-    [pscustomobject]@{ProjectName = 'Solace.Buildplate.Launcher'; PackageName = 'buildplate-launcher'; AOT = $false }
-    [pscustomobject]@{ProjectName = 'Solace.ApiServer'; PackageName = 'api-server'; AOT = $false }
-    [pscustomobject]@{ProjectName = 'Solace.Cdn'; PackageName = 'cdn'; AOT = $false }
-    [pscustomobject]@{ProjectName = 'Solace.AuthServer'; PackageName = 'auth-server'; AOT = $false }
-    [pscustomobject]@{ProjectName = 'Solace.Locator'; PackageName = 'locator'; AOT = $true }
-    [pscustomobject]@{ProjectName = 'Solace.TappablesGenerator'; PackageName = 'tappable-generator'; AOT = $true }
-    [pscustomobject]@{ProjectName = 'Solace.TileRenderer'; PackageName = 'tile-renderer'; AOT = $true }
-    [pscustomobject]@{ProjectName = 'Solace.WebPortal'; PackageName = 'web-portal'; AOT = $false }
+    [pscustomobject]@{ProjectName = 'Solace.EventBus.Server'; PackageName = 'event-bus'; AOT = $true; RequiresJava = $false }
+    [pscustomobject]@{ProjectName = 'Solace.ObjectStore.Server'; PackageName = 'object-store'; AOT = $true; RequiresJava = $false }
+    [pscustomobject]@{ProjectName = 'Solace.Buildplate.ServerSetup'; PackageName = 'buildplate-server-setup'; AOT = $true; RequiresJava = $true }
+    [pscustomobject]@{ProjectName = 'Solace.Buildplate.Updater'; PackageName = 'buildplate-updater'; AOT = $true; RequiresJava = $true }
+    [pscustomobject]@{ProjectName = 'Solace.Buildplate.Launcher'; PackageName = 'buildplate-launcher'; AOT = $false; RequiresJava = $true }
+    [pscustomobject]@{ProjectName = 'Solace.ApiServer'; PackageName = 'api-server'; AOT = $false; RequiresJava = $false }
+    [pscustomobject]@{ProjectName = 'Solace.Cdn'; PackageName = 'cdn'; AOT = $false; RequiresJava = $false }
+    [pscustomobject]@{ProjectName = 'Solace.AuthServer'; PackageName = 'auth-server'; AOT = $false; RequiresJava = $false }
+    [pscustomobject]@{ProjectName = 'Solace.Locator'; PackageName = 'locator'; AOT = $true; RequiresJava = $false }
+    [pscustomobject]@{ProjectName = 'Solace.TappablesGenerator'; PackageName = 'tappable-generator'; AOT = $true; RequiresJava = $false }
+    [pscustomobject]@{ProjectName = 'Solace.TileRenderer'; PackageName = 'tile-renderer'; AOT = $true; RequiresJava = $false }
+    [pscustomobject]@{ProjectName = 'Solace.WebPortal'; PackageName = 'web-portal'; AOT = $false; RequiresJava = $false }
 )
 
 $selectedProjects = $projectList | Where-Object {
@@ -291,7 +389,7 @@ Push-Location ./../
 
 try {
     foreach ($project in $selectedProjects) {
-        Push-Project -ProjectName $project.ProjectName -PackageName $project.PackageName -AOT $project.AOT -Architectures $Architectures
+        Push-Project -ProjectName $project.ProjectName -PackageName $project.PackageName -AOT $project.AOT -RequiresJava $project.RequiresJava -Architectures $Architectures
     }
 }
 finally {
