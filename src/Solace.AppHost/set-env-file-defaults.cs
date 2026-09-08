@@ -100,7 +100,10 @@ rootCommand.SetAction(async (parseResult, cancellationToken) =>
     var baseUriString = imageHost.Contains("://", StringComparison.Ordinal) ? imageHost : $"https://{imageHost}";
     var imageHostUri = new Uri(baseUriString);
 
-    var registryHost = imageHostUri.Authority;
+    var cleanImageHost = imageHost.Contains("://", StringComparison.Ordinal)
+        ? imageHost.Split("://", 2)[1]
+        : imageHost;
+
     var repoPrefix = imageHostUri.AbsolutePath.Trim('/');
 
     using var httpClient = new HttpClient();
@@ -126,11 +129,11 @@ rootCommand.SetAction(async (parseResult, cancellationToken) =>
 
                 try
                 {
-                    var resolvedRef = await ResolveLatestDigestAsync(httpClient, registryHost, repoName, cancellationToken);
+                    var resolvedRef = await ResolveLatestDigestAsync(httpClient, imageHostUri, repoName, cancellationToken);
 
                     var imageSpecifier = resolvedRef.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase)
-                        ? $"{imageHost}/solace-{projectName}@{resolvedRef}"
-                        : $"{imageHost}/solace-{projectName}:{resolvedRef}";
+                        ? $"{cleanImageHost}/solace-{projectName}@{resolvedRef}"
+                        : $"{cleanImageHost}/solace-{projectName}:{resolvedRef}";
 
                     var imgKey = $"{projectNameKey}_IMAGE";
                     var portKey = $"{projectNameKey}_PORT";
@@ -166,9 +169,9 @@ rootCommand.SetAction(async (parseResult, cancellationToken) =>
 
 return await rootCommand.Parse(args).InvokeAsync();
 
-static async Task<string> ResolveLatestDigestAsync(HttpClient http, string registryHost, string repo, CancellationToken ct)
+static async Task<string> ResolveLatestDigestAsync(HttpClient http, Uri baseUri, string repo, CancellationToken ct)
 {
-    var manifestUri = new UriBuilder("https", registryHost)
+    var manifestUri = new UriBuilder(baseUri.Scheme, baseUri.Host, baseUri.Port)
     {
         Path = $"/v2/{repo}/manifests/latest"
     }.Uri;
