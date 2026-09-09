@@ -136,7 +136,7 @@ RUN --mount=type=cache,id=java-tar-cache-`$TARGETARCH,target=/var/cache/java \
         $javaFinalStage = if ($RequiresJava) {
             @"
 ENV JAVA_HOME=/opt/java/openjdk
-ENV PATH="/opt/java/openjdk/bin:${PATH}"
+ENV PATH="/opt/java/openjdk/bin:`${PATH}"
 COPY --from=build /opt/java/openjdk /opt/java/openjdk
 "@
         }
@@ -144,7 +144,7 @@ COPY --from=build /opt/java/openjdk /opt/java/openjdk
 
         if ($AOT) {
             $dockerfileContent = @"
-FROM --platform=`$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0-preview AS build
+FROM --platform=`$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0-preview-aot AS build
 ARG BUILDARCH
 
 RUN --mount=type=cache,id=apt-cache-`$BUILDARCH,target=/var/cache/apt \
@@ -183,6 +183,7 @@ RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages,sha
         *)       RID="linux-`$TARGETARCH" ;; \
     esac && \
     dotnet restore "src/$ProjectName/$ProjectName.csproj" \
+        -p:Configuration=Release \
         -r `$RID \
         /p:PublishAot=true
 
@@ -244,7 +245,7 @@ RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages,sha
         "arm")   RID="linux-arm" ;; \
         *)       RID="linux-`$TARGETARCH" ;; \
     esac && \
-    dotnet restore "src/$ProjectName/$ProjectName.csproj" -r `$RID
+    dotnet restore "src/$ProjectName/$ProjectName.csproj" -p:Configuration=Release -r `$RID
 
 COPY . .
 
@@ -270,7 +271,8 @@ RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages,sha
         /p:EFScaffoldModelStage=None 
 
 # todo: update to non preview when released
-FROM mcr.microsoft.com/dotnet/runtime-deps:11.0-preview AS final
+# since all components have a health check implemented using asp, aspnet is reuqired instead of runtime
+FROM mcr.microsoft.com/dotnet/aspnet:11.0-preview AS final
 $javaFinalStage
 WORKDIR /app
 COPY --from=build /app/publish .
@@ -314,7 +316,8 @@ ENTRYPOINT ["dotnet", "$executableName.dll"]
                     "-p:ContainerRegistry=$Registry",
                     "-p:ContainerRepository=$Username/solace-$PackageName",
                     "-p:ContainerImageTag=latest",
-                    "-p:ContainerRuntimeIdentifiers=`"$ridsJoined`""
+                    "-p:ContainerRuntimeIdentifiers=`"$ridsJoined`"",
+                    "-p:ContainerRepositoryInsecure=true"
                 )
                 dotnet @arguments
             }
@@ -351,7 +354,6 @@ else {
     DockerRegistryLogin -Registry $Registry -Username $Username
 }
 
-# non AOT, required java, ASPNETCORE is not supported, would need to asp flag and FROM mcr.microsoft.com/dotnet/aspnet:11.0-preview
 $projectList = @(
     [pscustomobject]@{ProjectName = 'Solace.EventBus.Server'; PackageName = 'event-bus'; AOT = $true; RequiresJava = $false }
     [pscustomobject]@{ProjectName = 'Solace.ObjectStore.Server'; PackageName = 'object-store'; AOT = $true; RequiresJava = $false }
