@@ -354,6 +354,11 @@ string GenerateNginxConfig(List<EndpointConfig> endpoints, string domain, bool h
         builder.AppendLine();
     }
 
+    builder.AppendLine("    proxy_http_version 1.1;");
+    builder.AppendLine("    proxy_set_header Upgrade $http_upgrade;");
+    builder.AppendLine("    proxy_set_header Connection $http_connection;");
+    builder.AppendLine();
+
     builder.AppendLine("    proxy_set_header Host $host;");
     builder.AppendLine("    proxy_set_header X-Real-IP $remote_addr;");
     builder.AppendLine("    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;");
