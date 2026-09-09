@@ -163,12 +163,12 @@ internal sealed partial class Program2
 
                 options.RequireHttpsMetadata = false;
 
-                if (builder.Environment.IsDevelopment())
+                if (builder.Environment.IsDevelopment() || oidcConfig.AllowInsecure)
                 {
 #pragma warning disable MA0039 // Do not write your own certificate validation method
                     options.BackchannelHttpHandler = new HttpClientHandler
                     {
-                        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
                     };
 #pragma warning restore MA0039 // Do not write your own certificate validation method
 

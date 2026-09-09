@@ -291,7 +291,8 @@ var authServerPort = builder.Configuration.GetValue<int>("AuthServer:Port", 8088
 var webPortalPort = builder.Configuration.GetValue<int>("WebPortal:Port", 5000);
 
 var webPortalPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:WebPortal");
-var authServerOidcClientSecret = builder.AddConfigParameter("Shared:Oidc:WebPortal:AuthServer:ClientSecret");
+var authServerOidcClientSecret = builder.AddConfigParameter("Shared:Oidc:WebPortal:AuthServer:ClientSecret", isSecret: true);
+var authServerOidcAllowInsecure = builder.AddConfigParameter("Shared:Oidc:WebPortal:AuthServer:AllowInsecure");
 var captchaProvider = builder.AddConfigParameter("Shared:Captcha:Provider", defaultValue: "NoOp");
 var captchaCloudflareTurnstileSiteKey = builder.AddConfigParameter("Shared:Captcha:CloudflareTurnstileSiteKey");
 var captchaCloudflareTurnstileSecretKey = builder.AddConfigParameter("Shared:Captcha:CloudflareTurnstileSecretKey", isSecret: true);
@@ -314,7 +315,8 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
     .WithEnvironmentSection(builder.Configuration, "Shared:Oidc:WebPortal:AuthServer",
         prefixToRemove: "Shared:Oidc:WebPortal:AuthServer:",
         prefixToAdd: "Oidc:",
-        authServerOidcClientSecret)
+        authServerOidcClientSecret,
+        authServerOidcAllowInsecure)
     .WithEnvironmentParameter(webPortalPublicEndpoint, prefixToRemove: "Shared:")
     .WithEnvironmentParameter(captchaProvider, prefixToRemove: "Shared:")
     .WithEnvironmentParameter(captchaCloudflareTurnstileSiteKey, prefixToRemove: "Shared:")
@@ -446,6 +448,7 @@ var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
         prefixToRemove: "Shared:Oidc:WebPortal:",
         prefixToAdd: "Oidc:",
         authServerOidcClientSecret,
+        authServerOidcAllowInsecure,
         webportalOidcSigningCertPassword,
         webportalOidcEncryptionCertPassword)
     .WithEnvironmentParameter(captchaProvider, prefixToRemove: "Shared:")

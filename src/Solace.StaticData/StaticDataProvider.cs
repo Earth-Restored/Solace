@@ -22,4 +22,6 @@ public sealed class StaticDataProvider
     public Buildplates Buildplates => field ??= new Buildplates(Path.Combine(Directory, "buildplates"));
 
     public Playfab Playfab => field ??= new Playfab(Path.Combine(Directory, "playfab"));
+
+    public Resourcepacks Resourcepacks => field ??= new Resourcepacks(Path.Combine(Directory, "resourcepacks"));
 }

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
@@ -154,6 +155,7 @@ internal sealed partial class Program2
         builder.Services.AddMemoryCache();
 
         builder.Services.AddSingleton<Features.Catalog.CatalogResponseCacheService>();
+        builder.Services.AddSingleton<Features.Catalog.GenoaResourcepackCache>();
 
         builder.Services.AddOpenIddict()
             .AddCore(options =>
@@ -193,10 +195,11 @@ internal sealed partial class Program2
                     .EnableTokenEndpointPassthrough()
                     .EnableUserInfoEndpointPassthrough();
 
+                // we use nginx, so no https
+                aspNetCoreOptions.DisableTransportSecurityRequirement();
+
                 if (builder.Environment.IsDevelopment())
                 {
-                    aspNetCoreOptions.DisableTransportSecurityRequirement();
-
                     options.AddEphemeralEncryptionKey()
                         .AddEphemeralSigningKey();
                 }
@@ -257,6 +260,16 @@ internal sealed partial class Program2
         {
             LogUsingNoOpCaptchaProvider(programLogger);
         }
+
+        var forwardedHeadersOptions = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.All,
+        };
+
+        forwardedHeadersOptions.KnownIPNetworks.Clear();
+        forwardedHeadersOptions.KnownProxies.Clear();
+
+        app.UseForwardedHeaders(forwardedHeadersOptions);
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())

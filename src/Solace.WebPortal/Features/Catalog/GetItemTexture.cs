@@ -15,9 +15,9 @@ public static partial class GetItemTexture
 {
     public sealed record Query([property: FromRoute] string Name);
 
-    private static async ValueTask<Results<PhysicalFileHttpResult, NotFound, UnauthorizedHttpResult, ForbidHttpResult>> HandleAsync(
+    private static async ValueTask<Results<FileContentHttpResult, NotFound, UnauthorizedHttpResult, ForbidHttpResult>> HandleAsync(
         Query query,
-        IConfiguration configuration,
+        GenoaResourcepackCache resourcepackCache,
         IHttpContextAccessor httpContextAccessor,
         CancellationToken cancellationToken
     )
@@ -33,28 +33,19 @@ public static partial class GetItemTexture
             return TypedResults.Forbid();
         }
 
-        var staticDataPath = configuration["StaticDataPath"]!;
-
-        var cachePath = await GenoaResourcepackCache.GetCachePath(staticDataPath);
-
-        if (cachePath is null)
-        {
-            return TypedResults.NotFound();
-        }
-
         if (!GetFileNameRegex().IsMatch(query.Name))
         {
             return TypedResults.NotFound();
         }
 
-        var path = Path.Combine(cachePath, "textures", "ui", "items", query.Name + ".png");
+        var texture = await resourcepackCache.GetResourcePackFileAsync($"textures/ui/items/{query.Name}.png", cancellationToken);
 
-        if (!File.Exists(path))
+        if (texture is null)
         {
             return TypedResults.NotFound();
         }
 
-        return TypedResults.PhysicalFile(path);
+        return TypedResults.File(texture, contentType: "image/png");
     }
 
     [GeneratedRegex("^[a-zA-Z0-9_.\\- ]+$", RegexOptions.None, matchTimeoutMilliseconds: 200)]

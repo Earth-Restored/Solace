@@ -13,6 +13,7 @@ using Solace.Common;
 using Solace.Db.Earth;
 using Solace.EventBus.Client;
 using Solace.ObjectStore.Client;
+using Solace.StaticData;
 
 namespace Solace.Cdn;
 
@@ -43,8 +44,6 @@ internal static class Program
 internal sealed partial class App
 #pragma warning restore MA0048 // File name must match type name
 {
-    private static string staticDataPath = null!;
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static async Task<int> Run(string[] args)
     {
@@ -52,13 +51,7 @@ internal sealed partial class App
 
         var isEFDesignTime = EF.IsDesignTime;
 
-        staticDataPath = builder.Configuration["StaticDataPath"]!;
-
-        if (!isEFDesignTime && !File.Exists(Path.Combine(staticDataPath, "resourcepacks", "vanilla.zip")))
-        {
-            Console.Error.WriteLine("Resource pack file does not exist");
-            return 1;
-        }
+        var staticDataPath = builder.Configuration["StaticDataPath"]!;
 
         var earthDbConnectionString = builder.Configuration.GetConnectionString("EarthDb");
         if (isEFDesignTime)
@@ -74,6 +67,7 @@ internal sealed partial class App
         builder.Services.AddSingleton<StartupDependencies>();
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().ObjectStore);
+        builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().StaticData);
 
         builder.AddServiceDefaults();
         builder.WebHost.UseKestrelHttpsConfiguration();
@@ -84,25 +78,6 @@ internal sealed partial class App
         GlobalLoggerFactory.Initialize(loggerFactory);
 
         var programLogger = loggerFactory.CreateLogger(nameof(Program));
-
-        var forwardedHeadersOptions = new ForwardedHeadersOptions
-        {
-            ForwardedHeaders = ForwardedHeaders.All,
-        };
-
-        forwardedHeadersOptions.KnownIPNetworks.Clear();
-        forwardedHeadersOptions.KnownProxies.Clear();
-
-        app.UseForwardedHeaders(forwardedHeadersOptions);
-
-        // app.UseHttpsRedirection();
-
-        app.MapMethods("/availableresourcepack/resourcepacks/dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35", ["GET", "HEAD"], GetResourcePackHandler);
-
-        app.MapGet("/tile/{_0}/{_1}/{tilePos1}_{tilePos2}_{zoom}.png", HandleGetTile)
-        .CacheOutput(policy => policy.Expire(TimeSpan.FromHours(1)));
-
-        app.MapDefaultEndpoints();
 
         var startupDeps = app.Services.GetRequiredService<StartupDependencies>();
 
@@ -142,8 +117,47 @@ internal sealed partial class App
 
         LogConnectedToObjectStore(programLogger);
 
+        LogLoadingStaticData(programLogger);
+        StaticDataProvider staticData;
+        try
+        {
+            staticData = new StaticDataProvider(builder.Configuration["StaticDataPath"]!);
+        }
+        catch (StaticDataException exception)
+        {
+            LogLoadStaticDataError(programLogger, exception);
+            loggerFactory.Dispose();
+            return 5;
+        }
+
+        LogLoadedStaticData(programLogger);
+
         startupDeps.EventBus = eventBus;
         startupDeps.ObjectStore = objectStore;
+        startupDeps.StaticData = staticData;
+
+        if (!isEFDesignTime && staticData.Resourcepacks.GenoaResourcepackPath is null)
+        {
+            Console.Error.WriteLine("Resource pack file does not exist");
+            return 1;
+        }
+
+        var forwardedHeadersOptions = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.All,
+        };
+
+        forwardedHeadersOptions.KnownIPNetworks.Clear();
+        forwardedHeadersOptions.KnownProxies.Clear();
+
+        app.UseForwardedHeaders(forwardedHeadersOptions);
+
+        app.MapMethods($"/availableresourcepack/resourcepacks/{staticData.Resourcepacks.GenoaResourcepackName}", ["GET", "HEAD"], GetResourcePackHandler);
+
+        app.MapGet("/tile/{_0}/{_1}/{tilePos1}_{tilePos2}_{zoom}.png", HandleGetTile)
+        .CacheOutput(policy => policy.Expire(TimeSpan.FromHours(1)));
+
+        app.MapDefaultEndpoints();
 
         app.Run();
 
@@ -170,20 +184,20 @@ internal sealed partial class App
         return TypedResults.Empty;
     }
 
-    private static Results<BadRequest, PhysicalFileHttpResult> GetResourcePackHandler(HttpContext context, ILogger<App> logger)
+    private static Results<BadRequest, PhysicalFileHttpResult> GetResourcePackHandler(HttpContext context, StaticDataProvider staticData, ILogger<App> logger)
     {
-        var resourcePackFilePath = Path.Combine(staticDataPath, "resourcepacks", "vanilla.zip"); // resource packs are distributed as renamed zip files containing an MCpack
+        var resourcePackFilePath = staticData.Resourcepacks.GenoaResourcepackPath;
 
         if (!System.IO.File.Exists(resourcePackFilePath))
         {
             LogResourcepackNotFound(logger);
-            return TypedResults.BadRequest(); // we cannot serve you.
+            return TypedResults.BadRequest();
         }
 
         return TypedResults.PhysicalFile(
             path: resourcePackFilePath,
             contentType: "application/octet-stream",
-            fileDownloadName: "dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35",
+            fileDownloadName: staticData.Resourcepacks.GenoaResourcepackName,
             enableRangeProcessing: true
         );
     }
@@ -192,6 +206,7 @@ internal sealed partial class App
     {
         public EventBusClient EventBus { get; set; } = null!;
         public ObjectStoreClient ObjectStore { get; set; } = null!;
+        public StaticDataProvider StaticData { get; set; } = null!;
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Resource pack file not found")]
@@ -214,4 +229,13 @@ internal sealed partial class App
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Connected to object store")]
     public static partial void LogConnectedToObjectStore(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loading static data")]
+    private static partial void LogLoadingStaticData(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Failed to load static data")]
+    private static partial void LogLoadStaticDataError(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded static data")]
+    private static partial void LogLoadedStaticData(ILogger logger);
 }

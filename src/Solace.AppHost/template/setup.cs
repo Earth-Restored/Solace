@@ -218,6 +218,7 @@ await AnsiConsole.Status()
         env.SetIfEmpty("SHARED_OIDC_WEBPORTAL_AUTHSERVER_CLIENTSECRET", GenerateRandomHex(32));
         env.Set("SHARED_OIDC_WEBPORTAL_ENCRYPTIONCERTPASSWORD", encPassword);
         env.Set("SHARED_OIDC_WEBPORTAL_SIGNINGCERTPASSWORD", signPassword);
+        env.Set("SHARED_OIDC_WEBPORTAL_AUTHSERVER_ALLOWINSECURE", hasHttps ? "false" : "true");
 
         foreach (var ep in endpoints)
         {
@@ -230,8 +231,9 @@ await AnsiConsole.Status()
 AnsiConsole.MarkupLine("[bold green]Setup Complete![/]");
 AnsiConsole.WriteLine();
 AnsiConsole.MarkupLine("[bold yellow]Final Step Required:[/]");
-AnsiConsole.MarkupLine("Please download [link]https://cdn.mceserv.net/availableresourcepack/resourcepacks/dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35[/] using Wayback Machine.");
-AnsiConsole.MarkupLine("Rename it to [bold white]vanilla.zip[/] and put it into [bold cyan]staticdata/resourcepacks/[/]");
+AnsiConsole.MarkupLine("If you want to support users that don't patch the resource pack into the apk:");
+AnsiConsole.MarkupLine("- Download [link]https://cdn.mceserv.net/availableresourcepack/resourcepacks/dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35[/] using Wayback Machine.");
+AnsiConsole.MarkupLine("- Delete the file in [bold cyan]staticdata/resourcepacks/genoa/[/] and put the one you downloaded in it's place.");
 AnsiConsole.WriteLine();
 AnsiConsole.MarkupLine("Once done, you can run [bold green]up.ps1[/] or [bold green]up.sh[/] to start the server.");
 
@@ -359,11 +361,11 @@ string GenerateNginxConfig(List<EndpointConfig> endpoints, string domain, bool h
     builder.AppendLine("    proxy_set_header Connection $http_connection;");
     builder.AppendLine();
 
-    builder.AppendLine("    proxy_set_header Host $host;");
+    builder.AppendLine("    proxy_set_header Host $http_host;");
     builder.AppendLine("    proxy_set_header X-Real-IP $remote_addr;");
     builder.AppendLine("    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;");
     builder.AppendLine("    proxy_set_header X-Forwarded-Proto $scheme;");
-    builder.AppendLine("    proxy_set_header X-Forwarded-Host $host;");
+    builder.AppendLine("    proxy_set_header X-Forwarded-Host $http_host;");
     builder.AppendLine();
 
     foreach (var endpoint in endpoints)
