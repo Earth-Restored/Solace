@@ -109,6 +109,10 @@ foreach (var ep in endpoints)
 }
 
 AnsiConsole.WriteLine();
+var baseBuildplatePort = AnsiConsole.Ask<int>("Base [bold green]buildplate instance public port[/]?", 19132);
+var buildplatePortCount = AnsiConsole.Ask<int>("How many [bold green]buildplate ports[/] to export?", 16);
+
+AnsiConsole.WriteLine();
 var jarPath = AnsiConsole.Prompt(
     new TextPrompt<string>("(Optional) Path to [bold green]Minecraft Java edition 1.20.5 .jar[/] (Leave empty to skip):")
         .AllowEmpty()
@@ -195,7 +199,7 @@ await AnsiConsole.Status()
         await File.WriteAllTextAsync("nginx.conf", nginxConfig);
 
         ctx.Status("Generating docker-compose.override.yml...");
-        await UpdateDockerComposeOverrideAsync("docker-compose.override.yml", endpoints, hasHttps, useSubdomains);
+        await UpdateDockerComposeOverrideAsync("docker-compose.override.yml", endpoints, hasHttps, useSubdomains, baseBuildplatePort, buildplatePortCount);
 
         ctx.Status("Updating .env file...");
         EnvFile env;
@@ -253,7 +257,7 @@ void GenerateSelfSignedCert(string subject, string path, string password)
     File.WriteAllBytes(path, cert.Export(X509ContentType.Pfx, password));
 }
 
-async Task UpdateDockerComposeOverrideAsync(string filePath, List<EndpointConfig> endpoints, bool https, bool subdomains)
+async Task UpdateDockerComposeOverrideAsync(string filePath, List<EndpointConfig> endpoints, bool https, bool subdomains, int baseBuildplatePort, int buildplatePortCount)
 {
     var requiredPorts = GetRequiredPorts(endpoints, https, subdomains);
     var portList = requiredPorts.Select(p => $"{p}:{p}").ToList();
@@ -280,6 +284,16 @@ async Task UpdateDockerComposeOverrideAsync(string filePath, List<EndpointConfig
     var nginx = GetOrCreateMap(services, "nginx");
 
     nginx["ports"] = portList;
+
+    var buildplateLauncher = GetOrCreateMap(services, "buildplate-launcher");
+    var environment = GetOrCreateMap(buildplateLauncher, "environment");
+    environment["BaseInstancePublicPort"] = baseBuildplatePort.ToString();
+
+    var buildplatePorts = Enumerable.Range(baseBuildplatePort, buildplatePortCount)
+        .Select(p => $"{p}:{p}")
+        .ToList();
+
+    buildplateLauncher["ports"] = buildplatePorts;
 
     var newYaml = serializer.Serialize(root);
     await File.WriteAllTextAsync(filePath, newYaml);
