@@ -1,4 +1,4 @@
-﻿using Npgsql;
+using Npgsql;
 using System.Diagnostics;
 using System.Text.Json;
 using Solace.EventBus.Client;
@@ -77,7 +77,7 @@ internal static partial class App
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().StaticData);
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().TileDataSource);
-        builder.Services.AddSingleton<EventBusTileRenderer>();
+        builder.Services.AddHostedService<EventBusTileRenderer>();
 
         using var app = builder.Build();
 

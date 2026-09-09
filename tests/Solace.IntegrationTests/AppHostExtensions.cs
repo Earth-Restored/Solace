@@ -42,10 +42,20 @@ public static class AppHostExtensions
         {
             foreach (var resource in appHost.Resources)
             {
-                if (!projects.Contains(resource.Name))
+                if (projects.Contains(resource.Name))
                 {
-                    resource.Annotations.Add(new ExplicitStartupAnnotation());
+                    continue;
                 }
+
+                if (resource is IResourceWithParent parentResource && projects.Contains(parentResource.Parent.Name))
+                {
+                    if (resource.Name != "postgres-pgadmin")
+                    {
+                        continue;
+                    }
+                }
+
+                resource.Annotations.Add(new ExplicitStartupAnnotation());
             }
         }
     }

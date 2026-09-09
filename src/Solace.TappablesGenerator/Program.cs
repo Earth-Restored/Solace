@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Solace.EventBus.Client;
 using Solace.StaticData;
 using Microsoft.Extensions.Hosting;
@@ -76,7 +76,7 @@ internal static partial class App
         builder.Services.AddSingleton<TappableGenerator>();
         builder.Services.AddSingleton<EncounterGenerator>();
         builder.Services.AddSingleton<ActiveTiles>();
-        builder.Services.AddSingleton<Spawner>();
+        builder.Services.AddHostedService<Spawner>();
 
         using var app = builder.Build();
 
@@ -126,7 +126,7 @@ internal static partial class App
         startupDeps.EventBus = eventBusClient;
 
         // init stuff that needs async initialization
-        var spawner = app.Services.GetRequiredService<Spawner>();
+        var spawner = app.Services.GetServices<IHostedService>().OfType<Spawner>().Single();
         await app.Services.GetRequiredService<ActiveTiles>().InitializeAsync(eventBusClient, new ActiveTiles.ActiveTileListener(
             spawner.SpawnTilesAsync,
             async (activeTile, cancellationToken) =>

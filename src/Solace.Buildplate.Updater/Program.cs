@@ -58,7 +58,7 @@ internal sealed partial class Program
         builder.Services.AddSingleton<StartupDependencies>();
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().EventBus);
         builder.Services.AddSingleton<BuildplateUpdater>();
-        builder.Services.AddSingleton<EventBusBuildplateUpdater>();
+        builder.Services.AddHostedService<EventBusBuildplateUpdater>();
 
         using var app = builder.Build();
 

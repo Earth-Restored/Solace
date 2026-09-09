@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Hosting;
@@ -43,9 +43,6 @@ internal sealed partial class Spawner : IHostedService, IAsyncDisposable
         _spawnCycleTime = DateTimeOffset.UtcNow;
         _spawnCycleIndex = _maxTappableLifetimeIntervals;
     }
-
-    internal async Task InitializeAsync(EventBusClient eventBusClient)
-        => _publisher = await eventBusClient.AddPublisherAsync();
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
