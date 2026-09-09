@@ -233,7 +233,7 @@ AnsiConsole.MarkupLine("[bold yellow]Final Step Required:[/]");
 AnsiConsole.MarkupLine("Please download [link]https://cdn.mceserv.net/availableresourcepack/resourcepacks/dba38e59-091a-4826-b76a-a08d7de5a9e2-1301b0c257a311678123b9e7325d0d6c61db3c35[/] using Wayback Machine.");
 AnsiConsole.MarkupLine("Rename it to [bold white]vanilla.zip[/] and put it into [bold cyan]staticdata/resourcepacks/[/]");
 AnsiConsole.WriteLine();
-AnsiConsole.MarkupLine("Once done, you can run [bold green]up.ps1[/] or[bold green]up.sh[/] to start the server.");
+AnsiConsole.MarkupLine("Once done, you can run [bold green]up.ps1[/] or [bold green]up.sh[/] to start the server.");
 
 string GenerateRandomPassword(int length = 24)
 {
