@@ -56,6 +56,123 @@ function DockerRegistryLogin {
     Write-Host "Successfully authenticated to $Registry!" -ForegroundColor Green
 }
 
+function Download-CachedFile {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [Parameter(Mandatory = $true)][string]$DestinationPath,
+        [Parameter(Mandatory = $true)][string]$Description
+    )
+
+    if (Test-Path $DestinationPath) {
+        $item = Get-Item $DestinationPath
+        if ($item.Length -gt 0) {
+            Write-Host "Using cached $Description ($($item.FullName))" -ForegroundColor Cyan
+            return
+        }
+        Remove-Item $DestinationPath -Force -ErrorAction SilentlyContinue
+    }
+
+    $destDir = Split-Path -Parent $DestinationPath
+    if (-not (Test-Path $destDir)) {
+        New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+    }
+
+    $tmpPath = "$DestinationPath.tmp"
+    if (Test-Path $tmpPath) {
+        Remove-Item $tmpPath -Force -ErrorAction SilentlyContinue
+    }
+
+    Write-Information "Downloading $Description from $Url..."
+    $curlCmd = Get-Command curl -ErrorAction SilentlyContinue
+    if ($curlCmd) {
+        & curl -fL --retry 5 --retry-delay 2 -C - -o $tmpPath $Url
+        if ($LASTEXITCODE -ne 0) {
+            & curl -fL --retry 5 --retry-delay 2 -o $tmpPath $Url
+        }
+    }
+    else {
+        Invoke-WebRequest -Uri $Url -OutFile $tmpPath
+    }
+
+    if (-not (Test-Path $tmpPath) -or (Get-Item $tmpPath).Length -eq 0) {
+        Write-Error "Failed to download $Description from $Url"
+        if (Test-Path $tmpPath) { Remove-Item $tmpPath -Force -ErrorAction SilentlyContinue }
+        exit 1
+    }
+
+    Move-Item -Path $tmpPath -Destination $DestinationPath -Force
+    Write-Host "Successfully downloaded $Description!" -ForegroundColor Green
+}
+
+function Ensure-JavaHostCache {
+    [CmdletBinding()]
+    param(
+        [string[]]$Architectures,
+        [string]$RepoRoot
+    )
+
+    $cacheDir = Join-Path $RepoRoot ".cache" "docker" "java"
+    if (-not (Test-Path $cacheDir)) {
+        New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+    }
+
+    $rids = $Architectures | ForEach-Object {
+        $arch = $_ -replace '^linux-', ''
+        if ($arch -eq "arm32") { "linux-arm" } else { "linux-$arch" }
+    }
+
+    $targetArchs = $rids | ForEach-Object {
+        switch ($_) {
+            "linux-x64" { "amd64" }
+            "linux-arm64" { "arm64" }
+            "linux-arm" { "arm" }
+            default { $_ -replace '^linux-', '' }
+        }
+    } | Select-Object -Unique
+
+    foreach ($targetArch in $targetArchs) {
+        $tarPath = Join-Path $cacheDir "jre21-$targetArch.tar.gz"
+        $url = switch ($targetArch) {
+            "amd64" { "https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jre/hotspot/normal/eclipse" }
+            "arm64" { "https://api.adoptium.net/v3/binary/latest/21/ga/linux/aarch64/jre/hotspot/normal/eclipse" }
+            "arm"   { "https://download.bell-sw.com/java/21.0.6+10/bellsoft-jre21.0.6+10-linux-arm32-vfp-hflt.tar.gz" }
+            default {
+                Write-Error "Unsupported architecture for Java 21: $targetArch"
+                exit 1
+            }
+        }
+
+        Download-CachedFile -Url $url -DestinationPath $tarPath -Description "Java 21 JRE for $targetArch"
+    }
+}
+
+function Ensure-ZigHostCache {
+    [CmdletBinding()]
+    param(
+        [string]$RepoRoot
+    )
+
+    $cacheDir = Join-Path $RepoRoot ".cache" "docker" "zig"
+    if (-not (Test-Path $cacheDir)) {
+        New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+    }
+
+    $osArch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+    $zigArch = switch ($osArch) {
+        'X64'   { 'x86_64' }
+        'Arm64' { 'aarch64' }
+        'Arm'   { 'armv7a' }
+        default { 'x86_64' }
+    }
+
+    $zigFile = "zig-$zigArch-linux-0.16.0.tar.xz"
+    $tarPath = Join-Path $cacheDir $zigFile
+    $url = "https://ziglang.org/download/0.16.0/$zigFile"
+
+    Download-CachedFile -Url $url -DestinationPath $tarPath -Description "Zig 0.16.0 for $zigArch"
+}
+
 function Push-Project {
     param(
         [Parameter(Mandatory = $true)][string]$ProjectName,
@@ -65,7 +182,7 @@ function Push-Project {
         [string[]]$Architectures = @("x64", "arm64", "arm32"),
         [string]$Username = $script:Username,
         [string]$Registry = $script:Registry,
-        [int]$MaxRetries = 3,
+        [int]$MaxRetries = 1,
         [int]$WaitSeconds = 10
     )
 
@@ -100,32 +217,24 @@ function Push-Project {
     $useCustomDockerfile = $AOT -or $RequiresJava
 
     if ($useCustomDockerfile) {
-        $csprojCopyCommands = (Get-ChildItem -Path . -Filter "*.csproj" -Recurse |
-            Where-Object { $_.FullName -notmatch '[\\/]tests[\\/]' } |
+        $csprojCopyCommands = (Get-ChildItem -Path (Join-Path $repoRoot "src") -Filter "*.csproj" -Recurse |
             ForEach-Object {
-                $relativePath = [System.IO.Path]::GetRelativePath($PWD.Path, $_.FullName).Replace('\', '/')
+                $relativePath = [System.IO.Path]::GetRelativePath($repoRoot, $_.FullName).Replace('\', '/')
                 "COPY `"$relativePath`" `"$relativePath`""
             }) -join "`n"
 
         $javaDownloadStage = if ($RequiresJava) {
             @"
 ARG TARGETARCH
-RUN --mount=type=cache,id=java-tar-cache-`$TARGETARCH,target=/var/cache/java \
+RUN --mount=type=bind,source=.cache/docker/java,target=/var/cache/java \
     case "`$TARGETARCH" in \
-        "amd64") \
-            URL="https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jre/hotspot/normal/eclipse" ;; \
-        "arm64") \
-            URL="https://api.adoptium.net/v3/binary/latest/21/ga/linux/aarch64/jre/hotspot/normal/eclipse" ;; \
-        "arm") \
-            URL="https://download.bell-sw.com/java/21.0.6+10/bellsoft-jre21.0.6+10-linux-arm32-vfp-hflt.tar.gz" ;; \
-        *) \
-            echo "Unsupported architecture for Java 21: `$TARGETARCH" && exit 1 ;; \
+        "amd64") TAR_PATH="/var/cache/java/jre21-amd64.tar.gz" ;; \
+        "arm64") TAR_PATH="/var/cache/java/jre21-arm64.tar.gz" ;; \
+        "arm")   TAR_PATH="/var/cache/java/jre21-arm.tar.gz" ;; \
+        *)       echo "Unsupported architecture for Java 21: `$TARGETARCH" && exit 1 ;; \
     esac && \
-    TAR_PATH="/var/cache/java/jre21-`$TARGETARCH.tar.gz" && \
     if [ ! -s "`$TAR_PATH" ]; then \
-        echo "Downloading Java 21 JRE for `$TARGETARCH..." && \
-        curl -fsSL "`$URL" -o "`$TAR_PATH.tmp" && \
-        mv "`$TAR_PATH.tmp" "`$TAR_PATH"; \
+        echo "Error: Cached Java archive missing on host: `$TAR_PATH" && exit 1; \
     fi && \
     mkdir -p /opt/java/openjdk && \
     tar -xzf "`$TAR_PATH" -C /opt/java/openjdk --strip-components=1
@@ -149,33 +258,33 @@ ARG BUILDARCH
 
 RUN --mount=type=cache,id=apt-cache-`$BUILDARCH,target=/var/cache/apt \
     --mount=type=cache,id=apt-lists-`$BUILDARCH,target=/var/lib/apt/lists \
-    --mount=type=cache,id=downloads-`$BUILDARCH,target=/var/cache/downloads \
+    --mount=type=bind,source=.cache/docker/zig,target=/var/cache/zig \
     apt-get update && apt-get install -y --no-install-recommends \
-    curl \
     xz-utils \
     llvm \
     && ZIG_ARCH=`$(uname -m) \
     && ZIG_FILE="zig-`$ZIG_ARCH-linux-0.16.0.tar.xz" \
-    && ZIG_PATH="/var/cache/downloads/`$ZIG_FILE" \
-    && if ! xz -t "`$ZIG_PATH" >/dev/null 2>&1; then \
-           rm -f "`$ZIG_PATH" "`$ZIG_PATH.tmp" \
-           && curl -fsSL "https://ziglang.org/download/0.16.0/`$ZIG_FILE" -o "`$ZIG_PATH.tmp" \
-           && mv "`$ZIG_PATH.tmp" "`$ZIG_PATH"; \
+    && ZIG_PATH="/var/cache/zig/`$ZIG_FILE" \
+    && if [ ! -s "`$ZIG_PATH" ]; then \
+           echo "Error: Cached Zig archive missing on host: `$ZIG_PATH" && exit 1; \
        fi \
     && tar -xJ -f "`$ZIG_PATH" -C /usr/local \
     && ln -sf /usr/local/zig-*/zig /usr/local/bin/zig
+
+$javaDownloadStage
 
 ENV NUGET_PACKAGES=/root/.nuget/packages
 
 WORKDIR /src
 
-COPY Directory.Build.props Directory.Packages.props ./
+COPY Directory.Build.props Directory.Packages.props nuget.config* global.json* ./
+COPY libs* ./libs/
 $csprojCopyCommands
 
 ARG TARGETARCH
 
-RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages,sharing=locked \
-    --mount=type=cache,id=nuget-global-v3-cache,target=/root/.local/share/NuGet/v3-cache,sharing=locked \
+RUN --mount=type=cache,id=nuget-packages-v3,target=/root/.nuget/packages,sharing=locked \
+    --mount=type=cache,id=nuget-v3-cache-v3,target=/root/.local/share/NuGet/v3-cache,sharing=locked \
     case "`$TARGETARCH" in \
         "amd64") RID="linux-x64" ;; \
         "arm64") RID="linux-arm64" ;; \
@@ -189,10 +298,8 @@ RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages,sha
 
 COPY . .
 
-$javaDownloadStage
-
-RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages,sharing=locked \
-    --mount=type=cache,id=nuget-global-v3-cache,target=/root/.local/share/NuGet/v3-cache,sharing=locked \
+RUN --mount=type=cache,id=nuget-packages-v3,target=/root/.nuget/packages,sharing=locked \
+    --mount=type=cache,id=nuget-v3-cache-v3,target=/root/.local/share/NuGet/v3-cache,sharing=locked \
     case "`$TARGETARCH" in \
         "amd64") ZIG_TARGET="x86_64-linux-gnu.2.34"    RID="linux-x64" ;; \
         "arm64") ZIG_TARGET="aarch64-linux-gnu.2.34"   RID="linux-arm64" ;; \
@@ -232,13 +339,20 @@ ENTRYPOINT ["./$executableName"]
         else {
             $dockerfileContent = @"
 FROM --platform=`$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0-preview AS build
-ARG TARGETARCH
+
+$javaDownloadStage
+
+ENV NUGET_PACKAGES=/root/.nuget/packages
 WORKDIR /src
 
-COPY Directory.Build.props Directory.Packages.props ./
+COPY Directory.Build.props Directory.Packages.props nuget.config* global.json* ./
+COPY libs* ./libs/
 $csprojCopyCommands
 
-RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages,sharing=locked \
+ARG TARGETARCH
+
+RUN --mount=type=cache,id=nuget-packages-v3,target=/root/.nuget/packages,sharing=locked \
+    --mount=type=cache,id=nuget-v3-cache-v3,target=/root/.local/share/NuGet/v3-cache,sharing=locked \
     case "`$TARGETARCH" in \
         "amd64") RID="linux-x64" ;; \
         "arm64") RID="linux-arm64" ;; \
@@ -249,9 +363,10 @@ RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages,sha
 
 COPY . .
 
-$javaDownloadStage
+ARG TARGETARCH
 
-RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages,sharing=locked \
+RUN --mount=type=cache,id=nuget-packages-v3,target=/root/.nuget/packages,sharing=locked \
+    --mount=type=cache,id=nuget-v3-cache-v3,target=/root/.local/share/NuGet/v3-cache,sharing=locked \
     case "`$TARGETARCH" in \
         "amd64") RID="linux-x64" ;; \
         "arm64") RID="linux-arm64" ;; \
@@ -268,7 +383,7 @@ RUN --mount=type=cache,id=nuget-global-packages,target=/root/.nuget/packages,sha
         /p:EFCoreCompileQueries=false \
         /p:EFCorePrecompileQueries=false \
         /p:EFPrecompileQueriesStage=None \
-        /p:EFScaffoldModelStage=None 
+        /p:EFScaffoldModelStage=None
 
 # todo: update to non preview when released
 # since all components have a health check implemented using asp, aspnet is reuqired instead of runtime
@@ -381,15 +496,31 @@ $selectedProjects = $projectList | Where-Object {
     $matched
 }
 
-if ($selectedProjects.Count -eq 0) {
-    Write-Warning "No projects matched your filter: $Projects"
-    Pop-Location
-    exit 0
-}
-
-Push-Location ./../
+$repoRoot = Split-Path -Parent $PSScriptRoot
+Push-Location $repoRoot
 
 try {
+    if ($selectedProjects.Count -eq 0) {
+        Write-Warning "No projects matched your filter: $Projects"
+        exit 0
+    }
+
+    $requiresJava = ($selectedProjects | Where-Object { $_.RequiresJava }).Count -gt 0
+    $requiresAot = ($selectedProjects | Where-Object { $_.AOT }).Count -gt 0
+
+    $javaCacheDir = Join-Path $repoRoot ".cache" "docker" "java"
+    $zigCacheDir = Join-Path $repoRoot ".cache" "docker" "zig"
+    if (-not (Test-Path $javaCacheDir)) { New-Item -ItemType Directory -Path $javaCacheDir -Force | Out-Null }
+    if (-not (Test-Path $zigCacheDir)) { New-Item -ItemType Directory -Path $zigCacheDir -Force | Out-Null }
+
+    if ($requiresJava) {
+        Ensure-JavaHostCache -Architectures $Architectures -RepoRoot $repoRoot
+    }
+
+    if ($requiresAot) {
+        Ensure-ZigHostCache -RepoRoot $repoRoot
+    }
+
     foreach ($project in $selectedProjects) {
         Push-Project -ProjectName $project.ProjectName -PackageName $project.PackageName -AOT $project.AOT -RequiresJava $project.RequiresJava -Architectures $Architectures
     }
