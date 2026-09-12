@@ -80,11 +80,11 @@ foreach (var endpoint in endpoints)
         else
         {
             endpoint.Subdomain = AnsiConsole.Ask<string>($"Subdomain for [bold yellow]{endpoint.Name}[/]", endpoint.DefaultSubdomain);
+        }
 
-            if (endpoint.Name is "buildplate-launcher")
-            {
-                endpoint.Port = AnsiConsole.Ask<int>("Base [bold green]buildplate instance public port[/]?", 19132);
-            }
+        if (endpoint.Name is "buildplate-launcher")
+        {
+            endpoint.Port = AnsiConsole.Ask<int>("Base [bold green]buildplate instance public port[/]?", 19132);
         }
     }
     else
@@ -92,15 +92,32 @@ foreach (var endpoint in endpoints)
         if (endpoint.Name is "buildplate-launcher")
         {
             endpoint.Port = AnsiConsole.Ask<int>("Base [bold green]buildplate instance public port[/]?", 19132);
-            continue;
         }
-
-        endpoint.Port = AnsiConsole.Ask<int>($"Port for [bold yellow]{endpoint.Name}[/]", endpoint.DefaultPort);
+        else
+        {
+            endpoint.Port = AnsiConsole.Ask<int>($"Port for [bold yellow]{endpoint.Name}[/]", endpoint.DefaultPort);
+        }
     }
 }
 
 foreach (var endpoint in endpoints)
 {
+    if (endpoint.Name is "buildplate-launcher")
+    {
+        if (useDomain)
+        {
+            endpoint.FinalUrl = useSubdomains && !string.IsNullOrEmpty(endpoint.Subdomain)
+                ? $"{endpoint.Subdomain}.{domain}"
+                : domain;
+        }
+        else
+        {
+            endpoint.FinalUrl = ip;
+        }
+
+        continue;
+    }
+
     var scheme = hasHttps ? "https" : "http";
     if (useDomain)
     {
@@ -206,7 +223,7 @@ await AnsiConsole.Status()
         GenerateSelfSignedCert("OIDC Signing", Path.Combine(certDir, "oidc-signing-cert.pfx"), signPassword);
 
         ctx.Status("Generating nginx.conf...");
-        var nginxConfig = GenerateNginxConfig(endpoints, domain, hasHttps, useSubdomains, certPath is null ? null : Path.GetFileName(certPath), keyPath is null ? null : Path.GetFileName(keyPath));
+        var nginxConfig = GenerateNginxConfig(endpoints, domain, hasHttps, useSubdomains, certPath is null ? null : Path.GetFileName(certPath), keyPath is null ? null : Path.GetFileName(keyPath), buildplatePortCount);
         await File.WriteAllTextAsync("nginx.conf", nginxConfig);
 
         ctx.Status("Generating docker-compose.override.yml...");
@@ -272,8 +289,7 @@ void GenerateSelfSignedCert(string subject, string path, string password)
 
 async Task UpdateDockerComposeOverrideAsync(string filePath, List<EndpointConfig> endpoints, bool https, bool subdomains, int baseBuildplatePort, int buildplatePortCount)
 {
-    var requiredPorts = GetRequiredPorts(endpoints, https, subdomains);
-    var portList = requiredPorts.Select(p => $"{p}:{p}").ToList();
+    var requiredPorts = GetRequiredPorts(endpoints, https, subdomains, baseBuildplatePort, buildplatePortCount);
 
     var deserializer = new DeserializerBuilder().Build();
     var serializer = new SerializerBuilder().Build();
@@ -296,17 +312,11 @@ async Task UpdateDockerComposeOverrideAsync(string filePath, List<EndpointConfig
     var services = GetOrCreateMap(root, "services");
     var nginx = GetOrCreateMap(services, "nginx");
 
-    nginx["ports"] = portList;
+    nginx["ports"] = requiredPorts;
 
     var buildplateLauncher = GetOrCreateMap(services, "buildplate-launcher");
     var environment = GetOrCreateMap(buildplateLauncher, "environment");
     environment["BaseInstancePublicPort"] = baseBuildplatePort.ToString();
-
-    var buildplatePorts = Enumerable.Range(baseBuildplatePort, buildplatePortCount)
-        .Select(p => $"{p}:{p}")
-        .ToList();
-
-    buildplateLauncher["ports"] = buildplatePorts;
 
     var newYaml = serializer.Serialize(root);
     await File.WriteAllTextAsync(filePath, newYaml);
@@ -327,30 +337,36 @@ Dictionary<object, object> GetOrCreateMap(Dictionary<object, object> parent, str
     return newMap;
 }
 
-List<int> GetRequiredPorts(List<EndpointConfig> endpoints, bool https, bool subdomains)
+List<string> GetRequiredPorts(List<EndpointConfig> endpoints, bool https, bool subdomains, int baseBuildplatePort, int buildplatePortCount)
 {
-    var ports = new HashSet<int>();
+    var ports = new List<string>();
 
     if (subdomains)
     {
-        ports.Add(80);
+        ports.Add("80:80");
         if (https)
         {
-            ports.Add(443);
+            ports.Add("443:443");
         }
     }
     else
     {
-        foreach (var endpoint in endpoints)
+        foreach (var endpoint in endpoints.Where(e => e.Name != "buildplate-launcher"))
         {
-            ports.Add(endpoint.Port);
+            ports.Add($"{endpoint.Port}:{endpoint.Port}");
         }
     }
 
-    return [.. ports];
+    for (var i = 0; i < buildplatePortCount; i++)
+    {
+        var port = baseBuildplatePort + i;
+        ports.Add($"{port}:{port}/udp");
+    }
+
+    return [.. ports.Distinct()];
 }
 
-string GenerateNginxConfig(List<EndpointConfig> endpoints, string domain, bool https, bool subdomains, string? certFile, string? keyFile)
+string GenerateNginxConfig(List<EndpointConfig> endpoints, string domain, bool https, bool subdomains, string? certFile, string? keyFile, int buildplatePortCount)
 {
     var builder = new StringBuilder();
     builder.AppendLine("events { worker_connections 1024; }");
@@ -379,7 +395,7 @@ string GenerateNginxConfig(List<EndpointConfig> endpoints, string domain, bool h
     builder.AppendLine("    proxy_set_header X-Forwarded-Host $http_host;");
     builder.AppendLine();
 
-    foreach (var endpoint in endpoints)
+    foreach (var endpoint in endpoints.Where(e => e.Name is not "buildplate-launcher"))
     {
         builder.AppendLine("    server {");
         if (https && subdomains)
@@ -420,6 +436,27 @@ string GenerateNginxConfig(List<EndpointConfig> endpoints, string domain, bool h
     }
 
     builder.AppendLine("}");
+
+    var buildplateEndpoint = endpoints.FirstOrDefault(e => e.Name is "buildplate-launcher");
+    if (buildplateEndpoint is not null)
+    {
+        builder.AppendLine();
+        builder.AppendLine("stream {");
+        builder.AppendLine("    resolver 127.0.0.11 valid=10s ipv6=off;");
+        for (var i = 0; i < buildplatePortCount; i++)
+        {
+            var port = buildplateEndpoint.Port + i;
+            builder.AppendLine();
+            builder.AppendLine("    server {");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"        listen {port} udp;");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"        set $upstream_buildplate buildplate-launcher:{port};");
+            builder.AppendLine("        proxy_pass $upstream_buildplate;");
+            builder.AppendLine("    }");
+        }
+
+        builder.AppendLine("}");
+    }
+
     return builder.ToString();
 }
 
