@@ -113,6 +113,8 @@ public sealed partial class ConsoleProcess : IDisposable
             throw new InvalidOperationException("Can't redirect std in/out when useShellExecute is true");
         }
 
+        _logger = logger;
+
         if (OperatingSystem.IsLinux() && openInNewWindow)
         {
             var hasDisplay = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")) ||
@@ -128,8 +130,6 @@ public sealed partial class ConsoleProcess : IDisposable
         _filePath = appName;
         IORedirected = redirect;
         OpenInNewWindow = openInNewWindow;
-
-        _logger = logger;
 
         Process.StartInfo = new ProcessStartInfo(appName)
         {

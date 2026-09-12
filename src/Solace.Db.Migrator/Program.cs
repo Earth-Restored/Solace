@@ -383,6 +383,10 @@ public sealed class MigrateCommand : AsyncCommand<MigrationSettings>
                     Experience = account.Profile.Experience,
                     Level = account.Profile.Level,
                     Rubies = new Rubies(account.Profile.Rubies.Purchased, account.Profile.Rubies.Earned),
+                    ProfileVersions = new ProfileVersions()
+                    {
+                        Id = account.Id,
+                    },
                     Boosts = new BoostsEF()
                     {
                         Id = account.Id,
