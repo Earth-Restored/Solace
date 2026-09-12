@@ -63,53 +63,64 @@ var endpoints = new List<EndpointConfig>
     new("locator", "SHARED_PUBLICENDPOINTS_LOCATOR", "locator", 8080),
     new("auth-server", "SHARED_PUBLICENDPOINTS_AUTHSERVER", "auth", 8088),
     new("api-server", "SHARED_PUBLICENDPOINTS_APISERVER", "api", 8089),
-    new("cdn", "SHARED_PUBLICENDPOINTS_CDN", "cdn", 8090)
+    new("cdn", "SHARED_PUBLICENDPOINTS_CDN", "cdn", 8090),
+    new("buildplate-launcher", "BUILDPLATELAUNCHER_PUBLICENDPOINT", "buildplate", 19132),
 };
 
 AnsiConsole.MarkupLine("\n[bold cyan]Endpoint Configuration:[/]");
 
-foreach (var ep in endpoints)
+foreach (var endpoint in endpoints)
 {
     if (useSubdomains)
     {
-        if (ep.Name is "web-portal")
+        if (endpoint.Name is "web-portal")
         {
-            ep.Subdomain = "";
+            endpoint.Subdomain = "";
         }
         else
         {
-            ep.Subdomain = AnsiConsole.Ask<string>($"Subdomain for [bold yellow]{ep.Name}[/]", ep.DefaultSubdomain);
+            endpoint.Subdomain = AnsiConsole.Ask<string>($"Subdomain for [bold yellow]{endpoint.Name}[/]", endpoint.DefaultSubdomain);
+
+            if (endpoint.Name is "buildplate-launcher")
+            {
+                endpoint.Port = AnsiConsole.Ask<int>("Base [bold green]buildplate instance public port[/]?", 19132);
+            }
         }
     }
     else
     {
-        ep.Port = AnsiConsole.Ask<int>($"Port for [bold yellow]{ep.Name}[/]", ep.DefaultPort);
+        if (endpoint.Name is "buildplate-launcher")
+        {
+            endpoint.Port = AnsiConsole.Ask<int>("Base [bold green]buildplate instance public port[/]?", 19132);
+            continue;
+        }
+
+        endpoint.Port = AnsiConsole.Ask<int>($"Port for [bold yellow]{endpoint.Name}[/]", endpoint.DefaultPort);
     }
 }
 
-foreach (var ep in endpoints)
+foreach (var endpoint in endpoints)
 {
     var scheme = hasHttps ? "https" : "http";
     if (useDomain)
     {
         if (useSubdomains)
         {
-            var host = string.IsNullOrEmpty(ep.Subdomain) ? domain : $"{ep.Subdomain}.{domain}";
-            ep.FinalUrl = $"{scheme}://{host}";
+            var host = string.IsNullOrEmpty(endpoint.Subdomain) ? domain : $"{endpoint.Subdomain}.{domain}";
+            endpoint.FinalUrl = $"{scheme}://{host}";
         }
         else
         {
-            ep.FinalUrl = $"{scheme}://{domain}:{ep.Port}";
+            endpoint.FinalUrl = $"{scheme}://{domain}:{endpoint.Port}";
         }
     }
     else
     {
-        ep.FinalUrl = $"http://{ip}:{ep.Port}";
+        endpoint.FinalUrl = $"http://{ip}:{endpoint.Port}";
     }
 }
 
 AnsiConsole.WriteLine();
-var baseBuildplatePort = AnsiConsole.Ask<int>("Base [bold green]buildplate instance public port[/]?", 19132);
 var buildplatePortCount = AnsiConsole.Ask<int>("How many [bold green]buildplate ports[/] to export?", 16);
 
 AnsiConsole.WriteLine();
@@ -199,7 +210,7 @@ await AnsiConsole.Status()
         await File.WriteAllTextAsync("nginx.conf", nginxConfig);
 
         ctx.Status("Generating docker-compose.override.yml...");
-        await UpdateDockerComposeOverrideAsync("docker-compose.override.yml", endpoints, hasHttps, useSubdomains, baseBuildplatePort, buildplatePortCount);
+        await UpdateDockerComposeOverrideAsync("docker-compose.override.yml", endpoints, hasHttps, useSubdomains, endpoints.First(endpoint => endpoint.Name is "buildplate-launcher").Port, buildplatePortCount);
 
         ctx.Status("Updating .env file...");
         EnvFile env;

@@ -163,6 +163,8 @@ var buildplateServerSetup = builder.AddProject<Projects.Solace_Buildplate_Server
         service.Environment["StaticDataPath"] = "/app/static-data";
     });
 
+var buildplateLauncherPublicEndpoint = builder.AddConfigParameter("BuildplateLauncher:PublicEndpoint");
+
 var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate_Launcher>("buildplate-launcher")
     .WithHttpEndpoint(name: "http")
     .WithHttpHealthCheck("/health")
@@ -170,7 +172,10 @@ var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate_Launcher>
     .WaitFor(eventBus)
     .WithReference(buildplateServerSetup)
     .WaitFor(buildplateServerSetup)
-    .WithEnvironmentSection(builder.Configuration, "BuildplateLauncher", prefixToRemove: "BuildplateLauncher:")
+    .WithEnvironmentSection(builder.Configuration,
+        "BuildplateLauncher",
+        prefixToRemove: "BuildplateLauncher:",
+        parameterOverrides: buildplateLauncherPublicEndpoint)
     .WithEnvironmentParameter(acceptMinecraftEula, prefixToRemove: "Shared:")
     .WithEnvironment("StaticDataPath", staticDataPath)
     .PublishAsDockerComposeService((resource, service) =>
