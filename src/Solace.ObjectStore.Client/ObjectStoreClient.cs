@@ -220,6 +220,14 @@ public sealed class ObjectStoreClient : IAsyncDisposable
         }
     }
 
+    public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var idLowHigh = id.ToLowHigh();
+        var response = await _client.ObjectExistsAsync(new ObjectExistsRequest { IdLow = idLowHigh.Low, IdHigh = idLowHigh.High, }, cancellationToken: cancellationToken);
+
+        return response.Exists;
+    }
+
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var idLowHigh = id.ToLowHigh();

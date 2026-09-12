@@ -149,6 +149,18 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
         }
     }
 
+    public override async Task<ObjectExistsResponse> ObjectExists(ObjectExistsRequest request, ServerCallContext context)
+    {
+        var id = Guid.FromLowHigh(request.IdLow, request.IdHigh);
+
+        var exists = await _dataStore.ExistsAsync(id, context.CancellationToken);
+
+        return new ObjectExistsResponse()
+        {
+            Exists = exists,
+        };
+    }
+
     public override async Task<DeleteObjectResponse> DeleteObject(DeleteObjectRequest request, ServerCallContext context)
     {
         var id = Guid.FromLowHigh(request.IdLow, request.IdHigh);

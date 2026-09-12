@@ -284,33 +284,45 @@ internal static partial class App
             OwnsObjectStoreClient = false,
         };
 
-        foreach (var buildplate in staticData.Buildplates.StoreBuildplates)
+        foreach (var staticBuildplate in staticData.Buildplates.StoreBuildplates)
         {
-            if (earthDbContext.TemplateBuildplates.Any(bp => bp.Id == buildplate.Id))
+            var existingBuildplate = await earthDbContext.TemplateBuildplates
+                .AsTracking()
+                .Where(buildplate => buildplate.Id == staticBuildplate.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingBuildplate is not null)
             {
-                LogTemplateAlreadyExists(logger, "store", buildplate.Id);
-                continue;
+                LogTemplateAlreadyExists(logger, "store", staticBuildplate.Id);
+
+                if (await objectStore.ExistsAsync(existingBuildplate.ServerDataObjectId, cancellationToken) && await objectStore.ExistsAsync(existingBuildplate.PreviewObjectId, cancellationToken))
+                {
+                    continue;
+                }
+
+                earthDbContext.Remove(existingBuildplate);
+                await earthDbContext.SaveChangesAsync(cancellationToken);
             }
 
             try
             {
-                LogImportingTemplate(logger, "store", buildplate.Id);
+                LogImportingTemplate(logger, "store", staticBuildplate.Id);
 
                 var name = "unknown buildplate";
-                var bpPlayfabItem = staticData.Playfab.Items.Values.FirstOrDefault(item => item.Data is Playfab.Item.BuildplateData bpData && bpData.Id == buildplate.Id);
-                if (bpPlayfabItem is not null)
+                var buildplatePlayfabItem = staticData.Playfab.Items.Values.FirstOrDefault(item => item.Data is Playfab.Item.BuildplateData bpData && bpData.Id == staticBuildplate.Id);
+                if (buildplatePlayfabItem is not null)
                 {
-                    name = bpPlayfabItem.Title;
+                    name = buildplatePlayfabItem.Title;
                 }
 
-                await using (var buidplateData = buildplate.OpenRead())
+                await using (var buidplateData = staticBuildplate.OpenRead())
                 {
-                    await importer.ImportTemplateAsync(buildplate.Id, $"[STORE] {name}", buidplateData, fixUpBuildplates, cancellationToken);
+                    await importer.ImportTemplateAsync(staticBuildplate.Id, $"[STORE] {name}", buidplateData, fixUpBuildplates, cancellationToken);
                 }
             }
             catch (Exception exception)
             {
-                LogFailedToImportTemplate(logger, exception, "store", buildplate.Id);
+                LogFailedToImportTemplate(logger, exception, "store", staticBuildplate.Id);
             }
         }
 
@@ -334,10 +346,22 @@ internal static partial class App
             .Select(buildplate => (Buildplate: buildplate, Info: buildplate.GetInfo()))
             .OrderBy(item => item.Info.RequiredLevel ?? 1))
         {
-            if (earthDbContext.TemplateBuildplates.Any(bp => bp.Id == staticBuildplate.Id))
+            var existingBuildplate = await earthDbContext.TemplateBuildplates
+                .AsTracking()
+                .Where(buildplate => buildplate.Id == staticBuildplate.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingBuildplate is not null)
             {
                 LogTemplateAlreadyExists(logger, "level", staticBuildplate.Id);
-                continue;
+
+                if (await objectStore.ExistsAsync(existingBuildplate.ServerDataObjectId, cancellationToken) && await objectStore.ExistsAsync(existingBuildplate.PreviewObjectId, cancellationToken))
+                {
+                    continue;
+                }
+
+                earthDbContext.Remove(existingBuildplate);
+                await earthDbContext.SaveChangesAsync(cancellationToken);
             }
 
             try

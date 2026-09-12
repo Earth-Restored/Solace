@@ -13,6 +13,8 @@ service ObjectStoreService {
 
     rpc GetObject (GetObjectRequest) returns (stream GetObjectResponse);
 
+    rpc ObjectExists (ObjectExistsRequest) returns (ObjectExistsResponse);
+
     rpc DeleteObject (DeleteObjectRequest) returns (DeleteObjectResponse);
 }
 
@@ -49,6 +51,15 @@ message GetObjectResponse {
     int64 total_length = 1; 
     
     bytes chunk_data = 2;
+}
+
+message ObjectExistsRequest {
+    fixed64 idLow = 1;
+    fixed64 idHigh = 2;
+}
+
+message ObjectExistsResponse {
+    bool exists = 1;
 }
 
 message DeleteObjectRequest{

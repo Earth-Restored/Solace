@@ -95,6 +95,17 @@ internal sealed class DataStore
         }
     }
 
+    public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        _ = cancellationToken;
+
+        var idString = id.ToString();
+
+        var file = _rootDirectory / idString[..2] / new RelativeFile(idString);
+
+        return file.Exists;
+    }
+
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _ = cancellationToken;
