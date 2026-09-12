@@ -9,7 +9,7 @@
 * [.NET 11](https://dotnet.microsoft.com/en-us/download/dotnet/11.0)
 * [Aspire](https://aspire.dev/get-started/install-cli/)
 * Java 21
-* Docker or Podman (set `ASPIRE_CONTAINER_RUNTIME=podman`)
+* Docker
 
 ## Local Setup
 
