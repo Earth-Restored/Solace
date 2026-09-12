@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Solace.TappablesGenerator;
 
@@ -14,6 +15,7 @@ internal sealed record Tappable(
 );
 
 #pragma warning disable MA0048 // File name must match type name
+[JsonConverter(typeof(JsonStringEnumConverter<TappableRarity>))]
 internal enum TappableRarity
 {
     COMMON,

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Solace.Common.Utils;
 
@@ -31,9 +31,9 @@ internal sealed partial class EncounterGenerator
     }
 
     public TimeSpan GetMaxEncounterLifetime()
-        => MAX_DELAY + _maxDuration + TimeSpan.FromSeconds(30 * 1000);
+        => MAX_DELAY + _maxDuration + TimeSpan.FromSeconds(30);
 
-    public IEnumerable<Encounter> GenerateEncounters(int tileX, int tileY, DateTimeOffset currentTime)
+    public IEnumerable<Encounter> GenerateEncounters(int tileX, int tileY, DateTimeOffset currentTime, bool immediateSpawn = false)
     {
         if (_staticData.EncountersConfig.Encounters is [])
         {
@@ -44,7 +44,9 @@ internal sealed partial class EncounterGenerator
 #pragma warning disable CA5394 // Do not use insecure randomness - idc
         if (_random.Next(0, CHANCE_PER_TILE) == 0)
         {
-            var spawnDelay = TimeSpan.FromTicks(_random.NextInt64(MIN_DELAY.Ticks, MAX_DELAY.Ticks + 1));
+            var spawnDelay = immediateSpawn
+                ? TimeSpan.Zero
+                : TimeSpan.FromTicks(_random.NextInt64(MIN_DELAY.Ticks, MAX_DELAY.Ticks + 1));
 
             var encounterConfig = _staticData.EncountersConfig.Encounters[_random.Next(0, _staticData.EncountersConfig.Encounters.Length)];
 #pragma warning restore CA5394 // Do not use insecure randomness

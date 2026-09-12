@@ -7,6 +7,7 @@ namespace Solace.TappablesGenerator;
     PropertyNameCaseInsensitive = true
 )]
 [JsonSerializable(typeof(ActiveTiles.ActiveTileNotification))]
+[JsonSerializable(typeof(ActiveTiles.ActiveTileResponse))]
 [JsonSerializable(typeof(List<Encounter>))]
 [JsonSerializable(typeof(List<Tappable>))]
 internal sealed partial class AppJsonContext : JsonSerializerContext

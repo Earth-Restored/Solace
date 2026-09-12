@@ -75,8 +75,9 @@ internal static partial class App
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().StaticData);
         builder.Services.AddSingleton<TappableGenerator>();
         builder.Services.AddSingleton<EncounterGenerator>();
+        builder.Services.AddSingleton<Spawner>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<Spawner>());
         builder.Services.AddSingleton<ActiveTiles>();
-        builder.Services.AddHostedService<Spawner>();
 
         using var app = builder.Build();
 
@@ -126,14 +127,10 @@ internal static partial class App
         startupDeps.EventBus = eventBusClient;
 
         // init stuff that needs async initialization
-        var spawner = app.Services.GetServices<IHostedService>().OfType<Spawner>().Single();
-        await app.Services.GetRequiredService<ActiveTiles>().InitializeAsync(eventBusClient, new ActiveTiles.ActiveTileListener(
-            spawner.SpawnTilesAsync,
-            async (activeTile, cancellationToken) =>
-            {
-                // empty
-            }
-        ));
+        var spawner = app.Services.GetRequiredService<Spawner>();
+        var activeTiles = app.Services.GetRequiredService<ActiveTiles>();
+        spawner.GetActiveTiles = activeTiles.GetActiveTiles;
+        await activeTiles.InitializeAsync(eventBusClient);
 
         await app.RunAsync();
 

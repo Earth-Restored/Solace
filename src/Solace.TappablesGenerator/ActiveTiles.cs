@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Diagnostics;
+using System.Collections.Concurrent;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Solace.Common.Utils;
@@ -9,25 +8,23 @@ namespace Solace.TappablesGenerator;
 
 internal sealed partial class ActiveTiles : IAsyncDisposable
 {
-    private const int ACTIVE_TILE_RADIUS = 3;
+    private const int ACTIVE_TILE_RADIUS = 4;
     private static readonly TimeSpan ACTIVE_TILE_EXPIRY_TIME = TimeSpan.FromMinutes(2);
 
     private readonly ConcurrentDictionary<int, ActiveTile> _activeTiles = [];
-    private IActiveTileListener? _activeTileListener;
+    private readonly Spawner _spawner;
     private RequestHandler? _requestHandler;
 
     private readonly ILogger<ActiveTiles> _logger;
 
-    public ActiveTiles(ILogger<ActiveTiles> logger)
+    public ActiveTiles(Spawner spawner, ILogger<ActiveTiles> logger)
     {
+        _spawner = spawner;
         _logger = logger;
     }
 
-    internal async Task InitializeAsync(EventBusClient eventBusClient, IActiveTileListener activeTileListener)
-    {
-        _activeTileListener = activeTileListener;
-
-        _requestHandler = await eventBusClient.AddRequestHandlerAsync("tappables",
+    internal async Task InitializeAsync(EventBusClient eventBusClient)
+        => _requestHandler = await eventBusClient.AddRequestHandlerAsync("tappables",
         async (request, cancellationToken) =>
         {
             if (request.Type is "activeTile")
@@ -48,11 +45,14 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
 
                 var sideLength = (ACTIVE_TILE_RADIUS * 2) + 1;
                 var newActiveTiles = new List<ActiveTile>(sideLength * sideLength);
-                for (var tileX = activeTileNotification.X - ACTIVE_TILE_RADIUS; tileX < activeTileNotification.X + ACTIVE_TILE_RADIUS + 1; tileX++)
+                var allRequestedTiles = new List<(int X, int Y)>(sideLength * sideLength);
+
+                for (var tileX = activeTileNotification.X - ACTIVE_TILE_RADIUS; tileX <= activeTileNotification.X + ACTIVE_TILE_RADIUS; tileX++)
                 {
-                    for (var tileY = activeTileNotification.Y - ACTIVE_TILE_RADIUS; tileY < activeTileNotification.Y + ACTIVE_TILE_RADIUS + 1; tileY++)
+                    for (var tileY = activeTileNotification.Y - ACTIVE_TILE_RADIUS; tileY <= activeTileNotification.Y + ACTIVE_TILE_RADIUS; tileY++)
                     {
                         var activeTile = MarkTileActive(tileX, tileY, currentTime);
+                        allRequestedTiles.Add((tileX, tileY));
 
                         if (activeTile.LatestActiveTime == activeTile.FirstActiveTime) // indicating that the tile is newly-active
                         {
@@ -63,10 +63,11 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
 
                 if (newActiveTiles.Count > 0)
                 {
-                    await activeTileListener.Active(newActiveTiles, cancellationToken);
+                    _spawner.SpawnTilesSync(newActiveTiles);
                 }
 
-                return string.Empty;
+                var (tappables, encounters) = _spawner.GetActiveLocationsForTiles(allRequestedTiles, currentTime);
+                return JsonSerializer.Serialize(new ActiveTileResponse(tappables, encounters), AppJsonContext.Default.ActiveTileResponse);
             }
             else
             {
@@ -80,7 +81,6 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
             Console.Error.Flush();
             Environment.Exit(333);
         });
-    }
 
     public IEnumerable<ActiveTile> GetActiveTiles(DateTimeOffset currentTime)
         => _activeTiles.Values.Where(activeTile => currentTime < activeTile.LatestActiveTime + ACTIVE_TILE_EXPIRY_TIME);
@@ -95,7 +95,7 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
 
     private ActiveTile MarkTileActive(int tileX, int tileY, DateTimeOffset currentTime)
     {
-        var activeTile = _activeTiles.GetValueOrDefault((tileX << 16) + tileY);
+        var activeTile = _activeTiles.GetValueOrDefault(TileUtils.XYToInt(tileX, tileY));
         if (activeTile is null)
         {
             LogTileIsBecomingActive(tileX, tileY);
@@ -106,7 +106,7 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
             activeTile = new ActiveTile(tileX, tileY, activeTile.FirstActiveTime, currentTime);
         }
 
-        _activeTiles[(tileX << 16) + tileY] = activeTile;
+        _activeTiles[TileUtils.XYToInt(tileX, tileY)] = activeTile;
 
         return activeTile;
     }
@@ -130,10 +130,11 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
             _activeTiles.TryRemove(item.Key, out _);
         }
 
-        Debug.Assert(_activeTileListener is not null);
-
-        _activeTileListener.Inactive(entriesToRemove.Select(item => item.Value))
-            .Forget();
+        if (entriesToRemove.Count > 0)
+        {
+            _spawner.RemoveInactiveTilesAsync(entriesToRemove.Select(item => item.Value))
+                .Forget();
+        }
     }
 
     internal sealed record ActiveTile(
@@ -149,30 +150,10 @@ internal sealed partial class ActiveTiles : IAsyncDisposable
         string PlayerId
     );
 
-    internal interface IActiveTileListener
-    {
-        Task Active(IEnumerable<ActiveTile> activeTiles, CancellationToken cancellationToken = default);
-
-        Task Inactive(IEnumerable<ActiveTile> activeTiles, CancellationToken cancellationToken = default);
-    }
-
-    internal sealed class ActiveTileListener : IActiveTileListener
-    {
-        public Func<IEnumerable<ActiveTile>, CancellationToken, Task> OnActive;
-        public Func<IEnumerable<ActiveTile>, CancellationToken, Task> OnInactive;
-
-        public ActiveTileListener(Func<IEnumerable<ActiveTile>, CancellationToken, Task> active, Func<IEnumerable<ActiveTile>, CancellationToken, Task> inactive)
-        {
-            OnActive = active;
-            OnInactive = inactive;
-        }
-
-        public async Task Active(IEnumerable<ActiveTile> activeTiles, CancellationToken cancellationToken = default)
-            => await OnActive(activeTiles, cancellationToken);
-
-        public async Task Inactive(IEnumerable<ActiveTile> activeTiles, CancellationToken cancellationToken = default)
-            => await OnInactive.Invoke(activeTiles, cancellationToken);
-    }
+    internal sealed record ActiveTileResponse(
+        List<Tappable> Tappables,
+        List<Encounter> Encounters
+    );
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Could not deserialise active tile notification event")]
     private partial void LogCouldNotDeserialiseActiveTileNotificationEvent(Exception exception);

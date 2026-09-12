@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Solace.Common.Utils;
 using Solace.StaticData;
 
@@ -35,7 +35,7 @@ internal sealed partial class TappableGenerator
 #pragma warning restore CA1822 // Mark members as static
         => MAX_DELAY + MAX_DURATION + TimeSpan.FromSeconds(30);
 
-    public IEnumerable<Tappable> GenerateTappables(int tileX, int tileY, DateTimeOffset currentTime)
+    public IEnumerable<Tappable> GenerateTappables(int tileX, int tileY, DateTimeOffset currentTime, bool immediateSpawn = false)
     {
         if (_staticData.TappablesConfig.Tappables.Length == 0)
         {
@@ -49,7 +49,9 @@ internal sealed partial class TappableGenerator
         Span<float> tileBounds = stackalloc float[4];
         for (; count > 0; count--)
         {
-            var spawnDelay = TimeSpan.FromTicks(_random.NextInt64(MIN_DELAY.Ticks, MAX_DELAY.Ticks + 1));
+            var spawnDelay = immediateSpawn
+                ? TimeSpan.Zero
+                : TimeSpan.FromTicks(_random.NextInt64(MIN_DELAY.Ticks, MAX_DELAY.Ticks + 1));
             var duration = TimeSpan.FromTicks(_random.NextInt64(MIN_DURATION.Ticks, MAX_DURATION.Ticks + 1));
 
             var tappableConfig = _staticData.TappablesConfig.Tappables[_random.Next(0, _staticData.TappablesConfig.Tappables.Length)];

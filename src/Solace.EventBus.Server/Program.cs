@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Solace.Common;
+﻿using Solace.Common;
 using Solace.EventBus.Server.Services;
 using System.Diagnostics;
 #if USE_SHARED_LIBS

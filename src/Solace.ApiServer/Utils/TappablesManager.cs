@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -163,6 +163,31 @@ internal sealed partial class TappablesManager : IAsyncDisposable
         if (response is null)
         {
             LogActiveTileNotificationEventWasRejectedIgnored();
+            return;
+        }
+
+        if (response.Value.Value is string responseJson && !string.IsNullOrEmpty(responseJson))
+        {
+            try
+            {
+                var activeTileResponse = Json.Deserialize<ActiveTileResponse>(responseJson);
+                if (activeTileResponse is not null)
+                {
+                    foreach (var tappable in activeTileResponse.Tappables)
+                    {
+                        AddTappable(tappable);
+                    }
+
+                    foreach (var encounter in activeTileResponse.Encounters)
+                    {
+                        AddEncounter(encounter);
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                LogFailedToDeserialiseActiveTileResponse(exception);
+            }
         }
     }
 
@@ -388,11 +413,19 @@ internal sealed partial class TappablesManager : IAsyncDisposable
         }
     }
 
+    private sealed record ActiveTileResponse(
+        List<Tappable> Tappables,
+        List<Encounter> Encounters
+    );
+
     [LoggerMessage(Level = LogLevel.Critical, Message = "Tappables event bus subscriber error")]
     private partial void LogTappablesEventBusSubscriberError(Exception? exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Active tile notification event was rejected/ignored")]
     private partial void LogActiveTileNotificationEventWasRejectedIgnored();
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to deserialise active tile response")]
+    private partial void LogFailedToDeserialiseActiveTileResponse(Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to deserialise tappable spawn event")]
     private partial void LogFailedToDeserialiseTappableSpawnEvent(Exception exception);
