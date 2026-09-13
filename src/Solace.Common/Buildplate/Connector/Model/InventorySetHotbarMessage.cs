@@ -4,12 +4,11 @@ namespace Solace.Buildplate.Connector.Model;
 
 public sealed record InventorySetHotbarMessage(
     Guid PlayerId,
-    InventorySetHotbarMessage.Item[] Items
-)
-{
-    public sealed record Item(
-        Guid ItemId,
-        int Count,
-        Guid? InstanceId
-    );
-}
+    InventorySetHotbarMessageItem[] Items
+);
+
+public sealed record InventorySetHotbarMessageItem(
+    Guid ItemId,
+    int Count,
+    Guid? InstanceId
+);

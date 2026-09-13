@@ -1,10 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Runtime.Versioning;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Solace.Buildplate.Connector.Model;
 using Solace.Buildplate.Model;
-using Solace.Common;
 using Solace.Common.Utils;
 using Solace.EventBus.Client;
 
@@ -24,7 +24,7 @@ internal sealed partial class InstanceManager
     private readonly Lock _lock = new();
 
     [JsonConverter(typeof(JsonStringEnumConverter<InstanceType>))]
-    private enum InstanceType
+    internal enum InstanceType
     {
         BUILD,
         PLAY,
@@ -33,7 +33,7 @@ internal sealed partial class InstanceManager
         ENCOUNTER,
     }
 
-    private sealed record StartRequest(
+    internal sealed record StartRequest(
         Guid? PlayerId,
         Guid? EncounterId,
         Guid BuildplateId,
@@ -42,7 +42,7 @@ internal sealed partial class InstanceManager
         DateTimeOffset ShutdownTime
     );
 
-    private sealed record StartNotification(
+    internal sealed record StartNotification(
         Guid InstanceId,
         Guid? PlayerId,
         Guid? EncounterId,
@@ -84,7 +84,7 @@ internal sealed partial class InstanceManager
                     StartRequest startRequest;
                     try
                     {
-                        startRequest = Json.Deserialize<StartRequest>((string)request.Data.Value!)!;
+                        startRequest = JsonSerializer.Deserialize<StartRequest>((string)request.Data.Value!, AppJsonContext.Default.StartRequest)!;
                     }
                     catch (Exception exception)
                     {
@@ -173,7 +173,7 @@ internal sealed partial class InstanceManager
                         return null;
                     }
 
-                    SendEventBusMessage("started", Json.Serialize(new StartNotification(
+                    SendEventBusMessage("started", JsonSerializer.Serialize(new StartNotification(
                         instanceId,
                         startRequest.PlayerId,
                         startRequest.EncounterId,
@@ -181,7 +181,7 @@ internal sealed partial class InstanceManager
                         instance.PublicAddress,
                         instance.Port,
                         startRequest.Type
-                    )), cancellationToken);
+                    ), AppJsonContext.Default.StartNotification), cancellationToken);
 
                     Task.Run(async () =>
                     {
@@ -209,7 +209,7 @@ internal sealed partial class InstanceManager
                     byte[] serverData;
                     try
                     {
-                        previewRequest = Json.Deserialize<PreviewRequest>((string)request.Data.Value!)!;
+                        previewRequest = JsonSerializer.Deserialize((string)request.Data.Value!, AppJsonContext.Default.PreviewRequest)!;
                         serverData = Convert.FromBase64String(previewRequest.ServerDataBase64);
                     }
                     catch (Exception exception)

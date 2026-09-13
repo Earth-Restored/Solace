@@ -2,7 +2,7 @@
 
 namespace Solace.Buildplate.PreviewGenerator;
 
-internal sealed record PreviewModel(
+public sealed record PreviewModel(
      [property: JsonPropertyName("format_version")] int FormatVersion, // always 1
      bool IsNight,
      [property: JsonPropertyName("sub_chunks")] PreviewModel.SubChunk[] SubChunks,

@@ -461,11 +461,11 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                     initialInventoryContents = new InventoryResponse(
                         await AsyncEnumerable.Concat(
                             stackableItems
-                                .Select(item => new InventoryResponse.Item(item.ItemId, item.Count, null, 0)),
+                                .Select(item => new InventoryResponseItem(item.ItemId, item.Count, null, 0)),
                             nonStackableItems
-                                .Select(instance => new InventoryResponse.Item(instance.ItemId, 1, instance.InstanceId, instance.Wear))
+                                .Select(instance => new InventoryResponseItem(instance.ItemId, 1, instance.InstanceId, instance.Wear))
                         ).Where(item => item.Count > 0).ToArrayAsync(cancellationToken),
-                        [.. hotbar.Items.Select(item => item is { Count: > 0 } ? new InventoryResponse.HotbarItem(item.Uuid, item.Count, item.InstanceId) : null)]
+                        [.. hotbar.Items.Select(item => item is { Count: > 0 } ? new InventoryResponseHotbarItem(item.Uuid, item.Count, item.InstanceId) : null)]
                     );
                 }
 
@@ -490,12 +490,12 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                                     group => group.Key,
                                     group => group.Sum(item => item!.Count)
                                 )
-                                .Select(entry => new InventoryResponse.Item(entry.Key, entry.Value, null, 0)),
+                                .Select(entry => new InventoryResponseItem(entry.Key, entry.Value, null, 0)),
                             sharedBuildplate.Hotbar
                                 .Where(item => item is { Count: > 0, InstanceId: not null })
-                                .Select(item => new InventoryResponse.Item(item!.Uuid, 1, item.InstanceId, item.Wear))
+                                .Select(item => new InventoryResponseItem(item!.Uuid, 1, item.InstanceId, item.Wear))
                         )],
-                        [.. sharedBuildplate.Hotbar.Select(item => item is { Count: > 0 } ? new InventoryResponse.HotbarItem(item.Uuid, item.Count, item.InstanceId) : null)]
+                        [.. sharedBuildplate.Hotbar.Select(item => item is { Count: > 0 } ? new InventoryResponseHotbarItem(item.Uuid, item.Count, item.InstanceId) : null)]
                     );
                 }
 
@@ -506,9 +506,9 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                         .AsTracking()
                         .FirstAsync(hotbar => hotbar.Id == playerConnectedRequest.Uuid, cancellationToken: cancellationToken);
 
-                    var inventoryResponseHotbar = new InventoryResponse.HotbarItem[7];
+                    var inventoryResponseHotbar = new InventoryResponseHotbarItem[7];
                     Dictionary<Guid, int> inventoryResponseStackableItems = [];
-                    LinkedList<InventoryResponse.Item> inventoryResponseNonStackableItems = [];
+                    LinkedList<InventoryResponseItem> inventoryResponseNonStackableItems = [];
                     for (var index = 0; index < 7; index++)
                     {
                         var item = hotbar.Items[index];
@@ -518,13 +518,13 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                             {
                                 await InventoryUtils.TakeStackableItemsAsync(earthDb, ResultsEF.Builder.Null, playerConnectedRequest.Uuid, item.Uuid, item.Count, cancellationToken);
                                 inventoryResponseStackableItems[item.Uuid] = inventoryResponseStackableItems.GetValueOrDefault(item.Uuid, 0) + item.Count;
-                                inventoryResponseHotbar[index] = new InventoryResponse.HotbarItem(item.Uuid, item.Count, null);
+                                inventoryResponseHotbar[index] = new InventoryResponseHotbarItem(item.Uuid, item.Count, null);
                             }
                             else
                             {
                                 var wear = (await InventoryUtils.TakeInstanceItemsAsync(earthDb, ResultsEF.Builder.Null, playerConnectedRequest.Uuid, item.Uuid, [item.InstanceId.Value], cancellationToken)).First().Wear;
-                                inventoryResponseNonStackableItems.AddLast(new InventoryResponse.Item(item.Uuid, 1, item.InstanceId, wear));
-                                inventoryResponseHotbar[index] = new InventoryResponse.HotbarItem(item.Uuid, 1, item.InstanceId);
+                                inventoryResponseNonStackableItems.AddLast(new InventoryResponseItem(item.Uuid, 1, item.InstanceId, wear));
+                                inventoryResponseHotbar[index] = new InventoryResponseHotbarItem(item.Uuid, 1, item.InstanceId);
                             }
                         }
                     }
@@ -533,7 +533,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
 
                     initialInventoryContents = new InventoryResponse(
                         [
-                            .. inventoryResponseStackableItems.Select(entry => new InventoryResponse.Item(entry.Key, entry.Value, null, 0)),
+                            .. inventoryResponseStackableItems.Select(entry => new InventoryResponseItem(entry.Key, entry.Value, null, 0)),
                             .. inventoryResponseNonStackableItems
                         ],
                         inventoryResponseHotbar
@@ -547,7 +547,7 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                 {
                     // shouldn't happen, safe default
                     LogExpectedBackpackContentsInPlayerDisconnectedRequest(instanceInfo.Type);
-                    initialInventoryContents = new InventoryResponse([], new InventoryResponse.HotbarItem[7]);
+                    initialInventoryContents = new InventoryResponse([], new InventoryResponseHotbarItem[7]);
                 }
 
                 break;
@@ -711,12 +711,12 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
                 .Select(effectInfo => new InitialPlayerStateResponse.BoostStatusEffect(
                     effectInfo.Effect.Type switch
                     {
-                        CICIBIEType.ADVENTURE_XP => InitialPlayerStateResponse.BoostStatusEffect.TypeE.ADVENTURE_XP,
-                        CICIBIEType.DEFENSE => InitialPlayerStateResponse.BoostStatusEffect.TypeE.DEFENSE,
-                        CICIBIEType.EATING => InitialPlayerStateResponse.BoostStatusEffect.TypeE.EATING,
-                        CICIBIEType.HEALTH => InitialPlayerStateResponse.BoostStatusEffect.TypeE.HEALTH,
-                        CICIBIEType.MINING_SPEED => InitialPlayerStateResponse.BoostStatusEffect.TypeE.MINING_SPEED,
-                        CICIBIEType.STRENGTH => InitialPlayerStateResponse.BoostStatusEffect.TypeE.STRENGTH,
+                        CICIBIEType.ADVENTURE_XP => InitialPlayerStateResponse.BoostStatusEffectType.ADVENTURE_XP,
+                        CICIBIEType.DEFENSE => InitialPlayerStateResponse.BoostStatusEffectType.DEFENSE,
+                        CICIBIEType.EATING => InitialPlayerStateResponse.BoostStatusEffectType.EATING,
+                        CICIBIEType.HEALTH => InitialPlayerStateResponse.BoostStatusEffectType.HEALTH,
+                        CICIBIEType.MINING_SPEED => InitialPlayerStateResponse.BoostStatusEffectType.MINING_SPEED,
+                        CICIBIEType.STRENGTH => InitialPlayerStateResponse.BoostStatusEffectType.STRENGTH,
                         _ => throw new UnreachableException(),
                     },
                     effectInfo.Effect.Value,
@@ -749,11 +749,11 @@ internal sealed partial class BuildplateInstanceRequestHandler : IAsyncDisposabl
         return new InventoryResponse(
             await AsyncEnumerable.Concat(
                 stackableItems
-                    .Select(item => new InventoryResponse.Item(item.ItemId, item.Count, null, 0)),
+                    .Select(item => new InventoryResponseItem(item.ItemId, item.Count, null, 0)),
                 nonStackableItems
-                    .Select(instance => new InventoryResponse.Item(instance.ItemId, 1, instance.InstanceId, instance.Wear))
+                    .Select(instance => new InventoryResponseItem(instance.ItemId, 1, instance.InstanceId, instance.Wear))
             ).Where(item => item.Count > 0).ToArrayAsync(cancellationToken),
-            [.. hotbar.Items.Select(item => item is { Count: > 0 } ? new InventoryResponse.HotbarItem(item.Uuid, item.Count, item.InstanceId) : null)]
+            [.. hotbar.Items.Select(item => item is { Count: > 0 } ? new InventoryResponseHotbarItem(item.Uuid, item.Count, item.InstanceId) : null)]
         );
     }
 

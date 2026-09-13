@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using Microsoft.Extensions.Logging;
-using Solace.Common;
 using Solace.Buildplate.PreviewGenerator.Registry;
+using System.Text.Json;
 
 namespace Solace.Buildplate.Launcher;
 
@@ -27,10 +27,10 @@ internal static partial class PreviewGenerator
         }
 
         // todo: use JsonObject?
-        Dictionary<string, object> previewObject;
+        Buildplate.PreviewGenerator.PreviewModel previewObject;
         try
         {
-            previewObject = Json.Deserialize<Dictionary<string, object>>(previewString)!;
+            previewObject = JsonSerializer.Deserialize(previewString, AppJsonContext.Default.PreviewModel)!;
         }
         catch (Exception exception)
         {
@@ -38,9 +38,9 @@ internal static partial class PreviewGenerator
             return null;
         }
 
-        previewObject["isNight"] = isNight;
+        previewObject = previewObject with { IsNight = isNight, };
 
-        var previewJson = Json.Serialize(previewObject);
+        var previewJson = JsonSerializer.Serialize(previewObject, AppJsonContext.Default.PreviewModel);
 
         var previewBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(previewJson));
 

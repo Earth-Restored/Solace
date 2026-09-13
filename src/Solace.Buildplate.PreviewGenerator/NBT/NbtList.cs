@@ -34,16 +34,34 @@ public sealed class NbtList : IList, IList<object?>
     {
         ArgumentNullException.ThrowIfNull(type, nameof(type));
         _type = type;
-        _array = Array.CreateInstance(type.TagType, collection.Count);
+        _array = CreateTypedArray(type, collection.Count);
         collection.CopyTo(_array, 0);
     }
 
     public NbtList(NbtType tagClass, params object[] array)
     {
-        ArgumentNullException.ThrowIfNull(_type, nameof(tagClass));
+        ArgumentNullException.ThrowIfNull(tagClass, nameof(tagClass));
         _type = tagClass;
         _array = (Array)array.Clone();
     }
+
+    private static Array CreateTypedArray(NbtType type, int length)
+        => type.Enum switch
+        {
+            NbtType.EnumE.Byte => new byte[length],
+            NbtType.EnumE.Short => new short[length],
+            NbtType.EnumE.Int => new int[length],
+            NbtType.EnumE.Long => new long[length],
+            NbtType.EnumE.Float => new float[length],
+            NbtType.EnumE.Double => new double[length],
+            NbtType.EnumE.ByteArray => new byte[length][],
+            NbtType.EnumE.String => new string[length],
+            NbtType.EnumE.List => new NbtList[length],
+            NbtType.EnumE.Compound => new NbtMap[length],
+            NbtType.EnumE.IntArray => new int[length][],
+            NbtType.EnumE.LongArray => new long[length][],
+            _ => new object[length]
+        };
 
     public new NbtType GetType()
         => _type;

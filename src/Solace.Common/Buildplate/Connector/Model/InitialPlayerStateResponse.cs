@@ -10,22 +10,21 @@ public sealed record InitialPlayerStateResponse(
 )
 {
     public sealed record BoostStatusEffect(
-        BoostStatusEffect.TypeE Type,
+        BoostStatusEffectType Type,
         int Value,
         TimeSpan RemainingDuration
-    )
+    );
+
+    [JsonConverter(typeof(JsonStringEnumConverter<BoostStatusEffectType>))]
+    public enum BoostStatusEffectType
     {
-        [JsonConverter(typeof(JsonStringEnumConverter<TypeE>))]
-        public enum TypeE
-        {
 #pragma warning disable CA1707 // Identifiers should not contain underscores
-            ADVENTURE_XP,
-            DEFENSE,
-            EATING,
-            HEALTH,
-            MINING_SPEED,
-            STRENGTH
+        ADVENTURE_XP,
+        DEFENSE,
+        EATING,
+        HEALTH,
+        MINING_SPEED,
+        STRENGTH
 #pragma warning restore CA1707 // Identifiers should not contain underscores
-        }
     }
 }

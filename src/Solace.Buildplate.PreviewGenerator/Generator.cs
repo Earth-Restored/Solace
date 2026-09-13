@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
-using Solace.Common;
 using Solace.Common.Utils;
 using Solace.Buildplate.PreviewGenerator.Registry;
+using System.Text.Json;
 
 namespace Solace.Buildplate.PreviewGenerator;
 
@@ -125,7 +125,7 @@ public static partial class Generator
             []
         );
 
-        return Json.Serialize(previewModel);
+        return JsonSerializer.Serialize(previewModel, AppJsonContext.Default.PreviewModel);
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Could not convert chunk at ({PosX}, {PosZ})")]

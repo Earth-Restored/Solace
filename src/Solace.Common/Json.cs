@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
 
 namespace Solace.Common;
 
@@ -41,28 +40,13 @@ public static class Json
 
     [RequiresUnreferencedCode(SerializationUnreferencedCodeMessage)]
     [RequiresDynamicCode(SerializationRequiresDynamicCodeMessage)]
-    public static string Serialize<T>(T value, JsonSerializerOptions options)
-        => JsonSerializer.Serialize(value, options);
-
-    [RequiresUnreferencedCode(SerializationUnreferencedCodeMessage)]
-    [RequiresDynamicCode(SerializationRequiresDynamicCodeMessage)]
     public static T? Deserialize<T>(string json)
         => JsonSerializer.Deserialize<T>(json, deseralizeOptions);
 
     [RequiresUnreferencedCode(SerializationUnreferencedCodeMessage)]
     [RequiresDynamicCode(SerializationRequiresDynamicCodeMessage)]
-    public static T? Deserialize<T>(string json, JsonSerializerOptions options)
-        => JsonSerializer.Deserialize<T>(json, options);
-
-    [RequiresUnreferencedCode(SerializationUnreferencedCodeMessage)]
-    [RequiresDynamicCode(SerializationRequiresDynamicCodeMessage)]
     public static T? Deserialize<T>(Stream utf8Json)
         => JsonSerializer.Deserialize<T>(utf8Json, deseralizeOptions);
-
-    [RequiresUnreferencedCode(SerializationUnreferencedCodeMessage)]
-    [RequiresDynamicCode(SerializationRequiresDynamicCodeMessage)]
-    public static T? Deserialize<T>(Stream utf8Json, JsonTypeInfo<T> info)
-        => JsonSerializer.Deserialize<T>(utf8Json, info);
 
     [RequiresUnreferencedCode(SerializationUnreferencedCodeMessage)]
     [RequiresDynamicCode(SerializationRequiresDynamicCodeMessage)]

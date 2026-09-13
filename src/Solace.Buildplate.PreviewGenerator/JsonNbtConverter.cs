@@ -4,7 +4,7 @@ using Solace.Common.Exceptions;
 
 namespace Solace.Buildplate.PreviewGenerator;
 
-internal sealed class JsonNbtConverter
+public sealed class JsonNbtConverter
 {
     public static JsonNbtTag Convert(NbtMap tag)
     {
@@ -53,23 +53,26 @@ internal sealed class JsonNbtConverter
         }
     }
 
+    [JsonConverter(typeof(JsonStringEnumConverter<JsonNbtTagType>))]
+    public enum JsonNbtTagType
+    {
+#pragma warning disable CA1720 // Identifier contains type name
+        [JsonStringEnumMemberName("compound")] Compound,
+        [JsonStringEnumMemberName("list")] List,
+        [JsonStringEnumMemberName("int")] Int,
+        [JsonStringEnumMemberName("byte")] Byte,
+        [JsonStringEnumMemberName("float")] Float,
+        [JsonStringEnumMemberName("string")] String,
+#pragma warning restore CA1720 // Identifier contains type name
+    }
+
     public abstract class JsonNbtTag
     {
-        [JsonConverter(typeof(JsonStringEnumConverter<TypeE>))]
-        public enum TypeE
-        {
-            [JsonStringEnumMemberName("compound")] Compound,
-            [JsonStringEnumMemberName("list")] List,
-            [JsonStringEnumMemberName("int")] Int,
-            [JsonStringEnumMemberName("byte")] Byte,
-            [JsonStringEnumMemberName("float")] Float,
-            [JsonStringEnumMemberName("string")] String,
-        }
 
-        public readonly TypeE Type;
+        public readonly JsonNbtTagType Type;
         public readonly object Value;
 
-        protected JsonNbtTag(TypeE type, object value)
+        protected JsonNbtTag(JsonNbtTagType type, object value)
         {
             Type = type;
             Value = value;
@@ -79,7 +82,7 @@ internal sealed class JsonNbtConverter
     public sealed class CompoundJsonNbtTag : JsonNbtTag
     {
         public CompoundJsonNbtTag(Dictionary<string, JsonNbtTag> value)
-            : base(TypeE.Compound, value)
+            : base(JsonNbtTagType.Compound, value)
         {
         }
     }
@@ -87,7 +90,7 @@ internal sealed class JsonNbtConverter
     public sealed class ListJsonNbtTag : JsonNbtTag
     {
         public ListJsonNbtTag(JsonNbtTag[] value)
-            : base(TypeE.List, value)
+            : base(JsonNbtTagType.List, value)
         {
         }
     }
@@ -95,7 +98,7 @@ internal sealed class JsonNbtConverter
     public sealed class IntJsonNbtTag : JsonNbtTag
     {
         public IntJsonNbtTag(int value)
-            : base(TypeE.Int, value)
+            : base(JsonNbtTagType.Int, value)
         {
         }
     }
@@ -103,7 +106,7 @@ internal sealed class JsonNbtConverter
     public sealed class ByteJsonNbtTag : JsonNbtTag
     {
         public ByteJsonNbtTag(byte value)
-            : base(TypeE.Byte, value)
+            : base(JsonNbtTagType.Byte, value)
         {
         }
     }
@@ -111,7 +114,7 @@ internal sealed class JsonNbtConverter
     public sealed class FloatJsonNbtTag : JsonNbtTag
     {
         public FloatJsonNbtTag(float value)
-            : base(TypeE.Float, value)
+            : base(JsonNbtTagType.Float, value)
         {
         }
     }
@@ -119,7 +122,7 @@ internal sealed class JsonNbtConverter
     public sealed class StringJsonNbtTag : JsonNbtTag
     {
         public StringJsonNbtTag(string value)
-            : base(TypeE.String, value)
+            : base(JsonNbtTagType.String, value)
         {
         }
     }

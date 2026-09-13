@@ -1,6 +1,5 @@
 ﻿using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
-using Solace.Common;
 
 namespace Solace.Buildplate.PreviewGenerator.Utils;
 
@@ -10,7 +9,12 @@ public static partial class DataFile
     {
         try
         {
-            consumer(Json.Deserialize<JsonNode>(File.ReadAllText(path))!);
+            using var stream = File.OpenRead(path);
+            var node = JsonNode.Parse(stream);
+            if (node is not null)
+            {
+                consumer(node);
+            }
         }
         catch (Exception exception)
         {

@@ -155,7 +155,7 @@ internal sealed partial class Program2
         builder.Services.AddMemoryCache();
 
         builder.Services.AddSingleton<Features.Catalog.CatalogResponseCacheService>();
-        builder.Services.AddSingleton<Features.Catalog.GenoaResourcepackCache>();
+        builder.Services.AddSingleton<Features.Catalog.GenoaResourcepackCacheService>();
 
         builder.Services.AddOpenIddict()
             .AddCore(options =>

@@ -6,13 +6,13 @@ using Solace.StaticData;
 namespace Solace.WebPortal.Features.Catalog;
 
 // todo: optimize
-public sealed class GenoaResourcepackCache : IDisposable
+public sealed class GenoaResourcepackCacheService : IDisposable
 {
     private readonly StaticDataProvider _staticData;
     private readonly IMemoryCache _cache;
     private readonly SemaphoreSlim _lock = new(1, 1); // Lock does not work with async
 
-    public GenoaResourcepackCache(StaticDataProvider staticData, IMemoryCache cache)
+    public GenoaResourcepackCacheService(StaticDataProvider staticData, IMemoryCache cache)
     {
         _staticData = staticData;
         _cache = cache;

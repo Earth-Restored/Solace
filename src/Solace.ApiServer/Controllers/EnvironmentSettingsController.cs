@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Solace.ApiServer.Utils;
-using Solace.Common;
 
 namespace Solace.ApiServer.Controllers;
 
@@ -15,6 +14,12 @@ namespace Solace.ApiServer.Controllers;
 [ApiController]
 internal sealed class EnvironmentSettingsController : ControllerBase
 {
+    private static readonly JsonSerializerOptions jsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
+
     [HttpGet("features")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Endpoints cannot be static")]
     public ContentHttpResult Features()
@@ -62,11 +67,7 @@ internal sealed class EnvironmentSettingsController : ControllerBase
             ["paid_earned_rubies_enabled"] = true,
         });
 
-        var sResp = Json.Serialize(resp, new JsonSerializerOptions()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        });
+        var sResp = JsonSerializer.Serialize(resp, jsonOptions);
         return TypedResults.Content(sResp, "application/json");
     }
 
@@ -106,11 +107,7 @@ internal sealed class EnvironmentSettingsController : ControllerBase
             ["maximumpersonalcontinuouschallenges"] = 3
         });
 
-        var sResp = Json.Serialize(resp, new JsonSerializerOptions()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        });
+        var sResp = JsonSerializer.Serialize(resp, jsonOptions);
         return TypedResults.Content(sResp, "application/json");
     }
 }

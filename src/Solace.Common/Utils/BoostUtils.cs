@@ -9,52 +9,6 @@ namespace Solace.Common.Utils;
 
 internal static class BoostUtils
 {
-    // public static IEnumerable<Catalog.ItemsCatalogR.Item.BoostEffect> GetActiveEffects(BoostsEF boosts, DateTimeOffset currentTime, Catalog.ItemsCatalogR itemsCatalog)
-    // {
-    //     Dictionary<string, Catalog.ItemsCatalogR.Item.BoostInfoR> activeBoostsInfo = [];
-    //     foreach (var activeBoost in boosts.ActiveBoosts)
-    //     {
-    //         if (activeBoost is null)
-    //         {
-    //             continue;
-    //         }
-
-    //         if (activeBoost.StartTime + activeBoost.Duration < currentTime)
-    //         {
-    //             continue;
-    //         }
-
-    //         var item = itemsCatalog.GetItem(activeBoost.ItemId);
-    //         if (item is null || item.BoostInfo is null)
-    //         {
-    //             continue;
-    //         }
-
-    //         var existingBoostInfo = activeBoostsInfo.GetValueOrDefault(item.BoostInfo.Name);
-    //         if (existingBoostInfo is not null && existingBoostInfo.Level > item.BoostInfo.Level)
-    //         {
-    //             continue;
-    //         }
-
-    //         activeBoostsInfo[item.BoostInfo.Name] = item.BoostInfo;
-    //     }
-
-    //     foreach (var boostInfo in activeBoostsInfo.Values)
-    //     {
-    //         foreach (var effect in boostInfo.Effects
-    //             .Where(effect => effect.Activation switch
-    //             {
-    //                 CICIBIEActivation.INSTANT => false,
-    //                 CICIBIEActivation.TRIGGERED => true,
-    //                 CICIBIEActivation.TIMED => true, // already filtered for expiry time above
-    //                 _ => throw new UnreachableException(),
-    //             }))
-    //         {
-    //             yield return effect;
-    //         }
-    //     }
-    // }
-
     public static IEnumerable<Catalog.ItemsCatalogR.Item.BoostEffect> GetActiveEffects(BoostsEF boosts, DateTimeOffset currentTime, Catalog catalog)
     {
         Dictionary<string, Catalog.ItemsCatalogR.Item.BoostInfoR> activeBoostsInfo = [with(StringComparer.Ordinal)];

@@ -17,7 +17,7 @@ public static partial class GetItemTexture
 
     private static async ValueTask<Results<FileContentHttpResult, NotFound, UnauthorizedHttpResult, ForbidHttpResult>> HandleAsync(
         Query query,
-        GenoaResourcepackCache resourcepackCache,
+        GenoaResourcepackCacheService resourcepackCache,
         IHttpContextAccessor httpContextAccessor,
         CancellationToken cancellationToken
     )

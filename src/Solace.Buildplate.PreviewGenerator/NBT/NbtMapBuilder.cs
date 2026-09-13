@@ -51,7 +51,7 @@ public sealed class NbtMapBuilder : IDictionary<string, object>, IReadOnlyDictio
         => _map.Clear();
 
     public bool Contains(KeyValuePair<string, object> item)
-        => _map.Contains(item);
+        => _map.TryGetValue(item.Key, out var val) && Equals(val, item.Value);
 
     public bool ContainsKey(string key)
         => _map.ContainsKey(key);

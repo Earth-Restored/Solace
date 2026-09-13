@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Reflection;
 
 namespace Solace.Buildplate.PreviewGenerator.Utils;
 
@@ -17,17 +16,24 @@ public static class ObjectUtils
             return false;
         }
 
-        var type1 = obj1.GetType();
-        var type2 = obj2.GetType();
-
-        if (type1 != type2)
+        if (obj1 is byte[] b1 && obj2 is byte[] b2)
         {
-            return false;
+            return b1.AsSpan().SequenceEqual(b2);
         }
 
-        if (type1.IsPrimitive || obj1 is string)
+        if (obj1 is int[] i1 && obj2 is int[] i2)
         {
-            return obj1.Equals(obj2);
+            return i1.AsSpan().SequenceEqual(i2);
+        }
+
+        if (obj1 is long[] l1 && obj2 is long[] l2)
+        {
+            return l1.AsSpan().SequenceEqual(l2);
+        }
+
+        if (obj1.Equals(obj2))
+        {
+            return true;
         }
 
         if (obj1 is IEnumerable enumerable1 && obj2 is IEnumerable enumerable2)
@@ -35,29 +41,31 @@ public static class ObjectUtils
             var enumerator1 = enumerable1.GetEnumerator();
             var enumerator2 = enumerable2.GetEnumerator();
 
-            while (enumerator1.MoveNext() && enumerator2.MoveNext())
+            try
             {
-                if (!DeepEquals(enumerator1.Current, enumerator2.Current))
+                while (enumerator1.MoveNext())
                 {
-                    return false;
+                    if (!enumerator2.MoveNext())
+                    {
+                        return false;
+                    }
+
+                    if (!DeepEquals(enumerator1.Current, enumerator2.Current))
+                    {
+                        return false;
+                    }
                 }
+
+                return !enumerator2.MoveNext();
             }
-
-            return !(enumerator1.MoveNext() || enumerator2.MoveNext());
-        }
-
-        foreach (var property in type1.GetProperties(BindingFlags.Public | BindingFlags.Instance))
-        {
-            var value1 = property.GetValue(obj1);
-            var value2 = property.GetValue(obj2);
-
-            if (!DeepEquals(value1, value2))
+            finally
             {
-                return false;
+                (enumerator1 as IDisposable)?.Dispose();
+                (enumerator2 as IDisposable)?.Dispose();
             }
         }
 
-        return true;
+        return false;
     }
 
     public static int GetDeepHashCode(object? obj)
@@ -67,14 +75,36 @@ public static class ObjectUtils
             return 0;
         }
 
-        var type = obj.GetType();
-
-        if (type.IsPrimitive || obj is string)
+        if (obj is byte[] bytes)
         {
-            return obj.GetHashCode();
+            var hash = new HashCode();
+            hash.AddBytes(bytes);
+            return hash.ToHashCode();
         }
 
-        if (obj is IEnumerable enumerable)
+        if (obj is int[] ints)
+        {
+            var hash = new HashCode();
+            foreach (var item in ints)
+            {
+                hash.Add(item);
+            }
+
+            return hash.ToHashCode();
+        }
+
+        if (obj is long[] longs)
+        {
+            var hash = new HashCode();
+            foreach (var item in longs)
+            {
+                hash.Add(item);
+            }
+
+            return hash.ToHashCode();
+        }
+
+        if (obj is IEnumerable enumerable and not string)
         {
             var hash = new HashCode();
             foreach (var item in enumerable)
@@ -85,14 +115,6 @@ public static class ObjectUtils
             return hash.ToHashCode();
         }
 
-        var propertyHash = new HashCode();
-        var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        foreach (var property in properties)
-        {
-            var val = property.GetValue(obj);
-            propertyHash.Add(GetDeepHashCode(val));
-        }
-
-        return propertyHash.ToHashCode();
+        return obj.GetHashCode();
     }
 }

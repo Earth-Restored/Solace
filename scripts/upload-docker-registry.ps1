@@ -182,7 +182,7 @@ function Push-Project {
         [string[]]$Architectures = @("x64", "arm64", "arm32"),
         [string]$Username = $script:Username,
         [string]$Registry = $script:Registry,
-        [int]$MaxRetries = 1,
+        [int]$MaxRetries = 3,
         [int]$WaitSeconds = 10
     )
 
@@ -474,7 +474,7 @@ $projectList = @(
     [pscustomobject]@{ProjectName = 'Solace.ObjectStore.Server'; PackageName = 'object-store'; AOT = $true; RequiresJava = $false }
     [pscustomobject]@{ProjectName = 'Solace.Buildplate.ServerSetup'; PackageName = 'buildplate-server-setup'; AOT = $true; RequiresJava = $true }
     [pscustomobject]@{ProjectName = 'Solace.Buildplate.Updater'; PackageName = 'buildplate-updater'; AOT = $true; RequiresJava = $true }
-    [pscustomobject]@{ProjectName = 'Solace.Buildplate.Launcher'; PackageName = 'buildplate-launcher'; AOT = $false; RequiresJava = $true }
+    [pscustomobject]@{ProjectName = 'Solace.Buildplate.Launcher'; PackageName = 'buildplate-launcher'; AOT = $true; RequiresJava = $true }
     [pscustomobject]@{ProjectName = 'Solace.ApiServer'; PackageName = 'api-server'; AOT = $false; RequiresJava = $false }
     [pscustomobject]@{ProjectName = 'Solace.Cdn'; PackageName = 'cdn'; AOT = $false; RequiresJava = $false }
     [pscustomobject]@{ProjectName = 'Solace.AuthServer'; PackageName = 'auth-server'; AOT = $false; RequiresJava = $false }
