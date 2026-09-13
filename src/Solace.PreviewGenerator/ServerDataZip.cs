@@ -48,8 +48,15 @@ internal sealed class ServerDataZip
         ms.Seek(offset * 4096, SeekOrigin.Begin);
 
         var length = (int)reader.ReadUInt32BE();
+        if (length < 1)
+        {
+            throw new IOException($"Invalid chunk length {length}");
+        }
+
         var compressionType = reader.ReadByte();
-        var compressed = new byte[length];
+
+        // length includes the compression type
+        var compressed = new byte[length - 1];
         ms.ReadExactly(compressed);
         byte[] uncompressed;
         switch (compressionType)
