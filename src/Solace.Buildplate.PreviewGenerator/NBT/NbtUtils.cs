@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Solace.PreviewGenerator.NBT;
+namespace Solace.Buildplate.PreviewGenerator.NBT;
 
 public static class NbtUtils
 {

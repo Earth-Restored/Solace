@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Reflection;
 
-namespace Solace.PreviewGenerator.Utils;
+namespace Solace.Buildplate.PreviewGenerator.Utils;
 
 public static class ObjectUtils
 {

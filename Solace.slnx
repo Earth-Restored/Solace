@@ -8,6 +8,7 @@
   <Project Path="src/Solace.AuthServer/Solace.AuthServer.csproj" />
   <Project Path="src/Solace.Buildplate.Common/Solace.Buildplate.Common.csproj" />
   <Project Path="src/Solace.Buildplate.Launcher/Solace.Buildplate.Launcher.csproj" />
+  <Project Path="src/Solace.Buildplate.PreviewGenerator/Solace.Buildplate.PreviewGenerator.csproj" />
   <Project Path="src/Solace.Buildplate.ServerSetup/Solace.Buildplate.ServerSetup.csproj" />
   <Project Path="src/Solace.Buildplate.Updater/Solace.Buildplate.Updater.csproj" />
   <Project Path="src/Solace.BuildplateImporter/Solace.BuildplateImporter.csproj" />
@@ -25,7 +26,6 @@
   <Project Path="src/Solace.Locator/Solace.Locator.csproj" />
   <Project Path="src/Solace.ObjectStore.Client/Solace.ObjectStore.Client.csproj" />
   <Project Path="src/Solace.ObjectStore.Server/Solace.ObjectStore.Server.csproj" />
-  <Project Path="src/Solace.PreviewGenerator/Solace.PreviewGenerator.csproj" />
   <Project Path="src/Solace.ServiceDefaults/Solace.ServiceDefaults.csproj" />
   <Project Path="src/Solace.StaticData/Solace.StaticData.csproj" />
   <Project Path="src/Solace.TappablesGenerator/Solace.TappablesGenerator.csproj" />

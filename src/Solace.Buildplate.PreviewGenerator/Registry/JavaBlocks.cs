@@ -2,10 +2,10 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
-using Solace.PreviewGenerator.NBT;
-using Solace.PreviewGenerator.Utils;
+using Solace.Buildplate.PreviewGenerator.NBT;
+using Solace.Buildplate.PreviewGenerator.Utils;
 
-namespace Solace.PreviewGenerator.Registry;
+namespace Solace.Buildplate.PreviewGenerator.Registry;
 
 public static partial class JavaBlocks
 {

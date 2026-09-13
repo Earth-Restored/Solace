@@ -1,6 +1,6 @@
 ﻿using Cyotek.Data.Nbt;
 
-namespace Solace.PreviewGenerator.BlockEntity;
+namespace Solace.Buildplate.PreviewGenerator.BlockEntity;
 
 public sealed class BlockEntityInfo
 {

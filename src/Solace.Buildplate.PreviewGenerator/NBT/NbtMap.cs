@@ -1,8 +1,8 @@
 ﻿using System.Text;
 using System.Text.Json.Serialization;
-using Solace.PreviewGenerator.Utils;
+using Solace.Buildplate.PreviewGenerator.Utils;
 
-namespace Solace.PreviewGenerator.NBT;
+namespace Solace.Buildplate.PreviewGenerator.NBT;
 
 #pragma warning disable CA1708 // Identifiers should differ by more than case
 public sealed class NbtMap// : IDictionary<string, object>

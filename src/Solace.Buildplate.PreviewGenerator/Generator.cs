@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
 using Solace.Common;
 using Solace.Common.Utils;
-using Solace.PreviewGenerator.Registry;
+using Solace.Buildplate.PreviewGenerator.Registry;
 
-namespace Solace.PreviewGenerator;
+namespace Solace.Buildplate.PreviewGenerator;
 
 public static partial class Generator
 {

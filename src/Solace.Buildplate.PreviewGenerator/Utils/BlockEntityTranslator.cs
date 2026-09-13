@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
-using Solace.PreviewGenerator.BlockEntity;
-using Solace.PreviewGenerator.NBT;
-using Solace.PreviewGenerator.Registry;
+using Solace.Buildplate.PreviewGenerator.BlockEntity;
+using Solace.Buildplate.PreviewGenerator.NBT;
+using Solace.Buildplate.PreviewGenerator.Registry;
 
-namespace Solace.PreviewGenerator.Utils;
+namespace Solace.Buildplate.PreviewGenerator.Utils;
 
 public static partial class BlockEntityTranslator
 {

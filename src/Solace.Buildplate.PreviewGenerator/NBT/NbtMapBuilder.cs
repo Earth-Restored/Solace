@@ -2,7 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Solace.Common.Utils;
 
-namespace Solace.PreviewGenerator.NBT;
+namespace Solace.Buildplate.PreviewGenerator.NBT;
 
 #pragma warning disable CA1710 // Identifiers should have correct suffix
 public sealed class NbtMapBuilder : IDictionary<string, object>, IReadOnlyDictionary<string, object>

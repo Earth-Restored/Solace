@@ -1,12 +1,12 @@
 ﻿using System.Globalization;
 using Cyotek.Data.Nbt;
 using Microsoft.Extensions.Logging;
-using Solace.PreviewGenerator.BlockEntity;
-using Solace.PreviewGenerator.NBT;
-using Solace.PreviewGenerator.Registry;
-using Solace.PreviewGenerator.Utils;
+using Solace.Buildplate.PreviewGenerator.BlockEntity;
+using Solace.Buildplate.PreviewGenerator.NBT;
+using Solace.Buildplate.PreviewGenerator.Registry;
+using Solace.Buildplate.PreviewGenerator.Utils;
 
-namespace Solace.PreviewGenerator;
+namespace Solace.Buildplate.PreviewGenerator;
 
 internal sealed partial class Chunk
 {

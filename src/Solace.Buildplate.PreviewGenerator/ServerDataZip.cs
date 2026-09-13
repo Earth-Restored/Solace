@@ -2,7 +2,7 @@
 using Cyotek.Data.Nbt;
 using Solace.Common.Utils;
 
-namespace Solace.PreviewGenerator;
+namespace Solace.Buildplate.PreviewGenerator;
 
 internal sealed class ServerDataZip
 {

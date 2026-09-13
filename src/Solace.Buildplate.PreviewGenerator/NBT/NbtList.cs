@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Text.Json.Serialization;
 
-namespace Solace.PreviewGenerator.NBT;
+namespace Solace.Buildplate.PreviewGenerator.NBT;
 
 #pragma warning disable CA1010 // Generic interface should also be implemented
 public sealed class NbtList : IList, IList<object?>

@@ -1,4 +1,4 @@
-﻿namespace Solace.PreviewGenerator.BlockEntity;
+﻿namespace Solace.Buildplate.PreviewGenerator.BlockEntity;
 
 public enum BlockEntityType : int
 {

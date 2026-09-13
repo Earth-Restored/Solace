@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Solace.Common;
 
-namespace Solace.PreviewGenerator.Utils;
+namespace Solace.Buildplate.PreviewGenerator.Utils;
 
 public static partial class DataFile
 {

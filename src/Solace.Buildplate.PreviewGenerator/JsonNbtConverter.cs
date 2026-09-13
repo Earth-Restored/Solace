@@ -1,8 +1,8 @@
 ﻿using System.Text.Json.Serialization;
+using Solace.Buildplate.PreviewGenerator.NBT;
 using Solace.Common.Exceptions;
-using Solace.PreviewGenerator.NBT;
 
-namespace Solace.PreviewGenerator;
+namespace Solace.Buildplate.PreviewGenerator;
 
 internal sealed class JsonNbtConverter
 {

@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using Microsoft.Extensions.Logging;
 using Solace.Common;
-using Solace.PreviewGenerator.Registry;
+using Solace.Buildplate.PreviewGenerator.Registry;
 
 namespace Solace.Buildplate.Launcher;
 
@@ -17,7 +17,7 @@ internal static partial class PreviewGenerator
         {
             using (var ms = new MemoryStream(serverData))
             {
-                previewString = Solace.PreviewGenerator.Generator.Generate(ms, logger);
+                previewString = Solace.Buildplate.PreviewGenerator.Generator.Generate(ms, logger);
             }
         }
         catch (Exception exception)
