@@ -52,7 +52,7 @@ public sealed class FileLock
             try
             {
                 // FileOptions.DeleteOnClose does not work in docker
-                lockFileStream = new FileStream(_file.Value, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, bufferSize: 1, FileOptions.None);
+                lockFileStream = new FileStream(_file.Value, FileMode.OpenOrCreate, FileAccess.Read, FileShare.None, bufferSize: 1, FileOptions.None);
             }
             catch (UnauthorizedAccessException)
             {

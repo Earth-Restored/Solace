@@ -21,11 +21,12 @@ You will need your local IP address so the patched app can connect to your serve
 2. Extract the ZIP file. *(Note for Windows users: Avoid extracting to a OneDrive-backed folder).*
 3. Open a terminal inside the extracted directory.
 4. Run the setup script: `dotnet setup.cs`
-5. Start the server by running `.\up.ps1` (Windows) or `./up.sh` (Linux/macOS).
-6. Check logs with `docker compose logs web-portal`. Scroll up until you see `"SETUP: Initial owner account created!"` along with the admin email and password.
+5. If you expect iOS clients, change `Authentication__LocalLoginOnly` inside `docker-compose.yaml` to `"False"`, note that this makes the server insecure
+6. Start the server by running `.\up.ps1` (Windows) or `./up.sh` (Linux/macOS).
+7. Check logs with `docker compose logs web-portal`. Scroll up until you see `"SETUP: Initial owner account created!"` along with the admin email and password.
    * *If you forget these credentials later, reset them by setting `WEBPORTAL_ADMINACCOUNTPASSWORD` in your `.env` file.*
-7. Open `http://localhost/` in a browser and log in with the admin credentials.
-8. **Recommended:** Create a separate account for in-game sign-in. New accounts have no permissions by default; use your admin account to create roles and assign them to users.
+8. Open `http://localhost/` in a browser and log in with the admin credentials.
+9. **Recommended:** Create a separate account for in-game sign-in. New accounts have no permissions by default; use your admin account to create roles and assign them to users.
 
 To stop the server, run `.\down.ps1` (Windows) or `./down.sh` (Linux/macOS).
 

@@ -1,0 +1,3 @@
+<Project>
+  <!-- Prevents MSBuild from importing parent Directory.Build.props & Directory.Packages.props -->
+</Project>

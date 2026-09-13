@@ -1,6 +1,6 @@
 #!/usr/bin/env -S dotnet --
-#:package Spectre.Console
-#:package YamlDotNet
+#:package Spectre.Console@0.57.2
+#:package YamlDotNet@18.1.0
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -12,6 +12,8 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Spectre.Console;
 using YamlDotNet.Serialization;
+
+#pragma warning disable
 
 AnsiConsole.Write(new FigletText("Solace Setup").LeftJustified().Color(Color.Green));
 AnsiConsole.MarkupLine("[bold cyan]Welcome to the Solace Setup Script[/]");
@@ -177,7 +179,7 @@ await AnsiConsole.Status()
 
             static void SetReadWrite(string path)
             {
-                var allReadWrite = UnixFileMode.UserRead | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
+                var allReadWrite = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
 
                 Directory.CreateDirectory(path);
                 File.SetUnixFileMode(path, File.GetUnixFileMode(path) | allReadWrite);
@@ -596,6 +598,7 @@ internal sealed class EnvFile
         if (!exists)
         {
             node = new KeyNode(key, value, comment);
+            _nodes.Add(node);
             return;
         }
 
