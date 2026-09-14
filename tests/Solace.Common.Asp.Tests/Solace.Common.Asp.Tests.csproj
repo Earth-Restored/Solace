@@ -12,8 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Solace.Common.Asp\Solace.Common.Asp.csproj" />
-    <ProjectReference Include="..\..\src\Solace.Db.Earth\Solace.Db.Earth.csproj" />
+    <ProjectReference Include="../../src/Solace.Common.Asp/Solace.Common.Asp.csproj" />
+    <ProjectReference Include="../../src/Solace.Db.Earth/Solace.Db.Earth.csproj" />
   </ItemGroup>
 
 </Project>

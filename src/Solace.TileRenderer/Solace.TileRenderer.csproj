@@ -10,7 +10,7 @@
   <Target Name="MoveDependenciesToShared" AfterTargets="Publish" Condition="'$(UseSharedLibs)' == 'true'">
 
     <PropertyGroup>
-      <SharedLibsDir>$([System.IO.Path]::GetFullPath('$(PublishDir)..\shared_libs'))\</SharedLibsDir>
+      <SharedLibsDir>$([System.IO.Path]::GetFullPath('$(PublishDir)../shared_libs'))/</SharedLibsDir>
     </PropertyGroup>
 
     <ItemGroup>
@@ -53,8 +53,8 @@
 
   <ItemGroup>
     <ProjectReference Include="../Solace.ServiceDefaults/Solace.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\Solace.EventBus.Client\Solace.EventBus.Client.csproj" />
-    <ProjectReference Include="..\Solace.StaticData\Solace.StaticData.csproj" />
+    <ProjectReference Include="../Solace.EventBus.Client/Solace.EventBus.Client.csproj" />
+    <ProjectReference Include="../Solace.StaticData/Solace.StaticData.csproj" />
   </ItemGroup>
 
   <ItemGroup>

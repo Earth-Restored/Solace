@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Solace.EventBus.Client\Solace.EventBus.Client.csproj" />
-    <ProjectReference Include="..\..\src\Solace.EventBus.Server\Solace.EventBus.Server.csproj" />
+    <ProjectReference Include="../../src/Solace.EventBus.Client/Solace.EventBus.Client.csproj" />
+    <ProjectReference Include="../../src/Solace.EventBus.Server/Solace.EventBus.Server.csproj" />
   </ItemGroup>
 
 </Project>

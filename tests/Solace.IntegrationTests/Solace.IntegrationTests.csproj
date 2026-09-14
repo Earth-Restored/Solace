@@ -8,7 +8,7 @@
   <ItemGroup>
     <Content Include="./../../staticdata/**/*">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <Link>staticdata\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <Link>staticdata/%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Content>
   </ItemGroup>
 

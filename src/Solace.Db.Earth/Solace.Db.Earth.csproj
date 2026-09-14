@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Solace.Common\Solace.Common.csproj" />
+    <ProjectReference Include="../Solace.Common/Solace.Common.csproj" />
   </ItemGroup>
 
 </Project>

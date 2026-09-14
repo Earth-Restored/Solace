@@ -10,7 +10,7 @@
   <Target Name="MoveDependenciesToShared" AfterTargets="Publish" Condition="'$(UseSharedLibs)' == 'true'">
 
     <PropertyGroup>
-      <SharedLibsDir>$([System.IO.Path]::GetFullPath('$(PublishDir)..\shared_libs'))\</SharedLibsDir>
+      <SharedLibsDir>$([System.IO.Path]::GetFullPath('$(PublishDir)../shared_libs'))/</SharedLibsDir>
     </PropertyGroup>
 
     <ItemGroup>
