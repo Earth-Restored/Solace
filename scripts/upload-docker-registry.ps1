@@ -256,9 +256,11 @@ COPY --from=build /opt/java/openjdk /opt/java/openjdk
 FROM --platform=`$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0-preview-aot AS build
 ARG BUILDARCH
 
-RUN --mount=type=cache,id=apt-cache-`$BUILDARCH,target=/var/cache/apt \
-    --mount=type=cache,id=apt-lists-`$BUILDARCH,target=/var/lib/apt/lists \
+RUN --mount=type=cache,id=apt-cache-`$BUILDARCH,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=apt-lists-`$BUILDARCH,target=/var/lib/apt/lists,sharing=locked \
     --mount=type=bind,source=.cache/docker/zig,target=/var/cache/zig \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache && \
     apt-get update && apt-get install -y --no-install-recommends \
     xz-utils \
     llvm \
@@ -283,8 +285,8 @@ $csprojCopyCommands
 
 ARG TARGETARCH
 
-RUN --mount=type=cache,id=nuget-packages-v3,target=/root/.nuget/packages,sharing=locked \
-    --mount=type=cache,id=nuget-v3-cache-v3,target=/root/.local/share/NuGet/v3-cache,sharing=locked \
+RUN --mount=type=cache,id=nuget-packages,target=/root/.nuget/packages,sharing=locked \
+    --mount=type=cache,id=nuget-local-share,target=/root/.local/share/NuGet,sharing=locked \
     case "`$TARGETARCH" in \
         "amd64") RID="linux-x64" ;; \
         "arm64") RID="linux-arm64" ;; \
@@ -298,8 +300,8 @@ RUN --mount=type=cache,id=nuget-packages-v3,target=/root/.nuget/packages,sharing
 
 COPY . .
 
-RUN --mount=type=cache,id=nuget-packages-v3,target=/root/.nuget/packages,sharing=locked \
-    --mount=type=cache,id=nuget-v3-cache-v3,target=/root/.local/share/NuGet/v3-cache,sharing=locked \
+RUN --mount=type=cache,id=nuget-packages,target=/root/.nuget/packages,sharing=locked \
+    --mount=type=cache,id=nuget-local-share,target=/root/.local/share/NuGet,sharing=locked \
     case "`$TARGETARCH" in \
         "amd64") ZIG_TARGET="x86_64-linux-gnu.2.34"    RID="linux-x64" ;; \
         "arm64") ZIG_TARGET="aarch64-linux-gnu.2.34"   RID="linux-arm64" ;; \
@@ -351,8 +353,8 @@ $csprojCopyCommands
 
 ARG TARGETARCH
 
-RUN --mount=type=cache,id=nuget-packages-v3,target=/root/.nuget/packages,sharing=locked \
-    --mount=type=cache,id=nuget-v3-cache-v3,target=/root/.local/share/NuGet/v3-cache,sharing=locked \
+RUN --mount=type=cache,id=nuget-packages,target=/root/.nuget/packages,sharing=locked \
+    --mount=type=cache,id=nuget-local-share,target=/root/.local/share/NuGet,sharing=locked \
     case "`$TARGETARCH" in \
         "amd64") RID="linux-x64" ;; \
         "arm64") RID="linux-arm64" ;; \
@@ -365,8 +367,8 @@ COPY . .
 
 ARG TARGETARCH
 
-RUN --mount=type=cache,id=nuget-packages-v3,target=/root/.nuget/packages,sharing=locked \
-    --mount=type=cache,id=nuget-v3-cache-v3,target=/root/.local/share/NuGet/v3-cache,sharing=locked \
+RUN --mount=type=cache,id=nuget-packages,target=/root/.nuget/packages,sharing=locked \
+    --mount=type=cache,id=nuget-local-share,target=/root/.local/share/NuGet,sharing=locked \
     case "`$TARGETARCH" in \
         "amd64") RID="linux-x64" ;; \
         "arm64") RID="linux-arm64" ;; \
@@ -423,7 +425,7 @@ ENTRYPOINT ["dotnet", "$executableName.dll"]
                     "/p:EventSourceSupport=false",
                     "/p:HttpActivityPropagationSupport=false",
                     "/p:MetadataUpdaterSupport=false",
-                    "/p:EFCoreCompileQueries=false", # pretty broken, does not respect lang version for some reason (does not recognize [with(...)]), todo: enabled when it's fixed, same for the three bellow
+                    "/p:EFCoreCompileQueries=false",  # pretty broken, does not respect lang version for some reason (does not recognize [with(...)]), todo: enabled when it's fixed, same for the three bellow
                     "/p:EFCorePrecompileQueries=false",
                     "/p:EFPrecompileQueriesStage=None",
                     "/p:EFScaffoldModelStage=None",
