@@ -1,6 +1,7 @@
 @page "/Data"
 @using Microsoft.AspNetCore.Authorization
 @using System.Security.Claims
+@using System.Net
 @using System.Net.Http.Json
 @using Solace.WebPortal.Common
 @using Solace.WebPortal.Common.Features.Data
@@ -10,6 +11,7 @@
 @inject HttpClient Http
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JS
+@inject AntiforgeryStateProvider AntiforgeryStateProvider
 @inject ILogger<DataManagement> Logger
 
 <PageTitle>Data - Solace</PageTitle>
@@ -79,7 +81,7 @@
             <div class="card-body">
                 <p class="text-muted mb-3">Backup your current server data.</p>
                 <button class="btn btn-outline-primary" @onclick="ExportData">
-                    <i class="bi bi-download"></i> Export Data
+                    <i class="bi bi-download me-1"></i> Export Data
                 </button>
             </div>
         </div>
@@ -92,26 +94,14 @@
                 <h5 class="mb-0">Edit Data</h5>
             </div>
             <div class="card-body">
-                <section class="mb-2">
-                    <h6><i class="bi bi-file-earmark-zip"></i> Import Data</h6>
-                    <p class="small text-muted">
-                        Upload a backup ZIP file to import server data.
+                <section class="mb-4">
+                    <h6><i class="bi bi-file-earmark-zip me-1"></i> Import Data</h6>
+                    <p class="small text-muted mb-3">
+                        Upload a backup ZIP file to restore or update server data.
                     </p>
-
-                    <div class="input-group">
-                        <InputFile @key="_inputFileId" OnChange="HandleFileSelected" class="form-control" accept=".zip" />
-                        @if (_selectedFile is not null)
-                        {
-                            <button class="btn btn-primary" @onclick="InitiateImport">
-                                <i class="bi bi-cloud-upload"></i> Upload & Process
-                            </button>
-                        }
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(_uploadError))
-                    {
-                        <div class="text-danger small mt-2">@_uploadError</div>
-                    }
+                    <button class="btn btn-primary" @onclick="OpenImportModal">
+                        <i class="bi bi-cloud-upload me-1"></i> Import Data
+                    </button>
                 </section>
 
                 <hr />
@@ -119,7 +109,7 @@
                 <section class="mt-2">
                     <h6 class="text-danger"><i class="bi bi-exclamation-triangle"></i> Danger Zone</h6>
                     <p class="small text-muted">
-                        Deleting all server data is a permanent action and cannot be undone. This will wipe EarthDb, WebPortalDb, and the object store.
+                        Deleting all server data is a permanent action and cannot be undone.
                     </p>
 
                     @if (!_isConfirmingDelete)
@@ -152,6 +142,109 @@
     }
 </div>
 
+@if (_showImportModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-earmark-zip me-2 text-primary"></i>Import Data
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseImportModal" disabled="@_isImporting" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <fieldset disabled="@_isImporting">
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Backup File (.zip)</label>
+                            <InputFile @key="_inputFileId" OnChange="HandleFileSelected" class="form-control" accept=".zip" />
+
+                            @if (_selectedFile is not null)
+                            {
+                                <div class="form-text text-success small mt-2 d-flex align-items-center">
+                                    <i class="bi bi-check-circle-fill me-1"></i>
+                                    Ready to upload: <strong>@_selectedFile.Name</strong> &nbsp;(@FormatBytes(_selectedFile.Size))
+                                </div>
+                            }
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold d-block mb-2">Conflict Resolution Strategy</label>
+                            <div class="d-flex flex-column gap-2">
+                                <label class="conflict-option p-3 rounded d-flex align-items-start @(_conflictResolution == DataConflictResolution.Ignore ? "selected-ignore" : "")">
+                                    <input class="form-check-input flex-shrink-0 mt-1 me-3" type="radio" name="conflict-resolution-modal" checked="@(_conflictResolution == DataConflictResolution.Ignore)" @onchange="() => _conflictResolution = DataConflictResolution.Ignore" />
+                                    <div>
+                                        <div class="fw-semibold text-primary">
+                                            <i class="bi bi-shield-check me-1"></i> Ignore Existing Records
+                                        </div>
+                                        <div class="small text-muted mt-1">
+                                            Skip records that already exist in the database. Only missing or new entities will be added.
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <label class="conflict-option p-3 rounded d-flex align-items-start @(_conflictResolution == DataConflictResolution.Overwrite ? "selected-overwrite" : "")">
+                                    <input class="form-check-input flex-shrink-0 mt-1 me-3" type="radio" name="conflict-resolution-modal" checked="@(_conflictResolution == DataConflictResolution.Overwrite)" @onchange="() => _conflictResolution = DataConflictResolution.Overwrite" />
+                                    <div>
+                                        <div class="fw-semibold text-danger">
+                                            <i class="bi bi-arrow-repeat me-1"></i> Overwrite Existing Records
+                                        </div>
+                                        <div class="small text-muted mt-1">
+                                            Replace existing records with matching keys from the ZIP backup. Existing field values will be overwritten.
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    @if (_isImporting)
+                    {
+                        <div class="mt-4 pt-2 border-top">
+                            <div class="d-flex justify-content-between small text-muted mb-1 fw-semibold">
+                                <span>@_importStageText</span>
+                                <span>@($"{_importProgressPercent:F0}%") (@FormatBytes(_bytesUploaded) / @FormatBytes(_totalBytesToUpload))</span>
+                            </div>
+                            <div class="progress" style="height: 12px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                                     role="progressbar"
+                                     style="width: @_importProgressPercent.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%"
+                                     aria-valuenow="@_importProgressPercent"
+                                     aria-valuemin="0"
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(_uploadError))
+                    {
+                        <div class="alert alert-danger d-flex align-items-center mt-3 mb-0" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <div>@_uploadError</div>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" disabled="@_isImporting" @onclick="CloseImportModal">Cancel</button>
+                    <button type="button" class="btn btn-primary" disabled="@(_selectedFile is null || _isImporting)" @onclick="InitiateImport">
+                        @if (_isImporting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            <span>Importing...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-cloud-upload me-1"></i>
+                            <span>Start Import</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @if (_isProcessing)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.7); z-index: 1060;">
@@ -172,21 +265,28 @@
 @code {
     private ClaimsPrincipal? _user;
 
-    // View states - Delete
+    // View states - Delete/Export
     private bool _isConfirmingDelete = false;
     private bool _canConfirmDelete = false;
     private int _countdown = 5;
-
-    // View states - Import/Export
     private bool _isProcessing = false;
     private string _processingAction = "";
     private string? _errorMessage;
 
+    // View states - Import Modal
+    private bool _showImportModal = false;
+    private bool _isImporting = false;
+    private double _importProgressPercent = 0;
+    private long _bytesUploaded = 0;
+    private long _totalBytesToUpload = 0;
+    private string _importStageText = "";
+
     private Guid _inputFileId = Guid.NewGuid();
 
-    // Import
+    // Import inputs
     private IBrowserFile? _selectedFile;
     private string? _uploadError;
+    private DataConflictResolution _conflictResolution = DataConflictResolution.Ignore;
 
     // Sizes
     private long _earthDbB = -1;
@@ -283,10 +383,12 @@
 
         try
         {
-            // todo:
-#pragma warning disable BL0016
-            await JS.InvokeVoidAsync("alert", "Not implemented.");
-#pragma warning restore BL0016
+            await JS.InvokeVoidAsync("triggerFileDownload", "solace-data-export.zip", "api/data/export");
+        }
+        catch (Exception exception)
+        {
+            _errorMessage = "An unexpected error occurred during data export.";
+            Logger.LogError(exception, "Error occurred in ExportData.");
         }
         finally
         {
@@ -294,29 +396,105 @@
         }
     }
 
-    private async Task InitiateImport()
+    private void OpenImportModal()
     {
-        if (_selectedFile is null)
+        _uploadError = null;
+        _selectedFile = null;
+        _conflictResolution = DataConflictResolution.Ignore;
+        _inputFileId = Guid.NewGuid();
+        _isImporting = false;
+        _importProgressPercent = 0;
+        _bytesUploaded = 0;
+        _totalBytesToUpload = 0;
+        _showImportModal = true;
+    }
+
+    private void CloseImportModal()
+    {
+        if (_isImporting)
         {
             return;
         }
 
-        _isProcessing = true;
-        _processingAction = "Uploading & Importing Data";
+        _showImportModal = false;
+        _selectedFile = null;
+        _uploadError = null;
+    }
+
+    private async Task InitiateImport()
+    {
+        if (_selectedFile is null || _isImporting)
+        {
+            return;
+        }
+
+        _isImporting = true;
+        _uploadError = null;
+        _importProgressPercent = 0;
+        _bytesUploaded = 0;
+        _totalBytesToUpload = _selectedFile.Size;
+        _importStageText = "Uploading backup archive...";
 
         try
         {
-            // todo:
-#pragma warning disable BL0016
-            await JS.InvokeVoidAsync("alert", "Not implemented.");
-#pragma warning restore BL0016
+            var token = AntiforgeryStateProvider.GetAntiforgeryToken();
+
+            using var content = new MultipartFormDataContent();
+            await using var fileStream = _selectedFile.OpenReadStream(1024L * 1024L * 1024L);
+
+            var progressContent = new ProgressStreamContent(
+                fileStream,
+                _selectedFile.Size,
+                81920,
+                (uploaded, total) =>
+                {
+                    _bytesUploaded = uploaded;
+                    _totalBytesToUpload = total;
+                    _importProgressPercent = total > 0 ? Math.Min(100.0, ((double)uploaded / total) * 100.0) : 0;
+                    
+                    if (uploaded >= total)
+                    {
+                        _importStageText = "Processing backup on server...";
+                    }
+
+                    _ = InvokeAsync(StateHasChanged);
+                });
+
+            content.Add(progressContent, "File", _selectedFile.Name);
+            content.Add(new StringContent(_conflictResolution.ToString()), "ConflictResolution");
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, "api/data/import")
+            {
+                Content = content,
+            };
+
+            if (token is not null)
+            {
+                request.Headers.Add("RequestVerificationToken", token.Value);
+            }
+
+            using var response = await Http.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                _uploadError = string.IsNullOrWhiteSpace(message)
+                    ? $"Import failed. Status Code: {response.StatusCode}"
+                    : message;
+                return;
+            }
 
             _selectedFile = null;
             _inputFileId = Guid.NewGuid();
+            _showImportModal = false;
+        }
+        catch (Exception exception)
+        {
+            _uploadError = "An unexpected error occurred during import.";
+            Logger.LogError(exception, "Error occurred in InitiateImport.");
         }
         finally
         {
-            _isProcessing = false;
+            _isImporting = false;
             await LoadSizesAsync();
             await InvokeAsync(StateHasChanged);
         }
@@ -428,5 +606,42 @@
         }
 
         return $"{displaySize:n2} {SizeUnits[unitIndex]}";
+    }
+
+    private sealed class ProgressStreamContent : HttpContent
+    {
+        private readonly Stream _stream;
+        private readonly long _totalBytes;
+        private readonly int _bufferSize;
+        private readonly Action<long, long> _onProgress;
+
+        public ProgressStreamContent(Stream stream, long totalBytes, int bufferSize, Action<long, long> onProgress)
+        {
+            _stream = stream;
+            _totalBytes = totalBytes;
+            _bufferSize = bufferSize;
+            _onProgress = onProgress;
+            Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/zip");
+        }
+
+        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+        {
+            var buffer = new byte[_bufferSize];
+            long uploaded = 0;
+            int bytesRead;
+
+            while ((bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+            {
+                await stream.WriteAsync(buffer.AsMemory(0, bytesRead));
+                uploaded += bytesRead;
+                _onProgress(uploaded, _totalBytes);
+            }
+        }
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = _totalBytes;
+            return true;
+        }
     }
 }

@@ -8,10 +8,18 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 {
     public DbSet<BuildplatePreviewEF> BuildplatePreviews { get; set; }
 
-    public static ApplicationDbContext CreateFromConnection(string connectionString)
+    public static ApplicationDbContext CreateFromConnection(string connectionString, bool ignoreWarnings = false)
     {
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         ConfigureBuilder(optionsBuilder, connectionString);
+
+        if (ignoreWarnings)
+        {
+            optionsBuilder.ConfigureWarnings(warnings =>
+            {
+                warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning);
+            });
+        }
 
         return new ApplicationDbContext(optionsBuilder.Options);
     }

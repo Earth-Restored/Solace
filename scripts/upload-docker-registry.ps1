@@ -136,7 +136,7 @@ function Ensure-JavaHostCache {
         $url = switch ($targetArch) {
             "amd64" { "https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jre/hotspot/normal/eclipse" }
             "arm64" { "https://api.adoptium.net/v3/binary/latest/21/ga/linux/aarch64/jre/hotspot/normal/eclipse" }
-            "arm"   { "https://download.bell-sw.com/java/21.0.6+10/bellsoft-jre21.0.6+10-linux-arm32-vfp-hflt.tar.gz" }
+            "arm" { "https://download.bell-sw.com/java/21.0.6+10/bellsoft-jre21.0.6+10-linux-arm32-vfp-hflt.tar.gz" }
             default {
                 Write-Error "Unsupported architecture for Java 21: $targetArch"
                 exit 1
@@ -160,9 +160,9 @@ function Ensure-ZigHostCache {
 
     $osArch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
     $zigArch = switch ($osArch) {
-        'X64'   { 'x86_64' }
+        'X64' { 'x86_64' }
         'Arm64' { 'aarch64' }
-        'Arm'   { 'armv7a' }
+        'Arm' { 'armv7a' }
         default { 'x86_64' }
     }
 
@@ -179,6 +179,7 @@ function Push-Project {
         [Parameter(Mandatory = $true)][string]$PackageName,
         [Parameter(Mandatory = $true)][bool]$AOT,
         [bool]$RequiresJava = $false,
+        [bool]$RequiresPostgresClient = $false,
         [string[]]$Architectures = @("x64", "arm64", "arm32"),
         [string]$Username = $script:Username,
         [string]$Registry = $script:Registry,
@@ -214,7 +215,7 @@ function Push-Project {
             }
         }) -join ","
 
-    $useCustomDockerfile = $AOT -or $RequiresJava
+    $useCustomDockerfile = $AOT -or $RequiresJava -or $RequiresPostgresClient
 
     if ($useCustomDockerfile) {
         $csprojCopyCommands = (Get-ChildItem -Path (Join-Path $repoRoot "src") -Filter "*.csproj" -Recurse |
@@ -247,6 +248,24 @@ RUN --mount=type=bind,source=.cache/docker/java,target=/var/cache/java \
 ENV JAVA_HOME=/opt/java/openjdk
 ENV PATH="/opt/java/openjdk/bin:`${PATH}"
 COPY --from=build /opt/java/openjdk /opt/java/openjdk
+"@
+        }
+        else { "" }
+
+        $postgresFinalStage = if ($RequiresPostgresClient) {
+            @"
+ARG TARGETARCH
+RUN --mount=type=cache,id=apt-cache-`$TARGETARCH,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=apt-lists-`$TARGETARCH,target=/var/lib/apt/lists,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache && \
+    apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg && \
+    install -d /etc/apt/keyrings && \
+    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/keyrings/postgresql.gpg && \
+    . /etc/os-release && \
+    echo "deb [signed-by=/etc/apt/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt `$VERSION_CODENAME-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends postgresql-client-18
 "@
         }
         else { "" }
@@ -332,6 +351,7 @@ RUN --mount=type=cache,id=nuget-packages,target=/root/.nuget/packages,sharing=lo
 
 # todo: update to non preview when released
 FROM mcr.microsoft.com/dotnet/runtime-deps:11.0-preview-resolute-chiseled AS final
+$postgresFinalStage
 $javaFinalStage
 WORKDIR /app
 COPY --from=build /app/publish .
@@ -390,6 +410,7 @@ RUN --mount=type=cache,id=nuget-packages,target=/root/.nuget/packages,sharing=lo
 # todo: update to non preview when released
 # since all components have a health check implemented using asp, aspnet is reuqired instead of runtime
 FROM mcr.microsoft.com/dotnet/aspnet:11.0-preview AS final
+$postgresFinalStage
 $javaFinalStage
 WORKDIR /app
 COPY --from=build /app/publish .
@@ -472,18 +493,18 @@ else {
 }
 
 $projectList = @(
-    [pscustomobject]@{ProjectName = 'Solace.EventBus.Server'; PackageName = 'event-bus'; AOT = $true; RequiresJava = $false }
-    [pscustomobject]@{ProjectName = 'Solace.ObjectStore.Server'; PackageName = 'object-store'; AOT = $true; RequiresJava = $false }
-    [pscustomobject]@{ProjectName = 'Solace.Buildplate.ServerSetup'; PackageName = 'buildplate-server-setup'; AOT = $true; RequiresJava = $true }
-    [pscustomobject]@{ProjectName = 'Solace.Buildplate.Updater'; PackageName = 'buildplate-updater'; AOT = $true; RequiresJava = $true }
-    [pscustomobject]@{ProjectName = 'Solace.Buildplate.Launcher'; PackageName = 'buildplate-launcher'; AOT = $true; RequiresJava = $true }
-    [pscustomobject]@{ProjectName = 'Solace.ApiServer'; PackageName = 'api-server'; AOT = $false; RequiresJava = $false }
-    [pscustomobject]@{ProjectName = 'Solace.Cdn'; PackageName = 'cdn'; AOT = $false; RequiresJava = $false }
-    [pscustomobject]@{ProjectName = 'Solace.AuthServer'; PackageName = 'auth-server'; AOT = $false; RequiresJava = $false }
-    [pscustomobject]@{ProjectName = 'Solace.Locator'; PackageName = 'locator'; AOT = $true; RequiresJava = $false }
-    [pscustomobject]@{ProjectName = 'Solace.TappablesGenerator'; PackageName = 'tappable-generator'; AOT = $true; RequiresJava = $false }
-    [pscustomobject]@{ProjectName = 'Solace.TileRenderer'; PackageName = 'tile-renderer'; AOT = $true; RequiresJava = $false }
-    [pscustomobject]@{ProjectName = 'Solace.WebPortal'; PackageName = 'web-portal'; AOT = $false; RequiresJava = $false }
+    [pscustomobject]@{ProjectName = 'Solace.EventBus.Server'; PackageName = 'event-bus'; AOT = $true; RequiresJava = $false; RequiresPostgresClient = $false }
+    [pscustomobject]@{ProjectName = 'Solace.ObjectStore.Server'; PackageName = 'object-store'; AOT = $true; RequiresJava = $false; RequiresPostgresClient = $false }
+    [pscustomobject]@{ProjectName = 'Solace.Buildplate.ServerSetup'; PackageName = 'buildplate-server-setup'; AOT = $true; RequiresJava = $true; RequiresPostgresClient = $false }
+    [pscustomobject]@{ProjectName = 'Solace.Buildplate.Updater'; PackageName = 'buildplate-updater'; AOT = $true; RequiresJava = $true; RequiresPostgresClient = $false }
+    [pscustomobject]@{ProjectName = 'Solace.Buildplate.Launcher'; PackageName = 'buildplate-launcher'; AOT = $true; RequiresJava = $true; RequiresPostgresClient = $false }
+    [pscustomobject]@{ProjectName = 'Solace.ApiServer'; PackageName = 'api-server'; AOT = $false; RequiresJava = $false; RequiresPostgresClient = $false }
+    [pscustomobject]@{ProjectName = 'Solace.Cdn'; PackageName = 'cdn'; AOT = $false; RequiresJava = $false; RequiresPostgresClient = $false }
+    [pscustomobject]@{ProjectName = 'Solace.AuthServer'; PackageName = 'auth-server'; AOT = $false; RequiresJava = $false; RequiresPostgresClient = $false }
+    [pscustomobject]@{ProjectName = 'Solace.Locator'; PackageName = 'locator'; AOT = $true; RequiresJava = $false; RequiresPostgresClient = $false }
+    [pscustomobject]@{ProjectName = 'Solace.TappablesGenerator'; PackageName = 'tappable-generator'; AOT = $true; RequiresJava = $false; RequiresPostgresClient = $false }
+    [pscustomobject]@{ProjectName = 'Solace.TileRenderer'; PackageName = 'tile-renderer'; AOT = $true; RequiresJava = $false; RequiresPostgresClient = $false }
+    [pscustomobject]@{ProjectName = 'Solace.WebPortal'; PackageName = 'web-portal'; AOT = $false; RequiresJava = $false; RequiresPostgresClient = $true }
 )
 
 $selectedProjects = $projectList | Where-Object {
@@ -524,7 +545,7 @@ try {
     }
 
     foreach ($project in $selectedProjects) {
-        Push-Project -ProjectName $project.ProjectName -PackageName $project.PackageName -AOT $project.AOT -RequiresJava $project.RequiresJava -Architectures $Architectures
+        Push-Project -ProjectName $project.ProjectName -PackageName $project.PackageName -AOT $project.AOT -RequiresJava $project.RequiresJava -RequiresPostgresClient $project.RequiresPostgresClient -Architectures $Architectures
     }
 }
 finally {

@@ -38,6 +38,24 @@ internal sealed class DataStore
         return result;
     }
 
+    public IEnumerable<Guid> EnumerateIds(CancellationToken cancellationToken = default)
+    {
+        if (!_rootDirectory.Exists)
+        {
+            yield break;
+        }
+
+        foreach (var file in _rootDirectory.EnumerateFiles(SearchOption.AllDirectories))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (Guid.TryParse(file.Name, out var id))
+            {
+                yield return id;
+            }
+        }
+    }
+
     public void DeleteAll()
         => _rootDirectory.SafeDelete(recursive: true);
 

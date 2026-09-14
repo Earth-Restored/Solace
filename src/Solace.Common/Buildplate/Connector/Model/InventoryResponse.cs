@@ -6,16 +6,3 @@ public sealed record InventoryResponse(
     InventoryResponseItem[] Items,
     InventoryResponseHotbarItem?[] Hotbar
 );
-
-public sealed record InventoryResponseItem(
-    Guid Id,
-    int Count,
-    Guid? InstanceId,
-    int Wear
-);
-
-public sealed record InventoryResponseHotbarItem(
-    Guid Id,
-    int Count,
-    Guid? InstanceId
-);

@@ -7,6 +7,8 @@ package objectstore;
 service ObjectStoreService {
     rpc GetTotalSize (GetTotalSizeRequest) returns (GetTotalSizeResponse);
 
+    rpc ListObjects (ListObjectsRequest) returns (stream ListObjectsResponse);
+
     rpc DeleteAll (DeleteAllRequest) returns (DeleteAllResponse);
 
     rpc StoreObject (stream StoreObjectRequest) returns (StoreObjectResponse);
@@ -23,6 +25,14 @@ message GetTotalSizeRequest {
 
 message GetTotalSizeResponse {
     int64 total_size = 1;
+}
+
+message ListObjectsRequest {
+}
+
+message ListObjectsResponse {
+    fixed64 idLow = 1;
+    fixed64 idHigh = 2;
 }
 
 message DeleteAllRequest {

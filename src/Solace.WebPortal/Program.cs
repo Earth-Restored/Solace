@@ -18,6 +18,7 @@ using Solace.WebPortal.Common.Features.Roles;
 using Solace.WebPortal.Components;
 using Solace.WebPortal.Components.Account;
 using Solace.WebPortal.Data;
+using Solace.WebPortal.Features.Data;
 using Solace.WebPortal.Features.Oidc;
 #if USE_SHARED_LIBS
 using System.Runtime.Loader;
@@ -151,6 +152,8 @@ internal sealed partial class Program2
         builder.Services.AddSingleton(sp => sp.GetRequiredService<StartupDependencies>().StaticData);
 
         builder.Services.AddSingleton<Features.Buildplates.BuildplatePreviewGenerationSemaphore>();
+
+        builder.Services.AddScoped<DataArchiveService>();
 
         builder.Services.AddMemoryCache();
 

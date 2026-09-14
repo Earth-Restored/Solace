@@ -36,6 +36,15 @@ public sealed class ObjectStoreClient : IAsyncDisposable
         return response.TotalSize;
     }
 
+    public async IAsyncEnumerable<Guid> ListIdsAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        using var call = _client.ListObjects(new ListObjectsRequest(), cancellationToken: cancellationToken);
+        await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken))
+        {
+            yield return Guid.FromLowHigh(response.IdLow, response.IdHigh);
+        }
+    }
+
     [Obsolete("Make sure to only call from the DeleteAll endpoint", false)]
     public async Task DeleteAllAsync(CancellationToken cancellationToken = default)
         => await _client.DeleteAllAsync(new DeleteAllRequest(), cancellationToken: cancellationToken);

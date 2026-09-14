@@ -703,3 +703,22 @@ html.dark .btn-secondary:hover:not(:disabled) {
     background-color: #5a5a8a;
     border-color: #5a5a8a;
 }
+
+html.dark .bg-primary-subtle {
+    background-color: #1a2a4a !important;
+}
+html.dark .text-primary-emphasis {
+    color: #7eb8ff !important;
+}
+html.dark .bg-danger-subtle {
+    background-color: #3a1a1a !important;
+}
+html.dark .text-danger-emphasis {
+    color: #f07070 !important;
+}
+html.dark .border-primary {
+    border-color: #375a7f !important;
+}
+html.dark .border-danger {
+    border-color: #7a2a2a !important;
+}

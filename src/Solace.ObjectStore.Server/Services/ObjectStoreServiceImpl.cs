@@ -25,6 +25,17 @@ internal sealed partial class ObjectStoreServiceImpl : ObjectStoreService.Object
         return new GetTotalSizeResponse() { TotalSize = size, };
     }
 
+    public override Task ListObjects(ListObjectsRequest request, IServerStreamWriter<ListObjectsResponse> responseStream, ServerCallContext context)
+    {
+        foreach (var id in _dataStore.EnumerateIds(context.CancellationToken))
+        {
+            var (idLow, idHigh) = id.ToLowHigh();
+            responseStream.WriteAsync(new ListObjectsResponse { IdLow = idLow, IdHigh = idHigh }).GetAwaiter().GetResult();
+        }
+
+        return Task.CompletedTask;
+    }
+
     public override async Task<DeleteAllResponse> DeleteAll(DeleteAllRequest request, ServerCallContext context)
     {
         _dataStore.DeleteAll();

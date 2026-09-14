@@ -6,9 +6,3 @@ public sealed record InventorySetHotbarMessage(
     Guid PlayerId,
     InventorySetHotbarMessageItem[] Items
 );
-
-public sealed record InventorySetHotbarMessageItem(
-    Guid ItemId,
-    int Count,
-    Guid? InstanceId
-);
