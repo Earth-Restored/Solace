@@ -3,6 +3,7 @@ using Immediate.Handlers.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Solace.Common.Utils;
 using Solace.Db.Earth;
 using Solace.ObjectStore.Client;
 using Solace.WebPortal.Common;
@@ -24,39 +25,14 @@ public static partial class DeletePlayer
         CancellationToken cancellationToken
     )
     {
-        var buildplateObjects = await earthDb.PlayerBuildplates
-           .AsNoTracking()
-           .Where(bp => bp.ProfileId == command.Id)
-           .Select(bp => new { bp.ServerDataObjectId, bp.PreviewObjectId, })
-           .ToListAsync(cancellationToken);
+        await using var transaction = await earthDb.Database.BeginTransactionAsync(cancellationToken);
 
-        var sharedBuildplateObjects = await earthDb.SharedBuildplates
-           .AsNoTracking()
-           .Where(bp => bp.ProfileId == command.Id)
-           .Select(bp => new { bp.ServerDataObjectId, })
-           .ToListAsync(cancellationToken);
+        var result = await ProfileDeleteUtil.DeleteProfile(command.Id, earthDb, objectStore, cancellationToken);
 
-        var rowsDeleted = await earthDb.Profiles
-            .Where(account => account.Id == command.Id)
-            .ExecuteDeleteAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
-        if (rowsDeleted is 0)
-        {
-            return TypedResults.NotFound();
-        }
-
-        foreach (var bp in buildplateObjects)
-        {
-            await objectStore.DeleteAsync(bp.ServerDataObjectId, cancellationToken);
-
-            await objectStore.DeleteAsync(bp.PreviewObjectId, cancellationToken);
-        }
-
-        foreach (var bp in sharedBuildplateObjects)
-        {
-            await objectStore.DeleteAsync(bp.ServerDataObjectId, cancellationToken);
-        }
-
-        return TypedResults.Ok();
+        return result
+            ? TypedResults.Ok()
+            : TypedResults.NotFound();
     }
 }

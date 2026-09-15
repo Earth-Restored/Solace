@@ -163,7 +163,14 @@
 
 @if (_showDeleteConfirm && _userToDelete is not null)
 {
-    <DeleteConfirmModal Visible="true" Message="Are you sure you want to delete user" ItemName="@_userToDelete.UserName" HelpText="This action cannot be undone and will remove all associated data." OnCancel="CloseDeleteConfirm" OnConfirm="DeleteConfirmed" />
+    <DeleteConfirmModal Visible="true" Message="Are you sure you want to delete user" ItemName="@_userToDelete.UserName" HelpText="This action cannot be undone." OnCancel="CloseDeleteConfirm" OnConfirm="DeleteConfirmed">
+        <div class="form-check mt-3 pt-2 border-top">
+            <input class="form-check-input" type="checkbox" id="deleteProfilesCheck" @bind="_deleteProfiles" />
+            <label class="form-check-label text-danger fw-semibold" for="deleteProfilesCheck">
+                Also delete associated profiles
+            </label>
+        </div>
+    </DeleteConfirmModal>
 }
 
 @code {
@@ -188,6 +195,7 @@
     private string? _errorMessage;
 
     private bool _showDeleteConfirm = false;
+    private bool _deleteProfiles = false;
     private UserDto? _userToDelete;
 
     protected override async Task OnInitializedAsync()
@@ -323,6 +331,7 @@
     private void ConfirmDelete(UserDto user)
     {
         _userToDelete = user;
+        _deleteProfiles = false;
         _showDeleteConfirm = true;
     }
 
@@ -330,13 +339,14 @@
     {
         _showDeleteConfirm = false;
         _userToDelete = null;
+        _deleteProfiles = false;
     }
 
     private async Task DeleteConfirmed()
     {
         if (_userToDelete is not null && _canDeleteUsers)
         {
-            using var response = await Http.DeleteAsync($"api/users/{_userToDelete.Id}");
+            using var response = await Http.DeleteAsync($"api/users/{_userToDelete.Id}?deleteProfiles={_deleteProfiles}");
             if (response.IsSuccessStatusCode)
             {
                 CloseDeleteConfirm();

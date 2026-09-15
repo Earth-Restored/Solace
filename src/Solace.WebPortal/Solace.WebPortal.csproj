@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="../Solace.Common/Utils/BoostUtils.cs" Link="BoostUtils.cs" />
+    <Compile Include="../Shared/BoostUtils.cs" Link="BoostUtils.cs" />
     <Compile Include="../Solace.AuthServer/Utils/DataSeedUtils.cs" Link="DataSeedUtils.cs" />
   </ItemGroup>
 

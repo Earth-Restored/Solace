@@ -9,7 +9,6 @@ using Solace.Common.Utils;
 using BurnRate = Solace.ApiServer.Types.Common.BurnRate;
 using CraftingCalculator = Solace.ApiServer.Utils.CraftingCalculator;
 using CraftingSlot = Solace.Db.Earth.Models.Player.Workshop.CraftingSlotEF;
-using EarthApiResponse = Solace.ApiServer.Utils.EarthApiResponse;
 using FinishPrice = Solace.ApiServer.Types.Workshop.FinishPrice;
 using InputItem = Solace.Db.Earth.Models.Player.Workshop.InputItem;
 using OutputItem = Solace.ApiServer.Types.Workshop.OutputItem;
