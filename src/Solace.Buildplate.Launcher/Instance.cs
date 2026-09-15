@@ -867,7 +867,7 @@ internal sealed partial class Instance
                 var useShellExecute = false;
                 var redirect = false;
 
-                _serverProcess = new ConsoleProcess(_javaCmd, _logger, useShellExecute: useShellExecute, redirect: redirect, openInNewWindow: true);
+                _serverProcess = new ConsoleProcess(_javaCmd, _logger, useShellExecute: useShellExecute, redirect: redirect, openInNewWindow: false);
 
                 var serverLogger = _loggerFactory.CreateLogger($"{nameof(Instance)}({Port}/{_serverInternalPort}/server)");
 
@@ -928,7 +928,7 @@ internal sealed partial class Instance
 
                 var bridgeLogger = _loggerFactory.CreateLogger($"{nameof(Instance)}({Port}/{_serverInternalPort}/bridge)");
 
-                _bridgeProcess = new ConsoleProcess(_javaCmd, _logger, useShellExecute: useShellExecute, redirect: redirect, openInNewWindow: true);
+                _bridgeProcess = new ConsoleProcess(_javaCmd, _logger, useShellExecute: useShellExecute, redirect: redirect, openInNewWindow: false);
                 if (redirect && !useShellExecute)
                 {
                     _bridgeProcess.StandartTextReceived += (sender, e) =>
