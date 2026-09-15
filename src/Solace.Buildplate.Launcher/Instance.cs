@@ -603,7 +603,7 @@ internal sealed partial class Instance
             .Forget();
     }
 
-    private sealed record RequestWithInstanceId<T>(
+    internal sealed record RequestWithInstanceId<T>(
         Guid InstanceId,
         T Request
     );
