@@ -5,6 +5,7 @@
 @using System.Text.Encodings.Web
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
+@using Solace.WebPortal.Client.Features.Common
 @using Solace.WebPortal.Common.Features.Roles
 @using Solace.WebPortal.Data
 @using Solace.Common.Asp.Captcha
@@ -36,22 +37,22 @@
                 <label for="Input.Email">
                     <DisplayName For="() => Input.Email" />
                 </label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
+            <ValidationMessage For="() => Input.Email" class="text-danger" />
             <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <PasswordInput @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
                 <label for="Input.Password">
                     <DisplayName For="() => Input.Password" />
                 </label>
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
             </div>
+            <ValidationMessage For="() => Input.Password" class="text-danger" />
             <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <PasswordInput @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
                 <label for="Input.ConfirmPassword" class="form-label">
                     <DisplayName For="() => Input.ConfirmPassword" />
                 </label>
-                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
             </div>
+            <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
             <div id="captcha-container" class="mb-3" data-captcha="true">
             </div>
             <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
