@@ -24,7 +24,7 @@ internal sealed class ProductsController : SolaceControllerBase
     }
 
     [HttpPost("getProductInfo")]
-    public async Task<Results<ContentHttpResult, BadRequest<string>>> GetProductInfo(CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<ProductInfo>>, BadRequest<string>>> GetProductInfo(CancellationToken cancellationToken)
     {
         var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.GetProductInfoRequest, cancellationToken);
         if (request is null)
@@ -68,7 +68,7 @@ internal sealed class ProductsController : SolaceControllerBase
             {
                 var productItem = new ProductInfo(product.Id, uniqueId, ProductType.NfcMiniFig);
 
-                return EarthJson(productItem);
+                return TypedResults.Ok(new EarthApiResponse<ProductInfo>(productItem));
             }
 
             return TypedResults.BadRequest("Scanned Boost Mini has invalid identifier");
@@ -89,7 +89,7 @@ internal sealed class ProductsController : SolaceControllerBase
 
     public sealed record ProductInfo(string Id, string UniqueId, ProductType Type);
 
-    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [JsonConverter(typeof(JsonStringEnumConverter<ProductType>))]
     public enum ProductType
     {
         MiniFig,

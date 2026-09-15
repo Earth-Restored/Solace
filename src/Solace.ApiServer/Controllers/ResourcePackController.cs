@@ -24,7 +24,7 @@ internal sealed partial class ResourcePackController : ControllerBase
     }
 
     [HttpGet]
-    public Results<ContentHttpResult, NotFound> Get()
+    public Results<Ok<EarthApiResponse<ResourcePackResponse[]>>, NotFound> Get()
     {
         if (_staticData.Resourcepacks.GenoaResourcepackName is null)
         {
@@ -32,17 +32,15 @@ internal sealed partial class ResourcePackController : ControllerBase
             return TypedResults.NotFound();
         }
 
-        var resp = Json.Serialize(new EarthApiResponse(new ResourcePackResponse[]{
+        return TypedResults.Ok(new EarthApiResponse<ResourcePackResponse[]>([
             new(
                 0,
                 [2020, 1214, 4],
                 $"availableresourcepack/resourcepacks/{_staticData.Resourcepacks.GenoaResourcepackName}",
                 "2020.1214.04",
                 _staticData.Resourcepacks.GenoaResourcepackName
-            )
-        }));
-
-        return TypedResults.Content(resp, "application/json");
+            ),
+        ]));
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Resource pack file not found")]

@@ -9,45 +9,43 @@ internal sealed record RecipesCatalog(
         Guid Id,
         string Category,
         string Duration,
-        CraftingRecipe.Ingredient[] Ingredients,
-        CraftingRecipe.OutputR Output,
-        CraftingRecipe.ReturnItem[] ReturnItems,
+        CraftingRecipeIngredient[] Ingredients,
+        CraftingRecipeOutput Output,
+        CraftingRecipeReturnItem[] ReturnItems,
         bool Deprecated
-    )
-    {
-        internal sealed record Ingredient(
-            Guid[] Items,
-            int Quantity
-        );
+    );
 
-        internal sealed record OutputR(
-            Guid ItemId,
-            int Quantity
-        );
+    internal sealed record CraftingRecipeIngredient(
+        Guid[] Items,
+        int Quantity
+    );
 
-        internal sealed record ReturnItem(
-            Guid Id,
-            int Amount
-        );
-    }
+    internal sealed record CraftingRecipeOutput(
+        Guid ItemId,
+        int Quantity
+    );
+
+    internal sealed record CraftingRecipeReturnItem(
+        Guid Id,
+        int Amount
+    );
 
     internal sealed record SmeltingRecipe(
         Guid Id,
         int HeatRequired,
         Guid InputItemId,
-        SmeltingRecipe.OutputR Output,
-        SmeltingRecipe.ReturnItem[] ReturnItems,
+        SmeltingRecipeOutput Output,
+        SmeltingRecipeReturnItem[] ReturnItems,
         bool Deprecated
-    )
-    {
-        internal sealed record OutputR(
-            Guid ItemId,
-            int Quantity
-        );
+    );
 
-        internal sealed record ReturnItem(
-            Guid Id,
-            int Amount
-        );
-    }
+    internal sealed record SmeltingRecipeOutput(
+        Guid ItemId,
+        int Quantity
+    );
+
+    internal sealed record SmeltingRecipeReturnItem(
+        Guid Id,
+        int Amount
+    );
 }

@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace Solace.ApiServer.Types.Buildplates;
+﻿namespace Solace.ApiServer.Types.Buildplates;
 
 internal sealed record OwnedBuildplate(
     string Id,
@@ -8,7 +6,7 @@ internal sealed record OwnedBuildplate(
     Dimension Dimension,
     Offset Offset,
     int BlocksPerMeter,
-    OwnedBuildplate.TypeE Type,
+    OwnedBuildplateType Type,
     SurfaceOrientation SurfaceOrientation,
     string Model,
     int Order,
@@ -18,11 +16,4 @@ internal sealed record OwnedBuildplate(
     string LastUpdated,
     int NumberOfBlocks,
     string ETag
-)
-{
-    [JsonConverter(typeof(JsonStringEnumConverter<TypeE>))]
-    internal enum TypeE
-    {
-        [JsonStringEnumMemberName("Survival")] SURVIVAL,
-    }
-}
+);

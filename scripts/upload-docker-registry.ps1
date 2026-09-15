@@ -136,7 +136,7 @@ function Ensure-JavaHostCache {
         $url = switch ($targetArch) {
             "amd64" { "https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jre/hotspot/normal/eclipse" }
             "arm64" { "https://api.adoptium.net/v3/binary/latest/21/ga/linux/aarch64/jre/hotspot/normal/eclipse" }
-            "arm" { "https://download.bell-sw.com/java/21.0.6+10/bellsoft-jre21.0.6+10-linux-arm32-vfp-hflt.tar.gz" }
+            "arm" { "https://download.bell-sw.com/java/21.0.12.1+1/bellsoft-jdk21.0.12.1+1-linux-arm32-vfp-hflt.tar.gz" }
             default {
                 Write-Error "Unsupported architecture for Java 21: $targetArch"
                 exit 1

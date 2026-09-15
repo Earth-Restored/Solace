@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using Solace.ApiServer.Types.Inventory;
 using Solace.ApiServer.Utils;
-using Solace.Common;
 using Solace.Common.Utils;
 using Solace.Db.Earth;
 using Solace.Db.Earth.Models.Player;
@@ -22,14 +21,14 @@ internal sealed class InventoryController : SolaceControllerBase
     private readonly EarthDbContext _earthDb;
     private readonly Catalog _catalog;
 
-    public InventoryController(EarthDbContext earthDB, StaticData.StaticDataProvider staticData)
+    public InventoryController(EarthDbContext earthDB, StaticDataProvider staticData)
     {
         _earthDb = earthDB;
         _catalog = staticData.Catalog;
     }
 
     [HttpGet]
-    public async Task<Results<ContentHttpResult, BadRequest>> GetInventory(CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<InventoryResponse>>, BadRequest>> GetInventory(CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -96,8 +95,8 @@ internal sealed class InventoryController : SolaceControllerBase
                     uuid,
                     count,
                     1,
-                    new StackableInventoryItem.OnR(firstSeen),
-                    new StackableInventoryItem.OnR(lastSeen)
+                    new StackableInventoryItemTime(firstSeen),
+                    new StackableInventoryItemTime(lastSeen)
                 );
             })],
             [.. nonStackableItems.Select(group =>
@@ -113,20 +112,19 @@ internal sealed class InventoryController : SolaceControllerBase
                 var lastSeen = TimeFormatter.FormatTime(itemJournalEntry.LastSeen);
                 return new NonStackableInventoryItem(
                     uuid,
-                    [.. group.Where(instance => !hotbarItemInstances.Contains(instance.InstanceId)).Select(instance => new NonStackableInventoryItem.Instance(instance.InstanceId, ItemWear.WearToHealth(uuid, instance.Wear, _catalog.ItemsCatalog)))],
+                    [.. group.Where(instance => !hotbarItemInstances.Contains(instance.InstanceId)).Select(instance => new NonStackableInventoryItemInstance(instance.InstanceId, ItemWear.WearToHealth(uuid, instance.Wear, _catalog.ItemsCatalog)))],
                     1,
-                    new NonStackableInventoryItem.OnR(firstSeen),
-                    new NonStackableInventoryItem.OnR(lastSeen)
+                    new NonStackableInventoryItemTime(firstSeen),
+                    new NonStackableInventoryItemTime(lastSeen)
                 );
             })]
         );
 
-        var resp = Json.Serialize(new EarthApiResponse(inventoryResponse));
-        return TypedResults.Content(resp, "application/json");
+        return TypedResults.Ok(new EarthApiResponse<InventoryResponse>(inventoryResponse));
     }
 
     [HttpPut("hotbar")]
-    public async Task<Results<BadRequest, ContentHttpResult>> SetHotbar(CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<HotbarItem?[]>>, BadRequest>> SetHotbar(CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -160,12 +158,11 @@ internal sealed class InventoryController : SolaceControllerBase
             item.InstanceId is not null ? ItemWear.WearToHealth(item.Uuid, _earthDb.NonStackableItems.AsNoTracking().First(nsi => nsi.ProfileId == accountId && nsi.ItemId == item.Uuid && nsi.InstanceId == item.InstanceId.Value).Wear, _catalog.ItemsCatalog) : 0.0f
         ) : null)];
 
-        var resp = Json.Serialize(hotbarItems);
-        return TypedResults.Content(resp, "application/json");
+        return TypedResults.Ok(new EarthApiResponse<HotbarItem?[]>(hotbarItems));
     }
 
     [HttpPost("{itemId}/consume")]
-    public async Task<Results<ContentHttpResult, BadRequest>> ConsumeItem(Guid itemId, CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse>, BadRequest>> ConsumeItem(Guid itemId, CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -194,7 +191,7 @@ internal sealed class InventoryController : SolaceControllerBase
 
         if (!await InventoryUtils.TakeStackableItemsAsync(_earthDb, results, accountId, itemId, 1, cancellationToken))
         {
-            return TypedResults.Content(Json.Serialize(new EarthApiResponse(null, null)), "application/json");
+            return TypedResults.Ok(EarthApiResponse.Default);
         }
 
         var returnItemIdNullable = item.ConsumeInfo.ReturnItemId;
@@ -243,8 +240,7 @@ internal sealed class InventoryController : SolaceControllerBase
             .Journal()
             .Profile();
 
-        var resp = Json.Serialize(new EarthApiResponse(null, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken))));
-        return TypedResults.Content(resp, "application/json");
+        return TypedResults.Ok(new EarthApiResponse(new EarthUpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken))));
     }
 
     internal sealed record SetHotbarRequestItem(

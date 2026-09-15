@@ -17,24 +17,23 @@ internal sealed record JournalRecord(
     );
 
     internal sealed record ActivityLogEntry(
-        ActivityLogEntry.Type Scenario,
+        ActivityLogEntryType Scenario,
         string EventTime,
         Rewards Rewards,
         Dictionary<string, string> Properties
-    )
+    );
+
+    [JsonConverter(typeof(JsonStringEnumConverter<ActivityLogEntryType>))]
+    internal enum ActivityLogEntryType
     {
-        [JsonConverter(typeof(JsonStringEnumConverter<Type>))]
-        internal enum Type
-        {
 #pragma warning disable CA1707 // Identifiers should not contain underscores
-            [JsonStringEnumMemberName("LevelUp")] LEVEL_UP,
-            [JsonStringEnumMemberName("TappableCollected")] TAPPABLE,
-            [JsonStringEnumMemberName("JournalContentCollected")] JOURNAL_ITEM_UNLOCKED,
-            [JsonStringEnumMemberName("CraftingJobCompleted")] CRAFTING_COMPLETED,
-            [JsonStringEnumMemberName("SmeltingJobCompleted")] SMELTING_COMPLETED,
-            [JsonStringEnumMemberName("BoostActivated")] BOOST_ACTIVATED,
+        [JsonStringEnumMemberName("LevelUp")] LEVEL_UP,
+        [JsonStringEnumMemberName("TappableCollected")] TAPPABLE,
+        [JsonStringEnumMemberName("JournalContentCollected")] JOURNAL_ITEM_UNLOCKED,
+        [JsonStringEnumMemberName("CraftingJobCompleted")] CRAFTING_COMPLETED,
+        [JsonStringEnumMemberName("SmeltingJobCompleted")] SMELTING_COMPLETED,
+        [JsonStringEnumMemberName("BoostActivated")] BOOST_ACTIVATED,
 #pragma warning restore CA1707 // Identifiers should not contain underscores
-        }
     }
 }
 
@@ -42,17 +41,17 @@ internal sealed record JournalRecord(
 internal static class ActivityLogTypeExtensions
 #pragma warning restore MA0048 // File name must match type name
 {
-    extension(ActivityLogEntry.Type)
+    extension(ActivityLogEntryType)
     {
-        public static ActivityLogEntry.Type FromDb(Db.Earth.Models.Player.ActivityLogEntryEF entry)
+        public static ActivityLogEntryType FromDb(Db.Earth.Models.Player.ActivityLogEntryEF entry)
             => entry switch
             {
-                Db.Earth.Models.Player.LevelUpEntryEF => ActivityLogEntry.Type.LEVEL_UP,
-                Db.Earth.Models.Player.TappableEntryEF => ActivityLogEntry.Type.TAPPABLE,
-                Db.Earth.Models.Player.JournalItemUnlockedEntryEF => ActivityLogEntry.Type.JOURNAL_ITEM_UNLOCKED,
-                Db.Earth.Models.Player.CraftingCompletedEntryEF => ActivityLogEntry.Type.CRAFTING_COMPLETED,
-                Db.Earth.Models.Player.SmeltingCompletedEntryEF => ActivityLogEntry.Type.SMELTING_COMPLETED,
-                Db.Earth.Models.Player.BoostActivatedEntryEF => ActivityLogEntry.Type.BOOST_ACTIVATED,
+                Db.Earth.Models.Player.LevelUpEntryEF => ActivityLogEntryType.LEVEL_UP,
+                Db.Earth.Models.Player.TappableEntryEF => ActivityLogEntryType.TAPPABLE,
+                Db.Earth.Models.Player.JournalItemUnlockedEntryEF => ActivityLogEntryType.JOURNAL_ITEM_UNLOCKED,
+                Db.Earth.Models.Player.CraftingCompletedEntryEF => ActivityLogEntryType.CRAFTING_COMPLETED,
+                Db.Earth.Models.Player.SmeltingCompletedEntryEF => ActivityLogEntryType.SMELTING_COMPLETED,
+                Db.Earth.Models.Player.BoostActivatedEntryEF => ActivityLogEntryType.BOOST_ACTIVATED,
                 _ => throw new UnreachableException(),
             };
     }

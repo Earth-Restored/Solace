@@ -129,6 +129,7 @@ internal static partial class App
         {
             config.DefaultApiVersion = new ApiVersion(1, 1);
             config.ReportApiVersions = true;
+            config.ApiVersionReader = new UrlSegmentApiVersionReader();
         })
         .AddMvc();
 
@@ -140,6 +141,11 @@ internal static partial class App
 
         builder.Services.AddDbContextFactory<PlayfabDbContext>(options =>
             PlayfabDbContext.ConfigureBuilder(options, playfabDbConnectionString));
+
+        builder.Services.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonContext.Default);
+        });
 
         await using var app = builder.Build();
 

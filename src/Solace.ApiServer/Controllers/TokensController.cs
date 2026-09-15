@@ -28,8 +28,12 @@ internal sealed class TokensController : SolaceControllerBase
         _staticData = staticData;
     }
 
+    internal sealed record TokensResponse(
+        Dictionary<Guid, Token> Tokens
+    );
+
     [HttpGet]
-    public async Task<Results<ContentHttpResult, BadRequest>> Get(CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<TokensResponse>>, BadRequest>> Get(CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -41,22 +45,18 @@ internal sealed class TokensController : SolaceControllerBase
             .Where(token => token.ProfileId == accountId)
             .AsAsyncEnumerable();
 
-        var tokensResponse = await tokens
+        var tokensDictionary = await tokens
             .Where(token => token is not DailyLoginTokenEF { Claimed: true })
             .Select(token => new KeyValuePair<Guid, Token>(token.TokenId, TokenToApiResponse(token)))
             .ToDictionaryAsync(cancellationToken: cancellationToken);
 
-        return EarthJson(new Dictionary<string, Dictionary<Guid, Token>>(StringComparer.Ordinal)
-        {
-            {
-                "tokens",
-                tokensResponse
-            }
-        }, null);
+        return TypedResults.Ok(new EarthApiResponse<TokensResponse>(new(
+            tokensDictionary
+        )));
     }
 
     [HttpPost("{tokenId}/redeem")]
-    public async Task<Results<ContentHttpResult, BadRequest>> Redeem(Guid tokenId, CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<Token>>, BadRequest>> Redeem(Guid tokenId, CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -70,7 +70,7 @@ internal sealed class TokensController : SolaceControllerBase
 
         if (removedToken is not null)
         {
-            return EarthJson(TokenToApiResponse(removedToken));
+            return TypedResults.Ok(new EarthApiResponse<Token>(TokenToApiResponse(removedToken)));
         }
         else
         {
@@ -97,14 +97,14 @@ internal sealed class TokensController : SolaceControllerBase
 
         var lifetime = token switch
         {
-            LevelUpTokenEF => Token.LifetimeE.TRANSIENT,
-            JournalItemUnlockedTokenEF => Token.LifetimeE.PERSISTENT,
-            DailyLoginTokenEF => Token.LifetimeE.TRANSIENT,
+            LevelUpTokenEF => TokenLifetime.TRANSIENT,
+            JournalItemUnlockedTokenEF => TokenLifetime.PERSISTENT,
+            DailyLoginTokenEF => TokenLifetime.TRANSIENT,
             _ => throw new InvalidDataException($"Unknown Token type '{token?.GetType()?.ToString() ?? null}'"),
         };
 
         return new Token(
-            Token.Type.FromDb(token),
+            TokenType.FromDb(token),
             properties,
             rewards.ToApiResponse(),
             lifetime

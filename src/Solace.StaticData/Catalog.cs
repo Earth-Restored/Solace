@@ -86,11 +86,11 @@ public sealed class Catalog
             string Name,
             int Aux,
             bool Stackable,
-            Item.TypeE Type,
-            Item.CategoryE Category,
-            Item.RarityE Rarity,
-            Item.UseTypeE UseType,
-            Item.UseTypeE AlternativeUseType,
+            ItemType Type,
+            ItemCategory Category,
+            ItemRarity Rarity,
+            ItemUseType UseType,
+            ItemUseType AlternativeUseType,
             Item.BlockInfoR? BlockInfo,
             Item.ToolInfoR? ToolInfo,
             Item.ConsumeInfoR? ConsumeInfo,
@@ -102,70 +102,6 @@ public sealed class Catalog
             Item.ExperienceR Experience
         )
         {
-            [JsonConverter(typeof(JsonStringEnumConverter<TypeE>))]
-            public enum TypeE
-            {
-#pragma warning disable CA1707 // Identifiers should not contain underscores
-                BLOCK,
-                ITEM,
-                TOOL,
-                MOB,
-                ENVIRONMENT_BLOCK,
-                BOOST,
-                ADVENTURE_SCROLL,
-#pragma warning restore CA1707 // Identifiers should not contain underscores
-            }
-
-            [JsonConverter(typeof(JsonStringEnumConverter<CategoryE>))]
-            public enum CategoryE
-            {
-#pragma warning disable CA1707 // Identifiers should not contain underscores
-                CONSTRUCTION,
-                EQUIPMENT,
-                ITEMS,
-                MOBS,
-                NATURE,
-                BOOST_ADVENTURE_XP,
-                BOOST_CRAFTING,
-                BOOST_DEFENSE,
-                BOOST_EATING,
-                BOOST_HEALTH,
-                BOOST_HOARDING,
-                BOOST_ITEM_XP,
-                BOOST_MINING_SPEED,
-                BOOST_RETENTION,
-                BOOST_SMELTING,
-                BOOST_STRENGTH,
-                BOOST_TAPPABLE_RADIUS,
-#pragma warning restore CA1707 // Identifiers should not contain underscores
-            }
-
-            [JsonConverter(typeof(JsonStringEnumConverter<RarityE>))]
-            public enum RarityE
-            {
-                COMMON,
-                UNCOMMON,
-                RARE,
-                EPIC,
-                LEGENDARY,
-                OOBE,
-            }
-
-            [JsonConverter(typeof(JsonStringEnumConverter<UseTypeE>))]
-            public enum UseTypeE
-            {
-#pragma warning disable CA1707 // Identifiers should not contain underscores
-                NONE,
-                BUILD,
-                BUILD_ATTACK,
-                INTERACT,
-                INTERACT_AND_BUILD,
-                DESTROY,
-                USE,
-                CONSUME,
-#pragma warning restore CA1707 // Identifiers should not contain underscores
-            }
-
             public sealed record BlockInfoR(
                 int BreakingHealth,
                 string? EfficiencyCategory
@@ -303,6 +239,70 @@ public sealed class Catalog
                 int Crafting,
                 int Journal    // TODO: what is this used for?
             );
+        }
+
+        [JsonConverter(typeof(JsonStringEnumConverter<ItemType>))]
+        public enum ItemType
+        {
+#pragma warning disable CA1707 // Identifiers should not contain underscores
+            BLOCK,
+            ITEM,
+            TOOL,
+            MOB,
+            ENVIRONMENT_BLOCK,
+            BOOST,
+            ADVENTURE_SCROLL,
+#pragma warning restore CA1707 // Identifiers should not contain underscores
+        }
+
+        [JsonConverter(typeof(JsonStringEnumConverter<ItemCategory>))]
+        public enum ItemCategory
+        {
+#pragma warning disable CA1707 // Identifiers should not contain underscores
+            CONSTRUCTION,
+            EQUIPMENT,
+            ITEMS,
+            MOBS,
+            NATURE,
+            BOOST_ADVENTURE_XP,
+            BOOST_CRAFTING,
+            BOOST_DEFENSE,
+            BOOST_EATING,
+            BOOST_HEALTH,
+            BOOST_HOARDING,
+            BOOST_ITEM_XP,
+            BOOST_MINING_SPEED,
+            BOOST_RETENTION,
+            BOOST_SMELTING,
+            BOOST_STRENGTH,
+            BOOST_TAPPABLE_RADIUS,
+#pragma warning restore CA1707 // Identifiers should not contain underscores
+        }
+
+        [JsonConverter(typeof(JsonStringEnumConverter<ItemRarity>))]
+        public enum ItemRarity
+        {
+            COMMON,
+            UNCOMMON,
+            RARE,
+            EPIC,
+            LEGENDARY,
+            OOBE,
+        }
+
+        [JsonConverter(typeof(JsonStringEnumConverter<ItemUseType>))]
+        public enum ItemUseType
+        {
+#pragma warning disable CA1707 // Identifiers should not contain underscores
+            NONE,
+            BUILD,
+            BUILD_ATTACK,
+            INTERACT,
+            INTERACT_AND_BUILD,
+            DESTROY,
+            USE,
+            CONSUME,
+#pragma warning restore CA1707 // Identifiers should not contain underscores
         }
     }
 

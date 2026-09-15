@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Solace.ApiServer.Utils;
-using Solace.Common;
 using Solace.Db.Earth;
 using Solace.Db.Earth.Models.Player;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +23,7 @@ internal sealed class JournalController : SolaceControllerBase
     }
 
     [HttpGet]
-    public async Task<Results<ContentHttpResult, BadRequest>> Get(CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<JournalRecord>>, BadRequest>> Get(CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -56,8 +55,7 @@ internal sealed class JournalController : SolaceControllerBase
         var activityLog = await activityLogEntries.Select(ActivityLogEntryToApiResponse).ToArrayAsync(cancellationToken);
         Array.Reverse(activityLog);
 
-        var resp = Json.Serialize(new EarthApiResponse(new Types.Journal.JournalRecord(inventoryJournal, activityLog)));
-        return TypedResults.Content(resp, "application/json");
+        return TypedResults.Ok(new EarthApiResponse<JournalRecord>(new(inventoryJournal, activityLog)));
     }
 
     private static Types.Journal.JournalRecord.ActivityLogEntry ActivityLogEntryToApiResponse(ActivityLogEntryEF entry)
@@ -85,7 +83,7 @@ internal sealed class JournalController : SolaceControllerBase
         }
 
         return new Types.Journal.JournalRecord.ActivityLogEntry(
-            Types.Journal.JournalRecord.ActivityLogEntry.Type.FromDb(entry),
+            Types.Journal.JournalRecord.ActivityLogEntryType.FromDb(entry),
             TimeFormatter.FormatTime(entry.Timestamp),
             rewards.ToApiResponse(),
             properties

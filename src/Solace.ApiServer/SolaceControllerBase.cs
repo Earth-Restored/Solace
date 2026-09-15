@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
-using Solace.ApiServer.Utils;
 using System.Security.Claims;
 
 namespace Solace.ApiServer;
@@ -9,14 +8,6 @@ namespace Solace.ApiServer;
 [ApiController]
 internal abstract class SolaceControllerBase : ControllerBase
 {
-    // todo: JsonHttpResult<EarthApiResponse>
-    protected static ContentHttpResult EarthJson(object results)
-        => JsonCamelCase(new EarthApiResponse(results));
-
-    // todo: JsonHttpResult<EarthApiResponse>
-    protected static ContentHttpResult EarthJson(object? results, EarthApiResponse.UpdatesResponse? updates)
-        => JsonCamelCase(new EarthApiResponse(results, updates));
-
     protected static ContentHttpResult JsonCamelCase(object value)
         => TypedResults.Content(Common.Json.Serialize(value), "application/json");
 

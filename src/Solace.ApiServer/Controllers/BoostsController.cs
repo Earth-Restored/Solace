@@ -23,7 +23,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
     private readonly Catalog _catalog;
     private readonly ILogger<BoostsController> _logger;
 
-    public BoostsController(EarthDbContext earthDB, StaticData.StaticDataProvider staticData, ILogger<BoostsController> logger)
+    public BoostsController(EarthDbContext earthDB, StaticDataProvider staticData, ILogger<BoostsController> logger)
     {
         _earthDb = earthDB;
         _catalog = staticData.Catalog;
@@ -36,7 +36,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
     );
 
     [HttpGet("boosts")]
-    public async Task<Results<ContentHttpResult, BadRequest>> GetBoosts(CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<Types.Boost.Boosts>>, BadRequest>> GetBoosts(CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -186,11 +186,11 @@ internal sealed partial class BoostsController : SolaceControllerBase
             activeBoostsWithInfo.Count != 0 ? TimeFormatter.FormatTime(activeBoostsWithInfo.Values.Min(activeBoostInfo => activeBoostInfo.ActiveBoost.StartTime + activeBoostInfo.ActiveBoost.Duration)) : null
         );
 
-        return EarthJson(boostsResponse, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
+        return TypedResults.Ok(new EarthApiResponse<Types.Boost.Boosts>(boostsResponse, new EarthUpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken))));
     }
 
     [HttpPost("boosts/potions/{itemId}/activate")]
-    public async Task<Results<ContentHttpResult, BadRequest>> ActivateBoost(Guid itemId, CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse>, BadRequest>> ActivateBoost(Guid itemId, CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -225,7 +225,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         if (!await InventoryUtils.TakeStackableItemsAsync(_earthDb, results, accountId, itemId, 1, cancellationToken))
         {
-            return EarthJson(null, null);
+            return TypedResults.Ok(EarthApiResponse.Default);
         }
 
         var newIndex = -1;
@@ -254,9 +254,9 @@ internal sealed partial class BoostsController : SolaceControllerBase
             }
         }
 
-        if (newIndex == -1)
+        if (newIndex is -1)
         {
-            return EarthJson(null, null);
+            return TypedResults.Ok(EarthApiResponse.Default);
         }
 
         if (extendExisting)
@@ -285,11 +285,11 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         results.Profile(profileChanged);
 
-        return EarthJson(null, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
+        return TypedResults.Ok(new EarthApiResponse(new EarthUpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken))));
     }
 
     [HttpPost("boosts/minifigs/{productId}/{id}/activate")]
-    public async Task<Results<ContentHttpResult, BadRequest>> ActivateMiniFig(string productId, string id, CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse>, BadRequest>> ActivateMiniFig(string productId, string id, CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -368,7 +368,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
 
         if (newIndex == -1)
         {
-            return EarthJson(null, null);
+            return TypedResults.Ok(EarthApiResponse.Default);
         }
 
         if (extendExisting)
@@ -397,11 +397,11 @@ internal sealed partial class BoostsController : SolaceControllerBase
         results.Boosts();
         results.Profile(profileChanged);
 
-        return EarthJson(null, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
+        return TypedResults.Ok(new EarthApiResponse(new EarthUpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken))));
     }
 
     [HttpDelete("boosts/{instanceId}")]
-    public async Task<Results<ContentHttpResult, BadRequest>> DeactivateBoost(Guid instanceId, CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse>, BadRequest>> DeactivateBoost(Guid instanceId, CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -428,13 +428,13 @@ internal sealed partial class BoostsController : SolaceControllerBase
         var activeBoost = boosts.Get(instanceId);
         if (activeBoost is null)
         {
-            return EarthJson(null, null);
+            return TypedResults.Ok(EarthApiResponse.Default);
         }
 
         var item = _catalog.ItemsCatalog.GetItem(activeBoost.ItemId);
         if (item is null || item.BoostInfo is null || !item.BoostInfo.CanBeRemoved)
         {
-            return EarthJson(null, null);
+            return TypedResults.Ok(EarthApiResponse.Default);
         }
 
         for (var index = 0; index < boosts.ActiveBoosts.Length; index++)
@@ -463,7 +463,7 @@ internal sealed partial class BoostsController : SolaceControllerBase
             .Boosts()
             .Profile(profileChanged);
 
-        return EarthJson(null, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
+        return TypedResults.Ok(new EarthApiResponse(new EarthUpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken))));
     }
 
     private static bool PruneBoostsAndUpdateProfile(BoostsEF boosts, ProfileEF profile, DateTimeOffset currentTime, Catalog catalog)

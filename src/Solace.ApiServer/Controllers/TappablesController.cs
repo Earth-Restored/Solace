@@ -32,8 +32,18 @@ internal sealed class TappablesController : SolaceControllerBase
         _staticData = staticData;
     }
 
+    internal sealed record TappablesResponse(
+        IEnumerable<object> KillSwitchedTileIds,
+        IEnumerable<ActiveLocation> ActiveLocations
+    );
+
+    internal sealed record RedeemTappableResponse(
+        Token Token,
+        object? Updates
+    );
+
     [HttpGet("locations/{lat}/{lon}")]
-    public async Task<Results<ContentHttpResult, BadRequest>> GetTappables(double lat, double lon, CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<TappablesResponse>>, BadRequest>> GetTappables(double lat, double lon, CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -61,10 +71,10 @@ internal sealed class TappablesController : SolaceControllerBase
                 new Coordinate(tappable.Lat, tappable.Lon),
                 TimeFormatter.FormatTime(tappable.SpawnTime),
                 TimeFormatter.FormatTime(tappable.SpawnTime + tappable.ValidFor),
-                ActiveLocation.TypeE.TAPPABLE,
+                ActiveLocationType.TAPPABLE,
                 tappable.Icon,
-                new ActiveLocation.MetadataR(Guid.NewGuid(), Rarity.FromTappable(tappable.Rarity)),
-                new ActiveLocation.TappableMetadataR(Rarity.FromTappable(tappable.Rarity)),
+                new ActiveLocationMetadata(Guid.NewGuid(), Rarity.FromTappable(tappable.Rarity)),
+                new ActiveLocationTappableMetadata(Rarity.FromTappable(tappable.Rarity)),
                 null
             ));
 
@@ -76,32 +86,29 @@ internal sealed class TappablesController : SolaceControllerBase
                 new Coordinate(encounter.Lat, encounter.Lon),
                 TimeFormatter.FormatTime(encounter.SpawnTime),
                 TimeFormatter.FormatTime(encounter.SpawnTime + encounter.ValidFor),
-                ActiveLocation.TypeE.ENCOUNTER,
+                ActiveLocationType.ENCOUNTER,
                 encounter.Icon,
-                new ActiveLocation.MetadataR(Guid.NewGuid(), Rarity.FromEncounter(encounter.Rarity)),
+                new ActiveLocationMetadata(Guid.NewGuid(), Rarity.FromEncounter(encounter.Rarity)),
                 null,
-                new ActiveLocation.EncounterMetadataR(
-                    ActiveLocation.EncounterMetadataR.EncounterTypeE.SHORT_4X4_PEACEFUL,    // TODO
-                                                                                            //UUID.randomUUID().toString(),    // TODO: what is this field for and does it matter what we put here?
+                new ActiveLocationEncounterMetadata(
+                    ActiveLocationEncounterMetadata.EncounterTypeE.SHORT_4X4_PEACEFUL,    // TODO
+                                                                                          //UUID.randomUUID().toString(),    // TODO: what is this field for and does it matter what we put here?
                     encounter.Id,
                     encounter.EncounterBuildplateId,
-                    ActiveLocation.EncounterMetadataR.AnchorStateE.OFF,
+                    ActiveLocationEncounterMetadata.AnchorStateE.OFF,
                     "",
                     ""
                 )
             ));
 
-        ActiveLocation[] activeLocations = [.. activeLocationTappables, .. activeLocationEncounters];
-
-        return EarthJson(new Dictionary<string, object>(StringComparer.Ordinal)
-        {
-            { "killSwitchedTileIds", new List<object>() },
-            { "activeLocations", activeLocations }
-        });
+        return TypedResults.Ok(new EarthApiResponse<TappablesResponse>(new(
+            [],
+            [.. activeLocationTappables, .. activeLocationEncounters]
+        )));
     }
 
     [HttpPost("tappables/{tileIdStr}")]
-    public async Task<Results<ContentHttpResult, BadRequest>> RedeemTappable(string tileIdStr, CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<RedeemTappableResponse>>, BadRequest>> RedeemTappable(string tileIdStr, CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -186,22 +193,19 @@ internal sealed class TappablesController : SolaceControllerBase
         await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new TappableEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
         await rewards.ToRedeemQueryAsync(_earthDb, results, _objectStore, accountId, requestStartedOn, _staticData, cancellationToken);
 
-        return EarthJson(new Dictionary<string, object?>(StringComparer.Ordinal)
-        {
-            { "token", new Token(
-                Token.Type.TAPPABLE,
+        return TypedResults.Ok(new EarthApiResponse<RedeemTappableResponse>(new(
+            new Token(
+                TokenType.TAPPABLE,
                 [with(StringComparer.Ordinal)],
                 rewards.ToApiResponse(),
-                Token.LifetimeE.PERSISTENT
-            ) },
-            { "updates", null }
-        }, new EarthApiResponse.UpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken)));
+                TokenLifetime.PERSISTENT
+            ),
+            null
+        ), new EarthUpdatesResponse(await results.BuildAsync(_earthDb, accountId, cancellationToken))));
     }
 
     [HttpPost("multiplayer/encounters/state")]
-    [HttpPost("multiplayer/adventures/state")]
-    [HttpPost("multiplayer/player/adventures/state")]
-    public async Task<Results<ContentHttpResult, BadRequest>> EncountersState(CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<Dictionary<Guid, EncounterState>>>, BadRequest>> EncountersState(CancellationToken cancellationToken)
     {
         var requestedIds = await Request.Body.AsJsonAsync(AppJsonContext.Default.DictionaryStringObject, cancellationToken);
 
@@ -216,19 +220,24 @@ internal sealed class TappablesController : SolaceControllerBase
             {
                 return TypedResults.BadRequest();
             }
+
+            if (!Guid.TryParse(entry.Key, out _))
+            {
+                return TypedResults.BadRequest();
+            }
         }
 
         // TODO
 
-        var encounterStates = new Dictionary<string, EncounterState>(StringComparer.Ordinal);
+        var encounterStates = new Dictionary<Guid, EncounterState>();
 #pragma warning disable IDE0059 // Unnecessary assignment of a value
         foreach (var (encounterId, tileId) in requestedIds)
         {
-            encounterStates[encounterId] = new EncounterState(EncounterState.ActiveEncounterStateE.PRISTINE);
+            encounterStates[Guid.Parse(encounterId)] = new EncounterState(EncounterState.ActiveEncounterStateE.PRISTINE);
         }
 #pragma warning restore IDE0059 // Unnecessary assignment of a value
 
-        return EarthJson(encounterStates);
+        return TypedResults.Ok(new EarthApiResponse<Dictionary<Guid, EncounterState>>(encounterStates));
     }
 
     internal sealed record TappableRequest(

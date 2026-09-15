@@ -43,13 +43,13 @@ internal sealed partial class StoreController : SolaceControllerBase
     internal sealed record StoreItemInfoRequest(string Id, string StoreItemType, uint StreamVersion);
 
     [HttpPost("storeItemInfo")]
-    public async Task<ContentHttpResult> GetStoreItemInfo(CancellationToken cancellationToken)
+    public async Task<EarthApiResponse<List<StoreItemInfo>>> GetStoreItemInfo(CancellationToken cancellationToken)
     {
         var request = await Request.Body.AsJsonAsync(AppJsonContext.Default.StoreItemInfoRequestArray, cancellationToken);
 
         if (request is null or { Length: 0 })
         {
-            return EarthJson(Array.Empty<StoreItemInfo>());
+            return new([]);
         }
 
         List<StoreItemInfo> result = [with(request.Length)];
@@ -66,12 +66,12 @@ internal sealed partial class StoreController : SolaceControllerBase
                             .AsNoTracking()
                             .FirstOrDefaultAsync(template => template.Id == itemId, cancellationToken);
 
-                        var storeItemType = Enum.Parse<StoreItemInfo.StoreItemTypeE>(item.StoreItemType);
+                        var storeItemType = Enum.Parse<StoreItemType>(item.StoreItemType);
 
                         if (buildplate is null)
                         {
                             LogBuildplateNotFound(item.Id);
-                            result.Add(new StoreItemInfo(itemId, storeItemType, StoreItemInfo.StoreItemStatus.NotFound, item.StreamVersion, null, null, null, null, null));
+                            result.Add(new StoreItemInfo(itemId, storeItemType, StoreItemStatus.NotFound, item.StreamVersion, null, null, null, null, null));
                             break;
                         }
 
@@ -80,7 +80,7 @@ internal sealed partial class StoreController : SolaceControllerBase
                         if (previewData is null)
                         {
                             LogBuildplatePreviewGetError(item.Id);
-                            result.Add(new StoreItemInfo(itemId, storeItemType, StoreItemInfo.StoreItemStatus.NotFound, item.StreamVersion, null, null, null, null, null));
+                            result.Add(new StoreItemInfo(itemId, storeItemType, StoreItemStatus.NotFound, item.StreamVersion, null, null, null, null, null));
                             break;
                         }
 
@@ -93,7 +93,7 @@ internal sealed partial class StoreController : SolaceControllerBase
                         result.Add(new StoreItemInfo(
                             itemId,
                             storeItemType,
-                            StoreItemInfo.StoreItemStatus.Found,
+                            StoreItemStatus.Found,
                             item.StreamVersion,
                             model,
                             new Offset(0, buildplate.Offset, 0),
@@ -106,7 +106,7 @@ internal sealed partial class StoreController : SolaceControllerBase
             }
         }
 
-        return EarthJson(result);
+        return new(result);
     }
 
     internal sealed record PurchaseItemRequest(
@@ -115,7 +115,7 @@ internal sealed partial class StoreController : SolaceControllerBase
     );
 
     [HttpPost("purchase")]
-    public async Task<Results<ContentHttpResult, BadRequest>> Purchase(CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<int>>, BadRequest>> Purchase(CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -136,11 +136,11 @@ internal sealed partial class StoreController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        return EarthJson(rubiesVal.Purchased + rubiesVal.Earned);
+        return TypedResults.Ok(new EarthApiResponse<int>(rubiesVal.Purchased + rubiesVal.Earned));
     }
 
     [HttpPost("purchaseV2")]
-    public async Task<Results<ContentHttpResult, BadRequest>> PurchaseV2(CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<Types.Profile.SplitRubies>>, BadRequest>> PurchaseV2(CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -161,7 +161,7 @@ internal sealed partial class StoreController : SolaceControllerBase
             return TypedResults.BadRequest();
         }
 
-        return EarthJson(new Types.Profile.SplitRubies(rubiesVal.Purchased, rubiesVal.Earned));
+        return TypedResults.Ok(new EarthApiResponse<Types.Profile.SplitRubies>(new(rubiesVal.Purchased, rubiesVal.Earned)));
     }
 
     private async Task<(int Purchased, int Earned)?> ProcessPurchase(Guid accountId, Guid itemId, int expectedPurchasePrice, CancellationToken cancellationToken)

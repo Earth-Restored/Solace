@@ -6,6 +6,7 @@ using Solace.ApiServer.Utils;
 using Solace.Common;
 using Solace.Db.Earth;
 using Microsoft.EntityFrameworkCore;
+using Solace.StaticData;
 
 namespace Solace.ApiServer.Controllers;
 
@@ -15,16 +16,16 @@ namespace Solace.ApiServer.Controllers;
 internal sealed class ProfileController : SolaceControllerBase
 {
     private readonly EarthDbContext _earthDb;
-    private readonly StaticData.StaticDataProvider _staticData;
+    private readonly StaticDataProvider _staticData;
 
-    public ProfileController(EarthDbContext earthDB, StaticData.StaticDataProvider staticData)
+    public ProfileController(EarthDbContext earthDB, StaticDataProvider staticData)
     {
         _earthDb = earthDB;
         _staticData = staticData;
     }
 
     [HttpGet("profile/{userId}")]
-    public async Task<Results<ContentHttpResult, BadRequest>> GetProfile(string userId, CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<Types.Profile.ProfileResponse>>, BadRequest>> GetProfile(string userId, CancellationToken cancellationToken)
     {
         // TODO: decide if we should allow requests for profiles of other players
         if (!Guid.TryParse(userId, out var accountId))
@@ -53,7 +54,7 @@ internal sealed class ProfileController : SolaceControllerBase
             profile.Health = maxPlayerHealth;
         }
 
-        var resp = Json.Serialize(new EarthApiResponse(new Types.Profile.ProfileResponse(
+        return TypedResults.Ok(new EarthApiResponse<Types.Profile.ProfileResponse>(new(
             Enumerable.Range(0, levels.Length).Select(levelIndex =>
             {
                 var level = levels[levelIndex];
@@ -64,14 +65,13 @@ internal sealed class ProfileController : SolaceControllerBase
             currentLevelExperience,
             experienceRemaining,
             profile.Health,
-            profile.Health / (float)maxPlayerHealth * 100.0f)));
-
-        return TypedResults.Content(resp, "application/json");
+            profile.Health / (float)maxPlayerHealth * 100.0f
+        )));
     }
 
     [ResponseCache(Duration = 11200)]
     [HttpGet("rubies")]
-    public async Task<Results<ContentHttpResult, BadRequest>> GetRubies(CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<int>>, BadRequest>> GetRubies(CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -82,13 +82,12 @@ internal sealed class ProfileController : SolaceControllerBase
             .AsNoTracking()
             .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
-        var resp = Json.Serialize(new EarthApiResponse(profile.Rubies.Purchased + profile.Rubies.Earned));
-        return TypedResults.Content(resp, "application/json");
+        return TypedResults.Ok(new EarthApiResponse<int>(profile.Rubies.Purchased + profile.Rubies.Earned));
     }
 
     [ResponseCache(Duration = 11200)]
     [HttpGet("splitRubies")]
-    public async Task<Results<ContentHttpResult, BadRequest>> GetSplitRubies(CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<Types.Profile.SplitRubies>>, BadRequest>> GetSplitRubies(CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
@@ -99,8 +98,7 @@ internal sealed class ProfileController : SolaceControllerBase
             .AsNoTracking()
             .FirstAsync(profile => profile.Id == accountId, cancellationToken: cancellationToken);
 
-        var resp = Json.Serialize(new EarthApiResponse(new Types.Profile.SplitRubies(profile.Rubies.Purchased, profile.Rubies.Earned)));
-        return TypedResults.Content(resp, "application/json");
+        return TypedResults.Ok(new EarthApiResponse<Types.Profile.SplitRubies>(new(profile.Rubies.Purchased, profile.Rubies.Earned)));
     }
 
     // required for the language selection option in the client to work

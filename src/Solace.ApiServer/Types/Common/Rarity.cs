@@ -20,16 +20,16 @@ internal static class RarityExtensions
 {
     extension(Rarity)
     {
-        public static Rarity FromStaticData(StaticData.Catalog.ItemsCatalogR.Item.RarityE rarity)
+        public static Rarity FromStaticData(StaticData.Catalog.ItemsCatalogR.ItemRarity rarity)
             => rarity switch
             {
-                StaticData.Catalog.ItemsCatalogR.Item.RarityE.COMMON => Rarity.COMMON,
-                StaticData.Catalog.ItemsCatalogR.Item.RarityE.UNCOMMON => Rarity.UNCOMMON,
-                StaticData.Catalog.ItemsCatalogR.Item.RarityE.RARE => Rarity.RARE,
-                StaticData.Catalog.ItemsCatalogR.Item.RarityE.EPIC => Rarity.EPIC,
-                StaticData.Catalog.ItemsCatalogR.Item.RarityE.LEGENDARY => Rarity.LEGENDARY,
-                StaticData.Catalog.ItemsCatalogR.Item.RarityE.OOBE => Rarity.OOBE,
-                _ => throw new InvalidEnumArgumentException(nameof(rarity), (int)rarity, typeof(StaticData.Catalog.ItemsCatalogR.Item.RarityE)),
+                StaticData.Catalog.ItemsCatalogR.ItemRarity.COMMON => Rarity.COMMON,
+                StaticData.Catalog.ItemsCatalogR.ItemRarity.UNCOMMON => Rarity.UNCOMMON,
+                StaticData.Catalog.ItemsCatalogR.ItemRarity.RARE => Rarity.RARE,
+                StaticData.Catalog.ItemsCatalogR.ItemRarity.EPIC => Rarity.EPIC,
+                StaticData.Catalog.ItemsCatalogR.ItemRarity.LEGENDARY => Rarity.LEGENDARY,
+                StaticData.Catalog.ItemsCatalogR.ItemRarity.OOBE => Rarity.OOBE,
+                _ => throw new InvalidEnumArgumentException(nameof(rarity), (int)rarity, typeof(StaticData.Catalog.ItemsCatalogR.ItemRarity)),
             };
 
         public static Rarity FromTappable(Utils.TappablesManager.Tappable.RarityE rarity)

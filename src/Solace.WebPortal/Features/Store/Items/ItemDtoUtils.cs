@@ -111,18 +111,18 @@ public static class ItemDtoUtils
                     if (staticData.TryGetItem(item.InventoryItemData.ItemId, out var inventoryItem))
                     {
                         isBoost = inventoryItem.Category is
-                            StaticData.Catalog.ItemsCatalogR.Item.CategoryE.BOOST_ADVENTURE_XP or
-                            StaticData.Catalog.ItemsCatalogR.Item.CategoryE.BOOST_CRAFTING or
-                            StaticData.Catalog.ItemsCatalogR.Item.CategoryE.BOOST_DEFENSE or
-                            StaticData.Catalog.ItemsCatalogR.Item.CategoryE.BOOST_EATING or
-                            StaticData.Catalog.ItemsCatalogR.Item.CategoryE.BOOST_HEALTH or
-                            StaticData.Catalog.ItemsCatalogR.Item.CategoryE.BOOST_HOARDING or
-                            StaticData.Catalog.ItemsCatalogR.Item.CategoryE.BOOST_ITEM_XP or
-                            StaticData.Catalog.ItemsCatalogR.Item.CategoryE.BOOST_MINING_SPEED or
-                            StaticData.Catalog.ItemsCatalogR.Item.CategoryE.BOOST_RETENTION or
-                            StaticData.Catalog.ItemsCatalogR.Item.CategoryE.BOOST_SMELTING or
-                            StaticData.Catalog.ItemsCatalogR.Item.CategoryE.BOOST_STRENGTH or
-                            StaticData.Catalog.ItemsCatalogR.Item.CategoryE.BOOST_TAPPABLE_RADIUS;
+                            StaticData.Catalog.ItemsCatalogR.ItemCategory.BOOST_ADVENTURE_XP or
+                            StaticData.Catalog.ItemsCatalogR.ItemCategory.BOOST_CRAFTING or
+                            StaticData.Catalog.ItemsCatalogR.ItemCategory.BOOST_DEFENSE or
+                            StaticData.Catalog.ItemsCatalogR.ItemCategory.BOOST_EATING or
+                            StaticData.Catalog.ItemsCatalogR.ItemCategory.BOOST_HEALTH or
+                            StaticData.Catalog.ItemsCatalogR.ItemCategory.BOOST_HOARDING or
+                            StaticData.Catalog.ItemsCatalogR.ItemCategory.BOOST_ITEM_XP or
+                            StaticData.Catalog.ItemsCatalogR.ItemCategory.BOOST_MINING_SPEED or
+                            StaticData.Catalog.ItemsCatalogR.ItemCategory.BOOST_RETENTION or
+                            StaticData.Catalog.ItemsCatalogR.ItemCategory.BOOST_SMELTING or
+                            StaticData.Catalog.ItemsCatalogR.ItemCategory.BOOST_STRENGTH or
+                            StaticData.Catalog.ItemsCatalogR.ItemCategory.BOOST_TAPPABLE_RADIUS;
                     }
 
                     tags.Add(isBoost ? "Boosts" : "inventoryitem");

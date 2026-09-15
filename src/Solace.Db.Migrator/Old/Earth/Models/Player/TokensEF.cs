@@ -35,7 +35,7 @@ public sealed class TokensEF : IEntityWithId<Guid>, IVersionedEntity
             Type = type;
         }
 
-        [JsonConverter(typeof(JsonStringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter<TypeE>))]
         public enum TypeE
         {
 #pragma warning disable CA1707 // Identifiers should not contain underscores

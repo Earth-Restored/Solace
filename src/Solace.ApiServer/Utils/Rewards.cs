@@ -172,9 +172,9 @@ internal sealed class Rewards
             _rubies,
             _experiencePoints,
             _level,
-            [.. _items.Select(item => new Types.Common.Rewards.Item(item.Key, item.Value))],
+            [.. _items.Select(item => new Types.Common.RewardsItem(item.Key, item.Value))],
             [.. _buildplates],
-            [.. _challenges.Select(challenge => new Types.Common.Rewards.Challenge(challenge))],
+            [.. _challenges.Select(challenge => new Types.Common.RewardsChallenge(challenge))],
             [],
             []
         );

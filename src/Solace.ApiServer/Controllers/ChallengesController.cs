@@ -1,10 +1,8 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Solace.ApiServer.Types.Common;
 using Solace.ApiServer.Utils;
-using Solace.Common;
 using Rewards = Solace.ApiServer.Types.Common.Rewards;
 
 namespace Solace.ApiServer.Controllers;
@@ -15,7 +13,7 @@ namespace Solace.ApiServer.Controllers;
 [ApiController]
 internal sealed class ChallengesController : ControllerBase
 {
-    private sealed record ChallengeRecord(
+    internal sealed record ChallengeRecord(
         string ReferenceId,
         string? ParentId,
         string GroupId,
@@ -36,18 +34,24 @@ internal sealed class ChallengesController : ControllerBase
         object ClientProperties
     );
 
+    internal sealed record ChallengesResponse(
+        Dictionary<Guid, ChallengeRecord> Challenges,
+        Guid ActiveSeasonChallenge
+    );
+
     [HttpGet]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Endpoints cannot be static")]
-    public ContentHttpResult Get()
+    public EarthApiResponse<ChallengesResponse> Get()
     {
         // TODO: this is currently just a stub required for the journal to load properly in the client
 
-        var resp = Json.Serialize(new EarthApiResponse(new Dictionary<string, object>(StringComparer.Ordinal)
-        {
-            { "challenges", new Dictionary<string, object>(StringComparer.Ordinal)
+        var guid1 = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        var guid2 = Guid.Parse("00000000-0000-0000-0000-000000000002");
+
+        return new EarthApiResponse<ChallengesResponse>(new ChallengesResponse(
+            new Dictionary<Guid, ChallengeRecord>()
             {
-                // client requires two season challenges with these specific persona item reward UUIDs to exist in order for the journal to load, and no one has any idea why
-                { "00000000-0000-0000-0000-000000000001", new ChallengeRecord(
+                { guid1, new ChallengeRecord(
                     "00000000-0000-0000-0000-000000000001",
                     null,
                     "00000000-0000-0000-0000-000000000001",
@@ -67,7 +71,7 @@ internal sealed class ChallengesController : ControllerBase
                     new Rewards(null, null, null, [], [], [], ["230f5996-04b2-4f0e-83e5-4056c7f1d946"], []),
                     new object()
                 ) },
-                { "00000000-0000-0000-0000-000000000002", new ChallengeRecord(
+                { guid2, new ChallengeRecord(
                    "00000000-0000-0000-0000-000000000002",
                     null,
                     "00000000-0000-0000-0000-000000000001",
@@ -87,9 +91,8 @@ internal sealed class ChallengesController : ControllerBase
                     new Rewards(null, null, null, [], [], [], ["d7725840-4376-44fc-9220-585f45775371"], []),
                     new object()
                 ) }
-            } },
-            { "activeSeasonChallenge", "00000000-0000-0000-0000-000000000000" },
-        }));
-        return TypedResults.Content(resp, "application/json");
+            },
+            Guid.Empty)
+        );
     }
 }

@@ -1,28 +1,8 @@
-﻿using System.Text.Json.Serialization;
-
-namespace Solace.ApiServer.Types.Buildplates;
+﻿namespace Solace.ApiServer.Types.Buildplates;
 
 internal sealed record SharedBuildplate(
     string PlayerUsername,
     string SharedOn,
-    SharedBuildplate.BuildplateDataR BuildplateData,
+    SharedBuildplateData BuildplateData,
     Inventory.InventoryResponse Inventory
-)
-{
-    internal sealed record BuildplateDataR(
-        Dimension Dimension,
-        Offset Offset,
-        int BlocksPerMeter,
-        BuildplateDataR.TypeE Type,
-        SurfaceOrientation SurfaceOrientation,
-        string Model,
-        int Order
-    )
-    {
-        [JsonConverter(typeof(JsonStringEnumConverter<TypeE>))]
-        internal enum TypeE
-        {
-            [JsonStringEnumMemberName("Survival")] SURVIVAL,
-        }
-    }
-}
+);

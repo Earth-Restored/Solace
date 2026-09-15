@@ -5,21 +5,9 @@ internal sealed record Rewards(
     int? Rubies,
     int? ExperiencePoints,
     int? Level,
-    Rewards.Item[] Inventory,
+    RewardsItem[] Inventory,
     Guid[] Buildplates,
-    Rewards.Challenge[] Challenges,
+    RewardsChallenge[] Challenges,
     string[] PersonaItems,
-    Rewards.UtilityBlock[] UtilityBlocks
-)
-{
-    internal sealed record Item(
-        Guid Id,
-        int Amount
-    );
-
-    internal sealed record Challenge(
-        Guid Id
-    );
-
-    internal sealed record UtilityBlock();
-}
+    RewardsUtilityBlock[] UtilityBlocks
+);

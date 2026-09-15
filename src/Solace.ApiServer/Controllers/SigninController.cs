@@ -7,6 +7,7 @@ using Solace.Db.Earth;
 using Microsoft.AspNetCore.DataProtection;
 using Solace.ApiServer.Authentication;
 using Solace.Common.Asp.Auth;
+using Solace.ApiServer.Utils;
 
 namespace Solace.ApiServer.Controllers;
 
@@ -28,9 +29,20 @@ internal sealed partial class SigninController : SolaceControllerBase
         _logger = logger;
     }
 
+    internal sealed record SignInResponse(
+        string AuthenticationToken,
+        string BasePath,
+        object ClientProperties,
+        object? MixedReality,
+        object? MrToken,
+        object? Streams,
+        object Tokens,
+        object Updates
+    );
+
     [HttpPost("api/v{version:apiVersion}/player/profile/{profileID}")]
     [HttpPost("1/api/v{version:apiVersion}/player/profile/{profileID}")]
-    public async Task<Results<ContentHttpResult, BadRequest>> Post(string profileID, CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<SignInResponse>>, BadRequest>> SignIn(string profileID, CancellationToken cancellationToken)
     {
         if (profileID != "signin")
         {
@@ -110,17 +122,16 @@ internal sealed partial class SigninController : SolaceControllerBase
         // TODO: make the time configurable
         var authToken = _protector.Protect(userId.ToString(), TimeSpan.FromHours(1));
 
-        return EarthJson(new Dictionary<string, object?>(StringComparer.Ordinal)
-        {
-            ["authenticationToken"] = authToken,
-            ["basePath"] = "/1",
-            ["clientProperties"] = new object(),
-            ["mixedReality"] = null,
-            ["mrToken"] = null,
-            ["streams"] = null,
-            ["tokens"] = new object(),
-            ["updates"] = new object(),
-        });
+        return TypedResults.Ok(new EarthApiResponse<SignInResponse>(new(
+            authToken,
+            "/1",
+            new object(),
+            null,
+            null,
+            null,
+            new object(),
+            new object()
+        )));
     }
 
     [GeneratedRegex("^[0-9A-F]{15,16}$", RegexOptions.None, matchTimeoutMilliseconds: 200)]

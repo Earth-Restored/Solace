@@ -3,11 +3,11 @@ using Microsoft.Extensions.Caching.Memory;
 using Solace.StaticData;
 using CICIBIEType = Solace.StaticData.Catalog.ItemsCatalogR.Item.BoostEffectType;
 using CICIBIType = Solace.StaticData.Catalog.ItemsCatalogR.Item.BoostInfoType;
-using CICICategory = Solace.StaticData.Catalog.ItemsCatalogR.Item.CategoryE;
+using CICICategory = Solace.StaticData.Catalog.ItemsCatalogR.ItemCategory;
 using CICIJEBehavior = Solace.StaticData.Catalog.ItemsCatalogR.Item.JournalEntryR.BehaviorE;
 using CICIJEBiome = Solace.StaticData.Catalog.ItemsCatalogR.Item.JournalEntryR.BiomeE;
-using CICIType = Solace.StaticData.Catalog.ItemsCatalogR.Item.TypeE;
-using CICIUseType = Solace.StaticData.Catalog.ItemsCatalogR.Item.UseTypeE;
+using CICIType = Solace.StaticData.Catalog.ItemsCatalogR.ItemType;
+using CICIUseType = Solace.StaticData.Catalog.ItemsCatalogR.ItemUseType;
 using CIJGCJGParentCollection = Solace.StaticData.Catalog.ItemJournalGroupsCatalogR.JournalGroup.ParentCollectionE;
 using CRCCRCategory = Solace.StaticData.Catalog.RecipesCatalogR.CraftingRecipeCategory;
 using ItemsCatalog = Solace.ApiServer.Types.Catalog.ItemsCatalog;
@@ -73,7 +73,7 @@ internal sealed class CatalogResponseCacheService
 
     private ItemsCatalog CreateItemsCatalog()
     {
-        ItemsCatalog.ItemR[] items = [.. _catalog.ItemsCatalog.Items.Select(item =>
+        ItemsCatalogItem[] items = [.. _catalog.ItemsCatalog.Items.Select(item =>
         {
             var categoryString = item.Category switch
             {
@@ -179,14 +179,14 @@ internal sealed class CatalogResponseCacheService
                 mobDamage = 0;
             }
 
-            ItemsCatalog.ItemR.ItemData.BlockMetadataR? blockMetadata;
+            ItemsCatalogItemData.BlockMetadataR? blockMetadata;
             if (item.BlockInfo is not null)
             {
-                blockMetadata = new ItemsCatalog.ItemR.ItemData.BlockMetadataR(item.BlockInfo.BreakingHealth, item.BlockInfo.EfficiencyCategory);
+                blockMetadata = new ItemsCatalogItemData.BlockMetadataR(item.BlockInfo.BreakingHealth, item.BlockInfo.EfficiencyCategory);
             }
             else if (item.MobInfo is not null)
             {
-                blockMetadata = new ItemsCatalog.ItemR.ItemData.BlockMetadataR(item.MobInfo.Health, "instant");
+                blockMetadata = new ItemsCatalogItemData.BlockMetadataR(item.MobInfo.Health, "instant");
             }
             else
             {
@@ -239,7 +239,7 @@ internal sealed class CatalogResponseCacheService
                 boostMetadata = null;
             }
 
-            ItemsCatalog.ItemR.ItemData.JournalMetadataR? journalMetadata;
+            ItemsCatalogItemData.JournalMetadataR? journalMetadata;
             if (item.JournalEntry is not null)
             {
                 var behaviorString = item.JournalEntry.Behavior switch
@@ -276,7 +276,7 @@ internal sealed class CatalogResponseCacheService
                     _ => throw new UnreachableException(),
                 };
 
-                journalMetadata = new ItemsCatalog.ItemR.ItemData.JournalMetadataR(
+                journalMetadata = new ItemsCatalogItemData.JournalMetadataR(
                     item.JournalEntry.Group,
                     item.Experience.Journal,
                     item.JournalEntry.Order,
@@ -289,9 +289,9 @@ internal sealed class CatalogResponseCacheService
                 journalMetadata = null;
             }
 
-            return new ItemsCatalog.ItemR(
+            return new ItemsCatalogItem(
                 item.Id,
-                new ItemsCatalog.ItemR.ItemData(
+                new ItemsCatalogItemData(
                     item.Name,
                     item.Aux,
                     typeString,
@@ -303,7 +303,7 @@ internal sealed class CatalogResponseCacheService
                     blockDamage,
                     health,
                     blockMetadata,
-                    new ItemsCatalog.ItemR.ItemData.ItemMetadataR(
+                    new ItemsCatalogItemData.ItemMetadataR(
                         useTypeString,
                         alternativeUseTypeString,
                         mobDamage,
@@ -316,7 +316,7 @@ internal sealed class CatalogResponseCacheService
                     ),
                     boostMetadata,
                     journalMetadata,
-                    item.JournalEntry is not null && item.JournalEntry.Sound is not null ? new ItemsCatalog.ItemR.ItemData.AudioMetadataR(
+                    item.JournalEntry is not null && item.JournalEntry.Sound is not null ? new ItemsCatalogItemData.AudioMetadataR(
                         new Dictionary<string, string>(StringComparer.Ordinal) { ["journal"] = item.JournalEntry.Sound },
                         item.JournalEntry.Sound
                     ) : null,
@@ -327,19 +327,19 @@ internal sealed class CatalogResponseCacheService
                 1,
                 item.Stackable,
                 item.FuelInfo is not null ? new Types.Common.BurnRate(item.FuelInfo.BurnTime, item.FuelInfo.HeatPerSecond) : null,
-                item.FuelInfo is not null && item.FuelInfo.ReturnItemId is not null ? [new ItemsCatalog.ItemR.ReturnItem(item.FuelInfo.ReturnItemId.Value, 1)] : [],
-                item.ConsumeInfo is not null && item.ConsumeInfo.ReturnItemId is not null ? [new ItemsCatalog.ItemR.ReturnItem(item.ConsumeInfo.ReturnItemId.Value, 1)] : [],
+                item.FuelInfo is not null && item.FuelInfo.ReturnItemId is not null ? [new ItemsCatalogItem.ReturnItem(item.FuelInfo.ReturnItemId.Value, 1)] : [],
+                item.ConsumeInfo is not null && item.ConsumeInfo.ReturnItemId is not null ? [new ItemsCatalogItem.ReturnItem(item.ConsumeInfo.ReturnItemId.Value, 1)] : [],
                 item.Experience.Tappable,
                 new Dictionary<string, int?>(StringComparer.Ordinal) { ["tappable"] = item.Experience.Tappable, ["encounter"] = item.Experience.Encounter, ["crafting"] = item.Experience.Crafting },
                 false
             );
         })];
 
-        Dictionary<string, ItemsCatalog.EfficiencyCategory> efficiencyCategories = [with(StringComparer.Ordinal)];
+        Dictionary<string, ItemsCatalogEfficiencyCategory> efficiencyCategories = [with(StringComparer.Ordinal)];
         foreach (var efficiencyCategory in _catalog.ItemEfficiencyCategoriesCatalog.EfficiencyCategories)
         {
-            efficiencyCategories[efficiencyCategory.Name] = new ItemsCatalog.EfficiencyCategory(
-                new ItemsCatalog.EfficiencyCategory.EfficiencyMapR(
+            efficiencyCategories[efficiencyCategory.Name] = new ItemsCatalogEfficiencyCategory(
+                new ItemsCatalogEfficiencyCategory.EfficiencyMapR(
                     efficiencyCategory.Hand,
                     efficiencyCategory.Hoe,
                     efficiencyCategory.Axe,
@@ -375,9 +375,9 @@ internal sealed class CatalogResponseCacheService
                 recipe.Id,
                 categoryString,
                 TimeFormatter.FormatDuration(recipe.Duration * 1000),
-                [.. recipe.Ingredients.Select(ingredient => new RecipesCatalog.CraftingRecipe.Ingredient(ingredient.PossibleItemIds, ingredient.Count))],
-                new RecipesCatalog.CraftingRecipe.OutputR(recipe.Output.ItemId, recipe.Output.Count),
-                [.. recipe.ReturnItems.Select(returnItem => new RecipesCatalog.CraftingRecipe.ReturnItem(returnItem.ItemId, returnItem.Count))],
+                [.. recipe.Ingredients.Select(ingredient => new RecipesCatalog.CraftingRecipeIngredient(ingredient.PossibleItemIds, ingredient.Count))],
+                new RecipesCatalog.CraftingRecipeOutput(recipe.Output.ItemId, recipe.Output.Count),
+                [.. recipe.ReturnItems.Select(returnItem => new RecipesCatalog.CraftingRecipeReturnItem(returnItem.ItemId, returnItem.Count))],
                 false
             );
         })];
@@ -388,8 +388,8 @@ internal sealed class CatalogResponseCacheService
                 recipe.Id,
                 recipe.HeatRequired,
                 recipe.Input,
-                new RecipesCatalog.SmeltingRecipe.OutputR(recipe.Output, 1),
-                recipe.ReturnItemId is not null ? [new RecipesCatalog.SmeltingRecipe.ReturnItem(recipe.ReturnItemId.Value, 1)] : [],
+                new RecipesCatalog.SmeltingRecipeOutput(recipe.Output, 1),
+                recipe.ReturnItemId is not null ? [new RecipesCatalog.SmeltingRecipeReturnItem(recipe.ReturnItemId.Value, 1)] : [],
                 false
             );
         })];
@@ -399,7 +399,7 @@ internal sealed class CatalogResponseCacheService
 
     private JournalCatalog CreateJournalCatalog()
     {
-        Dictionary<string, JournalCatalog.Item> items = [with(StringComparer.Ordinal)];
+        Dictionary<string, JournalCatalogItem> items = [with(StringComparer.Ordinal)];
         foreach (var group in _catalog.ItemJournalGroupsCatalog.Groups)
         {
             var parentCollectionString = group.ParentCollection switch
@@ -411,7 +411,7 @@ internal sealed class CatalogResponseCacheService
                 _ => throw new UnreachableException(),
             };
 
-            items[group.Name] = new JournalCatalog.Item(
+            items[group.Name] = new JournalCatalogItem(
                 group.Id,
                 parentCollectionString,
                 group.Order,
