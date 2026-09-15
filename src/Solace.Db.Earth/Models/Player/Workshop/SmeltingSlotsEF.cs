@@ -6,5 +6,5 @@ public sealed class SmeltingSlotsEF : IEntityWithId<Guid>
 
     public ProfileEF Profile { get; set; } = null!;
 
-    public SmeltingSlotEF[] Slots { get; set; } = [new SmeltingSlotEF(), new SmeltingSlotEF(), new SmeltingSlotEF()];
+    public SmeltingSlotEF[] Slots { get; set; } = [new SmeltingSlotEF(), new SmeltingSlotEF() { Locked = true, }, new SmeltingSlotEF() { Locked = true, }];
 }

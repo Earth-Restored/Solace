@@ -6,5 +6,5 @@ public sealed class CraftingSlotsEF : IEntityWithId<Guid>
 
     public ProfileEF Profile { get; set; } = null!;
 
-    public CraftingSlotEF[] Slots { get; set; } = [new CraftingSlotEF(), new CraftingSlotEF(), new CraftingSlotEF()];
+    public CraftingSlotEF[] Slots { get; set; } = [new CraftingSlotEF(), new CraftingSlotEF() { Locked = true, }, new CraftingSlotEF() { Locked = true, }];
 }
