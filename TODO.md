@@ -10,7 +10,7 @@
 - Allow custom java resourcepacks? (tool to turn them into earth(bedrock) resourcepacks)
 - Move logs folder up to the folder with run_launcher.ps1 - cli arg to specify log file location on all programs
 - View old logs in launcher?
-- Clear logs - seperate permission
+- Clear logs - separate permission
 - Show roles on profile page
 - Launch/connect to remote components - e.g. run buildplate launcher on another PC
 - View the player buildplate's template (if exists) - open page, search id?
