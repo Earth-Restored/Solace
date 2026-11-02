@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
+using Solace.Db.Earth.Models.Challenges;
 using Solace.Db.Earth.Models.Common;
 
 namespace Solace.Db.Earth.Models.Player;
@@ -135,5 +136,39 @@ public sealed class BoostActivatedEntryEF : ActivityLogEntryEF
     }
 
     public Guid ItemId { get; init; }
+}
+
+public sealed class ChallengeCompletedEntryEF : RewardedActivityLogEntryEF
+{
+    private ChallengeCompletedEntryEF()
+         : base()
+    {
+    }
+
+    [SetsRequiredMembers]
+    public ChallengeCompletedEntryEF(Guid accountId, DateTimeOffset timestamp, Rewards rewards, Guid challengeId, ChallengeDurationEF duration)
+        : base(accountId, timestamp, rewards)
+    {
+        ChallengeId = challengeId;
+        Duration = duration;
+    }
+
+    [SetsRequiredMembers]
+    public ChallengeCompletedEntryEF(Guid accountId, DateTimeOffset timestamp, Rewards rewards, Guid challengeId, ChallengeDurationEF duration, int order, bool isFinalSeasonChallenge)
+        : base(accountId, timestamp, rewards)
+    {
+        ChallengeId = challengeId;
+        Duration = duration;
+        Order = order;
+        IsFinalSeasonChallenge = isFinalSeasonChallenge;
+    }
+
+    public Guid ChallengeId { get; init; }
+
+    public ChallengeDurationEF Duration { get; init; }
+
+    public int? Order { get; init; }
+
+    public bool? IsFinalSeasonChallenge { get; init; }
 }
 #pragma warning restore MA0048 // File name must match type name

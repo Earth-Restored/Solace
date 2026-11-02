@@ -185,6 +185,7 @@ internal sealed partial class Program2
         builder.Services.AddCascadingAuthenticationState();
 
         builder.Services.AddHostedService<PlayfabDataSeeder>();
+        builder.Services.AddHostedService<SeasonsDataSeeder>();
 
         builder.Services.AddHostedService<PlayfabDataReloader>();
 

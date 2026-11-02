@@ -722,3 +722,44 @@ html.dark .border-primary {
 html.dark .border-danger {
     border-color: #7a2a2a !important;
 }
+html.dark .border-success {
+    border-color: #198754 !important;
+}
+html.dark .border-info {
+    border-color: #0dcaf0 !important;
+}
+html.dark .bg-success-subtle {
+    background-color: #0f381e !important;
+}
+html.dark .text-success-emphasis {
+    color: #75b798 !important;
+}
+html.dark .bg-info-subtle {
+    background-color: #0c3647 !important;
+}
+html.dark .text-info-emphasis {
+    color: #6edff6 !important;
+}
+html.dark .bg-light-subtle {
+    background-color: #16163a !important;
+    color: #d0d0e0 !important;
+}
+html.dark .table-light {
+    background-color: #16163a !important;
+    color: #d0d0e0 !important;
+    border-color: #3a3a6a !important;
+}
+html.dark .table-light th,
+html.dark .table-light td {
+    background-color: #16163a !important;
+    color: #d0d0e0 !important;
+}
+html.dark .table-warning {
+    background-color: #2e2608 !important;
+    color: #ffda6a !important;
+}
+html.dark .table-warning td,
+html.dark .table-warning th {
+    background-color: #2e2608 !important;
+    color: #ffda6a !important;
+}

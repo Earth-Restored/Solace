@@ -1,4 +1,4 @@
-﻿@using System.Security.Claims
+@using System.Security.Claims
 @using Solace.WebPortal.Common
 @implements IDisposable
 
@@ -55,6 +55,15 @@
                     <div class="nav-item px-3">
                         <NavLink class="nav-link" href="Store">
                             <span class="bi bi-shop" aria-hidden="true"></span> Store
+                        </NavLink>
+                    </div>
+                }
+
+                @if (HasPermission(Permissions.ViewSeasonsAndChallenges))
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="Seasons">
+                            <span class="bi bi-calendar3" aria-hidden="true"></span> Seasons
                         </NavLink>
                     </div>
                 }

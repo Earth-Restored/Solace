@@ -22,7 +22,7 @@ public sealed class MigrateCommand : AsyncCommand<MigrationSettings>
 {
     private static readonly Dictionary<Guid, long> _guidToLong = [];
 
-    protected override async Task<int> ExecuteAsync(CommandContext context, MigrationSettings settings, CancellationToken cancellationToken)
+    public override async Task<int> ExecuteAsync(CommandContext context, MigrationSettings settings, CancellationToken cancellationToken)
     {
         var migratorVersion = Assembly.GetExecutingAssembly().GetName().Version!;
         var supportedVersion = typeof(Solace.Db.Earth.EarthDbContext).Assembly.GetName().Version!;

@@ -3,6 +3,7 @@ using Solace.ApiServer.Controllers;
 using Solace.ApiServer.Types.Boost;
 using Solace.ApiServer.Types.Buildplates;
 using Solace.ApiServer.Types.Catalog;
+using Solace.ApiServer.Types.Challenges;
 using Solace.ApiServer.Types.Common;
 using Solace.ApiServer.Types.Inventory;
 using Solace.ApiServer.Types.Journal;
@@ -18,8 +19,8 @@ namespace Solace.ApiServer;
 [JsonSerializable(typeof(BuildplateInstance))]
 [JsonSerializable(typeof(BuildplatesController.EncounterInstanceRequest))]
 [JsonSerializable(typeof(BuildplatesController.SharedBuildplateInstanceRequest))]
-[JsonSerializable(typeof(ChallengesController.ChallengeRecord))]
-[JsonSerializable(typeof(ChallengesController.ChallengesResponse))]
+[JsonSerializable(typeof(ChallengeRecord))]
+[JsonSerializable(typeof(ChallengesResponse))]
 [JsonSerializable(typeof(CraftingSlot))]
 [JsonSerializable(typeof(Dictionary<Guid, EncounterState>))]
 [JsonSerializable(typeof(Dictionary<string, object>))]
@@ -55,6 +56,7 @@ namespace Solace.ApiServer;
 [JsonSerializable(typeof(TappablesController.TappablesResponse))]
 [JsonSerializable(typeof(Token))]
 [JsonSerializable(typeof(TokensController.TokensResponse))]
+[JsonSerializable(typeof(TokensController.RedeemedPlayerTokenResponse))]
 [JsonSerializable(typeof(WorkshopController.CollectItemsResponse))]
 [JsonSerializable(typeof(WorkshopController.StartRequestCrafting))]
 [JsonSerializable(typeof(WorkshopController.StartRequestSmelting))]

@@ -1,4 +1,4 @@
-﻿using System.Collections.Frozen;
+using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -566,7 +566,7 @@ public sealed class Catalog
             Rewards.RewardItem[] Inventory,
             Guid[] Buildplates,
             Rewards.RewardChallenge[] Challenges,
-            string[] PersonaItems,
+            Guid[] PersonaItems,
             Rewards.RewardUtilityBlock[] UtilityBlocks
         )
         {

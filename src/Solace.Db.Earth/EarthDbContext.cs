@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Solace.Db.Earth.Models;
+using Solace.Db.Earth.Models.Challenges;
 using Solace.Db.Earth.Models.Global;
 using Solace.Db.Earth.Models.Player;
 using Solace.Db.Earth.Models.Player.Workshop;
@@ -54,6 +55,16 @@ public sealed class EarthDbContext : DbContext
     public DbSet<Tile> Tiles { get; set; }
 
     public DbSet<Secret> Secrets { get; set; }
+
+    public DbSet<SeasonEF> Seasons { get; set; }
+
+    public DbSet<ChallengeDefinitionEF> Challenges { get; set; }
+
+    public DbSet<PlayerSeasonProgressEF> PlayerSeasonProgresses { get; set; }
+
+    public DbSet<PlayerChallengeProgressEF> PlayerChallengeProgresses { get; set; }
+
+    public DbSet<SeedingHistory> SeedingHistory { get; set; }
 
     public static EarthDbContext CreateFromConnection(string connectionString)
     {
@@ -241,7 +252,8 @@ public sealed class EarthDbContext : DbContext
             .HasValue<JournalItemUnlockedEntryEF>("journal_item_unlocked")
             .HasValue<CraftingCompletedEntryEF>("crafting_completed")
             .HasValue<SmeltingCompletedEntryEF>("smelting_completed")
-            .HasValue<BoostActivatedEntryEF>("boost_activated");
+            .HasValue<BoostActivatedEntryEF>("boost_activated")
+            .HasValue<ChallengeCompletedEntryEF>("challenge_completed");
 
         modelBuilder.Entity<ActivityLogEntryEF>()
             .HasKey(e => new { e.ProfileId, e.EntryId, });
@@ -257,6 +269,22 @@ public sealed class EarthDbContext : DbContext
         modelBuilder.Entity<BoostActivatedEntryEF>()
             .Property(e => e.ItemId)
             .HasColumnName("ItemId");
+
+        modelBuilder.Entity<ChallengeCompletedEntryEF>()
+            .Property(e => e.ChallengeId)
+            .HasColumnName("ChallengeId");
+
+        modelBuilder.Entity<ChallengeCompletedEntryEF>()
+            .Property(e => e.Duration)
+            .HasColumnName("Duration");
+
+        modelBuilder.Entity<ChallengeCompletedEntryEF>()
+            .Property(e => e.Order)
+            .HasColumnName("Order");
+
+        modelBuilder.Entity<ChallengeCompletedEntryEF>()
+            .Property(e => e.IsFinalSeasonChallenge)
+            .HasColumnName("IsFinalSeasonChallenge");
 
         modelBuilder.Entity<RewardedActivityLogEntryEF>()
             .OwnsOne(e => e.Rewards, navigationBuilder =>
@@ -324,7 +352,11 @@ public sealed class EarthDbContext : DbContext
             .HasDiscriminator<string>("token_type")
             .HasValue<LevelUpTokenEF>("level_up")
             .HasValue<JournalItemUnlockedTokenEF>("journal_item_unlocked")
-            .HasValue<DailyLoginTokenEF>("daily_login");
+            .HasValue<FTUESeasonsTokenEF>("ftue_seasons")
+            .HasValue<NewSeasonNotificationTokenEF>("new_season_notification")
+            .HasValue<OOBESeasonChallengeSelectedTokenEF>("oobe_season_challenge_selected")
+            .HasValue<ChallengeProgressTokenEF>("challenge_progress")
+            .HasValue<ChallengeCompleteTokenEF>("challenge_complete");
 
         modelBuilder.Entity<TokenEF>()
             .HasKey(e => new { e.ProfileId, e.TokenId, });
@@ -346,8 +378,21 @@ public sealed class EarthDbContext : DbContext
                     .Metadata.SetValueComparer(new DictionaryGuidIntValueComparer());
             });
 
-        modelBuilder.Entity<DailyLoginTokenEF>()
-            .HasIndex(e => e.Date);
+        modelBuilder.Entity<FTUESeasonsTokenEF>()
+            .Property(e => e.SeasonId)
+            .HasColumnName("SeasonId");
+
+        modelBuilder.Entity<NewSeasonNotificationTokenEF>()
+            .Property(e => e.SeasonId)
+            .HasColumnName("SeasonId");
+
+        modelBuilder.Entity<ChallengeProgressTokenEF>()
+            .Property(e => e.ChallengeId)
+            .HasColumnName("ChallengeId");
+
+        modelBuilder.Entity<ChallengeCompleteTokenEF>()
+            .Property(e => e.ChallengeId)
+            .HasColumnName("ChallengeId");
 
         // crafting slots
         modelBuilder.Ignore<CraftingSlotEF.ActiveCraftingJob>();
@@ -381,6 +426,89 @@ public sealed class EarthDbContext : DbContext
                 v => JsonSerializer.Deserialize<SharedBuildplateEF.HotbarItem?[]>(v, DbJsonContext.Default.HotbarItemArray) ?? new SharedBuildplateEF.HotbarItem?[7]
             )
             .Metadata.SetValueComparer(new ArrayValueComparer<SharedBuildplateEF.HotbarItem>());
+
+        // seasons
+        modelBuilder.Entity<SeasonEF>(b =>
+        {
+            b.HasKey(s => s.Id);
+            b.HasIndex(s => s.Key).IsUnique();
+            b.HasIndex(s => s.IsActive);
+            b.HasMany(s => s.Challenges)
+                .WithOne(c => c.Season)
+                .HasForeignKey(c => c.SeasonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            b.OwnsOne(s => s.ExclusiveRewards, navigationBuilder =>
+            {
+                navigationBuilder.ToJson();
+
+                navigationBuilder.Property(r => r.Items)
+                    .HasConversion(
+                        v => JsonSerializer.Serialize(v, DbJsonContext.Default.DictionaryGuidInt32),
+                        v => JsonSerializer.Deserialize(v, DbJsonContext.Default.DictionaryGuidInt32) ?? new Dictionary<Guid, int>()
+                    )
+                    .Metadata.SetValueComparer(new DictionaryGuidIntValueComparer());
+            });
+        });
+
+        // challenges
+        modelBuilder.Entity<ChallengeDefinitionEF>(b =>
+        {
+            b.HasKey(c => c.Id);
+            b.HasIndex(c => c.SeasonId);
+
+            b.OwnsOne(c => c.Rewards, navigationBuilder =>
+            {
+                navigationBuilder.ToJson();
+
+                navigationBuilder.Property(r => r.Items)
+                    .HasConversion(
+                        v => JsonSerializer.Serialize(v, DbJsonContext.Default.DictionaryGuidInt32),
+                        v => JsonSerializer.Deserialize(v, DbJsonContext.Default.DictionaryGuidInt32) ?? new Dictionary<Guid, int>()
+                    )
+                    .Metadata.SetValueComparer(new DictionaryGuidIntValueComparer());
+            });
+        });
+
+        // player season progress
+        modelBuilder.Entity<PlayerSeasonProgressEF>(b =>
+        {
+            b.HasKey(p => new { p.ProfileId, p.SeasonId });
+            b.HasOne(p => p.Profile)
+                .WithMany(p => p.SeasonProgresses)
+                .HasForeignKey(p => p.ProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(p => p.Season)
+                .WithMany()
+                .HasForeignKey(p => p.SeasonId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // player challenge progress
+        modelBuilder.Entity<PlayerChallengeProgressEF>(b =>
+        {
+            b.HasKey(p => new { p.ProfileId, p.ChallengeId });
+            b.HasOne(p => p.Profile)
+                .WithMany(p => p.ChallengeProgresses)
+                .HasForeignKey(p => p.ProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(p => p.Challenge)
+                .WithMany()
+                .HasForeignKey(p => p.ChallengeId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // seeding history
+        modelBuilder.Entity<SeedingHistory>(b =>
+        {
+            b.HasKey(h => h.Key);
+
+            b.Property(e => e.Version)
+                .HasConversion(
+                    v => v.ToString(),
+                    v => Version.Parse(v)
+                );
+        });
 #pragma warning restore CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
 #pragma warning restore CS8621 // Nullability of reference types in return type doesn't match the target delegate (possibly because of nullability attributes).
 #pragma warning restore IDE0058 // Expression value is never used

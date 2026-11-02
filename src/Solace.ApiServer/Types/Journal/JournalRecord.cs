@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using Solace.ApiServer.Types.Common;
 using static Solace.ApiServer.Types.Journal.JournalRecord;
@@ -33,6 +33,7 @@ internal sealed record JournalRecord(
         [JsonStringEnumMemberName("CraftingJobCompleted")] CRAFTING_COMPLETED,
         [JsonStringEnumMemberName("SmeltingJobCompleted")] SMELTING_COMPLETED,
         [JsonStringEnumMemberName("BoostActivated")] BOOST_ACTIVATED,
+        [JsonStringEnumMemberName("ChallengeCompleted")] CHALLENGE_COMPLETED,
 #pragma warning restore CA1707 // Identifiers should not contain underscores
     }
 }
@@ -52,6 +53,7 @@ internal static class ActivityLogTypeExtensions
                 Db.Earth.Models.Player.CraftingCompletedEntryEF => ActivityLogEntryType.CRAFTING_COMPLETED,
                 Db.Earth.Models.Player.SmeltingCompletedEntryEF => ActivityLogEntryType.SMELTING_COMPLETED,
                 Db.Earth.Models.Player.BoostActivatedEntryEF => ActivityLogEntryType.BOOST_ACTIVATED,
+                Db.Earth.Models.Player.ChallengeCompletedEntryEF => ActivityLogEntryType.CHALLENGE_COMPLETED,
                 _ => throw new UnreachableException(),
             };
     }

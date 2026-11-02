@@ -1,4 +1,4 @@
-﻿namespace Solace.StaticData;
+namespace Solace.StaticData;
 
 public sealed class StaticDataProvider
 {
@@ -22,6 +22,8 @@ public sealed class StaticDataProvider
     public Buildplates Buildplates => field ??= new Buildplates(Path.Combine(Directory, "buildplates"));
 
     public Playfab Playfab => field ??= new Playfab(Path.Combine(Directory, "playfab"));
+
+    public SeasonsCatalog Seasons => field ??= new SeasonsCatalog(Path.Combine(Directory, "seasons"));
 
     public Resourcepacks Resourcepacks => field ??= new Resourcepacks(Path.Combine(Directory, "resourcepacks"));
 }

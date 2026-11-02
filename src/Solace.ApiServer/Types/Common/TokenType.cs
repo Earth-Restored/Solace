@@ -1,7 +1,13 @@
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 
 namespace Solace.ApiServer.Types.Common;
 
+/*
+* lookup_funcs.json at 0x445c2cc
+* sub_1C5D658 (0x1c5d658) - array starting at 0x50ff264 (unk_50FF264) through 0x50ff30c
+* 32-bit FNV-1a hashes
+*/
 [JsonConverter(typeof(JsonStringEnumConverter<TokenType>))]
 internal enum TokenType
 {
@@ -112,7 +118,7 @@ internal enum TokenType
     [JsonStringEnumMemberName("challenge.progress")]
     CHALLENGE_PROGRESS,
 
-    [JsonStringEnumMemberName("bi.i1qd")]
+    [JsonStringEnumMemberName("challenge.completed")]
     CHALLENGE_COMPLETE,
 
     [JsonStringEnumMemberName("wkshps")]
@@ -136,8 +142,29 @@ internal enum TokenType
     [JsonStringEnumMemberName("redeemtappable")]
     TAPPABLE,
 
-    [JsonStringEnumMemberName("daily.login")]
+    [JsonStringEnumMemberName("daily.login")] // unconfirmed
     DAILY_LOGIN,
 
 #pragma warning restore CA1707 // Identifiers should not contain underscores
+}
+
+#pragma warning disable MA0048 // File name must match type name
+internal static class TokenTypeExtensions
+#pragma warning restore MA0048 // File name must match type name
+{
+    extension(TokenType)
+    {
+        public static TokenType FromDb(Db.Earth.Models.Player.TokenEF token)
+            => token switch
+            {
+                Db.Earth.Models.Player.LevelUpTokenEF => TokenType.LEVEL_UP,
+                Db.Earth.Models.Player.JournalItemUnlockedTokenEF => TokenType.JOURNAL_ITEM_UNLOCKED,
+                Db.Earth.Models.Player.FTUESeasonsTokenEF => TokenType.FTUE_SEASONS,
+                Db.Earth.Models.Player.NewSeasonNotificationTokenEF => TokenType.NEW_SEASON_NOTIFICATION,
+                Db.Earth.Models.Player.OOBESeasonChallengeSelectedTokenEF => TokenType.OOBE_SEASON_CHALLENGE_SELECTED,
+                Db.Earth.Models.Player.ChallengeProgressTokenEF => TokenType.CHALLENGE_PROGRESS,
+                Db.Earth.Models.Player.ChallengeCompleteTokenEF => TokenType.CHALLENGE_COMPLETE,
+                _ => throw new UnreachableException(),
+            };
+    }
 }

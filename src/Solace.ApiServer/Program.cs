@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using Solace.ApiServer.Services;
 using Solace.ApiServer.Utils;
 using Solace.BuildplateImporter;
 using Solace.Common;
@@ -107,6 +108,7 @@ internal static partial class App
         builder.Services.AddSingleton<TappablesManager>();
         builder.Services.AddSingleton<BuildplateInstancesManager>();
         builder.Services.AddSingleton<BuildplateInstanceRequestHandler>();
+        builder.Services.AddSingleton<SeasonChallengeService>();
 
         builder.Services.AddMemoryCache();
 
@@ -273,6 +275,7 @@ internal static partial class App
         await app.Services.GetRequiredService<TappablesManager>().InitializeAsync(eventBus);
         await app.Services.GetRequiredService<BuildplateInstancesManager>().InitializeAsync(eventBus);
         await app.Services.GetRequiredService<BuildplateInstanceRequestHandler>().InitializeAsync(eventBus);
+        await app.Services.GetRequiredService<SeasonChallengeService>().InitializeAsync(eventBus);
 
         await app.RunAsync();
 
