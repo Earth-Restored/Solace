@@ -50,7 +50,8 @@ public sealed partial class SolaceIntegrationTests
                 Level: 2,
                 Items: [],
                 Buildplates: [],
-                Challenges: []
+                Challenges: [],
+                PersonaItems: []
             );
 
             var token = new LevelUpTokenEF(_fixture.ProfileId, 2, rewards);

@@ -12,6 +12,8 @@ namespace Solace.Db.Earth;
 [JsonSerializable(typeof(Dictionary<Guid, int>))]
 [JsonSerializable(typeof(HotbarEF.Item?[]))]
 [JsonSerializable(typeof(Rewards))]
+[JsonSerializable(typeof(List<Guid>))]
+[JsonSerializable(typeof(Guid[]))]
 [JsonSerializable(typeof(SharedBuildplateEF.HotbarItem?[]))]
 [JsonSerializable(typeof(SmeltingSlotEF[]))]
 internal sealed partial class DbJsonContext : JsonSerializerContext

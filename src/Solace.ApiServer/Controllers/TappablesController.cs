@@ -3,11 +3,13 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Solace.ApiServer.Services;
 using Solace.ApiServer.Types.Common;
 using Solace.ApiServer.Types.Tappables;
 using Solace.ApiServer.Utils;
 using Solace.Common.Utils;
 using Solace.Db.Earth;
+using Solace.Db.Earth.Models.Challenges;
 using Solace.Db.Earth.Models.Player;
 using Solace.StaticData;
 using Microsoft.EntityFrameworkCore;
@@ -24,13 +26,15 @@ internal sealed class TappablesController : SolaceControllerBase
     private readonly EarthDbContext _earthDb;
     private readonly ObjectStoreClient _objectStore;
     private readonly StaticDataProvider _staticData;
+    private readonly SeasonChallengeService _seasonChallengeService;
 
-    public TappablesController(TappablesManager tappablesManager, EarthDbContext earthDb, ObjectStoreClient objectStore, StaticDataProvider staticData)
+    public TappablesController(TappablesManager tappablesManager, EarthDbContext earthDb, ObjectStoreClient objectStore, StaticDataProvider staticData, SeasonChallengeService seasonChallengeService)
     {
         _tappablesManager = tappablesManager;
         _earthDb = earthDb;
         _objectStore = objectStore;
         _staticData = staticData;
+        _seasonChallengeService = seasonChallengeService;
     }
 
     internal sealed record TappablesResponse(
@@ -193,6 +197,7 @@ internal sealed class TappablesController : SolaceControllerBase
 
         await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new TappableEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
         await rewards.ToRedeemQueryAsync(_earthDb, results, _objectStore, accountId, requestStartedOn, _staticData, cancellationToken);
+        await _seasonChallengeService.TrackObjectiveProgressAsync(_earthDb, accountId, ObjectiveTypeEF.TappableCollected, null, 1, results, cancellationToken);
 
         return TypedResults.Ok(new EarthApiResponse<RedeemTappableResponse>(new(
             new Token(

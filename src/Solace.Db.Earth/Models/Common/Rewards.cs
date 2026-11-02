@@ -1,4 +1,4 @@
-﻿using Solace.Common;
+using Solace.Common;
 
 namespace Solace.Db.Earth.Models.Common;
 
@@ -8,18 +8,30 @@ public sealed record Rewards(
     int? Level,
     Dictionary<Guid, int> Items,
     Guid[] Buildplates,
-    Guid[] Challenges
+    Guid[] Challenges,
+    Guid[] PersonaItems
 ) : ICloneable<Rewards>
 {
-    public Rewards() : this(0, 0, null, [], [], [])
+    public Rewards() : this(0, 0, null, [], [], [], [])
+    {
+    }
+
+    public Rewards(
+        int Rubies,
+        int ExperiencePoints,
+        int? Level,
+        Dictionary<Guid, int> Items,
+        Guid[] Buildplates,
+        Guid[] Challenges
+    ) : this(Rubies, ExperiencePoints, Level, Items, Buildplates, Challenges, [])
     {
     }
 
     public Rewards DeepCopy()
-        => new(Rubies, ExperiencePoints, Level, [with(Items)], [.. Buildplates], [.. Challenges]);
+        => new(Rubies, ExperiencePoints, Level, [with(Items)], [.. Buildplates], [.. Challenges], [.. PersonaItems]);
 
     public bool Equals(Rewards? other)
-        => other is not null && Rubies == other.Rubies && ExperiencePoints == other.ExperiencePoints && Level == other.Level && Items.OrderBy(item => item.Key).Select(item => (item.Key, item.Value)).SequenceEqual(other.Items.OrderBy(item => item.Key).Select(item => (item.Key, item.Value))) && Buildplates.SequenceEqual(other.Buildplates) && Challenges.SequenceEqual(other.Challenges);
+        => other is not null && Rubies == other.Rubies && ExperiencePoints == other.ExperiencePoints && Level == other.Level && Items.OrderBy(item => item.Key).Select(item => (item.Key, item.Value)).SequenceEqual(other.Items.OrderBy(item => item.Key).Select(item => (item.Key, item.Value))) && Buildplates.SequenceEqual(other.Buildplates) && Challenges.SequenceEqual(other.Challenges) && PersonaItems.SequenceEqual(other.PersonaItems);
 
     public override int GetHashCode()
     {
@@ -41,6 +53,11 @@ public sealed record Rewards(
         }
 
         foreach (var item in Challenges)
+        {
+            hash.Add(item);
+        }
+
+        foreach (var item in PersonaItems)
         {
             hash.Add(item);
         }

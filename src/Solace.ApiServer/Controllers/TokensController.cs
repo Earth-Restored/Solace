@@ -1,4 +1,5 @@
-﻿using Asp.Versioning;
+using System.Globalization;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -32,6 +33,11 @@ internal sealed class TokensController : SolaceControllerBase
         Dictionary<Guid, Token> Tokens
     );
 
+    internal sealed record RedeemedPlayerTokenResponse(
+        Token Token,
+        IReadOnlyDictionary<string, int?> Updates
+    );
+
     [HttpGet]
     public async Task<Results<Ok<EarthApiResponse<TokensResponse>>, BadRequest>> Get(CancellationToken cancellationToken)
     {
@@ -46,7 +52,6 @@ internal sealed class TokensController : SolaceControllerBase
             .AsAsyncEnumerable();
 
         var tokensDictionary = await tokens
-            .Where(token => token is not DailyLoginTokenEF { Claimed: true })
             .Select(token => new KeyValuePair<Guid, Token>(token.TokenId, TokenToApiResponse(token)))
             .ToDictionaryAsync(cancellationToken: cancellationToken);
 
@@ -56,21 +61,23 @@ internal sealed class TokensController : SolaceControllerBase
     }
 
     [HttpPost("{tokenId}/redeem")]
-    public async Task<Results<Ok<EarthApiResponse<Token>>, BadRequest>> Redeem(Guid tokenId, CancellationToken cancellationToken)
+    public async Task<Results<Ok<EarthApiResponse<RedeemedPlayerTokenResponse>>, BadRequest>> Redeem(Guid tokenId, CancellationToken cancellationToken)
     {
         if (!TryGetProfileId(out var accountId))
         {
             return TypedResults.BadRequest();
         }
 
-        // request.timestamp
         var requestStartedOn = HttpContext.GetTimestamp();
 
-        var removedToken = await TokenUtils.RedeemTokenAsync(_earthDb, ResultsEF.Builder.Null, _objectStore, accountId, tokenId, requestStartedOn, _staticData, cancellationToken);
+        var results = new ResultsEF.Builder();
+        var removedToken = await TokenUtils.RedeemTokenAsync(_earthDb, results, _objectStore, accountId, tokenId, requestStartedOn, _staticData, cancellationToken);
 
         if (removedToken is not null)
         {
-            return TypedResults.Ok(new EarthApiResponse<Token>(TokenToApiResponse(removedToken)));
+            var buildResults = await results.BuildAsync(_earthDb, accountId, cancellationToken);
+            var updates = new EarthUpdatesResponse(buildResults);
+            return TypedResults.Ok(new EarthApiResponse<RedeemedPlayerTokenResponse>(new(TokenToApiResponse(removedToken), updates.Map), updates));
         }
         else
         {
@@ -80,18 +87,43 @@ internal sealed class TokensController : SolaceControllerBase
 
     private static Token TokenToApiResponse(TokenEF token)
     {
-        Dictionary<string, string> properties = [with(StringComparer.Ordinal)];
+        Dictionary<string, object> properties = [with(StringComparer.Ordinal)];
         switch (token)
         {
             case JournalItemUnlockedTokenEF journalItemUnlocked:
                 properties["itemid"] = journalItemUnlocked.ItemId.ToString();
+                break;
+            case FTUESeasonsTokenEF ftueSeasons:
+                properties["seasonId"] = ftueSeasons.SeasonId.ToString();
+                break;
+            case NewSeasonNotificationTokenEF newSeason:
+                properties["seasonId"] = newSeason.SeasonId.ToString();
+                break;
+            case ChallengeProgressTokenEF challengeProgress:
+                properties["challengeid"] = challengeProgress.ChallengeId.ToString();
+                properties["challengereferenceid"] = challengeProgress.ChallengeId.ToString();
+                properties["category"] = challengeProgress.Category.ToString().ToLowerInvariant();
+                properties["currentcount"] = challengeProgress.CurrentCount;
+                properties["previouscount"] = challengeProgress.PreviousCount;
+                properties["totalthreshold"] = challengeProgress.TotalThreshold;
+                var percent = challengeProgress.TotalThreshold > 0
+                    ? int.Clamp(challengeProgress.CurrentCount * 100 / challengeProgress.TotalThreshold, 0, 100)
+                    : 100;
+                properties["percentcomplete"] = percent;
+                break;
+            case ChallengeCompleteTokenEF challengeComplete:
+                properties["challengeid"] = challengeComplete.ChallengeId.ToString();
+                if (challengeComplete.ExpirationTime.HasValue)
+                {
+                    properties["expirationtime"] = challengeComplete.ExpirationTime.Value.ToString("O");
+                }
+
                 break;
         }
 
         var rewards = token switch
         {
             LevelUpTokenEF levelUp => Rewards.FromDBRewardsModel(levelUp.Rewards).SetLevel(levelUp.Level),
-            DailyLoginTokenEF dailyLogin => Rewards.FromDBRewardsModel(dailyLogin.Rewards),
             _ => new Rewards(),
         };
 
@@ -99,7 +131,11 @@ internal sealed class TokensController : SolaceControllerBase
         {
             LevelUpTokenEF => TokenLifetime.TRANSIENT,
             JournalItemUnlockedTokenEF => TokenLifetime.PERSISTENT,
-            DailyLoginTokenEF => TokenLifetime.TRANSIENT,
+            FTUESeasonsTokenEF => TokenLifetime.PERSISTENT,
+            NewSeasonNotificationTokenEF => TokenLifetime.TRANSIENT,
+            OOBESeasonChallengeSelectedTokenEF => TokenLifetime.TRANSIENT,
+            ChallengeProgressTokenEF => TokenLifetime.TRANSIENT,
+            ChallengeCompleteTokenEF => TokenLifetime.PERSISTENT,
             _ => throw new InvalidDataException($"Unknown Token type '{token?.GetType()?.ToString() ?? null}'"),
         };
 

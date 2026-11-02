@@ -1,5 +1,8 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Solace.Db.Earth;
+using Solace.Db.Earth.Models.Challenges;
 using Solace.Db.Playfab;
 using Solace.Db.Playfab.Models.Items;
 using Solace.Db.Playfab.Models.Tabs;
@@ -254,6 +257,162 @@ internal static class DataSeedUtils
                 Playfab.Item.Rarity.Epic => RarityEF.Epic,
                 Playfab.Item.Rarity.Legendary => RarityEF.Legendary,
                 _ => throw new UnreachableException(),
+            };
+        }
+    }
+
+    public static async Task SeedSeasonsDataAsync(EarthDbContext earthDb, SeasonsCatalog staticData, bool update, bool force, CancellationToken cancellationToken = default)
+    {
+        var staticVersion = staticData.Version;
+        await using var transaction = await earthDb.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var seedHistory = await earthDb.SeedingHistory.FirstOrDefaultAsync(history => history.Key == "SeasonsData", cancellationToken);
+            var isFirstTime = seedHistory is null;
+            var hasNewVersion = seedHistory is not null && staticVersion > seedHistory.Version;
+
+            if (!force && !isFirstTime && (!update || !hasNewVersion))
+            {
+                return;
+            }
+
+            if (isFirstTime || force)
+            {
+                await earthDb.Challenges.ExecuteDeleteAsync(cancellationToken);
+                await earthDb.Seasons.ExecuteDeleteAsync(cancellationToken);
+            }
+
+            foreach (var (_, staticSeason) in staticData.Seasons)
+            {
+                var seasonEF = await earthDb.Seasons.Include(s => s.Challenges).FirstOrDefaultAsync(s => s.Id == staticSeason.Id, cancellationToken);
+                if (seasonEF is null)
+                {
+                    seasonEF = new SeasonEF
+                    {
+                        Id = staticSeason.Id,
+                        Key = staticSeason.Key,
+                        SeasonNumber = staticSeason.SeasonNumber,
+                        StartDate = staticSeason.StartDate,
+                        EndDate = staticSeason.EndDate,
+                        IsActive = staticSeason.IsActive,
+                        ExclusiveRewards = staticSeason.ExclusiveRewards is not null ? ConvertRewards(staticSeason.ExclusiveRewards) : null,
+                    };
+
+                    earthDb.Seasons.Add(seasonEF);
+                }
+                else
+                {
+                    seasonEF.StartDate = staticSeason.StartDate;
+                    seasonEF.EndDate = staticSeason.EndDate;
+                    seasonEF.IsActive = staticSeason.IsActive;
+                    seasonEF.ExclusiveRewards = staticSeason.ExclusiveRewards is not null ? ConvertRewards(staticSeason.ExclusiveRewards) : null;
+                }
+
+                foreach (var staticChallenge in staticSeason.Challenges)
+                {
+                    var challengeEF = seasonEF.Challenges.FirstOrDefault(challenge => challenge.Id == staticChallenge.Id);
+                    var rewards = ConvertRewards(staticChallenge.Rewards);
+
+                    if (challengeEF is null)
+                    {
+                        challengeEF = new ChallengeDefinitionEF
+                        {
+                            Id = staticChallenge.Id,
+                            SeasonId = seasonEF.Id,
+                            ParentId = staticChallenge.ParentId,
+                            PrerequisiteIds = [.. staticChallenge.PrerequisiteIds],
+                            PrerequisiteLogicalCondition = MapLogicalCondition(staticChallenge.PrerequisiteLogicalCondition),
+                            Order = staticChallenge.Order,
+                            TotalThreshold = staticChallenge.TotalThreshold,
+                            ObjectiveType = MapObjectiveType(staticChallenge.ObjectiveType),
+                            ObjectiveTarget = staticChallenge.ObjectiveTarget,
+                            IsFinalSeasonChallenge = staticChallenge.IsFinalSeasonChallenge,
+                            Rewards = rewards,
+                        };
+
+                        earthDb.Challenges.Add(challengeEF);
+                    }
+                    else
+                    {
+                        challengeEF.ParentId = staticChallenge.ParentId;
+                        challengeEF.PrerequisiteIds = [.. staticChallenge.PrerequisiteIds];
+                        challengeEF.PrerequisiteLogicalCondition = MapLogicalCondition(staticChallenge.PrerequisiteLogicalCondition);
+                        challengeEF.Order = staticChallenge.Order;
+                        challengeEF.TotalThreshold = staticChallenge.TotalThreshold;
+                        challengeEF.ObjectiveType = MapObjectiveType(staticChallenge.ObjectiveType);
+                        challengeEF.ObjectiveTarget = staticChallenge.ObjectiveTarget;
+                        challengeEF.IsFinalSeasonChallenge = staticChallenge.IsFinalSeasonChallenge;
+                        challengeEF.Rewards = rewards;
+                    }
+                }
+            }
+
+            if (seedHistory is null)
+            {
+                earthDb.SeedingHistory.Add(new Db.Earth.Models.SeedingHistory
+                {
+                    Key = "SeasonsData",
+                    SeededAt = DateTimeOffset.UtcNow,
+                    Version = staticVersion,
+                });
+            }
+            else
+            {
+                seedHistory.SeededAt = DateTimeOffset.UtcNow;
+                seedHistory.Version = staticVersion;
+            }
+
+            await earthDb.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+
+        static Db.Earth.Models.Common.Rewards ConvertRewards(SeasonsCatalog.Rewards rewards)
+        {
+            var items = new Dictionary<Guid, int>();
+            foreach (var item in rewards.Inventory)
+            {
+                items[item.Id] = items.GetValueOrDefault(item.Id, 0) + item.Amount;
+            }
+
+            return new Db.Earth.Models.Common.Rewards(
+                rewards.Rubies ?? 0,
+                rewards.ExperiencePoints ?? 0,
+                rewards.Level,
+                items,
+                [.. rewards.Buildplates],
+                [.. rewards.Challenges.Select(c => c.Id)],
+                [.. rewards.PersonaItems]
+            );
+        }
+
+        static LogicalConditionEF MapLogicalCondition(LogicalCondition condition)
+        {
+            return condition switch
+            {
+                LogicalCondition.And => LogicalConditionEF.And,
+                LogicalCondition.Or => LogicalConditionEF.Or,
+                _ => throw new InvalidEnumArgumentException(nameof(condition), (int)condition, typeof(LogicalCondition)),
+            };
+        }
+
+        static ObjectiveTypeEF MapObjectiveType(ObjectiveType type)
+        {
+            return type switch
+            {
+                ObjectiveType.TappableCollected => ObjectiveTypeEF.TappableCollected,
+                ObjectiveType.CraftItem => ObjectiveTypeEF.CraftItem,
+                ObjectiveType.SmeltItem => ObjectiveTypeEF.SmeltItem,
+                ObjectiveType.AdventurePlayed => ObjectiveTypeEF.AdventurePlayed,
+                ObjectiveType.DefeatMob => ObjectiveTypeEF.DefeatMob,
+                ObjectiveType.SeasonCapstone => ObjectiveTypeEF.SeasonCapstone,
+                ObjectiveType.PlaceBlock => ObjectiveTypeEF.PlaceBlock,
+                _ => throw new InvalidEnumArgumentException(nameof(type), (int)type, typeof(ObjectiveType)),
             };
         }
     }

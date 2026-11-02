@@ -1,7 +1,9 @@
-﻿using Asp.Versioning;
+using System.Globalization;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Solace.ApiServer.Types.Challenges;
 using Solace.ApiServer.Utils;
 using Solace.Db.Earth;
 using Solace.Db.Earth.Models.Player;
@@ -68,6 +70,7 @@ internal sealed class JournalController : SolaceControllerBase
             CraftingCompletedEntryEF craftingCompleted => Rewards.FromDBRewardsModel(craftingCompleted.Rewards),
             SmeltingCompletedEntryEF smeltingCompleted => Rewards.FromDBRewardsModel(smeltingCompleted.Rewards),
             BoostActivatedEntryEF => new Rewards(),
+            ChallengeCompletedEntryEF challengeCompleted => Rewards.FromDBRewardsModel(challengeCompleted.Rewards),
             _ => throw new InvalidDataException($"Unknown ActivityLog.Entry '{entry?.GetType()?.ToString() ?? "null"}'"),
         };
 
@@ -77,6 +80,21 @@ internal sealed class JournalController : SolaceControllerBase
             case BoostActivatedEntryEF boostActivated:
                 {
                     properties["boostId"] = boostActivated.ItemId.ToString();
+                }
+
+                break;
+            case ChallengeCompletedEntryEF challengeCompleted:
+                var duration = ChallengeDuration.FromDb(challengeCompleted.Duration);
+                properties["duration"] = duration.ToString();
+                properties["referenceId"] = challengeCompleted.ChallengeId.ToString();
+                if (challengeCompleted.Order is not null)
+                {
+                    properties["order"] = challengeCompleted.Order.Value.ToString(CultureInfo.InvariantCulture);
+                }
+
+                if (challengeCompleted.IsFinalSeasonChallenge is true)
+                {
+                    properties["isFinalSeasonChallenge"] = "1";
                 }
 
                 break;

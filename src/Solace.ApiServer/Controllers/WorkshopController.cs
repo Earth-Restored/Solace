@@ -1,11 +1,13 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using Solace.ApiServer.Services;
 using Solace.ApiServer.Utils;
 using Solace.Common.Exceptions;
 using Solace.Common.Utils;
+using Solace.Db.Earth.Models.Challenges;
 using BurnRate = Solace.ApiServer.Types.Common.BurnRate;
 using CraftingCalculator = Solace.ApiServer.Utils.CraftingCalculator;
 using CraftingSlot = Solace.Db.Earth.Models.Player.Workshop.CraftingSlotEF;
@@ -36,12 +38,14 @@ internal sealed class WorkshopController : SolaceControllerBase
     private readonly EarthDbContext _earthDb;
     private readonly ObjectStoreClient _objectStore;
     private readonly StaticData.StaticDataProvider _staticData;
+    private readonly SeasonChallengeService _seasonChallengeService;
 
-    public WorkshopController(EarthDbContext earthDb, ObjectStoreClient objectStore, StaticData.StaticDataProvider staticData)
+    public WorkshopController(EarthDbContext earthDb, ObjectStoreClient objectStore, StaticData.StaticDataProvider staticData, SeasonChallengeService seasonChallengeService)
     {
         _earthDb = earthDb;
         _objectStore = objectStore;
         _staticData = staticData;
+        _seasonChallengeService = seasonChallengeService;
     }
 
     internal sealed record UtilityBlocksResponse(
@@ -493,6 +497,8 @@ internal sealed class WorkshopController : SolaceControllerBase
         var craftingSlot = craftingSlots.Slots[slotIndex - 1];
 
         var rewards = new Rewards();
+        Guid? outputItemId = null;
+        var collectedQuantity = 0;
         if (craftingSlot.ActiveJob is not null)
         {
             var state = CraftingCalculator.CalculateState(requestStartedOn, craftingSlot.ActiveJob, _staticData.Catalog);
@@ -501,6 +507,8 @@ internal sealed class WorkshopController : SolaceControllerBase
             if (quantity > 0)
             {
                 rewards.AddItem(state.Output.Id, quantity);
+                outputItemId = state.Output.Id;
+                collectedQuantity = quantity;
             }
 
             if (state.Completed)
@@ -521,6 +529,10 @@ internal sealed class WorkshopController : SolaceControllerBase
 
         await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new Db.Earth.Models.Player.CraftingCompletedEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
         await rewards.ToRedeemQueryAsync(_earthDb, results, _objectStore, accountId, requestStartedOn, _staticData, cancellationToken);
+        if (collectedQuantity > 0)
+        {
+            await _seasonChallengeService.TrackObjectiveProgressAsync(_earthDb, accountId, ObjectiveTypeEF.CraftItem, outputItemId, collectedQuantity, results, cancellationToken);
+        }
 
         return TypedResults.Ok(new EarthApiResponse<CollectItemsResponse>(new(
             rewards.ToApiResponse()
@@ -545,6 +557,8 @@ internal sealed class WorkshopController : SolaceControllerBase
         var smeltingSlot = smeltingSlots.Slots[slotIndex - 1];
 
         var rewards = new Rewards();
+        Guid? outputItemId = null;
+        var collectedQuantity = 0;
         if (smeltingSlot.ActiveJob is not null)
         {
             var state = SmeltingCalculator.CalculateState(requestStartedOn, smeltingSlot.ActiveJob, smeltingSlot.Burning, _staticData.Catalog);
@@ -553,6 +567,8 @@ internal sealed class WorkshopController : SolaceControllerBase
             if (quantity > 0)
             {
                 rewards.AddItem(state.Output.Id, quantity);
+                outputItemId = state.Output.Id;
+                collectedQuantity = quantity;
             }
 
             if (state.Completed)
@@ -584,6 +600,10 @@ internal sealed class WorkshopController : SolaceControllerBase
 
         await ActivityLogUtils.AddEntryAsync(_earthDb, results, accountId, new SmeltingCompletedEntryEF(accountId, requestStartedOn, rewards.ToDBRewardsModel()), cancellationToken);
         await rewards.ToRedeemQueryAsync(_earthDb, results, _objectStore, accountId, requestStartedOn, _staticData, cancellationToken);
+        if (collectedQuantity > 0)
+        {
+            await _seasonChallengeService.TrackObjectiveProgressAsync(_earthDb, accountId, ObjectiveTypeEF.SmeltItem, outputItemId, collectedQuantity, results, cancellationToken);
+        }
 
         return TypedResults.Ok(new EarthApiResponse<CollectItemsResponse>(new(
             rewards.ToApiResponse()

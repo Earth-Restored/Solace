@@ -17,6 +17,7 @@ internal sealed class Rewards
     private readonly Dictionary<Guid, int> _items = [];
     private readonly HashSet<Guid> _buildplates = [];
     private readonly HashSet<Guid> _challenges = [];
+    private readonly HashSet<Guid> _personaItems = [];
 
     public Rewards()
     {
@@ -52,6 +53,12 @@ internal sealed class Rewards
     public Rewards AddChallenge(Guid id)
     {
         _challenges.Add(id);
+        return this;
+    }
+
+    public Rewards AddPersonaItem(Guid id)
+    {
+        _personaItems.Add(id);
         return this;
     }
 
@@ -181,7 +188,7 @@ internal sealed class Rewards
             [.. _items.Select(item => new Types.Common.RewardsItem(item.Key, item.Value))],
             [.. _buildplates],
             [.. _challenges.Select(challenge => new Types.Common.RewardsChallenge(challenge))],
-            [],
+            [.. _personaItems],
             []
         );
 
@@ -210,6 +217,11 @@ internal sealed class Rewards
             rewards.AddChallenge(id);
         }
 
+        foreach (var id in rewardsModel.PersonaItems)
+        {
+            rewards.AddPersonaItem(id);
+        }
+
         return rewards;
     }
 
@@ -220,6 +232,7 @@ internal sealed class Rewards
             _level,
             _items.ToDictionary(item => item.Key, item => item.Value),
             [.. _buildplates],
-            [.. _challenges]
+            [.. _challenges],
+            [.. _personaItems]
         );
 }

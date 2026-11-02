@@ -1,98 +1,55 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Solace.ApiServer.Types.Common;
+using Solace.ApiServer.Services;
+using Solace.ApiServer.Types.Challenges;
 using Solace.ApiServer.Utils;
-using Rewards = Solace.ApiServer.Types.Common.Rewards;
+using Solace.Db.Earth;
 
 namespace Solace.ApiServer.Controllers;
 
 [Authorize]
 [ApiVersion("1.1")]
-[Route("1/api/v{version:apiVersion}/player/challenges")]
-[ApiController]
-internal sealed class ChallengesController : ControllerBase
+[Route("1/api/v{version:apiVersion}")]
+internal sealed class ChallengesController : SolaceControllerBase
 {
-    internal sealed record ChallengeRecord(
-        string ReferenceId,
-        string? ParentId,
-        string GroupId,
-        string Duration,
-        string Type,
-        string Category,
-        Rarity? Rarity,
-        int Order,
-        string EndTimeUtc,
-        string State,
-        bool IsComplete,
-        int PercentComplete,
-        int CurrentCount,
-        int TotalThreshold,
-        string[] PrerequisiteIds,
-        string PrerequisiteLogicalCondition,
-        Rewards Rewards,
-        object ClientProperties
-    );
+    private readonly EarthDbContext _earthDb;
+    private readonly SeasonChallengeService _seasonChallengeService;
 
-    internal sealed record ChallengesResponse(
-        Dictionary<Guid, ChallengeRecord> Challenges,
-        Guid ActiveSeasonChallenge
-    );
-
-    [HttpGet]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Endpoints cannot be static")]
-    public EarthApiResponse<ChallengesResponse> Get()
+    public ChallengesController(EarthDbContext earthDb, SeasonChallengeService seasonChallengeService)
     {
-        // TODO: this is currently just a stub required for the journal to load properly in the client
+        _earthDb = earthDb;
+        _seasonChallengeService = seasonChallengeService;
+    }
 
-        var guid1 = Guid.Parse("00000000-0000-0000-0000-000000000001");
-        var guid2 = Guid.Parse("00000000-0000-0000-0000-000000000002");
+    [HttpGet("player/challenges")]
+    public async Task<Results<Ok<EarthApiResponse<ChallengesResponse>>, BadRequest>> GetChallenges(CancellationToken cancellationToken)
+    {
+        if (!TryGetProfileId(out var profileId))
+        {
+            return TypedResults.BadRequest();
+        }
 
-        return new EarthApiResponse<ChallengesResponse>(new ChallengesResponse(
-            new Dictionary<Guid, ChallengeRecord>()
-            {
-                { guid1, new ChallengeRecord(
-                    "00000000-0000-0000-0000-000000000001",
-                    null,
-                    "00000000-0000-0000-0000-000000000001",
-                    "Season",
-                    "Regular",
-                    "season_1",
-                    null,
-                    0,
-                    TimeFormatter.FormatTime(DateTimeOffset.UtcNow.AddDays(1)),
-                    "Locked",
-                    false,
-                    0,
-                    0,
-                    1,
-                    [],
-                    "And",
-                    new Rewards(null, null, null, [], [], [], ["230f5996-04b2-4f0e-83e5-4056c7f1d946"], []),
-                    new object()
-                ) },
-                { guid2, new ChallengeRecord(
-                   "00000000-0000-0000-0000-000000000002",
-                    null,
-                    "00000000-0000-0000-0000-000000000001",
-                    "Season",
-                    "Regular",
-                    "season_1",
-                    null,
-                    0,
-                    TimeFormatter.FormatTime(DateTimeOffset.UtcNow.AddDays(1)),
-                    "Locked",
-                    false,
-                    0,
-                    0,
-                    1,
-                    [],
-                    "And",
-                    new Rewards(null, null, null, [], [], [], ["d7725840-4376-44fc-9220-585f45775371"], []),
-                    new object()
-                ) }
-            },
-            Guid.Empty)
-        );
+        var response = await _seasonChallengeService.GetChallengesResponseAsync(_earthDb, profileId, cancellationToken);
+        return TypedResults.Ok(new EarthApiResponse<ChallengesResponse>(response));
+    }
+
+    [HttpPut("challenges/season/active/{id}")]
+    public async Task<Results<Ok<EarthApiResponse>, BadRequest>> SetActiveSeasonChallenge(Guid id, CancellationToken cancellationToken)
+    {
+        if (!TryGetProfileId(out var profileId))
+        {
+            return TypedResults.BadRequest();
+        }
+
+        var results = new ResultsEF.Builder();
+        var success = await _seasonChallengeService.SetActiveSeasonChallengeAsync(_earthDb, profileId, id, results, cancellationToken);
+        if (!success)
+        {
+            return TypedResults.BadRequest();
+        }
+
+        return TypedResults.Ok(new EarthApiResponse(new EarthUpdatesResponse(await results.BuildAsync(_earthDb, profileId, cancellationToken))));
     }
 }

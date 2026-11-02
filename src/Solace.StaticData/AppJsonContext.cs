@@ -19,6 +19,14 @@ namespace Solace.StaticData;
 [JsonSerializable(typeof(Playfab.Tab))]
 [JsonSerializable(typeof(StaticBuidplateInfo))]
 [JsonSerializable(typeof(TappablesConfig.TappableConfig))]
+[JsonSerializable(typeof(SeasonsCatalog.SeasonDefinition))]
+[JsonSerializable(typeof(SeasonsCatalog.SeasonChallengeDefinition))]
+[JsonSerializable(typeof(LogicalCondition))]
+[JsonSerializable(typeof(ObjectiveType))]
+[JsonSerializable(typeof(SeasonsCatalog.Rewards), TypeInfoPropertyName = "SeasonsRewards")]
+[JsonSerializable(typeof(SeasonsCatalog.Rewards.RewardItem), TypeInfoPropertyName = "SeasonsRewardItem")]
+[JsonSerializable(typeof(SeasonsCatalog.Rewards.RewardChallenge), TypeInfoPropertyName = "SeasonsRewardChallenge")]
+[JsonSerializable(typeof(SeasonsCatalog.Rewards.RewardUtilityBlock), TypeInfoPropertyName = "SeasonsRewardUtilityBlock")]
 internal sealed partial class AppJsonContext : JsonSerializerContext
 {
 }

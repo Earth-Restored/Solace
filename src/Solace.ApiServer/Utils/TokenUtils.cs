@@ -17,8 +17,7 @@ internal static class TokenUtils
                 .AsTracking()
                 .FirstOrDefaultAsync(token => token.ProfileId == accountId && token.TokenId == tokenId, cancellationToken: cancellationToken);
 
-            if (token is null or DailyLoginTokenEF { Claimed: true } ||
-                token is DailyLoginTokenEF dailyLogin && dailyLogin.Date != DateOnly.FromDateTime(currentTime.UtcDateTime))
+            if (token is null)
             {
                 return null;
             }
@@ -88,12 +87,6 @@ internal static class TokenUtils
                     {
                         updateQuery.then(new Rewards().addExperiencePoints(experiencePoints).toRedeemQuery(playerId, currentTime, staticData));
                     }*/
-                }
-
-                break;
-            case DailyLoginTokenEF { Claimed: false, } dailyLoginToken:
-                {
-                    await Rewards.FromDBRewardsModel(dailyLoginToken.Rewards).ToRedeemQueryAsync(earthDb, results, objectStore, accountId, currentTime, staticData);
                 }
 
                 break;

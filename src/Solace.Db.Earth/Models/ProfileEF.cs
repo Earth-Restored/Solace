@@ -55,4 +55,8 @@ public sealed class ProfileEF : IEntityWithId<Guid>
     public SmeltingSlotsEF? SmeltingSlots { get; set; }
 
     public ICollection<SharedBuildplateEF> SharedBuildplates { get; set; } = [];
+
+    public ICollection<Challenges.PlayerSeasonProgressEF> SeasonProgresses { get; set; } = [];
+
+    public ICollection<Challenges.PlayerChallengeProgressEF> ChallengeProgresses { get; set; } = [];
 }

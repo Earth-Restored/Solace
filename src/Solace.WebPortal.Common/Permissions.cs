@@ -43,6 +43,12 @@ public static class Permissions
     [PermissionInfo("Store", "Edit store layout and items")]
     public const string EditStore = "store.edit";
 
+    [PermissionInfo("Challenges & Seasons", "View seasons and challenges")]
+    public const string ViewSeasonsAndChallenges = "challenges_and_seasons.view";
+
+    [PermissionInfo("Challenges & Seasons", "Manage seasons and challenges")]
+    public const string EditSeasonsAndChallenges = "challenges_and_seasons.edit";
+
     public static ImmutableArray<string> All { get; }
 
     public static ImmutableArray<PermissionDescriptor> AllWithInfo { get; }

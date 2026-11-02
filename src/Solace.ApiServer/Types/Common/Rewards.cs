@@ -1,4 +1,4 @@
-﻿namespace Solace.ApiServer.Types.Common;
+namespace Solace.ApiServer.Types.Common;
 
 // TODO: determine format
 internal sealed record Rewards(
@@ -8,6 +8,6 @@ internal sealed record Rewards(
     RewardsItem[] Inventory,
     Guid[] Buildplates,
     RewardsChallenge[] Challenges,
-    string[] PersonaItems,
+    Guid[] PersonaItems,
     RewardsUtilityBlock[] UtilityBlocks
 );
