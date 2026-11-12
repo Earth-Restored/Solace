@@ -46,7 +46,7 @@ internal sealed class ChannelStream : Stream
             }
         }
 
-        var bytesToCopy = Math.Min(buffer.Length, _currentChunk.Length - _currentPosition);
+        var bytesToCopy = int.Min(buffer.Length, _currentChunk.Length - _currentPosition);
         _currentChunk.Slice(_currentPosition, bytesToCopy).CopyTo(buffer);
         _currentPosition += bytesToCopy;
         return bytesToCopy;

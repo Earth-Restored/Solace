@@ -211,8 +211,7 @@
                 currentVersion = versionInfo.CurrentVersion?.ToString();
                 latestVersion = versionInfo.AvailableVersion?.ToString();
 
-                hasUpdateAvailable = versionInfo.AvailableVersion is not null &&
-                                     (versionInfo.CurrentVersion is null || versionInfo.AvailableVersion > versionInfo.CurrentVersion);
+                hasUpdateAvailable = versionInfo.AvailableVersion is not null && (versionInfo.CurrentVersion is null || versionInfo.AvailableVersion > versionInfo.CurrentVersion);
             }
         }
         catch (Exception exception)

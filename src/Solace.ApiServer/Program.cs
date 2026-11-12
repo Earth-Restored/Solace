@@ -109,6 +109,7 @@ internal static partial class App
         builder.Services.AddSingleton<BuildplateInstancesManager>();
         builder.Services.AddSingleton<BuildplateInstanceRequestHandler>();
         builder.Services.AddSingleton<SeasonChallengeService>();
+        builder.Services.AddSingleton<ResourcePackService>();
 
         builder.Services.AddMemoryCache();
 
@@ -276,6 +277,7 @@ internal static partial class App
         await app.Services.GetRequiredService<BuildplateInstancesManager>().InitializeAsync(eventBus);
         await app.Services.GetRequiredService<BuildplateInstanceRequestHandler>().InitializeAsync(eventBus);
         await app.Services.GetRequiredService<SeasonChallengeService>().InitializeAsync(eventBus);
+        await app.Services.GetRequiredService<ResourcePackService>().InitializeAsync(eventBus);
 
         await app.RunAsync();
 

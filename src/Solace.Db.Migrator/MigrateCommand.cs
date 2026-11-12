@@ -150,7 +150,7 @@ public sealed class MigrateCommand : AsyncCommand<MigrationSettings>
                         ? Directory.GetFiles(objectStorePath, "*", SearchOption.AllDirectories)
                         : [];
 
-                    var storeTask = ctx.AddTask("[bold cyan]Migrating Object Store Files[/]", maxValue: Math.Max(1, files.Length));
+                    var storeTask = ctx.AddTask("[bold cyan]Migrating Object Store Files[/]", maxValue: int.Max(1, files.Length));
 
                     if (files.Length == 0)
                     {

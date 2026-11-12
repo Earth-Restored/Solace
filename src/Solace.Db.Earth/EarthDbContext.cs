@@ -5,6 +5,7 @@ using Solace.Db.Earth.Models.Challenges;
 using Solace.Db.Earth.Models.Global;
 using Solace.Db.Earth.Models.Player;
 using Solace.Db.Earth.Models.Player.Workshop;
+using Solace.Db.Earth.Models.ResourcePacks;
 using Solace.Db.Earth.Utils;
 
 namespace Solace.Db.Earth;
@@ -65,6 +66,12 @@ public sealed class EarthDbContext : DbContext
     public DbSet<PlayerChallengeProgressEF> PlayerChallengeProgresses { get; set; }
 
     public DbSet<SeedingHistory> SeedingHistory { get; set; }
+
+    public DbSet<SynthesizedResourcePackEF> SynthesizedResourcePacks { get; set; }
+
+    public DbSet<ResourcePackAssetEF> ResourcePackAssets { get; set; }
+
+    public DbSet<ResourcePackTranslationEF> ResourcePackTranslations { get; set; }
 
     public static EarthDbContext CreateFromConnection(string connectionString)
     {
@@ -508,6 +515,25 @@ public sealed class EarthDbContext : DbContext
                     v => v.ToString(),
                     v => Version.Parse(v)
                 );
+        });
+
+        // synthesized resource packs
+        modelBuilder.Entity<SynthesizedResourcePackEF>(b =>
+        {
+            b.HasKey(p => p.Id);
+            b.HasIndex(p => p.BuildNumber);
+        });
+
+        // resource pack assets
+        modelBuilder.Entity<ResourcePackAssetEF>(b =>
+        {
+            b.HasKey(a => a.Path);
+        });
+
+        // resource pack translations
+        modelBuilder.Entity<ResourcePackTranslationEF>(b =>
+        {
+            b.HasKey(t => new { t.Language, t.Key });
         });
 #pragma warning restore CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
 #pragma warning restore CS8621 // Nullability of reference types in return type doesn't match the target delegate (possibly because of nullability attributes).

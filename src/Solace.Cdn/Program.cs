@@ -152,7 +152,7 @@ internal sealed partial class App
 
         app.UseForwardedHeaders(forwardedHeadersOptions);
 
-        app.MapMethods($"/availableresourcepack/resourcepacks/{staticData.Resourcepacks.GenoaResourcepackName}", ["GET", "HEAD"], GetResourcePackHandler);
+        app.MapMethods("/availableresourcepack/resourcepacks/{name}", ["GET", "HEAD"], GetResourcePackHandler);
 
         app.MapGet("/tile/{_0}/{_1}/{tilePos1}_{tilePos2}_{zoom}.png", HandleGetTile)
         .CacheOutput(policy => policy.Expire(TimeSpan.FromHours(1)));
@@ -184,20 +184,20 @@ internal sealed partial class App
         return TypedResults.Empty;
     }
 
-    private static Results<BadRequest, PhysicalFileHttpResult> GetResourcePackHandler(HttpContext context, StaticDataProvider staticData, ILogger<App> logger)
+    private static Results<NotFound, PhysicalFileHttpResult> GetResourcePackHandler([FromRoute] string name, HttpContext context, StaticDataProvider staticData, ILogger<App> logger)
     {
-        var resourcePackFilePath = staticData.Resourcepacks.GenoaResourcepackPath;
+        var resourcePackFilePath = staticData.Resourcepacks.FindResourcepackPath(name);
 
-        if (!System.IO.File.Exists(resourcePackFilePath))
+        if (resourcePackFilePath is null || !System.IO.File.Exists(resourcePackFilePath))
         {
             LogResourcepackNotFound(logger);
-            return TypedResults.BadRequest();
+            return TypedResults.NotFound();
         }
 
         return TypedResults.PhysicalFile(
             path: resourcePackFilePath,
             contentType: "application/octet-stream",
-            fileDownloadName: staticData.Resourcepacks.GenoaResourcepackName,
+            fileDownloadName: name,
             enableRangeProcessing: true
         );
     }

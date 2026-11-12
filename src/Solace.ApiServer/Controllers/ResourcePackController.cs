@@ -1,8 +1,8 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Solace.ApiServer.Services;
 using Solace.ApiServer.Utils;
-using Solace.StaticData;
 
 namespace Solace.ApiServer.Controllers;
 
@@ -13,19 +13,20 @@ internal sealed partial class ResourcePackController : ControllerBase
 {
     internal sealed record ResourcePackResponse(int Order, int[] ParsedResourcePackVersion, string RelativePath, string ResourcePackVersion, string ResourcePackId);
 
-    private readonly StaticDataProvider _staticData;
+    private readonly ResourcePackService _resourcePackService;
     private readonly ILogger<ResourcePackController> _logger;
 
-    public ResourcePackController(StaticDataProvider staticData, ILogger<ResourcePackController> logger)
+    public ResourcePackController(ResourcePackService resourcePackService, ILogger<ResourcePackController> logger)
     {
-        _staticData = staticData;
+        _resourcePackService = resourcePackService;
         _logger = logger;
     }
 
     [HttpGet]
     public Results<Ok<EarthApiResponse<ResourcePackResponse[]>>, NotFound> Get()
     {
-        if (_staticData.Resourcepacks.GenoaResourcepackName is null)
+        var pack = _resourcePackService.GetActiveResourcePack();
+        if (pack is null)
         {
             LogResourcepackNotFound();
             return TypedResults.NotFound();
@@ -34,10 +35,10 @@ internal sealed partial class ResourcePackController : ControllerBase
         return TypedResults.Ok(new EarthApiResponse<ResourcePackResponse[]>([
             new(
                 0,
-                [2020, 1214, 4],
-                $"availableresourcepack/resourcepacks/{_staticData.Resourcepacks.GenoaResourcepackName}",
-                "2020.1214.04",
-                _staticData.Resourcepacks.GenoaResourcepackName
+                [2020, 1214, pack.BuildNumber],
+                pack.RelativePath,
+                pack.VersionString,
+                pack.Id.ToString()
             ),
         ]));
     }

@@ -408,7 +408,7 @@ internal sealed partial class InstanceManager : IAsyncDisposable
                     {
                         try
                         {
-                            var delayMs = (int)Math.Min(int.MaxValue, duration.TotalMilliseconds > 2000 ? duration.TotalMilliseconds / 2 : duration.TotalMilliseconds);
+                            var delayMs = (int)double.Min(int.MaxValue, duration.TotalMilliseconds > 2000 ? duration.TotalMilliseconds / 2 : duration.TotalMilliseconds);
                             await Task.Delay(delayMs, cancellationToken);
                         }
                         catch (OperationCanceledException)

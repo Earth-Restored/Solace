@@ -17,13 +17,13 @@ partial class EarthDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261111122311_AddSeasons";
+    public override string LastMigrationId => "20261112135001_AddResourcePackManagement";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
 #pragma warning disable 612, 618
         modelBuilder
-            .HasAnnotation("ProductVersion", "11.0.0-rc.1.26425.128")
+            .HasAnnotation("ProductVersion", "11.0.0-rc.3.26522.148")
             .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
         NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -609,6 +609,61 @@ partial class EarthDbContextModelSnapshot : ModelSnapshot
                 b.HasKey("Id");
 
                 b.ToTable("ProfileVersions");
+            });
+
+        modelBuilder.Entity("Solace.Db.Earth.Models.ResourcePacks.ResourcePackAssetEF", b =>
+            {
+                b.Property<string>("Path")
+                    .HasColumnType("text");
+
+                b.Property<byte[]>("Data")
+                    .IsRequired()
+                    .HasColumnType("bytea");
+
+                b.HasKey("Path");
+
+                b.ToTable("ResourcePackAssets");
+            });
+
+        modelBuilder.Entity("Solace.Db.Earth.Models.ResourcePacks.ResourcePackTranslationEF", b =>
+            {
+                b.Property<string>("Language")
+                    .HasColumnType("text");
+
+                b.Property<string>("Key")
+                    .HasColumnType("text");
+
+                b.Property<string>("Value")
+                    .IsRequired()
+                    .HasColumnType("text");
+
+                b.HasKey("Language", "Key");
+
+                b.ToTable("ResourcePackTranslations");
+            });
+
+        modelBuilder.Entity("Solace.Db.Earth.Models.ResourcePacks.SynthesizedResourcePackEF", b =>
+            {
+                b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("uuid");
+
+                b.Property<int>("BuildNumber")
+                    .HasColumnType("integer");
+
+                b.Property<string>("ContentHash")
+                    .IsRequired()
+                    .HasColumnType("text");
+
+                b.Property<string>("VersionString")
+                    .IsRequired()
+                    .HasColumnType("text");
+
+                b.HasKey("Id");
+
+                b.HasIndex("BuildNumber");
+
+                b.ToTable("SynthesizedResourcePacks");
             });
 
         modelBuilder.Entity("Solace.Db.Earth.Models.SeedingHistory", b =>

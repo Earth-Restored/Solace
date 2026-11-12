@@ -114,7 +114,7 @@ public sealed partial class SolaceIntegrationTests
         await using (var earthDb = EarthDbContext.CreateFromConnection(_fixture.EarthConnectionString))
         {
             var profile = await earthDb.Profiles.FirstAsync(p => p.Id == _fixture.ProfileId, cancellationToken);
-            profile.Rubies.Earned = Math.Max(profile.Rubies.Earned, 500);
+            profile.Rubies.Earned = int.Max(profile.Rubies.Earned, 500);
             initialRubies = profile.Rubies.Total;
 
             var existingItem = await earthDb.StackableItems
