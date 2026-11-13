@@ -18,12 +18,16 @@ namespace Solace.ApiServer.Services;
 
 internal sealed partial class ResourcePackService : IDisposable
 {
+    public const string GenoaPackId = "dba38e59-091a-4826-b76a-a08d7de5a9e2";
+
     internal sealed record ActiveResourcePackInfo(
         Guid Id,
         int BuildNumber,
         string VersionString,
         string RelativePath
     );
+
+    private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
     private static readonly JsonSerializerOptions IndentedJsonOptions = new()
     {
@@ -229,9 +233,11 @@ internal sealed partial class ResourcePackService : IDisposable
                             StringComparer.OrdinalIgnoreCase
                         );
 
-                        var writtenPaths = new List<string>(baseInnerZip.Entries.Count + customAssetPaths.Count + 4);
+                        var writtenPaths = new List<string>(baseInnerZip.Entries.Count + customAssetPaths.Count + 6);
+                        var writtenLanguages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        var writtenTextures = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                        // copy base entries except manifest.json, contents.json, overridden assets, and merged .lang files
+                        // copy base entries except manifest.json, contents.json, texts/languages.json, textures/textures_list.json, overridden assets, and merged .lang files
                         foreach (var entry in baseInnerZip.Entries)
                         {
                             var normalizedName = entry.FullName.Replace('\\', '/');
@@ -239,6 +245,42 @@ internal sealed partial class ResourcePackService : IDisposable
                             if (string.Equals(normalizedName, "manifest.json", StringComparison.OrdinalIgnoreCase) ||
                                 string.Equals(normalizedName, "contents.json", StringComparison.OrdinalIgnoreCase))
                             {
+                                continue;
+                            }
+
+                            if (string.Equals(normalizedName, "texts/languages.json", StringComparison.OrdinalIgnoreCase))
+                            {
+                                using var langJsonStream = entry.Open();
+                                using var doc = await JsonDocument.ParseAsync(langJsonStream, cancellationToken: cancellationToken);
+                                if (doc.RootElement.ValueKind is JsonValueKind.Array)
+                                {
+                                    foreach (var item in doc.RootElement.EnumerateArray())
+                                    {
+                                        if (item.ValueKind is JsonValueKind.String && item.GetString() is { Length: > 0 } langCode)
+                                        {
+                                            writtenLanguages.Add(langCode);
+                                        }
+                                    }
+                                }
+
+                                continue;
+                            }
+
+                            if (string.Equals(normalizedName, "textures/textures_list.json", StringComparison.OrdinalIgnoreCase))
+                            {
+                                using var texJsonStream = entry.Open();
+                                using var doc = await JsonDocument.ParseAsync(texJsonStream, cancellationToken: cancellationToken);
+                                if (doc.RootElement.ValueKind is JsonValueKind.Array)
+                                {
+                                    foreach (var item in doc.RootElement.EnumerateArray())
+                                    {
+                                        if (item.ValueKind is JsonValueKind.String && item.GetString() is { Length: > 0 } texturePath)
+                                        {
+                                            writtenTextures.Add(texturePath);
+                                        }
+                                    }
+                                }
+
                                 continue;
                             }
 
@@ -251,12 +293,13 @@ internal sealed partial class ResourcePackService : IDisposable
                                 normalizedName.EndsWith(".lang", StringComparison.OrdinalIgnoreCase))
                             {
                                 var langName = Path.GetFileNameWithoutExtension(normalizedName);
+                                writtenLanguages.Add(langName);
 
                                 if (customTranslationsByLang.Remove(langName, out var customMap))
                                 {
                                     var langEntry = newInnerZip.CreateEntry(normalizedName, CompressionLevel.Fastest);
                                     await using (var langStream = langEntry.Open())
-                                    await using (var writer = new StreamWriter(langStream, Encoding.UTF8))
+                                    await using (var writer = new StreamWriter(langStream, Utf8NoBom))
                                     {
                                         await MergeLangFileAsync(entry, customMap, writer, cancellationToken);
                                     }
@@ -271,6 +314,7 @@ internal sealed partial class ResourcePackService : IDisposable
                             await using var destStream = copiedEntry.Open();
                             await sourceStream.CopyToAsync(destStream, cancellationToken);
                             writtenPaths.Add(normalizedName);
+                            TryTrackTexturePath(normalizedName, writtenTextures);
                         }
 
                         // write remaining custom .lang files
@@ -279,12 +323,35 @@ internal sealed partial class ResourcePackService : IDisposable
                             var langPath = $"texts/{lang}.lang";
                             var langEntry = newInnerZip.CreateEntry(langPath, CompressionLevel.Fastest);
                             await using (var langStream = langEntry.Open())
-                            await using (var writer = new StreamWriter(langStream, Encoding.UTF8))
+                            await using (var writer = new StreamWriter(langStream, Utf8NoBom))
                             {
                                 await WriteCustomLangFileAsync(writer, customMap);
                             }
 
+                            writtenLanguages.Add(lang);
                             writtenPaths.Add(langPath);
+                        }
+
+                        if (writtenLanguages.Count > 0)
+                        {
+                            var languagesList = writtenLanguages.ToList();
+                            languagesList.Sort(StringComparer.OrdinalIgnoreCase);
+
+                            var languagesEntry = newInnerZip.CreateEntry("texts/languages.json", CompressionLevel.Fastest);
+                            await using (var languagesStream = languagesEntry.Open())
+                            await using (var jsonWriter = new Utf8JsonWriter(languagesStream, new JsonWriterOptions { Indented = true }))
+                            {
+                                jsonWriter.WriteStartArray();
+                                foreach (var lang in languagesList)
+                                {
+                                    jsonWriter.WriteStringValue(lang);
+                                }
+
+                                jsonWriter.WriteEndArray();
+                                await jsonWriter.FlushAsync(cancellationToken);
+                            }
+
+                            writtenPaths.Add("texts/languages.json");
                         }
 
                         // write custom assets
@@ -294,6 +361,29 @@ internal sealed partial class ResourcePackService : IDisposable
                             await using var assetStream = assetEntry.Open();
                             await assetStream.WriteAsync(assetData, cancellationToken);
                             writtenPaths.Add(assetPath);
+                            TryTrackTexturePath(assetPath, writtenTextures);
+                        }
+
+                        if (writtenTextures.Count > 0)
+                        {
+                            var texturesList = writtenTextures.ToList();
+                            texturesList.Sort(StringComparer.OrdinalIgnoreCase);
+
+                            var texturesListEntry = newInnerZip.CreateEntry("textures/textures_list.json", CompressionLevel.Fastest);
+                            await using (var texturesListStream = texturesListEntry.Open())
+                            await using (var jsonWriter = new Utf8JsonWriter(texturesListStream, new JsonWriterOptions { Indented = true }))
+                            {
+                                jsonWriter.WriteStartArray();
+                                foreach (var texturePath in texturesList)
+                                {
+                                    jsonWriter.WriteStringValue(texturePath);
+                                }
+
+                                jsonWriter.WriteEndArray();
+                                await jsonWriter.FlushAsync(cancellationToken);
+                            }
+
+                            writtenPaths.Add("textures/textures_list.json");
                         }
 
                         // update manifest.json
@@ -302,15 +392,15 @@ internal sealed partial class ResourcePackService : IDisposable
                         if (baseManifestEntry is not null)
                         {
                             using var baseManifestEntryReader = new StreamReader(baseManifestEntry.Open(), Encoding.UTF8);
-                            manifestContent = UpdateManifestJson(await baseManifestEntryReader.ReadToEndAsync(cancellationToken), newGuid, newBuildNumber);
+                            manifestContent = UpdateManifestJson(await baseManifestEntryReader.ReadToEndAsync(cancellationToken), newBuildNumber);
                         }
                         else
                         {
-                            manifestContent = CreateDefaultManifestJson(newGuid, newBuildNumber);
+                            manifestContent = CreateDefaultManifestJson(newBuildNumber);
                         }
 
                         var manifestEntry = newInnerZip.CreateEntry("manifest.json", CompressionLevel.Fastest);
-                        await using (var writer = new StreamWriter(manifestEntry.Open(), Encoding.UTF8))
+                        await using (var writer = new StreamWriter(manifestEntry.Open(), Utf8NoBom))
                         {
                             await writer.WriteAsync(manifestContent);
                         }
@@ -412,6 +502,21 @@ internal sealed partial class ResourcePackService : IDisposable
         }
     }
 
+    private static void TryTrackTexturePath(string path, HashSet<string> textures)
+    {
+        if (!path.StartsWith("textures/", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (path.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+            path.EndsWith(".tga", StringComparison.OrdinalIgnoreCase) ||
+            path.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
+        {
+            textures.Add(path[..^4]);
+        }
+    }
+
     private static string ComputeBasePackHash(FileInfo basePackInfo)
     {
         // we don't need to actually hash the full file, base pack won't change much and change will likely change size and ofc last write
@@ -482,7 +587,7 @@ internal sealed partial class ResourcePackService : IDisposable
         }
     }
 
-    private static string UpdateManifestJson(string json, Guid newGuid, int buildNumber)
+    private static string UpdateManifestJson(string json, int buildNumber)
     {
         try
         {
@@ -490,7 +595,7 @@ internal sealed partial class ResourcePackService : IDisposable
 
             if (node is JsonObject objNode && objNode["header"] is JsonObject header)
             {
-                header["uuid"] = newGuid.ToString();
+                header["uuid"] = GenoaPackId;
                 header["version"] = new JsonArray(2020, 1214, buildNumber);
 
                 if (objNode["modules"] is JsonArray modules && modules.Count > 0 && modules[0] is JsonObject module0)
@@ -505,10 +610,10 @@ internal sealed partial class ResourcePackService : IDisposable
         {
         }
 
-        return CreateDefaultManifestJson(newGuid, buildNumber);
+        return CreateDefaultManifestJson(buildNumber);
     }
 
-    private static string CreateDefaultManifestJson(Guid newGuid, int buildNumber)
+    private static string CreateDefaultManifestJson(int buildNumber)
     {
         var manifest = new
         {
@@ -517,7 +622,7 @@ internal sealed partial class ResourcePackService : IDisposable
             {
                 description = "resourcePack.genoa.description",
                 name = "resourcePack.genoa.name",
-                uuid = newGuid.ToString(),
+                uuid = GenoaPackId,
                 version = new[] { 2020, 1214, buildNumber },
                 min_engine_version = new[] { 1, 2, 6 },
             },

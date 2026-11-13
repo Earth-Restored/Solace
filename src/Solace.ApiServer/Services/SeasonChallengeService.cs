@@ -166,15 +166,7 @@ internal sealed partial class SeasonChallengeService : IDisposable
         // Challenges with clientProperties["rewardSparkles"] == "true" are populated into exclusiveRewards.
         // The first exclusive reward is the intermediate milestone (e.g. Persona item),
         // and the second exclusive reward is the capstone / super prize milestone.
-        var capstoneChallenge = activeSeason.Challenges
-            .LastOrDefault(c => c.IsFinalSeasonChallenge || c.ObjectiveType is ObjectiveTypeEF.SeasonCapstone)
-            ?? activeSeason.Challenges.LastOrDefault();
-
-        var milestoneChallenge = activeSeason.Challenges
-            .FirstOrDefault(c => c != capstoneChallenge && c.Rewards.PersonaItems.Length > 0)
-            ?? (activeSeason.Challenges.Count >= 2
-                ? (activeSeason.Challenges.Count >= 3 ? activeSeason.Challenges[^2] : activeSeason.Challenges[0])
-                : null);
+        var (milestoneChallenge, capstoneChallenge) = GetMilestoneAndCapstone(activeSeason.Challenges);
 
         HashSet<Guid> sparkleChallengeIds = [];
         if (milestoneChallenge is not null)
@@ -208,9 +200,13 @@ internal sealed partial class SeasonChallengeService : IDisposable
                 clientProperties["rewardSparkles"] = "true";
             }
 
+            var defaultParentAnchorId = milestoneChallenge is not null && challenge.Order <= milestoneChallenge.Order
+                ? SeasonCustomizationSlotId
+                : SeasonSuperPrizeSlotId;
+
             var record = new ChallengeRecord(
                 challenge.Id.ToString(),
-                challenge.ParentId?.ToString(),
+                (challenge.ParentId ?? defaultParentAnchorId).ToString(),
                 groupId,
                 ChallengeDuration.Season,
                 ChallengeType.Regular,
@@ -232,18 +228,22 @@ internal sealed partial class SeasonChallengeService : IDisposable
             challengeRecords[challenge.Id] = record;
         }
 
-        if (!challengeRecords.Values.Any(c => c.Order == 0))
+        if (!challengeRecords.Values.Any(challenge => challenge.Order == 0))
         {
             var slot0Id = SeasonCompleteSlotId;
             var slot1Id = SeasonCustomizationSlotId;
             var slot2Id = SeasonSuperPrizeSlotId;
 
+            var isPath1Complete = milestoneChallenge is not null
+                && progressByChallengeId.TryGetValue(milestoneChallenge.Id, out var milestoneProgress)
+                && milestoneProgress.IsComplete;
+
             var emptyRewards = new Rewards().ToApiResponse();
 
             var slot0Rewards = activeSeason.Season.ExclusiveRewards is not null
                 ? Rewards.FromDBRewardsModel(activeSeason.Season.ExclusiveRewards).ToApiResponse()
-                : (activeSeason.Challenges.FirstOrDefault(c => c.ObjectiveType == ObjectiveTypeEF.SeasonCapstone) is { } capstone
-                    ? Rewards.FromDBRewardsModel(capstone.Rewards).ToApiResponse()
+                : (capstoneChallenge is not null
+                    ? Rewards.FromDBRewardsModel(capstoneChallenge.Rewards).ToApiResponse()
                     : emptyRewards);
 
             var clientProperties = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -273,7 +273,7 @@ internal sealed partial class SeasonChallengeService : IDisposable
                 clientProperties
             );
 
-            // Slot 1: Character customization milestone anchor
+            // Slot 1: Intermediate milestone anchor
             challengeRecords[slot1Id] = new ChallengeRecord(
                 slot1Id.ToString(),
                 slot0Id.ToString(),
@@ -284,18 +284,22 @@ internal sealed partial class SeasonChallengeService : IDisposable
                 null,
                 0,
                 endTimeUtc,
-                ChallengeState.Active,
-                false,
-                0,
-                0,
+                isPath1Complete ? ChallengeState.Completed : ChallengeState.Active,
+                isPath1Complete,
+                isPath1Complete ? 100 : 0,
+                isPath1Complete ? 1 : 0,
                 1,
-                [slot0Id.ToString()],
+                [],
                 Types.Challenges.LogicalCondition.And,
                 emptyRewards,
                 clientProperties
             );
 
-            // Slot 2: Super prize milestone anchor
+            // Slot 2: Capstone milestone anchor
+            var slot2State = seasonProgress.IsCompleted
+                ? ChallengeState.Completed
+                : (isPath1Complete ? ChallengeState.Active : ChallengeState.Locked);
+
             challengeRecords[slot2Id] = new ChallengeRecord(
                 slot2Id.ToString(),
                 slot0Id.ToString(),
@@ -306,12 +310,12 @@ internal sealed partial class SeasonChallengeService : IDisposable
                 null,
                 0,
                 endTimeUtc,
-                ChallengeState.Active,
-                false,
-                0,
-                0,
+                slot2State,
+                seasonProgress.IsCompleted,
+                seasonProgress.IsCompleted ? 100 : 0,
+                seasonProgress.IsCompleted ? 1 : 0,
                 1,
-                [],
+                [slot1Id.ToString()],
                 Types.Challenges.LogicalCondition.And,
                 emptyRewards,
                 clientProperties
@@ -445,6 +449,7 @@ internal sealed partial class SeasonChallengeService : IDisposable
             .ToDictionaryAsync(progress => progress.ChallengeId, cancellationToken);
 
         var challengeDefs = activeSeason.Challenges.ToDictionary(challenge => challenge.Id);
+        var (milestoneChallenge, _) = GetMilestoneAndCapstone(activeSeason.Challenges);
         var anyUpdated = false;
         var now = DateTimeOffset.UtcNow;
 
@@ -505,18 +510,25 @@ internal sealed partial class SeasonChallengeService : IDisposable
                     ),
                     cancellationToken);
 
-                if (challenge.IsFinalSeasonChallenge)
+                if (milestoneChallenge is not null && challenge.Id == milestoneChallenge.Id)
+                {
+                    earthDb.Tokens.Add(new ChallengeCompleteTokenEF(profileId, SeasonCustomizationSlotId, activeSeason.Season.EndDate));
+                }
+
+                if (challenge.IsFinalSeasonChallenge || challenge.ObjectiveType is ObjectiveTypeEF.SeasonCapstone)
                 {
                     seasonProgress.IsCompleted = true;
                     seasonProgress.CompletedAt = now;
+                    earthDb.Tokens.Add(new ChallengeCompleteTokenEF(profileId, SeasonSuperPrizeSlotId, activeSeason.Season.EndDate));
+                    earthDb.Tokens.Add(new ChallengeCompleteTokenEF(profileId, SeasonCompleteSlotId, activeSeason.Season.EndDate));
                 }
 
-                earthDb.Tokens.Add(new ChallengeProgressTokenEF(profileId, challenge.Id, previousCount, progress.CurrentCount, challenge.TotalThreshold, ChallengeCategoryEF.Season));
+                await UpsertChallengeProgressTokenAsync(earthDb, profileId, challenge.Id, previousCount, progress.CurrentCount, challenge.TotalThreshold, ChallengeCategoryEF.Season, cancellationToken);
                 earthDb.Tokens.Add(new ChallengeCompleteTokenEF(profileId, challenge.Id, activeSeason.Season.EndDate));
             }
             else
             {
-                earthDb.Tokens.Add(new ChallengeProgressTokenEF(profileId, challenge.Id, previousCount, progress.CurrentCount, challenge.TotalThreshold, ChallengeCategoryEF.Season));
+                await UpsertChallengeProgressTokenAsync(earthDb, profileId, challenge.Id, previousCount, progress.CurrentCount, challenge.TotalThreshold, ChallengeCategoryEF.Season, cancellationToken);
             }
         }
 
@@ -615,9 +627,12 @@ internal sealed partial class SeasonChallengeService : IDisposable
                         seasonProgress.IsCompleted = true;
                         seasonProgress.CompletedAt = now;
                     }
+
+                    earthDb.Tokens.Add(new ChallengeCompleteTokenEF(profileId, SeasonSuperPrizeSlotId, activeSeason.Season.EndDate));
+                    earthDb.Tokens.Add(new ChallengeCompleteTokenEF(profileId, SeasonCompleteSlotId, activeSeason.Season.EndDate));
                 }
 
-                earthDb.Tokens.Add(new ChallengeProgressTokenEF(profileId, challenge.Id, previousCount, progress.CurrentCount, challenge.TotalThreshold, ChallengeCategoryEF.Season));
+                await UpsertChallengeProgressTokenAsync(earthDb, profileId, challenge.Id, previousCount, progress.CurrentCount, challenge.TotalThreshold, ChallengeCategoryEF.Season, cancellationToken);
                 earthDb.Tokens.Add(new ChallengeCompleteTokenEF(profileId, challenge.Id, activeSeason.Season.EndDate));
 
                 completedInPass = true;
@@ -626,6 +641,39 @@ internal sealed partial class SeasonChallengeService : IDisposable
         } while (completedInPass);
 
         return anyCompleted;
+    }
+
+    private static async Task UpsertChallengeProgressTokenAsync(EarthDbContext earthDb, Guid profileId, Guid challengeId, int previousCount, int currentCount, int totalThreshold, ChallengeCategoryEF category, CancellationToken cancellationToken)
+    {
+        var existingTokens = await earthDb.Tokens
+            .OfType<ChallengeProgressTokenEF>()
+            .AsTracking()
+            .Where(token => token.ProfileId == profileId && token.ChallengeId == challengeId)
+            .ToListAsync(cancellationToken);
+
+        var effectivePreviousCount = previousCount;
+        if (existingTokens.Count > 0)
+        {
+            effectivePreviousCount = existingTokens.Min(token => token.PreviousCount);
+            earthDb.Tokens.RemoveRange(existingTokens);
+        }
+
+        earthDb.Tokens.Add(new ChallengeProgressTokenEF(profileId, challengeId, effectivePreviousCount, currentCount, totalThreshold, category));
+    }
+
+    private static (ChallengeDefinitionEF? Milestone, ChallengeDefinitionEF? Capstone) GetMilestoneAndCapstone(List<ChallengeDefinitionEF> challenges)
+    {
+        var capstoneChallenge = challenges
+            .LastOrDefault(challenge => challenge.IsFinalSeasonChallenge || challenge.ObjectiveType is ObjectiveTypeEF.SeasonCapstone)
+            ?? challenges.LastOrDefault();
+
+        var milestoneChallenge = challenges
+            .FirstOrDefault(challenge => challenge != capstoneChallenge && challenge.Rewards.PersonaItems.Length > 0)
+            ?? (challenges.Count >= 2
+                ? challenges[(challenges.Count - 2) / 2]
+                : null);
+
+        return (milestoneChallenge, capstoneChallenge);
     }
 
     private static ChallengeStateEF EvaluateChallengeState(ChallengeDefinitionEF challenge, Dictionary<Guid, PlayerChallengeProgressEF> progressByChallengeId, Dictionary<Guid, ChallengeDefinitionEF> allChallenges)

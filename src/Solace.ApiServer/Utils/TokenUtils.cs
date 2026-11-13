@@ -90,6 +90,15 @@ internal static class TokenUtils
                 }
 
                 break;
+            case ChallengeCompleteTokenEF challengeCompleteToken:
+                {
+                    await earthDb.Tokens
+                        .OfType<ChallengeProgressTokenEF>()
+                        .Where(progressToken => progressToken.ProfileId == accountId && progressToken.ChallengeId == challengeCompleteToken.ChallengeId)
+                        .ExecuteDeleteAsync();
+                }
+
+                break;
         }
 
         return token;

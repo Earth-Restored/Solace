@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Solace.Db.Earth;
 using Solace.Db.Earth.Models.Challenges;
+using Solace.Db.Earth.Models.ResourcePacks;
 using Solace.Db.Playfab;
 using Solace.Db.Playfab.Models.Items;
 using Solace.Db.Playfab.Models.Tabs;
@@ -281,6 +282,8 @@ internal static class DataSeedUtils
             {
                 await earthDb.Challenges.ExecuteDeleteAsync(cancellationToken);
                 await earthDb.Seasons.ExecuteDeleteAsync(cancellationToken);
+                await earthDb.ResourcePackAssets.ExecuteDeleteAsync(cancellationToken);
+                await earthDb.ResourcePackTranslations.ExecuteDeleteAsync(cancellationToken);
             }
 
             foreach (var (_, staticSeason) in staticData.Seasons)
@@ -344,6 +347,42 @@ internal static class DataSeedUtils
                         challengeEF.ObjectiveTarget = staticChallenge.ObjectiveTarget;
                         challengeEF.IsFinalSeasonChallenge = staticChallenge.IsFinalSeasonChallenge;
                         challengeEF.Rewards = rewards;
+                    }
+                }
+
+                foreach (var (resourcePackPath, diskFilePath) in staticSeason.TextureFiles)
+                {
+                    var assetBytes = await File.ReadAllBytesAsync(diskFilePath, cancellationToken);
+                    var existingAsset = await earthDb.ResourcePackAssets.FirstOrDefaultAsync(asset => asset.Path == resourcePackPath, cancellationToken);
+                    if (existingAsset is null)
+                    {
+                        earthDb.ResourcePackAssets.Add(new ResourcePackAssetEF
+                        {
+                            Path = resourcePackPath,
+                            Data = assetBytes,
+                        });
+                    }
+                    else
+                    {
+                        existingAsset.Data = assetBytes;
+                    }
+                }
+
+                foreach (var (language, key, value) in staticSeason.GetAllTranslations())
+                {
+                    var existingTranslation = await earthDb.ResourcePackTranslations.FirstOrDefaultAsync(translation => translation.Language == language && translation.Key == key, cancellationToken);
+                    if (existingTranslation is null)
+                    {
+                        earthDb.ResourcePackTranslations.Add(new ResourcePackTranslationEF
+                        {
+                            Language = language,
+                            Key = key,
+                            Value = value,
+                        });
+                    }
+                    else
+                    {
+                        existingTranslation.Value = value;
                     }
                 }
             }

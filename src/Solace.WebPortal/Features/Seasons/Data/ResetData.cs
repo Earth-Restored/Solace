@@ -29,6 +29,7 @@ public static partial class ResetData
         await DataSeedUtils.SeedSeasonsDataAsync(earthDb, staticData.Seasons, update: true, force: true, cancellationToken);
 
         await eventBus.PublishAsync("seasons", "seasons_data_updated", string.Empty, cancellationToken);
+        await eventBus.PublishAsync("resourcepack", "synthesize", string.Empty, cancellationToken);
         return TypedResults.Ok();
     }
 }

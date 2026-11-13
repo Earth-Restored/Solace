@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Solace.ApiServer.Authentication;
 using Solace.ApiServer.Services;
 using Solace.ApiServer.Utils;
 
@@ -8,7 +9,9 @@ namespace Solace.ApiServer.Controllers;
 
 [ApiVersion("1.1")]
 [Route("api/v{version:apiVersion}/resourcepacks/2020.1217.02/default")]
+[Route("1/api/v{version:apiVersion}/resourcepacks/2020.1217.02/default")]
 [ApiController]
+[DisableETag]
 internal sealed partial class ResourcePackController : ControllerBase
 {
     internal sealed record ResourcePackResponse(int Order, int[] ParsedResourcePackVersion, string RelativePath, string ResourcePackVersion, string ResourcePackId);
@@ -38,7 +41,7 @@ internal sealed partial class ResourcePackController : ControllerBase
                 [2020, 1214, pack.BuildNumber],
                 pack.RelativePath,
                 pack.VersionString,
-                pack.Id.ToString()
+                ResourcePackService.GenoaPackId
             ),
         ]));
     }

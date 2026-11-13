@@ -16,37 +16,55 @@ public sealed class SeasonsCatalog
         var seasonsList = new List<SeasonDefinition>();
         var challengesList = new List<SeasonChallengeDefinition>();
 
-        var seasonsDir = Path.Combine(dir, "seasons");
-        if (Directory.Exists(seasonsDir))
+        foreach (var subDir in Directory.EnumerateDirectories(dir))
         {
-            foreach (var file in Directory.EnumerateFiles(seasonsDir, "*.json"))
+            var infoFile = Path.Combine(subDir, "info.json");
+            if (!File.Exists(infoFile))
             {
-                using var stream = File.OpenRead(file);
-                var season = JsonSerializer.Deserialize(stream, AppJsonContext.Default.SeasonDefinition);
-                if (season is not null)
+                continue;
+            }
+
+            using var stream = File.OpenRead(infoFile);
+            var season = JsonSerializer.Deserialize(stream, AppJsonContext.Default.SeasonDefinition);
+            if (season is not null)
+            {
+                var texturesDir = Path.Combine(subDir, "textures");
+                var textureFiles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                if (Directory.Exists(texturesDir))
                 {
-                    var challenges = new List<SeasonChallengeDefinition>(season.Challenges.Count);
-                    for (var i = 0; i < season.Challenges.Count; i++)
+                    foreach (var filePath in Directory.EnumerateFiles(texturesDir, "*.*", SearchOption.AllDirectories))
                     {
-                        var challenge = season.Challenges[i];
-                        var isFinal = challenge.IsFinalSeasonChallenge || i == season.Challenges.Count - 1 || challenge.ObjectiveType == ObjectiveType.SeasonCapstone;
-                        challenge = challenge with
-                        {
-                            IsFinalSeasonChallenge = isFinal
-                        };
-
-                        challenges.Add(challenge);
+                        var relPath = Path.GetRelativePath(texturesDir, filePath).Replace('\\', '/');
+                        var rpKey = $"textures/ui/seasons/{season.Key}/{relPath}";
+                        textureFiles[rpKey] = filePath;
                     }
-
-                    var updatedSeason = season with { Challenges = challenges };
-                    seasonsList.Add(updatedSeason);
-                    challengesList.AddRange(challenges);
                 }
+
+                var challenges = new List<SeasonChallengeDefinition>(season.Challenges.Count);
+                for (var i = 0; i < season.Challenges.Count; i++)
+                {
+                    var challenge = season.Challenges[i];
+                    var isFinal = challenge.IsFinalSeasonChallenge || i == season.Challenges.Count - 1 || challenge.ObjectiveType == ObjectiveType.SeasonCapstone;
+                    challenge = challenge with
+                    {
+                        IsFinalSeasonChallenge = isFinal
+                    };
+
+                    challenges.Add(challenge);
+                }
+
+                var updatedSeason = season with
+                {
+                    Challenges = challenges,
+                    TextureFiles = textureFiles.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase)
+                };
+                seasonsList.Add(updatedSeason);
+                challengesList.AddRange(challenges);
             }
         }
 
-        Seasons = seasonsList.ToFrozenDictionary(s => s.Id);
-        Challenges = challengesList.ToFrozenDictionary(c => c.Id);
+        Seasons = seasonsList.ToFrozenDictionary(season => season.Id);
+        Challenges = challengesList.ToFrozenDictionary(challenge => challenge.Id);
     }
 
     public sealed record SeasonDefinition(
@@ -57,14 +75,66 @@ public sealed class SeasonsCatalog
         DateTimeOffset EndDate,
         bool IsActive,
         IReadOnlyList<SeasonChallengeDefinition> Challenges,
+        IReadOnlyDictionary<string, SeasonTranslation> Translations,
         Rewards? ExclusiveRewards = null
-    );
+    )
+    {
+        public IReadOnlyDictionary<string, string> TextureFiles { get; init; } = FrozenDictionary<string, string>.Empty;
+
+        public IEnumerable<(string Language, string Key, string Value)> GetAllTranslations()
+        {
+            foreach (var (lang, translation) in Translations)
+            {
+                if (translation.Name is not null)
+                {
+                    yield return (lang, $"seasons.{Key}.event_name", translation.Name);
+                }
+
+                if (translation.Description is not null)
+                {
+                    yield return (lang, $"seasons.{Key}.event_description", translation.Description);
+                }
+
+                if (translation.IntroBody is not null)
+                {
+                    yield return (lang, $"seasons.{Key}.intro.body", translation.IntroBody);
+                }
+
+                if (translation.EventProgress is not null)
+                {
+                    yield return (lang, $"seasons.{Key}.progress", translation.EventProgress);
+                }
+
+                if (translation.EventComplete is not null)
+                {
+                    yield return (lang, $"seasons.{Key}.complete", translation.EventComplete);
+                }
+            }
+
+            foreach (var challenge in Challenges)
+            {
+                foreach (var (lang, translation) in challenge.Translations)
+                {
+                    if (translation.Description is not null)
+                    {
+                        yield return (lang, $"challenge_{challenge.Id}.desc.single", translation.Description);
+                    }
+
+                    if (translation.DescriptionMultiple is not null)
+                    {
+                        yield return (lang, $"challenge_{challenge.Id}.desc.multiple", translation.DescriptionMultiple);
+                    }
+                }
+            }
+        }
+    }
 
     public sealed record SeasonChallengeDefinition(
         Guid Id,
         int Order,
         int TotalThreshold,
         ObjectiveType ObjectiveType,
+        IReadOnlyDictionary<string, ChallengeTranslation> Translations,
         Guid? ParentId = null,
         IReadOnlyList<Guid>? PrerequisiteIds = null,
         LogicalCondition PrerequisiteLogicalCondition = LogicalCondition.And,
@@ -76,6 +146,19 @@ public sealed class SeasonsCatalog
         public IReadOnlyList<Guid> PrerequisiteIds { get; init; } = PrerequisiteIds ?? [];
         public Rewards Rewards { get; init; } = Rewards ?? new();
     }
+
+    public sealed record SeasonTranslation(
+        string? Name = null,
+        string? Description = null,
+        string? IntroBody = null,
+        string? EventProgress = null,
+        string? EventComplete = null
+    );
+
+    public sealed record ChallengeTranslation(
+        string? Description = null,
+        string? DescriptionMultiple = null
+    );
 
     public sealed record Rewards(
         int? Rubies = null,

@@ -5,6 +5,9 @@ using System.Security.Cryptography;
 namespace Solace.ApiServer.Authentication;
 
 #pragma warning disable MA0048 // File name must match type name
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+internal sealed class DisableETagAttribute : Attribute;
+
 internal sealed class ETagMiddleware
 #pragma warning restore MA0048 // File name must match type name
 {
@@ -26,7 +29,7 @@ internal sealed class ETagMiddleware
 
             await _next(context);
 
-            if (IsEtagSupported(response))
+            if (IsEtagSupported(context))
             {
                 var checksum = CalculateChecksum(ms);
 
@@ -46,8 +49,14 @@ internal sealed class ETagMiddleware
         }
     }
 
-    private static bool IsEtagSupported(HttpResponse response)
+    private static bool IsEtagSupported(HttpContext context)
     {
+        if (context.GetEndpoint()?.Metadata.GetMetadata<DisableETagAttribute>() is not null)
+        {
+            return false;
+        }
+
+        var response = context.Response;
         if (response.StatusCode != StatusCodes.Status200OK)
         {
             return false;
