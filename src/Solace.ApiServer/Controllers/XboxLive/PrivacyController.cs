@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
+using Solace.ApiServer.Utils;
 
 namespace Solace.ApiServer.Controllers.XboxLive;
 
@@ -31,12 +32,12 @@ internal sealed partial class PrivacyController : LoginServerControllerBase
 
         string? xuidString = xuidMatch.Success ? xuidMatch.Groups[1].Value : null;
 
-        if (xuidString is null || !Guid.TryParse(xuidString, out var xuid))
+        if (xuidString is null)
         {
             return TypedResults.BadRequest();
         }
 
-        if (xuid != token.UserId)
+        if (!XuidUtils.Matches(xuidString, token.UserId))
         {
             return TypedResults.Unauthorized();
         }
@@ -61,12 +62,12 @@ internal sealed partial class PrivacyController : LoginServerControllerBase
 
         string? xuidString = xuidMatch.Success ? xuidMatch.Groups[1].Value : null;
 
-        if (xuidString is null || !Guid.TryParse(xuidString, out var xuid))
+        if (xuidString is null)
         {
             return TypedResults.BadRequest();
         }
 
-        if (xuid != token.UserId)
+        if (!XuidUtils.Matches(xuidString, token.UserId))
         {
             return TypedResults.Unauthorized();
         }

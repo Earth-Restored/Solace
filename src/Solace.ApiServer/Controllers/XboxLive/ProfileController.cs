@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
+using Solace.ApiServer.Utils;
 using Solace.ApiServer.Models;
 using Solace.Common.Utils;
 using Solace.DB.Models;
@@ -25,16 +26,17 @@ internal sealed partial class ProfileController : LoginServerControllerBase
         IEnumerable<ProfileUser> ProfileUsers
     );
 
+    // Echo the id in the form the client used: Guid (Android) or numeric xuid (iOS)
     private sealed record ProfileUser(
-        Guid Id,
-        Guid HostId,
+        string Id,
+        string HostId,
         IEnumerable<ProfileSetting> Settings,
         bool IsSponsoredUser
     );
 
     internal sealed record BatchProfileSettingsRequest(
         string[] Settings,
-        Guid[] UserIds
+        string[] UserIds
     );
 
     [HttpPost("batch/profile/settings")]
@@ -59,7 +61,7 @@ internal sealed partial class ProfileController : LoginServerControllerBase
 
         foreach (var userId in request.UserIds)
         {
-            if (userId != token.UserId)
+            if (!XuidUtils.Matches(userId, token.UserId))
             {
                 return TypedResults.Unauthorized();
             }
@@ -98,21 +100,34 @@ internal sealed partial class ProfileController : LoginServerControllerBase
 
         var token = authUnion.A;
 
-        string? gt;
-        if (gtParam == "me")
+        string profileId = token.UserId.ToString();
+        Match xuidMatch = GetXuidRegex().Match(gtParam);
+        if (xuidMatch.Success)
         {
-            gt = token.Username;
+            profileId = xuidMatch.Groups[1].Value;
+            if (!XuidUtils.Matches(profileId, token.UserId))
+            {
+                return TypedResults.Unauthorized();
+            }
         }
         else
         {
-            Match gtMatch = GetGtRegex().Match(gtParam);
+            string? gt;
+            if (gtParam == "me")
+            {
+                gt = token.Username;
+            }
+            else
+            {
+                Match gtMatch = GetGtRegex().Match(gtParam);
 
-            gt = gtMatch.Success ? gtMatch.Groups[1].Value : null;
-        }
+                gt = gtMatch.Success ? gtMatch.Groups[1].Value : null;
+            }
 
-        if (gt != token.Username)
-        {
-            return TypedResults.Unauthorized();
+            if (gt != token.Username)
+            {
+                return TypedResults.Unauthorized();
+            }
         }
 
         if (!Request.Query.TryGetValue("settings", out var settings))
@@ -130,8 +145,8 @@ internal sealed partial class ProfileController : LoginServerControllerBase
 
         return JsonCamelCase(new ProfileSettingsResponse([
             new ProfileUser(
-                token.UserId,
-                token.UserId,
+                profileId,
+                profileId,
                 GetProfileFields(account, settings[0]?.Split(',') ?? []),
                 false
             ),
@@ -163,6 +178,9 @@ internal sealed partial class ProfileController : LoginServerControllerBase
 
     [GeneratedRegex(@"^gt\((.*)\)$")]
     private static partial Regex GetGtRegex();
+
+    [GeneratedRegex(@"^xuid\((.*)\)$")]
+    private static partial Regex GetXuidRegex();
 
     private sealed record ProfileSetting(
         string Id,
