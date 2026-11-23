@@ -26,8 +26,8 @@ internal sealed class DeviceController : SolaceControllerBase
     {
         internal sealed record PropertiesR(
             string AuthMethod,
-            string RpsTicket,
-            string SiteName
+            string? RpsTicket,
+            string? SiteName
         );
     }
 

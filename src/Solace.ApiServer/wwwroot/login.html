@@ -203,6 +203,34 @@
                 }
             });
 
+            // iOS XAL (sisu) opens this page with redirect_uri: hand the user token back to the app as the OAuth code
+            const oauthParams = new URLSearchParams(window.location.search);
+            const oauthRedirectUri = oauthParams.get('redirect_uri');
+
+            function completeSignIn(response) {
+                if (oauthRedirectUri) {
+                    if (!oauthRedirectUri.toLowerCase().startsWith('ms-xal-')) {
+                        $('#errorMsg').text('Invalid redirect').show();
+                        return;
+                    }
+                    const separator = oauthRedirectUri.includes('?') ? '&' : '?';
+                    window.location.href = `${oauthRedirectUri}${separator}code=${encodeURIComponent(response.token)}&state=${encodeURIComponent(oauthParams.get('state') ?? '')}`;
+                    return;
+                }
+
+                external.Property('DAToken', `<EncryptedData xmlns=\"http://www.w3.org/2001/04/xmlenc#\" Id=\"BinaryDAToken0\"><CipherData><CipherValue>${response.token}</CipherValue></CipherData></EncryptedData>`)
+                external.Property('DAStartTime', response.tokenIssuedAt)
+                external.Property('DAExpires', response.tokenExpires)
+                external.Property('DASessionKey', response.sessionKey)
+                external.Property('FirstName', response.firstName)
+                external.Property('LastName', response.lastName)
+                external.Property('SigninName', response.username)
+                external.Property('Username', response.username)
+                external.Property('CID', response.userId)
+                external.Property('PUID', response.userId)
+                external.FinalNext()
+            }
+
             $('#loginForm').submit((e) => {
                 e.preventDefault();
                 
@@ -218,17 +246,7 @@
                     $.post('./register', userData)
                         .done(response => {
                             $('#errorMsg').hide().text('');
-                            external.Property('DAToken', `<EncryptedData xmlns=\"http://www.w3.org/2001/04/xmlenc#\" Id=\"BinaryDAToken0\"><CipherData><CipherValue>${response.token}</CipherValue></CipherData></EncryptedData>`)
-                            external.Property('DAStartTime', response.tokenIssuedAt)
-                            external.Property('DAExpires', response.tokenExpires)
-                            external.Property('DASessionKey', response.sessionKey)
-                            external.Property('FirstName', response.firstName)
-                            external.Property('LastName', response.lastName)
-                            external.Property('SigninName', response.username)
-                            external.Property('Username', response.username)
-                            external.Property('CID', response.userId)
-                            external.Property('PUID', response.userId)
-                            external.FinalNext()
+                            completeSignIn(response)
                         })
                         .fail((jqXHR) => {
                             let errorText = jqXHR.responseText || "An unknown error occurred.";
@@ -238,17 +256,7 @@
                     $.post('./login', userData)
                     .done(response => {
                         $('#errorMsg').hide().text('');
-                        external.Property('DAToken', `<EncryptedData xmlns=\"http://www.w3.org/2001/04/xmlenc#\" Id=\"BinaryDAToken0\"><CipherData><CipherValue>${response.token}</CipherValue></CipherData></EncryptedData>`)
-                        external.Property('DAStartTime', response.tokenIssuedAt)
-                        external.Property('DAExpires', response.tokenExpires)
-                        external.Property('DASessionKey', response.sessionKey)
-                        external.Property('FirstName', response.firstName)
-                        external.Property('LastName', response.lastName)
-                        external.Property('SigninName', response.username)
-                        external.Property('Username', response.username)
-                        external.Property('CID', response.userId)
-                        external.Property('PUID', response.userId)
-                        external.FinalNext()
+                        completeSignIn(response)
                     })
                     .fail((jqXHR) => {
                         let errorText = jqXHR.responseText || "An unknown error occurred.";

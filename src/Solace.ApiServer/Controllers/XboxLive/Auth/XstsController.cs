@@ -57,7 +57,10 @@ internal sealed class XstsController : SolaceControllerBase
             return TypedResults.Unauthorized();
         }
 
-        switch (request.RelyingParty)
+        string relyingParty = NormalizeRelyingParty(request.RelyingParty);
+        bool numericXid = relyingParty != request.RelyingParty;
+
+        switch (relyingParty)
         {
             case "http://xboxlive.com":
                 {
@@ -73,7 +76,7 @@ internal sealed class XstsController : SolaceControllerBase
                             ["xui"] = [
                                 new()
                                 {
-                                    ["xid"] = userToken.Xid.ToString(),
+                                    ["xid"] = numericXid ? XuidUtils.ToNumericString(userToken.Xid) : userToken.Xid.ToString(),
                                     ["uhs"] = userToken.Uhs.ToString(),
 
                                     ["gtg"] = userToken.Username,
@@ -130,7 +133,31 @@ internal sealed class XstsController : SolaceControllerBase
                 }
 
             default:
+                Log.Warning($"Unknown XSTS relying party: {request.RelyingParty}");
                 return TypedResults.BadRequest();
         }
+    }
+
+    // The patched iOS client prefixes redirected relying parties with the server address,
+    // e.g. http://server:8080/xboxlive.com instead of http://xboxlive.com
+    private static string NormalizeRelyingParty(string relyingParty)
+    {
+        int schemeEnd = relyingParty.IndexOf("://", StringComparison.Ordinal);
+        if (schemeEnd < 0)
+        {
+            return relyingParty;
+        }
+
+        string rest = relyingParty[(schemeEnd + 3)..];
+        int slash = rest.IndexOf('/', StringComparison.Ordinal);
+        if (slash < 0 || slash == rest.Length - 1)
+        {
+            return relyingParty;
+        }
+
+        string redirected = rest[(slash + 1)..];
+        return redirected.EndsWith("xboxlive.com", StringComparison.Ordinal)
+            ? $"http://{redirected}"
+            : relyingParty;
     }
 }

@@ -6,6 +6,8 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Xml;
@@ -60,6 +62,79 @@ internal sealed partial class LoginController : SolaceControllerBase
     [HttpGet("ppsecure/reauthenticateStart")]
     public VirtualFileHttpResult GetReauthenticatePage()
         => TypedResults.VirtualFile("/reauthenticate.html", "text/html");
+
+    // iOS XAL (sisu) sign-in page, see SisuController
+    [HttpGet("ppsecure/oauth20_authorize.srf")]
+    public VirtualFileHttpResult GetOAuthLoginPage()
+        => TypedResults.VirtualFile("/login.html", "text/html");
+
+    // XAL opens this in a web view on sign out and waits for the redirect back to the app
+    [HttpGet("oauth20_logout.srf")]
+    public Results<RedirectHttpResult, BadRequest> OAuthLogout([FromQuery(Name = "redirect_uri")] string? redirectUri, [FromQuery] string? state)
+    {
+        if (redirectUri is null || !redirectUri.StartsWith("ms-xal-", StringComparison.OrdinalIgnoreCase))
+        {
+            return TypedResults.BadRequest();
+        }
+
+        return TypedResults.Redirect(state is null ? redirectUri : $"{redirectUri}?state={Uri.EscapeDataString(state)}");
+    }
+
+    private sealed record OAuthTokenResponse(
+        [property: JsonPropertyName("token_type")] string TokenType,
+        [property: JsonPropertyName("expires_in")] long ExpiresIn,
+        [property: JsonPropertyName("scope")] string Scope,
+        [property: JsonPropertyName("access_token")] string AccessToken,
+        [property: JsonPropertyName("refresh_token")] string RefreshToken,
+        [property: JsonPropertyName("user_id")] string UserId
+    );
+
+    // The code (from the login page) and refresh token are Live user tokens, the access token is the Xbox ticket
+    [HttpPost("oauth20_token.srf")]
+    public async Task<Results<ContentHttpResult, BadRequest<string>>> OAuthToken([FromForm(Name = "grant_type")] string grantType, [FromForm] string? code, [FromForm(Name = "refresh_token")] string? refreshToken, [FromForm] string? scope, CancellationToken cancellationToken)
+    {
+        string? userTokenString = grantType switch
+        {
+            "authorization_code" => code,
+            "refresh_token" => refreshToken,
+            _ => null,
+        };
+
+        if (string.IsNullOrEmpty(userTokenString))
+        {
+            return TypedResults.BadRequest("invalid_request");
+        }
+
+        var userToken = JwtUtils.Verify<Tokens.Live.UserToken>(userTokenString, _cryptoSecrets.LoginUserTokenSecret);
+        if (userToken is null)
+        {
+            return TypedResults.BadRequest("invalid_grant");
+        }
+
+        var account = await _earthDb.Accounts
+            .FirstOrDefaultAsync(account => account.Id == userToken.Data.UserId, cancellationToken);
+
+        // Tokens issued before a password change stop working
+        if (account is null || Convert.ToBase64String(account.PasswordHash) != userToken.Data.PasswordHash)
+        {
+            return TypedResults.BadRequest("invalid_grant");
+        }
+
+        var loginResponse = CreateLoginResponse(account);
+
+        var xboxTokenValidity = ValidityDatePair.Create(Config.Login.XboxTokenValidityMinutes);
+        var xboxToken = new Tokens.Shared.XboxTicketToken(account.Id, loginResponse.Username);
+        string xboxTokenString = JwtUtils.Sign(xboxToken, _cryptoSecrets.LoginXboxTokenSecret, xboxTokenValidity);
+
+        return TypedResults.Content(JsonSerializer.Serialize(new OAuthTokenResponse(
+            "bearer",
+            Config.Login.XboxTokenValidityMinutes * 60L,
+            scope ?? "service::user.auth.xboxlive.com::MBI_SSL",
+            xboxTokenString,
+            loginResponse.Token,
+            account.Id.ToString("N")
+        )), "application/json");
+    }
 
     private sealed record LoginResponse(
         Guid UserId,

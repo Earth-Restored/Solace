@@ -353,6 +353,28 @@ public static class Program
             };
         });
 
+        // Patched clients can send PlayFab title API requests to /<titleId>.playfabapi.com/<path>,
+        // so serve them from the same routes as /<path>.
+        app.Use(async (context, next) =>
+        {
+            string? path = context.Request.Path.Value;
+            if (path is { Length: > 1 })
+            {
+                int end = path.IndexOf('/', 1);
+                if (end < 0)
+                {
+                    end = path.Length;
+                }
+
+                if (path.AsSpan(1, end - 1).EndsWith(".playfabapi.com", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Request.Path = end < path.Length ? path[end..] : "/";
+                }
+            }
+
+            await next();
+        });
+
         app.UseStaticFiles();
 
         app.UseRouting();

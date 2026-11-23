@@ -27,8 +27,8 @@ internal sealed class TitleController : SolaceControllerBase
         internal sealed record PropertiesR(
             string AuthMethod,
             string DeviceToken,
-            string RpsTicket,
-            string SiteName
+            string? RpsTicket,
+            string? SiteName
         );
     }
 

@@ -79,6 +79,9 @@ internal sealed class TitleMgtController : SolaceControllerBase
 
                 break;
             case "2037747551":
+            // iOS XAL asks for "current", and the iOS app is its own title
+            case "current":
+            case "1712756451":
                 {
                     endpoints =
                     [
