@@ -438,7 +438,7 @@ public sealed class EarthDbContext : DbContext
         modelBuilder.Entity<SeasonEF>(b =>
         {
             b.HasKey(s => s.Id);
-            b.HasIndex(s => s.Key).IsUnique();
+            b.HasIndex(s => s.SeasonNumber).IsUnique();
             b.HasIndex(s => s.IsActive);
             b.HasMany(s => s.Challenges)
                 .WithOne(c => c.Season)

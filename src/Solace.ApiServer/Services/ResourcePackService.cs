@@ -509,9 +509,11 @@ internal sealed partial class ResourcePackService : IDisposable
             return;
         }
 
-        if (path.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
-            path.EndsWith(".tga", StringComparison.OrdinalIgnoreCase) ||
-            path.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
+        var extension = Path.GetExtension(path.AsSpan());
+
+        if (extension.Equals(".png", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".tga", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase))
         {
             textures.Add(path[..^4]);
         }

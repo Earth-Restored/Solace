@@ -294,11 +294,10 @@ internal static class DataSeedUtils
                     seasonEF = new SeasonEF
                     {
                         Id = staticSeason.Id,
-                        Key = staticSeason.Key,
                         SeasonNumber = staticSeason.SeasonNumber,
-                        StartDate = staticSeason.StartDate,
-                        EndDate = staticSeason.EndDate,
-                        IsActive = staticSeason.IsActive,
+                        StartDate = null,
+                        EndDate = null,
+                        IsActive = false,
                         ExclusiveRewards = staticSeason.ExclusiveRewards is not null ? ConvertRewards(staticSeason.ExclusiveRewards) : null,
                     };
 
@@ -306,9 +305,9 @@ internal static class DataSeedUtils
                 }
                 else
                 {
-                    seasonEF.StartDate = staticSeason.StartDate;
-                    seasonEF.EndDate = staticSeason.EndDate;
-                    seasonEF.IsActive = staticSeason.IsActive;
+                    seasonEF.StartDate = null;
+                    seasonEF.EndDate = null;
+                    seasonEF.IsActive = false;
                     seasonEF.ExclusiveRewards = staticSeason.ExclusiveRewards is not null ? ConvertRewards(staticSeason.ExclusiveRewards) : null;
                 }
 

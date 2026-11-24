@@ -17,7 +17,7 @@ partial class EarthDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261112135001_AddResourcePackManagement";
+    public override string LastMigrationId => "20261124094413_SeasonRemoveKeyMakeDatesNullable";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -135,20 +135,16 @@ partial class EarthDbContextModelSnapshot : ModelSnapshot
                     .ValueGeneratedOnAdd()
                     .HasColumnType("uuid");
 
-                b.Property<DateTimeOffset>("EndDate")
+                b.Property<DateTimeOffset?>("EndDate")
                     .HasColumnType("timestamp with time zone");
 
                 b.Property<bool>("IsActive")
                     .HasColumnType("boolean");
 
-                b.Property<string>("Key")
-                    .IsRequired()
-                    .HasColumnType("text");
-
                 b.Property<int>("SeasonNumber")
                     .HasColumnType("integer");
 
-                b.Property<DateTimeOffset>("StartDate")
+                b.Property<DateTimeOffset?>("StartDate")
                     .HasColumnType("timestamp with time zone");
 
                 b.Property<int>("Version")
@@ -158,7 +154,7 @@ partial class EarthDbContextModelSnapshot : ModelSnapshot
 
                 b.HasIndex("IsActive");
 
-                b.HasIndex("Key")
+                b.HasIndex("SeasonNumber")
                     .IsUnique();
 
                 b.ToTable("Seasons");

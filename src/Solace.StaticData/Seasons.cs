@@ -70,15 +70,13 @@ public sealed class SeasonsCatalog
     public sealed record SeasonDefinition(
         Guid Id,
         int SeasonNumber,
-        string Key, // "season_1", "season_2", etc.
-        DateTimeOffset StartDate,
-        DateTimeOffset EndDate,
-        bool IsActive,
         IReadOnlyList<SeasonChallengeDefinition> Challenges,
         IReadOnlyDictionary<string, SeasonTranslation> Translations,
         Rewards? ExclusiveRewards = null
     )
     {
+        public string Key => field ??= $"season_{SeasonNumber}";
+
         public IReadOnlyDictionary<string, string> TextureFiles { get; init; } = FrozenDictionary<string, string>.Empty;
 
         public IEnumerable<(string Language, string Key, string Value)> GetAllTranslations()

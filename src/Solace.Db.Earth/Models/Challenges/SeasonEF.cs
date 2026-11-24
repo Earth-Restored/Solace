@@ -8,11 +8,9 @@ public sealed class SeasonEF
 
     public int SeasonNumber { get; set; }
 
-    public required string Key { get; set; } // e.g. "season_1"
+    public DateTimeOffset? StartDate { get; set; }
 
-    public DateTimeOffset StartDate { get; set; }
-
-    public DateTimeOffset EndDate { get; set; }
+    public DateTimeOffset? EndDate { get; set; }
 
     public bool IsActive { get; set; }
 

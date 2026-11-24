@@ -158,8 +158,8 @@ internal sealed partial class SeasonChallengeService : IDisposable
 
         var challengeRecords = new Dictionary<Guid, ChallengeRecord>(activeSeason.Challenges.Count);
 
-        var category = activeSeason.Season.Key;
-        var endTimeUtc = TimeFormatter.FormatTime(activeSeason.Season.EndDate);
+        var category = $"season_{activeSeason.Season.SeasonNumber}";
+        var endTimeUtc = TimeFormatter.FormatTime(activeSeason.Season.EndDate!.Value);
         var groupId = activeSeason.Season.Id.ToString();
 
         // The client expects exactly 2 exclusive rewards in #exclusive_rewards_grid (2x1 grid)
