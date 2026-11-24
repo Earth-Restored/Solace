@@ -1,6 +1,7 @@
 @page "/Store/Tabs/Create"
 @page "/Store/Tabs/Edit/{TabIndex:int}"
 @using Microsoft.AspNetCore.Authorization
+@using Solace.WebPortal.Client.Features.Catalog
 @using Solace.WebPortal.Client.Features.Store.Models
 @using Solace.WebPortal.Common
 @using Solace.WebPortal.Common.Features.Store
@@ -443,7 +444,7 @@ else
 
             if (Catalog is not null && Catalog.Value.TryGetItem(storeItem.InventoryItem.ItemId, out var catItem))
             {
-                <img src="/static/genoa-textures/ui/items/@(GetTextureName(catItem)).png" onerror="this.onerror=null; this.src='/static/missing_texture.png';" alt="@catItem.Name" title="@catItem.Name" />
+                <img src="@ItemTextureHelper.GetTextureUrl(catItem)" onerror="this.onerror=null; this.src='/static/missing_texture.png';" alt="@catItem.Name" title="@catItem.Name" />
                 return;
             }
         }
@@ -493,20 +494,6 @@ else
         }
 
         return 0;
-    }
-
-    private static string GetTextureName(Solace.WebPortal.Common.Features.Catalog.ItemDto item)
-    {
-        if (item.Category is ItemDtoCategory.BoostAdventureXP or ItemDtoCategory.BoostCrafting or
-            ItemDtoCategory.BoostDefense or ItemDtoCategory.BoostEating or ItemDtoCategory.BoostHealth or
-            ItemDtoCategory.BoostHoarding or ItemDtoCategory.BoostItemXP or ItemDtoCategory.BoostMiningSpeed or
-            ItemDtoCategory.BoostRetention or ItemDtoCategory.BoostSmelting or ItemDtoCategory.BoostStrength or
-            ItemDtoCategory.BoostTappableRadius)
-        {
-            return item.Id.ToString();
-        }
-
-        return item.Name + "_" + item.Aux;
     }
 
     private void AddLayout()

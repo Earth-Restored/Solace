@@ -3,8 +3,10 @@
 @using System.Security.Claims
 @using Solace.Common.Constants
 @using Solace.WebPortal.Client.Features.Players.Inventory
+@using Solace.WebPortal.Client.Features.Seasons
 @using Solace.WebPortal.Common
 @using Solace.WebPortal.Common.Features.Players
+@using Solace.WebPortal.Common.Features.Seasons
 @implements IAsyncDisposable
 @inject HttpClient Http
 @inject IJSRuntime JS
@@ -236,6 +238,49 @@ else
                 </div>
             </div>
         </div>
+
+        <div class="col-12 mt-3">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white py-2 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Season Progress</h6>
+                    @if (ActiveSeasonData?.Season is not null)
+                    {
+                        <span class="badge bg-light text-dark">Season @ActiveSeasonData.Season.SeasonNumber</span>
+                    }
+                </div>
+                <div class="card-body p-3 d-flex justify-content-between align-items-center bg-light">
+                    @if (IsLoadingSeason)
+                    {
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                            <span class="text-muted small">Loading season progress...</span>
+                        </div>
+                    }
+                    else if (ActiveSeasonData?.Season is null)
+                    {
+                        <div>
+                            <span class="text-muted">No season is active at the moment.</span>
+                        </div>
+                    }
+                    else
+                    {
+                        var (completedCount, totalCount) = GetSeasonChallengeCounts();
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <span class="text-muted">@GetActiveSeasonDisplayName():</span>
+                            <strong class="fs-5 text-dark">@completedCount / @totalCount</strong>
+                            <span class="text-muted small">challenges completed</span>
+                            @if (ActiveSeasonData.Progress is { IsCompleted: true } || (totalCount > 0 && completedCount >= totalCount))
+                            {
+                                <span class="badge bg-success">Completed</span>
+                            }
+                        </div>
+                    }
+                    <button type="button" class="btn btn-primary btn-sm flex-shrink-0 ms-2" disabled="@IsLoadingSeason" @onclick="OpenSeasonModal">
+                        View Season
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 }
 
@@ -297,6 +342,23 @@ else
     </div>
 }
 
+
+@if (_showSeasonModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6);" aria-modal="true" role="dialog" @onclick="CloseSeasonModal">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;" @onclick:stopPropagation="true">
+            <div class="modal-content shadow-lg">
+                <div class="modal-header py-2 bg-dark text-white">
+                    <h6 class="modal-title mb-0">@GetActiveSeasonDisplayName()</h6>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseSeasonModal"></button>
+                </div>
+                <div class="modal-body p-3 d-flex justify-content-center bg-light">
+                    <SeasonPreview Season="@ActiveSeasonData?.Season" PlayerProgress="@ActiveSeasonData?.Progress" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @if (_showLinkModal)
 {
@@ -370,6 +432,9 @@ else
 
     public AccountViewModel? PlayerAccount { get; private set; }
     private int? BuildplateCount { get; set; }
+    private PlayerActiveSeasonDto? ActiveSeasonData { get; set; }
+    private bool IsLoadingSeason { get; set; } = true;
+    private bool _showSeasonModal;
 
     private ChangeUsernameForm UsernameModel { get; set; } = new();
     private EditStatsForm StatsModel { get; set; } = new();
@@ -428,7 +493,73 @@ else
         {
             await LoadProfileData();
             StateHasChanged();
-            await RenderSkinAsync();
+            await Task.WhenAll(RenderSkinAsync(), LoadActiveSeasonAsync());
+            StateHasChanged();
+        }
+    }
+
+    private void OpenSeasonModal()
+        => _showSeasonModal = true;
+
+    private void CloseSeasonModal()
+        => _showSeasonModal = false;
+
+    private string GetActiveSeasonDisplayName()
+    {
+        var season = ActiveSeasonData?.Season;
+        if (season is null)
+        {
+            return "Current Season";
+        }
+
+        if (season.Translations.TryGetValue("en_US", out var english) && !string.IsNullOrWhiteSpace(english.Name))
+        {
+            return english.Name;
+        }
+
+        var first = season.Translations.Values.FirstOrDefault(translation => !string.IsNullOrWhiteSpace(translation.Name));
+        return first?.Name ?? $"Season {season.SeasonNumber}";
+    }
+
+    private (int Completed, int Total) GetSeasonChallengeCounts()
+    {
+        var season = ActiveSeasonData?.Season;
+        if (season is null)
+        {
+            return (0, 0);
+        }
+
+        var visible = season.Challenges.Where(c => c.Order >= 1);
+        var progressMap = ActiveSeasonData?.Progress?.Challenges;
+        if (progressMap is null)
+        {
+            return (0, visible.Count());
+        }
+
+        var completed = visible.Count(challenge =>
+            progressMap.TryGetValue(challenge.Id, out var progress)
+            && (progress.IsComplete || (challenge.TotalThreshold > 0 && progress.CurrentCount >= challenge.TotalThreshold)));
+
+        return (completed, visible.Count());
+    }
+
+    private async Task LoadActiveSeasonAsync()
+    {
+        IsLoadingSeason = true;
+
+        try
+        {
+            var uri = $"api/players/{ProfileId}/season";
+            ActiveSeasonData = await Http.GetFromJsonAsync<PlayerActiveSeasonDto>(uri);
+        }
+        catch (Exception exception)
+        {
+            Console.WriteLine($"Failed loading active season progress: {exception}");
+            ActiveSeasonData = null;
+        }
+        finally
+        {
+            IsLoadingSeason = false;
         }
     }
 

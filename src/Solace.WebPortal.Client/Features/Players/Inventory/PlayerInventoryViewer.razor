@@ -65,7 +65,7 @@
             {
                 <div class="item-card" @onclick="() => OpenItemDetails(slot)">
                     <div class="slot" title="@slot.BaseItem.Name">
-                        <img @key="(slot.BaseItem.Id, slot.InstanceId)" src="/static/genoa-textures/ui/items/@(slot.TextureName).png" alt="@slot.BaseItem.Name" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                        <img @key="(slot.BaseItem.Id, slot.InstanceId)" src="@slot.TextureUrl" alt="@slot.BaseItem.Name" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
 
                         @if (slot.BaseItem.Stackable)
                         {
@@ -243,7 +243,7 @@
                 {
                     <div class="catalog-item @(SelectedItemToAdd?.Id == catItem.Id ? "selected" : "")" @onclick="() => SelectedItemToAdd = catItem">
                         <div class="cat-item-icon-wrapper">
-                            <img @key="catItem.Id" src="/static/genoa-textures/ui/items/@(GetTextureName(catItem)).png" alt="@catItem.Name" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                            <img @key="catItem.Id" src="@ItemTextureHelper.GetTextureUrl(catItem)" alt="@catItem.Name" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
                         </div>
                         <div class="cat-item-info">
                             <div class="cat-item-name">@catItem.Name</div>
@@ -600,16 +600,6 @@
             _ => "#7f8c8d"
         };
 
-    private static string GetTextureName(ItemDto item)
-    {
-        if (item.Category is ItemDtoCategory.BoostAdventureXP or ItemDtoCategory.BoostCrafting or ItemDtoCategory.BoostDefense or ItemDtoCategory.BoostEating or ItemDtoCategory.BoostHealth or ItemDtoCategory.BoostHoarding or ItemDtoCategory.BoostItemXP or ItemDtoCategory.BoostMiningSpeed or ItemDtoCategory.BoostRetention or ItemDtoCategory.BoostSmelting or ItemDtoCategory.BoostStrength or ItemDtoCategory.BoostTappableRadius)
-        {
-            return item.Id.ToString();
-        }
-
-        return item.Name + "_" + item.Aux;
-    }
-
     public sealed class InventorySlot
     {
         public required ItemDto BaseItem { get; set; }
@@ -631,6 +621,6 @@
             }
         }
 
-        public string TextureName => GetTextureName(BaseItem);
+        public string TextureUrl => ItemTextureHelper.GetTextureUrl(BaseItem);
     }
 }

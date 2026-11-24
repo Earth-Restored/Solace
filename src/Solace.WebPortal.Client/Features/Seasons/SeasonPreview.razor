@@ -1,0 +1,949 @@
+@using System.Globalization
+@using Solace.WebPortal.Client.Features.Catalog
+@using Solace.WebPortal.Common.Features.Catalog
+@using Solace.WebPortal.Common.Features.Seasons
+@inject CatalogCacheService CatalogService
+
+<div class="season-preview-wrapper">
+    @if (ShowToolbar && Season is not null && AvailableLanguages.Count > 1)
+    {
+        <select class="form-select form-select-sm w-auto" @bind="_selectedLanguage">
+            @foreach (var lang in AvailableLanguages)
+            {
+                <option value="@lang">@lang</option>
+            }
+        </select>
+    }
+
+    <div class="season-phone-frame">
+        @if (Season is null)
+        {
+            <div class="season-none-active" style="background-image: url('@UiTexture("seasons/seasons_coming_soon_bg.png")');">
+                <div class="season-none-active-panel" style="background-image: url('@UiTexture("seasons/seasons_coming_soon_panel.png")');">
+                    <div class="season-none-active-title">No season is active at the moment.</div>
+                </div>
+            </div>
+        }
+        else
+        {
+            var visibleChallenges = VisibleChallenges;
+            var gridRows = GridRows;
+            var totalCells = gridRows * SeasonUtils.Columns;
+            var cellLookup = CellLookup;
+            var selectedChallenge = SelectedChallenge;
+            var showCompleteBanner = EffectiveShowProgress && IsSeasonCompleted;
+            var connections = BuildConnections();
+            var unlockedColor = NormalizeHexColor(Season.UnlockedPathColor, "#FFFFFF");
+            var lockedColor = NormalizeHexColor(Season.LockedPathColor, "#666666");
+
+            <div class="seasons-content">
+                <div class="season-header" style="background-image: url('@SeasonTexture("header.png")');">
+                    <div class="season-header-content">
+                        <div class="season-header-title-row">
+                            <button type="button" class="season-info-btn" title="Season Info" @onclick="ToggleInfoPopup">
+                                <img src="@UiTexture("info_icon.png")" alt="Info" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                            </button>
+                            <div class="season-event-name">@GetSeasonName()</div>
+                        </div>
+
+                        <div class="season-time-panel" style="border-image: url('@UiTexture("9_slice/label_simple.png")') 3 fill / 3px stretch;">
+                            <img class="season-timer-icon" src="@UiTexture("icons/item_icons/timer.png")" alt="Timer" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                            <span class="season-time-left">@GetTimeLeftText()</span>
+                        </div>
+                    </div>
+
+                    <div class="season-header-black-bar"></div>
+
+                    @if (showCompleteBanner)
+                    {
+                        <div class="season-complete-banner" style="background-image: url('@UiTexture("complete_banner_large.png")');">
+                            <span>COMPLETE!</span>
+                        </div>
+                    }
+
+                    @if (selectedChallenge is not null)
+                    {
+                        var selectedStatus = GetChallengeStatus(selectedChallenge);
+                        var selectedProgress = GetChallengeCurrentCount(selectedChallenge.Id);
+                        var selectedReward = ResolvePrimaryReward(selectedChallenge.Rewards);
+                        var showProgressBar = EffectiveShowProgress
+                            && selectedChallenge.TotalThreshold > 0
+                            && selectedStatus is ChallengeNodeStatus.Active or ChallengeNodeStatus.Frozen or ChallengeNodeStatus.Completed;
+                        var progressRatio = selectedChallenge.TotalThreshold > 0
+                            ? double.Clamp((double)selectedProgress / selectedChallenge.TotalThreshold, 0.0, 1.0)
+                            : 0.0;
+                        var showStartCta = EffectiveShowProgress
+                            && selectedStatus is ChallengeNodeStatus.Available or ChallengeNodeStatus.Frozen;
+
+                        <div class="season-challenge-card">
+                            <div class="season-challenge-card-shadow"></div>
+                            <div class="season-challenge-card-body" style="border-image: url('@SeasonTexture("challenge_card_9slice.png")') 5 fill / 5px stretch;">
+                                <div class="season-status-pill" style="border-image: url('@SeasonTexture("status_card_9slice.png")') 5 fill / 5px stretch;">
+                                    @if (EffectiveShowProgress && selectedStatus is ChallengeNodeStatus.Locked)
+                                    {
+                                        <img class="season-status-lock" src="@UiTexture("icons/item_icons/locked.png")" alt="Locked" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                    }
+                                    <span>@GetStatusLabel(selectedStatus)</span>
+                                </div>
+
+                                <div class="season-card-desc-col">
+                                    <div class="season-card-description">@GetChallengeDescription(selectedChallenge)</div>
+
+                                    @if (showProgressBar)
+                                    {
+                                        <div class="season-card-progress-info">
+                                            <div class="season-card-progress-bg" style="background-image: url('@UiTexture("gradients/progress_bar_bg_seasons.png")');">
+                                                <div class="season-card-progress-fill-track">
+                                                    <div class="season-card-progress-fill" style="width: @FormatPercent(progressRatio); background-image: url('@UiTexture("challenge_progress_bar.png")');"></div>
+                                                </div>
+                                                <span class="season-card-progress-text">@selectedProgress / @selectedChallenge.TotalThreshold</span>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="season-card-reward-node">
+                                    <div class="season-reward-ribbon" style="border-image: url('@UiTexture("9_slice/rewardBanner_9slice.png")') 5 fill / 5px stretch;">
+                                        REWARD
+                                    </div>
+                                    <div class="season-node-frame-box">
+                                        @if (GetFrameTextureUrl(selectedChallenge) is { } selectedFrameUrl)
+                                        {
+                                            <img class="season-node-frame-img" src="@selectedFrameUrl" alt="Frame" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                        }
+                                        <div class="season-node-slot">
+                                            <img class="season-slot-bg" src="@UiTexture(selectedStatus is ChallengeNodeStatus.ReadyToCollect ? "collect_button_gradient_square.png" : "makestuff_slot_empty.png")" alt="" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                            <div class="season-slot-bevel" style="border-image: url('@UiTexture("slot_bevel_simple.png")') 5 fill / 5px stretch;"></div>
+                                            @if (!string.IsNullOrEmpty(selectedReward.LabelText))
+                                            {
+                                                <span class="season-reward-label" title="@selectedReward.Tooltip">@selectedReward.LabelText</span>
+                                            }
+                                            else if (!string.IsNullOrEmpty(selectedReward.IconUrl))
+                                            {
+                                                <img class="season-reward-icon" src="@selectedReward.IconUrl" alt="@selectedReward.Tooltip" title="@selectedReward.Tooltip" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                            }
+                                            @if (selectedReward.Quantity > 1)
+                                            {
+                                                <span class="season-reward-qty">@selectedReward.Quantity</span>
+                                            }
+                                            @if (EffectiveShowProgress && selectedStatus is ChallengeNodeStatus.Completed)
+                                            {
+                                                <div class="season-completed-overlay">
+                                                    <img src="@UiTexture("check_small_selected_pixelated_no_background.png")" alt="Completed" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                                </div>
+                                            }
+                                        </div>
+                                        @if (EffectiveShowProgress && selectedStatus is ChallengeNodeStatus.Frozen)
+                                        {
+                                            <img class="season-frozen-chains" src="@UiTexture("seasons/seasons_task_lock.png")" alt="Frozen" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (showStartCta)
+                            {
+                                <div class="season-start-cta" style="background-image: url('@UiTexture("collect_button_gradient.png")');">
+                                    START
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="season-content-panel" style="background-image: url('@SeasonTexture("background.png")');">
+                    <div class="season-scroll-container">
+                        <div class="season-scroll-pad-top"></div>
+
+                        @if (visibleChallenges.Count is 0)
+                        {
+                            <div class="season-empty-graph-msg">No challenges configured for this season.</div>
+                        }
+                        else
+                        {
+                            var graphHeight = gridRows * (int)SeasonUtils.CellSize;
+                            <div class="season-graph-canvas" style="height: @(graphHeight)px;">
+                                <svg class="season-graph-svg" width="345" height="@graphHeight" viewBox="0 0 345 @graphHeight">
+                                    @foreach (var conn in connections)
+                                    {
+                                        <polyline points="@conn.Points" transform="translate(3, 3)" stroke="rgba(0, 0, 0, 0.5)" stroke-width="5" fill="none" stroke-linejoin="miter" stroke-linecap="square" />
+                                    }
+                                    @foreach (var conn in connections)
+                                    {
+                                        <polyline points="@conn.Points" stroke="@(conn.IsUnlocked ? unlockedColor : lockedColor)" stroke-width="5" fill="none" stroke-linejoin="miter" stroke-linecap="square" />
+                                    }
+                                </svg>
+
+                                <div class="season-graph-grid">
+                                    @for (var cellIndex = 0; cellIndex < totalCells; cellIndex++)
+                                    {
+                                        var idx = cellIndex;
+                                        if (cellLookup.TryGetValue(idx, out var challenge))
+                                        {
+                                            var status = GetChallengeStatus(challenge);
+                                            var isSelected = _selectedChallengeId == challenge.Id;
+                                            var currentCount = GetChallengeCurrentCount(challenge.Id);
+                                            var reward = ResolvePrimaryReward(challenge.Rewards);
+                                            var hasGlow = !string.IsNullOrWhiteSpace(challenge.GlowColor);
+                                            var showActiveGlow = EffectiveShowProgress && status is ChallengeNodeStatus.Active;
+                                            var showFrozenProgress = EffectiveShowProgress && status is ChallengeNodeStatus.Frozen && currentCount > 0 && challenge.TotalThreshold > 0;
+                                            var frozenRatio = challenge.TotalThreshold > 0
+                                                ? double.Clamp((double)currentCount / challenge.TotalThreshold, 0.0, 1.0)
+                                                : 0.0;
+
+                                            <button type="button" class="season-graph-node @(isSelected ? "is-selected" : "")" title="@GetChallengeDescription(challenge)" @onclick="() => SelectChallengeAsync(challenge.Id)">
+                                                @if (showActiveGlow)
+                                                {
+                                                    <img class="season-node-glow season-node-glow-active" src="@UiTexture("square_glow_256x256.png")" alt="" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                                }
+                                                else if (hasGlow)
+                                                {
+                                                    <img class="season-node-glow @GetGlowCssClass(challenge.GlowColor)" src="@UiTexture("square_glow_256x256.png")" alt="" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                                }
+
+                                                @{
+                                                    var nodeFrameUrl = GetFrameTextureUrl(challenge);
+                                                }
+                                                <div class="season-node-shadow @(nodeFrameUrl is null ? "season-node-shadow-compact" : "")"></div>
+
+                                                @if (!string.IsNullOrWhiteSpace(challenge.TopDecorationTexture))
+                                                {
+                                                    <img class="season-node-decoration season-node-decoration-top" src="@SeasonTexture(EnsurePng(challenge.TopDecorationTexture))" alt="" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                                }
+
+                                                @if (!string.IsNullOrWhiteSpace(challenge.BottomDecorationTexture))
+                                                {
+                                                    <img class="season-node-decoration season-node-decoration-bottom" src="@SeasonTexture(EnsurePng(challenge.BottomDecorationTexture))" alt="" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                                }
+
+                                                @if (nodeFrameUrl is not null)
+                                                {
+                                                    <img class="season-node-frame-img" src="@nodeFrameUrl" alt="Challenge #@challenge.Order" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                                }
+
+                                                <div class="season-node-slot">
+                                                    <img class="season-slot-bg" src="@UiTexture(EffectiveShowProgress && status is ChallengeNodeStatus.ReadyToCollect ? "collect_button_gradient_square.png" : "makestuff_slot_empty.png")" alt="" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                                    <div class="season-slot-bevel" style="border-image: url('@UiTexture("slot_bevel_simple.png")') 5 fill / 5px stretch;"></div>
+                                                    @if (!string.IsNullOrEmpty(reward.LabelText))
+                                                    {
+                                                        <span class="season-reward-label" title="@reward.Tooltip">@reward.LabelText</span>
+                                                    }
+                                                    else if (!string.IsNullOrEmpty(reward.IconUrl))
+                                                    {
+                                                        <img class="season-reward-icon" src="@reward.IconUrl" alt="@reward.Tooltip" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                                    }
+                                                    @if (reward.Quantity > 1)
+                                                    {
+                                                        <span class="season-reward-qty">@reward.Quantity</span>
+                                                    }
+                                                    @if (EffectiveShowProgress && status is ChallengeNodeStatus.Completed)
+                                                    {
+                                                        <div class="season-completed-overlay">
+                                                            <img src="@UiTexture("check_small_selected_pixelated_no_background.png")" alt="Completed" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                                        </div>
+                                                    }
+                                                </div>
+
+                                                @if (showFrozenProgress)
+                                                {
+                                                    <div class="season-node-mini-progress" style="background-image: url('@UiTexture("gradients/progress_bar_bg_seasons.png")');">
+                                                        <div class="season-node-mini-progress-track">
+                                                            <div class="season-node-mini-progress-fill" style="width: @FormatPercent(frozenRatio); background-image: url('@UiTexture("challenge_progress_bar.png")');"></div>
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                                @if (EffectiveShowProgress && status is ChallengeNodeStatus.Frozen)
+                                                {
+                                                    <img class="season-frozen-chains" src="@UiTexture("seasons/seasons_task_lock.png")" alt="Frozen" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                                }
+
+                                                @if (EffectiveShowProgress && status is ChallengeNodeStatus.Locked)
+                                                {
+                                                    <img class="season-lock-badge" src="@UiTexture("icons/item_icons/locked.png")" alt="Locked" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                                }
+                                            </button>
+                                        }
+                                        else if (OnEmptyCellClicked.HasDelegate && idx > 0)
+                                        {
+                                            <button type="button" class="season-empty-cell season-empty-cell-clickable" title="Slot @idx" @onclick="() => OnEmptyCellClicked.InvokeAsync(idx)">
+                                                <span>+@idx</span>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <div class="season-empty-cell"></div>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <div class="season-scroll-pad-bottom"></div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" class="season-exit-btn" title="@(_showInfoPopup ? "Close Info" : "Deselect Challenge")" @onclick="HandleExitClick">
+                <img src="@UiTexture("icons/system_icons/close_secondary.png")" alt="Close" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+            </button>
+
+            @if (_showInfoPopup)
+            {
+                var exclusiveChallenges = visibleChallenges
+                    .Where(c => c.RewardSparkles)
+                    .Take(2)
+                    .ToList();
+
+                <div class="season-info-scrim" @onclick="() => _showInfoPopup = false">
+                    <div class="season-info-card" @onclick:stopPropagation="true">
+                        <img class="season-info-corner season-info-corner-left" src="@SeasonTexture("info_header_left.png")" alt="" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                        <img class="season-info-corner season-info-corner-right" src="@SeasonTexture("info_header_right.png")" alt="" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+
+                        <div class="season-info-header" style="background-image: url('@SeasonTexture("header.png")');">
+                            <div class="season-info-header-title">WHAT'S THIS?</div>
+                            <div class="season-info-exclusive-banner" style="background-image: url('@UiTexture("complete_banner_large.png")');">
+                                <span>EXCLUSIVE REWARDS</span>
+                            </div>
+                        </div>
+
+                        <div class="season-info-body">
+                            @if (exclusiveChallenges.Count > 0)
+                            {
+                                <div class="season-exclusive-grid">
+                                    @for (var i = 0; i < exclusiveChallenges.Count; i++)
+                                    {
+                                        var exChallenge = exclusiveChallenges[i];
+                                        var exReward = ResolvePrimaryReward(exChallenge.Rewards);
+                                        var glowClass = i == 0 ? "season-glow-blue" : "season-glow-purple";
+
+                                        <div class="season-exclusive-cell">
+                                            <img class="season-exclusive-glow @glowClass" src="@UiTexture("square_glow_256x256.png")" alt="" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                            <div class="season-exclusive-frame">
+                                                @if (GetFrameTextureUrl(exChallenge) is { } exFrameUrl)
+                                                {
+                                                    <img class="season-node-frame-img" src="@exFrameUrl" alt="Exclusive Reward" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                                }
+                                                <div class="season-exclusive-slot">
+                                                    <img class="season-slot-bg" src="@UiTexture("makestuff_slot_empty.png")" alt="" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                                    <div class="season-slot-bevel" style="border-image: url('@UiTexture("slot_bevel_simple.png")') 5 fill / 5px stretch;"></div>
+                                                    @if (!string.IsNullOrEmpty(exReward.LabelText))
+                                                    {
+                                                        <span class="season-reward-label" title="@exReward.Tooltip">@exReward.LabelText</span>
+                                                    }
+                                                    else if (!string.IsNullOrEmpty(exReward.IconUrl))
+                                                    {
+                                                        <img class="season-reward-icon" src="@exReward.IconUrl" alt="@exReward.Tooltip" title="@exReward.Tooltip" onerror="this.onerror=null; this.src='/static/missing_texture.png';" />
+                                                    }
+                                                    @if (exReward.Quantity > 1)
+                                                    {
+                                                        <span class="season-reward-qty">@exReward.Quantity</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+
+                            <div class="season-info-description">@GetSeasonDescription()</div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    public enum ChallengeNodeStatus
+    {
+        Locked = 0,
+        Active = 1,
+        Available = 2,
+        Frozen = 3,
+        ReadyToCollect = 4,
+        Completed = 5,
+    }
+
+    private sealed record ConnectionVisual(string Points, bool IsUnlocked);
+
+    private sealed record PrimaryRewardVisual(string IconUrl, int Quantity, string Tooltip, string? LabelText = null);
+
+    [Parameter]
+    public SeasonPreviewDto? Season { get; set; }
+
+    [Parameter]
+    public PlayerSeasonProgressDto? PlayerProgress { get; set; }
+
+    [Parameter]
+    public bool ShowProgress { get; set; } = true;
+
+    [Parameter]
+    public bool ShowToolbar { get; set; }
+
+    [Parameter]
+    public string Language { get; set; } = "en_US";
+
+    [Parameter]
+    public Func<string, string>? TextureUrlResolver { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnChallengeSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnEmptyCellClicked { get; set; }
+
+    private CatalogCacheService.SyncAccessor? _catalog;
+    private Guid? _selectedChallengeId;
+    private Guid? _lastSeasonId;
+    private bool _showInfoPopup;
+    private string _selectedLanguage = "en_US";
+
+    private bool EffectiveShowProgress => ShowProgress && PlayerProgress is not null;
+
+    private IReadOnlyList<SeasonChallengeDto> VisibleChallenges => Season is null
+        ? []
+        : Season.Challenges
+            .Where(c => c.Order >= 1)
+            .OrderBy(c => c.Order)
+            .ToList();
+
+    private Dictionary<int, SeasonChallengeDto> CellLookup
+    {
+        get
+        {
+            var lookup = new Dictionary<int, SeasonChallengeDto>();
+            foreach (var challenge in VisibleChallenges)
+            {
+                lookup.TryAdd(challenge.Order, challenge);
+            }
+
+            return lookup;
+        }
+    }
+
+    private int GridRows
+    {
+        get
+        {
+            var visible = VisibleChallenges;
+            if (visible.Count is 0)
+            {
+                return 0;
+            }
+
+            var maxOrder = visible[^1].Order;
+            var totalCells = 3 * (maxOrder / 3) + 3;
+            return totalCells / 3;
+        }
+    }
+
+    private SeasonChallengeDto? SelectedChallenge => _selectedChallengeId is { } id
+        ? VisibleChallenges.FirstOrDefault(challenge => challenge.Id == id)
+        : null;
+
+    private bool IsSeasonCompleted
+    {
+        get
+        {
+            if (!EffectiveShowProgress || PlayerProgress is null)
+            {
+                return false;
+            }
+
+            if (PlayerProgress.IsCompleted)
+            {
+                return true;
+            }
+
+            var visible = VisibleChallenges;
+            return visible.Count > 0 && visible.All(challenge => GetChallengeStatus(challenge) is ChallengeNodeStatus.Completed);
+        }
+    }
+
+    private IReadOnlyList<string> AvailableLanguages
+    {
+        get
+        {
+            if (Season is null)
+            {
+                return [];
+            }
+
+            var languages = new SortedSet<string>(StringComparer.Ordinal);
+            foreach (var language in Season.Translations.Keys)
+            {
+                languages.Add(language);
+            }
+
+            foreach (var challenge in Season.Challenges)
+            {
+                foreach (var language in challenge.Translations.Keys)
+                {
+                    languages.Add(language);
+                }
+            }
+
+            return [.. languages];
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrWhiteSpace(Language) && _lastSeasonId != Season?.Id)
+        {
+            _selectedLanguage = Language;
+        }
+
+        if (_lastSeasonId != Season?.Id)
+        {
+            _lastSeasonId = Season?.Id;
+            _showInfoPopup = false;
+            _selectedChallengeId = PickInitialSelectedChallengeId();
+        }
+        else if (_selectedChallengeId is { } id && Season is not null && !Season.Challenges.Any(challenge => challenge.Id == id && challenge.Order >= 1))
+        {
+            _selectedChallengeId = PickInitialSelectedChallengeId();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _catalog = await CatalogService.GetSyncAccessorAsync();
+                StateHasChanged();
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private Guid? PickInitialSelectedChallengeId()
+    {
+        var visible = VisibleChallenges;
+        if (visible.Count is 0)
+        {
+            return null;
+        }
+
+        if (EffectiveShowProgress && PlayerProgress is not null)
+        {
+            if (PlayerProgress.ActiveSeasonChallengeId is { } activeId && visible.Any(challenge => challenge.Id == activeId))
+            {
+                return activeId;
+            }
+
+            if (IsSeasonCompleted)
+            {
+                return null;
+            }
+
+            var firstOpen = visible.FirstOrDefault(challenge => GetChallengeStatus(challenge) is ChallengeNodeStatus.Available or ChallengeNodeStatus.Frozen);
+            if (firstOpen is not null)
+            {
+                return firstOpen.Id;
+            }
+        }
+
+        return visible[0].Id;
+    }
+
+    private async Task SelectChallengeAsync(Guid challengeId)
+    {
+        _selectedChallengeId = challengeId;
+
+        if (OnChallengeSelected.HasDelegate)
+        {
+            await OnChallengeSelected.InvokeAsync(challengeId);
+        }
+    }
+
+    private void ToggleInfoPopup()
+        => _showInfoPopup = !_showInfoPopup;
+
+    private void HandleExitClick()
+    {
+        if (_showInfoPopup)
+        {
+            _showInfoPopup = false;
+        }
+        else
+        {
+            _selectedChallengeId = null;
+        }
+    }
+
+    private ChallengeNodeStatus GetChallengeStatus(SeasonChallengeDto challenge)
+    {
+        if (!EffectiveShowProgress || PlayerProgress is null)
+        {
+            return ChallengeNodeStatus.Available;
+        }
+
+        if (IsChallengeCompleted(challenge))
+        {
+            return ChallengeNodeStatus.Completed;
+        }
+
+        if (!ArePrerequisitesMet(challenge))
+        {
+            return ChallengeNodeStatus.Locked;
+        }
+
+        if (PlayerProgress.ActiveSeasonChallengeId == challenge.Id)
+        {
+            return ChallengeNodeStatus.Active;
+        }
+
+        var currentCount = GetChallengeCurrentCount(challenge.Id);
+        return currentCount > 0 ? ChallengeNodeStatus.Frozen : ChallengeNodeStatus.Available;
+    }
+
+    private bool IsChallengeCompleted(SeasonChallengeDto challenge)
+    {
+        if (PlayerProgress is null)
+        {
+            return false;
+        }
+
+        return PlayerProgress.Challenges.TryGetValue(challenge.Id, out var progress)
+            && (progress.IsComplete || (challenge.TotalThreshold > 0 && progress.CurrentCount >= challenge.TotalThreshold));
+    }
+
+    private bool ArePrerequisitesMet(SeasonChallengeDto challenge)
+    {
+        if (challenge.PrerequisiteIds.Count is 0 || Season is null)
+        {
+            return true;
+        }
+
+        var byId = Season.Challenges.ToDictionary(c => c.Id);
+
+        if (challenge.PrerequisiteIsOr)
+        {
+            foreach (var prereqId in challenge.PrerequisiteIds)
+            {
+                if (byId.TryGetValue(prereqId, out var prereq) && IsChallengeCompleted(prereq))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        foreach (var prereqId in challenge.PrerequisiteIds)
+        {
+            if (!byId.TryGetValue(prereqId, out var prereq) || !IsChallengeCompleted(prereq))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private int GetChallengeCurrentCount(Guid challengeId)
+        => PlayerProgress is not null && PlayerProgress.Challenges.TryGetValue(challengeId, out var progress)
+            ? progress.CurrentCount
+            : 0;
+
+    private List<ConnectionVisual> BuildConnections()
+    {
+        var visible = VisibleChallenges;
+        if (visible.Count == 0)
+        {
+            return [];
+        }
+
+        var totalCells = GridRows * SeasonUtils.Columns;
+        var occupied = visible.Select(challenge => challenge.Order).ToHashSet();
+        var emptyCells = new HashSet<int>();
+        for (var i = 0; i < totalCells; i++)
+        {
+            if (!occupied.Contains(i))
+            {
+                emptyCells.Add(i);
+            }
+        }
+
+        var byId = visible.ToDictionary(challenge => challenge.Id);
+        var seenEdges = new HashSet<(int, int)>();
+        var result = new List<ConnectionVisual>();
+
+        foreach (var node in visible)
+        {
+            foreach (var prereqId in node.PrerequisiteIds)
+            {
+                if (!byId.TryGetValue(prereqId, out var prereq))
+                {
+                    continue;
+                }
+
+                var edgeKey = node.Order < prereq.Order ? (node.Order, prereq.Order) : (prereq.Order, node.Order);
+                if (!seenEdges.Add(edgeKey))
+                {
+                    continue;
+                }
+
+                var path = SeasonUtils.ComputeConnectionPath(node.Order, prereq.Order, emptyCells);
+                var isUnlocked = !EffectiveShowProgress
+                    || GetChallengeStatus(prereq) is ChallengeNodeStatus.Completed or ChallengeNodeStatus.ReadyToCollect;
+
+                result.Add(new ConnectionVisual(SeasonUtils.PathToSvg(path), isUnlocked));
+            }
+        }
+
+        return result;
+    }
+
+    private string SeasonTexture(string fileName)
+    {
+        if (TextureUrlResolver is not null)
+        {
+            return TextureUrlResolver(fileName);
+        }
+
+        if (Season is null)
+        {
+            return ItemTextureHelper.MissingTextureUrl;
+        }
+
+        return UiTexture($"seasons/season_{Season.SeasonNumber}/{Uri.EscapeDataString(fileName)}");
+    }
+
+    private string? GetFrameTextureUrl(SeasonChallengeDto challenge)
+    {
+        if (string.IsNullOrWhiteSpace(challenge.FrameTexture))
+        {
+            return null;
+        }
+
+        return SeasonTexture(EnsurePng(challenge.FrameTexture));
+    }
+
+    private static string EnsurePng(string fileName)
+        => fileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? fileName : $"{fileName}.png";
+
+    private static string UiTexture(string relativePath)
+        => $"/static/genoa-textures/ui/{relativePath}";
+
+    private string GetSeasonName()
+    {
+        if (Season is null)
+        {
+            return string.Empty;
+        }
+
+        if (TryGetSeasonTranslation(out var translation) && !string.IsNullOrWhiteSpace(translation.Name))
+        {
+            return translation.Name;
+        }
+
+        return $"Season {Season.SeasonNumber}";
+    }
+
+    private string GetSeasonDescription()
+    {
+        if (Season is null)
+        {
+            return string.Empty;
+        }
+
+        if (TryGetSeasonTranslation(out var translation) && !string.IsNullOrWhiteSpace(translation.Description))
+        {
+            return translation.Description;
+        }
+
+        return "Complete challenges in this season to earn exclusive rewards!";
+    }
+
+    private bool TryGetSeasonTranslation(out SeasonTranslationDto translation)
+    {
+        if (Season is not null)
+        {
+            if (Season.Translations.TryGetValue(_selectedLanguage, out translation!))
+            {
+                return true;
+            }
+
+            if (Season.Translations.TryGetValue("en_US", out translation!))
+            {
+                return true;
+            }
+
+            if (Season.Translations.Count > 0)
+            {
+                translation = Season.Translations.Values.First();
+                return true;
+            }
+        }
+
+        translation = new SeasonTranslationDto(null, null);
+        return false;
+    }
+
+    private string GetChallengeDescription(SeasonChallengeDto challenge)
+    {
+        ChallengeTranslationDto? translation = null;
+        if (!challenge.Translations.TryGetValue(_selectedLanguage, out translation)
+            && !challenge.Translations.TryGetValue("en_US", out translation)
+            && challenge.Translations.Count > 0)
+        {
+            translation = challenge.Translations.Values.First();
+        }
+
+        if (translation is not null)
+        {
+            if (challenge.TotalThreshold > 1 && !string.IsNullOrWhiteSpace(translation.DescriptionMultiple))
+            {
+                var thresholdStr = challenge.TotalThreshold.ToString(CultureInfo.InvariantCulture);
+                return translation.DescriptionMultiple
+                    .Replace("%d", thresholdStr, StringComparison.Ordinal)
+                    .Replace("%1", thresholdStr, StringComparison.Ordinal);
+            }
+
+            if (!string.IsNullOrWhiteSpace(translation.Description))
+            {
+                return translation.Description;
+            }
+        }
+
+        return $"Challenge #{challenge.Order}";
+    }
+
+    private string GetStatusLabel(ChallengeNodeStatus status)
+    {
+        if (!EffectiveShowProgress)
+        {
+            return "PREVIEW";
+        }
+
+        return status switch
+        {
+            ChallengeNodeStatus.Locked => "LOCKED",
+            ChallengeNodeStatus.Active => "ACTIVE",
+            ChallengeNodeStatus.Available => "NEW",
+            ChallengeNodeStatus.Frozen => "FROZEN",
+            ChallengeNodeStatus.ReadyToCollect => "COLLECT",
+            ChallengeNodeStatus.Completed => "COMPLETED",
+            _ => "CHALLENGE",
+        };
+    }
+
+    private string GetTimeLeftText()
+    {
+        if (Season?.EndDate is not { } endDate)
+        {
+            return "No end date";
+        }
+
+        var remaining = endDate - DateTimeOffset.UtcNow;
+        if (remaining <= TimeSpan.Zero)
+        {
+            return "Ended";
+        }
+
+        if (remaining.TotalDays >= 1)
+        {
+            return $"{(int)remaining.TotalDays}d {remaining.Hours}h";
+        }
+
+        if (remaining.TotalHours >= 1)
+        {
+            return $"{(int)remaining.TotalHours}h {remaining.Minutes}m";
+        }
+
+        return $"{int.Max(1, (int)remaining.TotalMinutes)}m";
+    }
+
+    private PrimaryRewardVisual ResolvePrimaryReward(SeasonRewardsDto rewards)
+    {
+        if (rewards.Buildplates.Count > 0)
+        {
+            return new PrimaryRewardVisual(
+                UiTexture("header_icons/buildplate.png"),
+                rewards.Buildplates.Count,
+                rewards.Buildplates.Count == 1 ? "Buildplate" : $"{rewards.Buildplates.Count} Buildplates");
+        }
+
+        if (rewards.PersonaItems.Count > 0)
+        {
+            return new PrimaryRewardVisual(
+                string.Empty,
+                rewards.PersonaItems.Count,
+                rewards.PersonaItems.Count == 1 ? "Persona Item" : $"{rewards.PersonaItems.Count} Persona Items",
+                LabelText: "Persona Item");
+        }
+
+        if (rewards.Rubies >= 1)
+        {
+            return new PrimaryRewardVisual(
+                UiTexture("ruby.png"),
+                rewards.Rubies,
+                $"{rewards.Rubies} Rubies");
+        }
+
+        if (rewards.Items.Count > 0)
+        {
+            var firstItem = rewards.Items[0];
+            if (_catalog is { } catalog && catalog.TryGetItem(firstItem.Id, out var item))
+            {
+                return new PrimaryRewardVisual(
+                    ItemTextureHelper.GetTextureUrl(item),
+                    firstItem.Amount,
+                    $"{item.Name} x{firstItem.Amount}");
+            }
+
+            return new PrimaryRewardVisual(
+                UiTexture("inv.png"),
+                firstItem.Amount,
+                $"Item {firstItem.Id}");
+        }
+
+        if (rewards.ExperiencePoints >= 1)
+        {
+            return new PrimaryRewardVisual(
+                UiTexture("icons/challenges_icons/xp.png"),
+                rewards.ExperiencePoints,
+                $"{rewards.ExperiencePoints} XP");
+        }
+
+        if (rewards.Level is >= 1)
+        {
+            return new PrimaryRewardVisual(
+                UiTexture("plus.png"),
+                rewards.Level.Value,
+                $"Level +{rewards.Level.Value}");
+        }
+
+        return new PrimaryRewardVisual(string.Empty, 0, string.Empty);
+    }
+
+    private static string GetGlowCssClass(string? glowColor)
+        => glowColor?.ToLowerInvariant() switch
+        {
+            "blue" => "season-glow-blue",
+            "purple" => "season-glow-purple",
+            _ => string.Empty,
+        };
+
+    private static string NormalizeHexColor(string? raw, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return fallback;
+        }
+
+        var trimmed = raw.Trim();
+        return trimmed.StartsWith('#') ? trimmed : $"#{trimmed}";
+    }
+
+    private static string FormatPercent(double ratio)
+        => string.Create(CultureInfo.InvariantCulture, $"{ratio * 100.0:0.##}%");
+}

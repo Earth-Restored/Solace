@@ -365,6 +365,8 @@ internal sealed partial class Program2
         startupDeps.ObjectStore = objectStore;
         startupDeps.StaticData = staticData;
 
+        await app.Services.GetRequiredService<Features.Catalog.GenoaResourcepackCacheService>().InitializeAsync(eventBus);
+
         using (var scope = app.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

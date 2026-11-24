@@ -1,6 +1,7 @@
 @page "/Store/Items/Create"
 @page "/Store/Items/Edit/{Id:guid}"
 @using Microsoft.AspNetCore.Authorization
+@using Solace.WebPortal.Client.Features.Catalog
 @using Solace.WebPortal.Client.Features.Common
 @using Solace.WebPortal.Client.Features.Store.Models
 @using Solace.WebPortal.Common
@@ -306,7 +307,7 @@ else
                 {
                     <div class="card catalog-item @(SelectedItemToAdd?.Id == catItem.Id ? "border-primary" : "")" style="cursor: pointer;" @onclick="() => SelectedItemToAdd = catItem">
                         <div class="card-body text-center p-2">
-                            <img @key="catItem.Id" src="/static/genoa-textures/ui/items/@(GetTextureName(catItem)).png" alt="@catItem.Name" onerror="this.onerror=null; this.src='/static/missing_texture.png';" style="max-width: 48px;" />
+                            <img @key="catItem.Id" src="@ItemTextureHelper.GetTextureUrl(catItem)" alt="@catItem.Name" onerror="this.onerror=null; this.src='/static/missing_texture.png';" style="max-width: 48px;" />
                             <div class="cat-item-name mt-2 small fw-bold text-truncate">@catItem.Name</div>
                         </div>
                     </div>
@@ -617,16 +618,6 @@ else
         {
             NavManager.NavigateTo("/Store");
         }
-    }
-
-    private static string GetTextureName(CatalogItemDto item)
-    {
-        if (item.Category is CatalogItemDtoCategory.BoostAdventureXP or CatalogItemDtoCategory.BoostCrafting or CatalogItemDtoCategory.BoostDefense or CatalogItemDtoCategory.BoostEating or CatalogItemDtoCategory.BoostHealth or CatalogItemDtoCategory.BoostHoarding or CatalogItemDtoCategory.BoostItemXP or CatalogItemDtoCategory.BoostMiningSpeed or CatalogItemDtoCategory.BoostRetention or CatalogItemDtoCategory.BoostSmelting or CatalogItemDtoCategory.BoostStrength or CatalogItemDtoCategory.BoostTappableRadius)
-        {
-            return item.Id.ToString();
-        }
-
-        return item.Name + "_" + item.Aux;
     }
 
     private void PrevAddPage()

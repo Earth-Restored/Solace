@@ -450,7 +450,7 @@
                 {
                     _bytesUploaded = uploaded;
                     _totalBytesToUpload = total;
-                    _importProgressPercent = total > 0 ? Math.Min(100.0, ((double)uploaded / total) * 100.0) : 0;
+                    _importProgressPercent = total > 0 ? double.Min(100.0, ((double)uploaded / total) * 100.0) : 0;
                     
                     if (uploaded >= total)
                     {
