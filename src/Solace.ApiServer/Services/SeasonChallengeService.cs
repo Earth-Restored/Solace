@@ -63,9 +63,17 @@ internal sealed partial class SeasonChallengeService : IDisposable
 
     private async Task<CachedSeason?> GetActiveSeasonAsync(EarthDbContext earthDb, CancellationToken cancellationToken)
     {
+        var now = DateTimeOffset.UtcNow;
         var cached = _cachedSeason;
         if (cached is not null)
         {
+            if (cached.Season.EndDate is { } cachedEnd && cachedEnd <= now)
+            {
+                await DeactivateExpiredSeasonsAsync(earthDb, now, cancellationToken);
+                _cachedSeason = null;
+                return null;
+            }
+
             return cached;
         }
 
@@ -75,8 +83,17 @@ internal sealed partial class SeasonChallengeService : IDisposable
         {
             if (_cachedSeason is not null)
             {
+                if (_cachedSeason.Season.EndDate is { } cachedEnd && cachedEnd <= now)
+                {
+                    await DeactivateExpiredSeasonsAsync(earthDb, now, cancellationToken);
+                    _cachedSeason = null;
+                    return null;
+                }
+
                 return _cachedSeason;
             }
+
+            await DeactivateExpiredSeasonsAsync(earthDb, now, cancellationToken);
 
             var season = await earthDb.Seasons
                 .AsNoTracking()
@@ -95,6 +112,16 @@ internal sealed partial class SeasonChallengeService : IDisposable
             _seasonLock.Release();
         }
     }
+
+    private static Task<int> DeactivateExpiredSeasonsAsync(EarthDbContext earthDb, DateTimeOffset now, CancellationToken cancellationToken)
+        => earthDb.Seasons
+            .Where(season => season.IsActive && season.EndDate != null && season.EndDate <= now)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(season => season.IsActive, false)
+                    .SetProperty(season => season.StartDate, (DateTimeOffset?)null)
+                    .SetProperty(season => season.EndDate, (DateTimeOffset?)null),
+                cancellationToken);
 
     public async Task<ChallengesResponse> GetChallengesResponseAsync(EarthDbContext earthDb, Guid profileId, CancellationToken cancellationToken = default)
     {
