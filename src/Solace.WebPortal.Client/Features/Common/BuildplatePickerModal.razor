@@ -1,0 +1,166 @@
+@using Solace.WebPortal.Client.Features.Buildplates
+@using Solace.WebPortal.Client.Features.Players.Buildplates
+@using Solace.WebPortal.Common.Features.Buildplates
+@using Solace.WebPortal.Common.Features.Common
+@inject HttpClient Http
+
+@if (Visible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.55); z-index: 1060;" aria-modal="true" role="dialog" @onclick="CloseAsync">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" @onclick:stopPropagation="true">
+            <div class="modal-content shadow-lg">
+                <div class="modal-header d-flex flex-wrap align-items-center gap-2 py-2">
+                    <h5 class="modal-title fs-6 fw-bold mb-0 text-truncate me-auto">@Title</h5>
+
+                    <button type="button" class="btn-close d-md-none" @onclick="CloseAsync"></button>
+
+                    <div class="w-100 d-md-none"></div>
+
+                    <div class="flex-grow-1 flex-md-grow-0" style="min-width: 200px; max-width: 300px;">
+                        <SearchBar @bind-Value="_searchTerm" Placeholder="name or ID" OnSearch="SearchAsync" OnClear="ClearSearchAsync" />
+                    </div>
+
+                    <button type="button" class="btn-close d-none d-md-inline-block ms-1" @onclick="CloseAsync"></button>
+                </div>
+
+                <div class="modal-body bg-light">
+                    <PagedDataView @ref="_pagedView" TData="List<TemplateViewModel>" DefaultPageSize="6" Provider="FetchTemplatesAsync" OnDataLoaded="HandleDataLoaded" Context="data">
+                        <div class="row g-3">
+                            @foreach (var template in data)
+                            {
+                                <div class="col-12 col-md-6 col-lg-4" @key="template.Id">
+                                    <div class="card h-100 shadow-sm @(template.IsAdding ? "opacity-75" : "")">
+                                        <BuildplatePreview BuildplateId="@template.Id" IsTemplate="true" BlocksPerMeter="@template.BlocksPerMeter" IsNight="@template.IsNight" />
+
+                                        <div class="card-body p-3 d-flex flex-column">
+                                            <h6 class="mb-1 fw-bold text-truncate" title="@template.Name">@template.Name</h6>
+
+                                            @if (!string.IsNullOrEmpty(template.ErrorMessage))
+                                            {
+                                                <div class="alert alert-danger py-1 px-2 small d-flex justify-content-between align-items-center mb-2">
+                                                    <span><i class="bi bi-x-circle me-1"></i> @template.ErrorMessage</span>
+                                                    <button type="button" class="btn-close small" style="font-size: 0.5rem" @onclick="() => template.ErrorMessage = null"></button>
+                                                </div>
+                                            }
+
+                                            @if (!string.IsNullOrEmpty(template.SuccessMessage))
+                                            {
+                                                <div class="alert alert-success py-1 px-2 small mb-2">
+                                                    <i class="bi bi-check-circle me-1"></i> @template.SuccessMessage
+                                                </div>
+                                            }
+
+                                            <small class="text-muted mb-3 d-block">Size: @(template.Size)x@(template.Size) | BPM: @template.BlocksPerMeter</small>
+
+                                            <button type="button" class="btn btn-sm btn-success mt-auto fw-bold" @onclick="() => SelectTemplateAsync(template)" disabled="@template.IsAdding">
+                                                @if (template.IsAdding)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                                    <span>@BusyText</span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi @ActionIcon me-1"></i>
+                                                    <span>@ActionText</span>
+                                                }
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </PagedDataView>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = "Select Buildplate Template";
+
+    [Parameter]
+    public string ActionText { get; set; } = "Select Buildplate";
+
+    [Parameter]
+    public string ActionIcon { get; set; } = "bi-check-circle";
+
+    [Parameter]
+    public string BusyText { get; set; } = "Adding...";
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public EventCallback<TemplateViewModel> OnBuildplateSelected { get; set; }
+
+    private string _searchTerm = string.Empty;
+    private PagedDataView<List<TemplateViewModel>>? _pagedView;
+
+    private async Task SearchAsync()
+    {
+        if (_pagedView is not null)
+        {
+            await _pagedView.SearchAsync(_searchTerm);
+        }
+    }
+
+    private async Task ClearSearchAsync()
+    {
+        _searchTerm = string.Empty;
+        await SearchAsync();
+    }
+
+    private async Task<PagedResult<List<TemplateViewModel>>?> FetchTemplatesAsync(PagedSearchQuery query)
+    {
+        try
+        {
+            var uri = $"/api/buildplates/templates?searchTerm={Uri.EscapeDataString(query.SearchTerm ?? string.Empty)}&page={query.Page}&pageSize={query.PageSize}";
+            var response = await Http.GetFromJsonAsync<PagedSearchResult<List<BuildplateTemplateDto>>>(uri);
+
+            if (response is null)
+            {
+                return null;
+            }
+
+            var buildplates = response.Data
+                .Select(dto => new TemplateViewModel
+                {
+                    Id = dto.Id,
+                    Name = dto.Name,
+                    Size = dto.Size,
+                    BlocksPerMeter = dto.BlocksPerMeter,
+                    IsNight = dto.IsNight,
+                })
+                .ToList();
+
+            return new PagedSearchResult<List<TemplateViewModel>>(buildplates, response.TotalCount, response.MatchingCount);
+        }
+        catch
+        {
+            if (_pagedView is not null)
+            {
+                _pagedView.ErrorMessage = "Failed to load buildplate templates.";
+            }
+
+            return null;
+        }
+    }
+
+    private static void HandleDataLoaded(PagedResult<List<TemplateViewModel>> result)
+    {
+    }
+
+    private Task CloseAsync()
+        => OnCancel.InvokeAsync();
+
+    private Task SelectTemplateAsync(TemplateViewModel template)
+        => OnBuildplateSelected.InvokeAsync(template);
+
+    public Task RefreshAsync()
+        => InvokeAsync(StateHasChanged);
+}

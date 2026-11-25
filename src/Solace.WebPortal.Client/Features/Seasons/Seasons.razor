@@ -3,6 +3,7 @@
 @using System.Net.Http.Json
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Authorization
+@using Solace.WebPortal.Client.Features.Common
 @using Solace.WebPortal.Common
 @using Solace.WebPortal.Common.Features.Seasons
 @attribute [Authorize(Policy = Permissions.ViewSeasonsAndChallenges)]
@@ -10,6 +11,7 @@
 @rendermode InteractiveWebAssembly
 @inject HttpClient Http
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
 
 <PageTitle>Seasons - Solace</PageTitle>
 
@@ -17,6 +19,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2>Seasons & Challenges</h2>
+            <p class="text-muted mb-0">Manage Minecraft Earth seasons and DAG challenge progression.</p>
         </div>
         <div class="d-flex gap-2 align-items-center">
             @if (hasUpdateAvailable)
@@ -39,6 +42,9 @@
             {
                 <button class="btn btn-outline-warning" @onclick="OpenResetModal">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Data
+                </button>
+                <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/Seasons/Create")'>
+                    <i class="bi bi-plus-lg me-1"></i> Create Season
                 </button>
             }
         </div>
@@ -87,6 +93,7 @@
                             <div class="d-flex flex-column gap-1">
                                 <div class="d-flex flex-wrap align-items-center gap-2">
                                     <h5 class="mb-0">@GetSeasonDisplayName(season)</h5>
+                                    <span class="badge bg-dark">Season @season.SeasonNumber</span>
                                     @if (season.IsActive)
                                     {
                                         <span class="badge bg-success">Active</span>
@@ -120,8 +127,9 @@
                             </div>
 
                             <div class="d-flex flex-wrap align-items-center gap-2">
-                                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => OpenPreviewModal(season)">
-                                    <i class="bi bi-eye me-1"></i> Preview
+                                <button type="button" class="btn btn-outline-primary btn-sm" @onclick='() => Navigation.NavigateTo($"/Seasons/{season.Id}")'>
+                                    <i class="bi @(HasPermission(Permissions.EditSeasonsAndChallenges) ? "bi-pencil-square" : "bi-eye") me-1"></i>
+                                    @(HasPermission(Permissions.EditSeasonsAndChallenges) ? "Edit" : "View")
                                 </button>
 
                                 @if (HasPermission(Permissions.EditSeasonsAndChallenges))
@@ -148,6 +156,9 @@
                                         <button type="button" class="btn btn-success btn-sm" @onclick="() => OpenActivationModal(season)">
                                             <i class="bi bi-play-circle me-1"></i> Enable
                                         </button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => OpenDeleteModal(season)">
+                                            <i class="bi bi-trash me-1"></i> Delete
+                                        </button>
                                     }
                                 }
                             </div>
@@ -159,22 +170,7 @@
     }
 </div>
 
-@if (previewSeason is not null)
-{
-    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6);" aria-modal="true" role="dialog" @onclick="ClosePreviewModal">
-        <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;" @onclick:stopPropagation="true">
-            <div class="modal-content shadow-lg">
-                <div class="modal-header py-2 bg-dark text-white">
-                    <h6 class="modal-title mb-0">@GetSeasonDisplayName(previewSeason) (Preview)</h6>
-                    <button type="button" class="btn-close btn-close-white" @onclick="ClosePreviewModal"></button>
-                </div>
-                <div class="modal-body p-3 d-flex justify-content-center bg-light">
-                    <SeasonPreview Season="@previewSeason" ShowProgress="false" ShowToolbar="true" />
-                </div>
-            </div>
-        </div>
-    </div>
-}
+<DeleteConfirmModal Visible="deleteTargetSeason is not null" IsBusy="isDeletingSeason" ItemName="@(deleteTargetSeason is not null ? GetSeasonDisplayName(deleteTargetSeason) : string.Empty)" ErrorMessage="@deleteErrorMessage" OnCancel="CloseDeleteModal" OnConfirm="ConfirmDeleteSeasonAsync" />
 
 @if (editingActivationSeason is not null)
 {
@@ -331,7 +327,6 @@
     private string? latestVersion;
 
     private List<SeasonPreviewDto> seasons = [];
-    private SeasonPreviewDto? previewSeason;
 
     private SeasonPreviewDto? editingActivationSeason;
     private DateTime? activationStartUtc;
@@ -339,6 +334,10 @@
     private bool isSavingActivation;
     private string? activationErrorMessage;
     private Guid? disablingSeasonId;
+
+    private SeasonPreviewDto? deleteTargetSeason;
+    private bool isDeletingSeason;
+    private string? deleteErrorMessage;
 
     private bool showResetModal;
     private bool isResetting;
@@ -413,21 +412,61 @@
         }
     }
 
-    private void OpenPreviewModal(SeasonPreviewDto season)
-        => previewSeason = season;
+    private void OpenDeleteModal(SeasonPreviewDto season)
+    {
+        deleteTargetSeason = season;
+        deleteErrorMessage = null;
+    }
 
-    private void ClosePreviewModal()
-        => previewSeason = null;
+    private void CloseDeleteModal()
+    {
+        deleteTargetSeason = null;
+        deleteErrorMessage = null;
+    }
+
+    private async Task ConfirmDeleteSeasonAsync()
+    {
+        if (deleteTargetSeason is null)
+        {
+            return;
+        }
+
+        try
+        {
+            isDeletingSeason = true;
+            deleteErrorMessage = null;
+
+            using var response = await Http.DeleteAsync($"api/seasons/{deleteTargetSeason.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                CloseDeleteModal();
+                await LoadDataAsync();
+            }
+            else
+            {
+                deleteErrorMessage = "Failed to delete season.";
+            }
+        }
+        catch (Exception exception)
+        {
+            deleteErrorMessage = $"Error: {exception.Message}";
+        }
+        finally
+        {
+            isDeletingSeason = false;
+        }
+    }
 
     private void OpenActivationModal(SeasonPreviewDto season)
     {
         editingActivationSeason = season;
         activationErrorMessage = null;
 
-        var nowUtc = DateTime.UtcNow.Date;
+        var nowUtc = DateTime.UtcNow;
+        var truncatedNow = new DateTime(nowUtc.Year, nowUtc.Month, nowUtc.Day, nowUtc.Hour, nowUtc.Minute, 0, DateTimeKind.Utc);
 
-        activationStartUtc = season.IsActive ? (season.StartDate?.UtcDateTime ?? nowUtc) : nowUtc;
-        activationEndUtc = season.IsActive ? (season.EndDate?.UtcDateTime ?? nowUtc.AddDays(14)) : nowUtc.AddDays(14);
+        activationStartUtc = season.IsActive ? (season.StartDate?.UtcDateTime ?? truncatedNow) : truncatedNow;
+        activationEndUtc = season.IsActive ? (season.EndDate?.UtcDateTime ?? truncatedNow.AddDays(14)) : truncatedNow.AddDays(14);
     }
 
     private void CloseActivationModal()

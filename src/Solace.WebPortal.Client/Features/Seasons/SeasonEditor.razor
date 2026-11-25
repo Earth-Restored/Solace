@@ -1,0 +1,1239 @@
+@page "/Seasons/Create"
+@page "/Seasons/{Id:guid}"
+@using System.Globalization
+@using System.Net.Http.Json
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Solace.WebPortal.Client.Features.Catalog
+@using Solace.WebPortal.Client.Features.Common
+@using Solace.WebPortal.Client.Features.Seasons.Models
+@using Solace.WebPortal.Common
+@using Solace.WebPortal.Common.Features.Catalog
+@using Solace.WebPortal.Common.Features.Seasons
+@attribute [Authorize(Policy = Permissions.ViewSeasonsAndChallenges)]
+@implements IDisposable
+@rendermode InteractiveWebAssembly
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavManager
+@inject IServiceProvider ServiceProvider
+
+<PageTitle>@(Id is null ? "Create Season" : $"Season {Model.SeasonNumber}") - Solace</PageTitle>
+
+<div class="container my-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="GoBack">
+                <i class="bi bi-arrow-left me-1"></i> Back
+            </button>
+
+            <h3 class="mb-0">
+                @(Id is null ? "Create New Season" : CanEdit ? $"Edit Season {Model.SeasonNumber}" : $"View Season {Model.SeasonNumber}")
+            </h3>
+
+            @if (Model.IsActive)
+            {
+                <span class="badge bg-success">Active</span>
+            }
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn @(IsPreviewMode ? "btn-primary" : "btn-outline-primary") btn-sm" @onclick="TogglePreview">
+                <i class="bi @(IsPreviewMode ? "bi-pencil-square" : "bi-eye") me-1"></i>
+                @(IsPreviewMode ? "Edit Mode" : "Preview Mode")
+            </button>
+
+            @if (CanEdit)
+            {
+                <button type="button" class="btn btn-success btn-sm" disabled="@(isLoading || isSaving)" @onclick="SaveSeasonAsync">
+                    @if (isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                    }
+                    else
+                    {
+                        <i class="bi bi-check-lg me-1"></i>
+                    }
+
+                    Save Season
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show py-2 small" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage
+            <button type="button" class="btn-close py-2" @onclick="() => errorMessage = null"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show py-2 small" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@successMessage
+            <button type="button" class="btn-close py-2" @onclick="() => successMessage = null"></button>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="d-flex align-items-center gap-2 my-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <span>Loading season...</span>
+        </div>
+    }
+    else if (IsPreviewMode)
+    {
+        <div class="card shadow-sm">
+            <div class="card-body bg-light p-4 d-flex flex-column align-items-center">
+                <SeasonPreview Season="@Model.ToPreviewDto()" ShowProgress="false" ShowToolbar="true" TextureUrlResolver="@ResolvePreviewTextureUrl" />
+            </div>
+        </div>
+    }
+    else
+    {
+        var defaultTranslation = Model.EnsureDefaultTranslation();
+        var extraSeasonLanguages = Model.Translations.Keys
+            .Where(language => !string.Equals(language, "en_US", StringComparison.Ordinal))
+            .OrderBy(language => language, StringComparer.Ordinal)
+            .ToList();
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-info-circle me-2"></i>Season Details</h5>
+                <span class="badge bg-secondary font-monospace">season_@Model.SeasonNumber</span>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">Season Number</label>
+                        <input type="number" class="form-control form-control-sm" min="1" @bind="Model.SeasonNumber" readonly="@(!CanEdit)" />
+                    </div>
+                    <div class="col-md-9">
+                        <label class="form-label small fw-semibold">Season Name (en_US)</label>
+                        <input type="text" class="form-control form-control-sm" @bind="defaultTranslation.Name" placeholder="e.g. Season X: Name" readonly="@(!CanEdit)" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Description (en_US)</label>
+                    <textarea class="form-control form-control-sm" rows="2" @bind="defaultTranslation.Description" placeholder="Shown in the Season Info popup..." readonly="@(!CanEdit)"></textarea>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Intro Body (en_US)</label>
+                        <input type="text" class="form-control form-control-sm" @bind="defaultTranslation.IntroBody" placeholder="Optional intro message..." readonly="@(!CanEdit)" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Progress Text (en_US)</label>
+                        <input type="text" class="form-control form-control-sm" @bind="defaultTranslation.EventProgress" placeholder="Optional progress message..." readonly="@(!CanEdit)" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Complete Text (en_US)</label>
+                        <input type="text" class="form-control form-control-sm" @bind="defaultTranslation.EventComplete" placeholder="Optional completion message..." readonly="@(!CanEdit)" />
+                    </div>
+                </div>
+
+                <div class="border rounded p-3 bg-white mb-3">
+                    <button type="button" class="btn btn-link p-0 text-decoration-none text-dark d-flex align-items-center gap-2 fw-bold" @onclick="() => _showSeasonTranslations = !_showSeasonTranslations">
+                        <i class="bi @(_showSeasonTranslations ? "bi-chevron-down" : "bi-chevron-right")"></i>
+                        <span>Additional Translations</span>
+                        @if (extraSeasonLanguages.Count > 0)
+                        {
+                            <span class="badge bg-secondary">@extraSeasonLanguages.Count</span>
+                        }
+                    </button>
+
+                    @if (_showSeasonTranslations)
+                    {
+                        <div class="mt-3">
+                            @if (CanEdit)
+                            {
+                                <div class="row g-2 align-items-center mb-3">
+                                    <div class="col-sm-6 col-md-4">
+                                        <select class="form-select form-select-sm" @bind="_selectedSeasonLangToAdd">
+                                            <option value="">-- Add Language --</option>
+                                            @foreach (var language in AvailableLanguages)
+                                            {
+                                                if (!Model.Translations.ContainsKey(language.Code))
+                                                {
+                                                    <option value="@language.Code">@language.DisplayName (@language.Code)</option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-auto">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddSeasonLanguage" disabled="@string.IsNullOrEmpty(_selectedSeasonLangToAdd)">
+                                            <i class="bi bi-plus-lg me-1"></i> Add
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (extraSeasonLanguages.Count is 0)
+                            {
+                                <div class="text-muted fst-italic small">No additional translations added yet.</div>
+                            }
+                            else
+                            {
+                                <div class="d-flex flex-column gap-3">
+                                    @foreach (var languageCode in extraSeasonLanguages)
+                                    {
+                                        var translation = Model.Translations[languageCode];
+                                        <div class="border rounded p-2 bg-light">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div class="fw-semibold small">
+                                                    @GetLanguageDisplayName(languageCode)
+                                                    <span class="badge bg-secondary ms-1">@languageCode</span>
+                                                </div>
+                                                
+                                                @if (CanEdit)
+                                                {
+                                                    <button type="button" class="btn btn-outline-danger btn-sm py-0 px-1" title="Remove Language" @onclick="() => Model.Translations.Remove(languageCode)">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                            <div class="row g-2">
+                                                <div class="col-md-6">
+                                                    <input type="text" class="form-control form-control-sm" @bind="translation.Name" placeholder="Season Name..." readonly="@(!CanEdit)" />
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <input type="text" class="form-control form-control-sm" @bind="translation.Description" placeholder="Description..." readonly="@(!CanEdit)" />
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="text" class="form-control form-control-sm" @bind="translation.IntroBody" placeholder="Intro Body..." readonly="@(!CanEdit)" />
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="text" class="form-control form-control-sm" @bind="translation.EventProgress" placeholder="Progress Text..." readonly="@(!CanEdit)" />
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <input type="text" class="form-control form-control-sm" @bind="translation.EventComplete" placeholder="Complete Text..." readonly="@(!CanEdit)" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="border rounded p-3 bg-white">
+                    <button type="button" class="btn btn-link p-0 text-decoration-none text-dark d-flex align-items-center gap-2 fw-bold" @onclick="() => _showExclusiveRewards = !_showExclusiveRewards">
+                        <i class="bi @(_showExclusiveRewards ? "bi-chevron-down" : "bi-chevron-right")"></i>
+                        <span>Season Exclusive Rewards</span>
+                    </button>
+
+                    @if (_showExclusiveRewards)
+                    {
+                        <div class="mt-3">
+                            <RewardsEditor Rewards="Model.ExclusiveRewards" ReadOnly="@(!CanEdit)" />
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <h5 class="mb-0 fs-6 fw-bold"><i class="bi bi-diagram-3 me-2"></i>Challenges</h5>
+                    <span class="badge bg-secondary">@Model.Challenges.Count</span>
+                </div>
+                <div class="d-flex align-items-center gap-2 small">
+                    <span class="d-inline-flex align-items-center gap-1"><span class="editor-legend-line editor-legend-and"></span> AND</span>
+                    <span class="d-inline-flex align-items-center gap-1"><span class="editor-legend-line editor-legend-or"></span> OR</span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                @if (ConnectingTarget is { } connectingTarget)
+                {
+                    <div class="alert alert-info py-2 px-3 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div class="small">
+                            <i class="bi bi-link-45deg me-1"></i>
+                            <strong>Connecting prerequisites for #@connectingTarget.Order</strong> — click other challenges to link or unlink them.
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Prerequisite logic">
+                                <button type="button" class="btn @(!connectingTarget.PrerequisiteIsOr ? "btn-primary" : "btn-outline-primary")" @onclick="() => connectingTarget.PrerequisiteIsOr = false">
+                                    AND (all)
+                                </button>
+                                <button type="button" class="btn @(connectingTarget.PrerequisiteIsOr ? "btn-warning" : "btn-outline-warning")" @onclick="() => connectingTarget.PrerequisiteIsOr = true">
+                                    OR (any)
+                                </button>
+                            </div>
+                            <button type="button" class="btn btn-dark btn-sm" @onclick="ExitInteractiveMode">Done</button>
+                        </div>
+                    </div>
+                }
+                else if (MovingChallenge is { } moving)
+                {
+                    <div class="alert alert-info py-2 px-3 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div class="small">
+                            <i class="bi bi-arrows-move me-1"></i>
+                            <strong>Moving Challenge #@moving.Order</strong> — click any empty slot on the grid to relocate it.
+                        </div>
+                        <button type="button" class="btn btn-dark btn-sm" @onclick="ExitInteractiveMode">Cancel</button>
+                    </div>
+                }
+
+                @{
+                    var rows = BoardRowCount;
+                    var totalCells = rows * SeasonUtils.Columns;
+                    var cellMap = Model.Challenges.ToDictionary(c => c.Order);
+                    var boardHeight = rows * BoardCellHeight;
+                    var connections = BuildEditorConnections(rows);
+                }
+
+                <div class="season-editor-board-scroll">
+                    <div class="season-editor-board" style="height: @(boardHeight)px;">
+                        <svg class="season-editor-svg" width="@BoardWidth" height="@boardHeight" viewBox="0 0 @BoardWidth @boardHeight">
+                            @foreach (var edge in connections)
+                            {
+                                <polyline points="@edge.Points" stroke="@(edge.IsOr ? "var(--editor-edge-or, #fd7e14)" : "var(--editor-edge-and, #0d6efd)")" stroke-width="4" stroke-dasharray="@(edge.IsOr ? "8 5" : "none")" fill="none" stroke-linejoin="miter" stroke-linecap="square" opacity="@(edge.Highlighted ? "1" : "0.7")" />
+                            }
+                        </svg>
+
+                        <div class="season-editor-grid">
+                            @for (var cellIndex = 0; cellIndex < totalCells; cellIndex++)
+                            {
+                                int cellIndexLocal = cellIndex;
+                                if (cellIndexLocal is 0)
+                                {
+                                    <div class="editor-cell editor-cell-reserved">
+                                        <span class="text-muted small">Slot 0<br />(Reserved)</span>
+                                    </div>
+                                }
+                                else if (cellMap.TryGetValue(cellIndexLocal, out var challenge))
+                                {
+                                    var isConnectionTarget = _connectingChallengeId == challenge.Id;
+                                    var isMoving = _movingChallengeId == challenge.Id;
+                                    var isLinkedPrerequisite = ConnectingTarget is not null && ConnectingTarget.PrerequisiteIds.Contains(challenge.Id);
+                                    var wouldCycle = ConnectingTarget is not null && !isConnectionTarget && !isLinkedPrerequisite && WouldCreateCycle(ConnectingTarget.Id, challenge.Id);
+
+                                    var cardCss = "editor-node-card";
+                                    if (isConnectionTarget)
+                                    {
+                                        cardCss += " is-connect-target";
+                                    }
+                                    else if (isLinkedPrerequisite)
+                                    {
+                                        cardCss += " is-linked-prereq";
+                                    }
+                                    else if (isMoving)
+                                    {
+                                        cardCss += " is-moving";
+                                    }
+                                    else if (ConnectingTarget is not null && !wouldCycle)
+                                    {
+                                        cardCss += " is-connect-candidate";
+                                    }
+                                    else if (wouldCycle)
+                                    {
+                                        cardCss += " is-cycle-blocked";
+                                    }
+
+                                    <div class="editor-cell">
+                                        <div class="@cardCss" @onclick="() => HandleNodeCardClick(challenge, wouldCycle)">
+                                            <div class="d-flex justify-content-between align-items-center gap-1 mb-1">
+                                                <span class="badge bg-dark">#@challenge.Order</span>
+                                                <div class="d-flex align-items-center gap-1">
+                                                    @if (challenge.PrerequisiteIds.Count >= 2)
+                                                    {
+                                                        <button type="button" class="badge border-0 @(challenge.PrerequisiteIsOr ? "bg-warning text-dark" : "bg-primary")" title="Click to toggle AND / OR prerequisite logic" disabled="@(!CanEdit)" @onclick:stopPropagation="true" @onclick="() => challenge.PrerequisiteIsOr = !challenge.PrerequisiteIsOr">
+                                                            @(challenge.PrerequisiteIsOr ? "OR" : "AND")
+                                                        </button>
+                                                    }
+                                                    @if (challenge.IsFinalSeasonChallenge || challenge.ObjectiveType is ChallengeObjectiveTypeDto.SeasonCapstone)
+                                                    {
+                                                        <span class="badge bg-warning text-dark" title="Final / Capstone"><i class="bi bi-star-fill"></i></span>
+                                                    }
+                                                </div>
+                                            </div>
+
+                                            <div class="editor-node-desc" title="@challenge.GetDisplayDescription()">
+                                                @challenge.GetDisplayDescription()
+                                            </div>
+
+                                            <div class="editor-node-meta text-muted">
+                                                <span>@challenge.ObjectiveType</span>
+                                                <span>(@challenge.TotalThreshold)</span>
+                                            </div>
+
+                                            @if (ConnectingTarget is not null)
+                                            {
+                                                <div class="mt-auto pt-1 text-center">
+                                                    @if (isConnectionTarget)
+                                                    {
+                                                        <span class="badge bg-primary w-100">Target Node</span>
+                                                    }
+                                                    else if (isLinkedPrerequisite)
+                                                    {
+                                                        <span class="badge bg-success w-100"><i class="bi bi-check-lg me-1"></i>Prerequisite (click to unlink)</span>
+                                                    }
+                                                    else if (wouldCycle)
+                                                    {
+                                                        <span class="badge bg-secondary w-100">Cycle blocked</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-outline-primary text-primary border border-primary w-100">+ Link Prerequisite</span>
+                                                    }
+                                                </div>
+                                            }
+                                            else if (CanEdit)
+                                            {
+                                                <div class="editor-node-actions mt-auto pt-1" @onclick:stopPropagation="true">
+                                                    <button type="button" class="btn btn-outline-secondary btn-xs" title="Edit Challenge" @onclick="() => OpenChallengeEditor(challenge)">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-primary btn-xs" title="Connect Prerequisites" @onclick="() => StartConnectMode(challenge.Id)">
+                                                        <i class="bi bi-link-45deg"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-info btn-xs" title="Move to Another Slot" @onclick="() => StartMoveMode(challenge.Id)">
+                                                        <i class="bi bi-arrows-move"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-danger btn-xs ms-auto" title="Delete Challenge" @onclick="() => DeleteChallenge(challenge)">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="editor-cell">
+                                        @if (CanEdit)
+                                        {
+                                            <button type="button" class="editor-empty-slot @(MovingChallenge is not null ? "is-move-target" : "")" @onclick="() => HandleEmptyCellClick(cellIndexLocal)">
+                                                @if (MovingChallenge is not null)
+                                                {
+                                                    <i class="bi bi-box-arrow-in-down d-block fs-5"></i>
+                                                    <span>Move to #@cellIndexLocal</span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-plus-circle d-block fs-5"></i>
+                                                    <span>Add #@cellIndexLocal</span>
+                                                }
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <div class="editor-empty-slot editor-empty-slot-readonly">
+                                                <span class="text-muted small">#@cellIndexLocal</span>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-link p-0 text-decoration-none text-dark d-flex align-items-center gap-2 fw-bold fs-6" @onclick="() => _showTextures = !_showTextures">
+                    <i class="bi @(_showTextures ? "bi-chevron-down" : "bi-chevron-right")"></i>
+                    <span><i class="bi bi-images me-1"></i>Season Textures</span>
+                    @if (Model.TextureOverrides.Count > 0)
+                    {
+                        <span class="badge bg-info text-dark">@Model.TextureOverrides.Count modified</span>
+                    }
+                </button>
+                <span class="text-muted small">PNG files up to 2 MB</span>
+            </div>
+
+            @if (_showTextures)
+            {
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(_textureErrorMessage))
+                    {
+                        <div class="alert alert-danger py-2 small mb-3">@_textureErrorMessage</div>
+                    }
+
+                    @foreach (var group in TextureSlots.GroupBy(s => s.Category, StringComparer.Ordinal))
+                    {
+                        <h6 class="fw-bold small text-uppercase text-muted mt-2 mb-2">@group.Key (@group.Count())</h6>
+                        <div class="row g-3 mb-3">
+                            @foreach (var slot in group)
+                            {
+                                var isModified = Model.TextureOverrides.ContainsKey(slot.FileName);
+                                var previewUrl = ResolvePreviewTextureUrl(slot.FileName);
+
+                                <div class="col-12 col-md-6 col-lg-4" @key="slot.FileName">
+                                    <div class="card h-100 @(isModified ? "border-primary" : "")">
+                                        <div class="card-body p-3 d-flex flex-column gap-2">
+                                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                                <div class="min-w-0">
+                                                    <div class="fw-bold small text-truncate">@slot.DisplayName</div>
+                                                    <div class="text-muted font-monospace" style="font-size: 0.72rem;">@slot.FileName</div>
+                                                </div>
+                                                <span class="badge bg-secondary-subtle text-dark border flex-shrink-0">@slot.ExpectedSize</span>
+                                            </div>
+
+                                            <div class="text-muted" style="font-size: 0.75rem;">@slot.Description</div>
+
+                                            <div class="season-texture-thumb border rounded d-flex align-items-center justify-content-center p-2 bg-dark-subtle">
+                                                <img src="@previewUrl" alt="@slot.DisplayName" onerror="this.onerror=null; this.src='/static/missing_texture.png';" style="max-width: 100%; max-height: 90px; object-fit: contain; image-rendering: pixelated;" />
+                                            </div>
+
+                                            @if (CanEdit)
+                                            {
+                                                <div class="d-flex align-items-center gap-2 mt-auto">
+                                                    <label class="btn btn-outline-primary btn-sm flex-grow-1 mb-0">
+                                                        <i class="bi bi-upload me-1"></i> Replace
+                                                        <InputFile OnChange="args => HandleTextureUploadAsync(slot.FileName, args)" accept=".png,image/png" class="d-none" />
+                                                    </label>
+                                                    @if (isModified)
+                                                    {
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm" title="Revert local upload" @onclick="() => RevertTextureOverride(slot.FileName)">
+                                                            <i class="bi bi-arrow-counterclockwise"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (_editingChallenge is not null)
+{
+    var challenge = _editingChallenge;
+    var defaultChallengeTranslation = challenge.EnsureDefaultTranslation();
+    var extraChallengeLangs = challenge.Translations.Keys
+        .Where(language => !string.Equals(language, "en_US", StringComparison.Ordinal))
+        .OrderBy(language => language, StringComparer.Ordinal)
+        .ToList();
+    ItemDto? objectiveTargetItem = null;
+    if (challenge.ObjectiveTarget is { } targetId)
+    {
+        _catalog?.TryGetItem(targetId, out objectiveTargetItem);
+    }
+
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.55); z-index: 1050;" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content shadow-lg">
+                <div class="modal-header py-2 bg-dark text-white">
+                    <h5 class="modal-title fs-6 mb-0">
+                        <i class="bi bi-sliders me-2"></i>@(CanEdit ? "Edit" : "View") Challenge #@challenge.Order
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseChallengeEditor"></button>
+                </div>
+
+                <div class="modal-body d-flex flex-column gap-3">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold mb-1">Objective Type</label>
+                            <select class="form-select form-select-sm" @bind="challenge.ObjectiveType" disabled="@(!CanEdit)">
+                                @foreach (var objType in Enum.GetValues<ChallengeObjectiveTypeDto>())
+                                {
+                                    <option value="@objType">@objType</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold mb-1">Threshold</label>
+                            <input type="number" class="form-control form-control-sm" min="1" @bind="challenge.TotalThreshold" readonly="@(!CanEdit)" />
+                        </div>
+                        <div class="col-md-5 d-flex align-items-end">
+                            <div class="form-check mb-1">
+                                <input type="checkbox" class="form-check-input" id="finalChallengeCheck" @bind="challenge.IsFinalSeasonChallenge" disabled="@(!CanEdit)" />
+                                <label class="form-check-label small fw-semibold" for="finalChallengeCheck">Final Season Challenge</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="form-label small fw-semibold mb-1">Objective Target Item (optional)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" disabled value="@(challenge.ObjectiveTarget is null ? "Any target" : (objectiveTargetItem is not null ? $"{objectiveTargetItem.Name} ({objectiveTargetItem.Id})" : challenge.ObjectiveTarget.Value.ToString()))" />
+                            @if (CanEdit)
+                            {
+                                <button type="button" class="btn btn-outline-secondary" @onclick="() => _showObjectiveItemPicker = true">
+                                    <i class="bi bi-search me-1"></i> Select
+                                </button>
+                                @if (challenge.ObjectiveTarget is not null)
+                                {
+                                    <button type="button" class="btn btn-outline-danger" title="Clear target" @onclick="() => challenge.ObjectiveTarget = null">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                }
+                            }
+                        </div>
+                    </div>
+
+                    <div class="border rounded p-3 bg-light">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                            <span class="small fw-bold">Prerequisites</span>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn @(!challenge.PrerequisiteIsOr ? "btn-primary" : "btn-outline-primary")" disabled="@(!CanEdit)" @onclick="() => challenge.PrerequisiteIsOr = false">
+                                    AND (all required)
+                                </button>
+                                <button type="button" class="btn @(challenge.PrerequisiteIsOr ? "btn-warning" : "btn-outline-warning")" disabled="@(!CanEdit)" @onclick="() => challenge.PrerequisiteIsOr = true">
+                                    OR (any required)
+                                </button>
+                            </div>
+                        </div>
+
+                        @{
+                            var otherChallenges = Model.Challenges.Where(challenge => challenge.Id != challenge.Id).OrderBy(challenge => challenge.Order).ToList();
+                        }
+                        @if (otherChallenges.Count is 0)
+                        {
+                            <div class="text-muted small fst-italic">Add more challenges to link prerequisites.</div>
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var candidate in otherChallenges)
+                                {
+                                    var isLinked = challenge.PrerequisiteIds.Contains(candidate.Id);
+                                    var cycleBlocked = !isLinked && WouldCreateCycle(challenge.Id, candidate.Id);
+                                    <button type="button" class="btn btn-sm @(isLinked ? "btn-success" : "btn-outline-secondary")" disabled="@(!CanEdit || cycleBlocked)" title="@(cycleBlocked ? "Linking this challenge would create a cycle" : candidate.GetDisplayDescription())" @onclick="() => TogglePrerequisite(challenge, candidate.Id)">
+                                        <i class="bi @(isLinked ? "bi-check-circle-fill" : "bi-plus-circle") me-1"></i>
+                                        #@candidate.Order — @Truncate(candidate.GetDisplayDescription(), 24)
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="border rounded p-3">
+                        <div class="fw-bold small mb-2">Challenge Text (en_US)</div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted mb-1">Description (single)</label>
+                                <input type="text" class="form-control form-control-sm" @bind="defaultChallengeTranslation.Description" placeholder="e.g. Collect a tappable" readonly="@(!CanEdit)" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted mb-1">Description (multiple — use <code>%d</code>)</label>
+                                <input type="text" class="form-control form-control-sm" @bind="defaultChallengeTranslation.DescriptionMultiple" placeholder="e.g. Collect %d tappables" readonly="@(!CanEdit)" />
+                            </div>
+                        </div>
+
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-link p-0 text-decoration-none text-dark d-flex align-items-center gap-1 small fw-bold" @onclick="() => _showChallengeTranslations = !_showChallengeTranslations">
+                                <i class="bi @(_showChallengeTranslations ? "bi-chevron-down" : "bi-chevron-right")"></i>
+                                <span>Additional Translations (@extraChallengeLangs.Count)</span>
+                            </button>
+
+                            @if (_showChallengeTranslations)
+                            {
+                                <div class="mt-2">
+                                    @if (CanEdit)
+                                    {
+                                        <div class="d-flex gap-2 mb-2">
+                                            <select class="form-select form-select-sm w-auto" @bind="_selectedChallengeLangToAdd">
+                                                <option value="">-- Add Language --</option>
+                                                @foreach (var language in AvailableLanguages)
+                                                {
+                                                    if (!challenge.Translations.ContainsKey(language.Code))
+                                                    {
+                                                        <option value="@language.Code">@language.DisplayName (@language.Code)</option>
+                                                    }
+                                                }
+                                            </select>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => AddChallengeLanguage(challenge)" disabled="@string.IsNullOrEmpty(_selectedChallengeLangToAdd)">
+                                                <i class="bi bi-plus-lg me-1"></i> Add
+                                            </button>
+                                        </div>
+                                    }
+
+                                    @foreach (var languageCode in extraChallengeLangs)
+                                    {
+                                        var translation = challenge.Translations[languageCode];
+                                        <div class="row g-2 align-items-center mb-2 bg-light p-2 rounded border">
+                                            <div class="col-md-3 small fw-semibold">
+                                                @GetLanguageDisplayName(languageCode)
+                                                <span class="badge bg-secondary ms-1">@languageCode</span>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <input type="text" class="form-control form-control-sm" @bind="translation.Description" placeholder="Single..." readonly="@(!CanEdit)" />
+                                            </div>
+                                            <div class="col-md-4">
+                                                <input type="text" class="form-control form-control-sm" @bind="translation.DescriptionMultiple" placeholder="Multiple (%d)..." readonly="@(!CanEdit)" />
+                                            </div>
+
+                                            @if (CanEdit)
+                                            {
+                                                <div class="col-md-1 text-end">
+                                                    <button type="button" class="btn btn-outline-danger btn-sm py-0 px-1" @onclick="() => challenge.Translations.Remove(languageCode)">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="border rounded p-3">
+                        <div class="fw-bold small mb-2">Rewards</div>
+                        <RewardsEditor Rewards="challenge.Rewards" ReadOnly="@(!CanEdit)" />
+                    </div>
+                </div>
+
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="CloseChallengeEditor">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<ItemPickerModal Visible="_showObjectiveItemPicker" Title="Select Objective Target Item" ConfirmText="Select Target" ShowQuantity="false" OnCancel="() => _showObjectiveItemPicker = false" OnItemSelected="HandleObjectiveTargetSelected" />
+
+@code {
+    private const int BoardCellWidth = 220;
+    private const int BoardCellHeight = 148;
+    private const int BoardWidth = BoardCellWidth * SeasonUtils.Columns;
+    private const long MaxTextureFileSize = 2 * 1024 * 1024;
+
+    private sealed record EditorConnectionVisual(string Points, bool IsOr, bool Highlighted);
+
+    private static readonly SeasonTextureSlot[] TextureSlots =
+    [
+        new("Screen & UI", "header.png", "Header Background", "1125 x 504 px", "Banner artwork behind the season title and timer."),
+        new("Screen & UI", "background.png", "Graph Background", "375 x 812 px", "Full-screen background behind the scrollable challenge graph."),
+        new("Screen & UI", "challenge_card_9slice.png", "Challenge Card (9-slice)", "15 x 15 px", "Selected challenge panel (5 px 9-slice border)."),
+        new("Screen & UI", "status_card_9slice.png", "Status Pill (9-slice)", "25 x 25 px", "Status tag hanging above the challenge card (5 px 9-slice border)."),
+        new("Screen & UI", "info_header_left.png", "Info Header Left", "28 x 10 px", "Top-left corner decoration on the Season Info popup (3x pixel scale)."),
+        new("Screen & UI", "info_header_right.png", "Info Header Right", "28 x 10 px", "Top-right corner decoration on the Season Info popup (3x pixel scale)."),
+        new("Screen & UI", "ftue_box_9slice.png", "FTUE Box (9-slice)", "15 x 15 px", "Intro/FTUE dialog frame (5 px 9-slice border)."),
+
+        new("Challenge Frames", "frame_generic_00.png", "Generic Frame 00", "17 x 17 px", "Node frame (5x pixel scale to 85 x 85, 13 x 13 inner opening)."),
+        new("Challenge Frames", "frame_generic_01.png", "Generic Frame 01", "17 x 17 px", "Node frame (5x pixel scale to 85 x 85, 13 x 13 inner opening)."),
+        new("Challenge Frames", "frame_generic_02.png", "Generic Frame 02", "17 x 17 px", "Node frame (5x pixel scale to 85 x 85, 13 x 13 inner opening)."),
+        new("Challenge Frames", "frame_generic_03.png", "Generic Frame 03", "17 x 17 px", "Node frame (5x pixel scale to 85 x 85, 13 x 13 inner opening)."),
+        new("Challenge Frames", "frame_generic_04.png", "Generic Frame 04", "17 x 17 px", "Node frame (5x pixel scale to 85 x 85, 13 x 13 inner opening)."),
+        new("Challenge Frames", "frame_unique_00.png", "Unique Frame 00", "17 x 17 px", "Milestone/special node frame (5x pixel scale to 85 x 85)."),
+        new("Challenge Frames", "frame_unique_01.png", "Unique Frame 01", "17 x 17 px", "Milestone/special node frame (5x pixel scale to 85 x 85)."),
+        new("Challenge Frames", "frame_unique_02.png", "Unique Frame 02", "17 x 17 px", "Milestone/special node frame (5x pixel scale to 85 x 85)."),
+        new("Challenge Frames", "frame_unique_03.png", "Unique Frame 03", "17 x 17 px", "Milestone/special node frame (5x pixel scale to 85 x 85)."),
+
+        new("Challenge Decorations", "decoration_generic_00_a.png", "Decoration 00 (Top)", "28 x 10 px", "Top decoration flush above node frame (3x scale to 84 x 30)."),
+        new("Challenge Decorations", "decoration_generic_01_a.png", "Decoration 01 (Top)", "28 x 10 px", "Top decoration flush above node frame (3x scale to 84 x 30)."),
+        new("Challenge Decorations", "decoration_generic_01_b.png", "Decoration 01 (Bottom)", "28 x 10 px", "Bottom decoration flush below node frame (3x scale to 84 x 30)."),
+        new("Challenge Decorations", "decoration_generic_02_a.png", "Decoration 02 (Top)", "28 x 10 px", "Top decoration flush above node frame (3x scale to 84 x 30)."),
+        new("Challenge Decorations", "decoration_generic_02_b.png", "Decoration 02 (Bottom)", "28 x 10 px", "Bottom decoration flush below node frame (3x scale to 84 x 30)."),
+        new("Challenge Decorations", "decoration_generic_03_a.png", "Decoration 03 (Top)", "28 x 10 px", "Top decoration flush above node frame (3x scale to 84 x 30)."),
+        new("Challenge Decorations", "decoration_generic_03_b.png", "Decoration 03 (Bottom)", "28 x 10 px", "Bottom decoration flush below node frame (3x scale to 84 x 30)."),
+        new("Challenge Decorations", "decoration_generic_04_a.png", "Decoration 04 (Top)", "28 x 10 px", "Top decoration flush above node frame (3x scale to 84 x 30)."),
+        new("Challenge Decorations", "decoration_generic_04_b.png", "Decoration 04 (Bottom)", "28 x 10 px", "Bottom decoration flush below node frame (3x scale to 84 x 30)."),
+    ];
+
+    private static readonly List<(string Code, string DisplayName)> AvailableLanguages = SeasonLanguageConstants.LanguageNames
+        .Select(language => (Code: language.Key, DisplayName: language.Value))
+        .OrderBy(language => language.DisplayName, StringComparer.Ordinal)
+        .ToList();
+
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private ClaimsPrincipal? _user;
+    private bool CanEdit => _user?.HasPermission(Permissions.EditSeasonsAndChallenges) ?? false;
+
+    private SeasonEditViewModel Model { get; set; } = new();
+    private CatalogCacheService.SyncAccessor? _catalog;
+
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool IsPreviewMode;
+    private string? errorMessage;
+    private string? successMessage;
+
+    private bool _showSeasonTranslations;
+    private string _selectedSeasonLangToAdd = string.Empty;
+    private bool _showExclusiveRewards;
+    private bool _showTextures = true;
+    private string? _textureErrorMessage;
+
+    private Guid? _connectingChallengeId;
+    private Guid? _movingChallengeId;
+
+    private SeasonChallengeEditViewModel? _editingChallenge;
+    private bool _showChallengeTranslations;
+    private string _selectedChallengeLangToAdd = string.Empty;
+    private bool _showObjectiveItemPicker;
+
+    private int _textureCacheBuster;
+
+    private SeasonChallengeEditViewModel? ConnectingTarget => _connectingChallengeId is { } id
+        ? Model.Challenges.FirstOrDefault(challenge => challenge.Id == id)
+        : null;
+
+    private SeasonChallengeEditViewModel? MovingChallenge => _movingChallengeId is { } id
+        ? Model.Challenges.FirstOrDefault(challenge => challenge.Id == id)
+        : null;
+
+    private int BoardRowCount => Model.Challenges.Count is 0
+        ? 1
+        : (Model.Challenges.Max(challenge => challenge.Order) / SeasonUtils.Columns) + 2;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await UpdateAuthenticationStateAsync(AuthenticationStateProvider.GetAuthenticationStateAsync());
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        await UpdateAuthenticationStateAsync(task);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task UpdateAuthenticationStateAsync(Task<AuthenticationState> task)
+    {
+        var authState = await task;
+        _user = authState.User;
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadInitialDataAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadInitialDataAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            try
+            {
+                if (ServiceProvider.GetService(typeof(CatalogCacheService)) is CatalogCacheService catalogService)
+                {
+                    _catalog = await catalogService.GetSyncAccessorAsync();
+                }
+            }
+            catch
+            {
+            }
+
+            if (Id is { } seasonId)
+            {
+                var dto = await Http.GetFromJsonAsync<SeasonPreviewDto>($"api/seasons/{seasonId}");
+
+                if (dto is null)
+                {
+                    errorMessage = "Season not found.";
+                    return;
+                }
+
+                Model = SeasonEditViewModel.FromDto(dto);
+            }
+            else
+            {
+                var existingSeasons = await Http.GetFromJsonAsync<List<SeasonPreviewDto>>("api/seasons") ?? [];
+                var nextNumber = existingSeasons.Count > 0 ? existingSeasons.Max(s => s.SeasonNumber) + 1 : 1;
+
+                Model = new SeasonEditViewModel
+                {
+                    SeasonNumber = nextNumber,
+                };
+            }
+        }
+        catch (Exception exception)
+        {
+            errorMessage = $"Failed to load season: {exception.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void TogglePreview()
+    {
+        ExitInteractiveMode();
+        IsPreviewMode = !IsPreviewMode;
+    }
+
+    private void GoBack()
+        => NavManager.NavigateTo("/Seasons");
+
+    private void AddSeasonLanguage()
+    {
+        if (!string.IsNullOrEmpty(_selectedSeasonLangToAdd) && !Model.Translations.ContainsKey(_selectedSeasonLangToAdd))
+        {
+            Model.Translations[_selectedSeasonLangToAdd] = new SeasonTranslationEditViewModel();
+            _selectedSeasonLangToAdd = string.Empty;
+        }
+    }
+
+    private void AddChallengeLanguage(SeasonChallengeEditViewModel challenge)
+    {
+        if (!string.IsNullOrEmpty(_selectedChallengeLangToAdd) && !challenge.Translations.ContainsKey(_selectedChallengeLangToAdd))
+        {
+            challenge.Translations[_selectedChallengeLangToAdd] = new ChallengeTranslationEditViewModel();
+            _selectedChallengeLangToAdd = string.Empty;
+        }
+    }
+
+    private void StartConnectMode(Guid challengeId)
+    {
+        _movingChallengeId = null;
+        _connectingChallengeId = _connectingChallengeId == challengeId ? null : challengeId;
+    }
+
+    private void StartMoveMode(Guid challengeId)
+    {
+        _connectingChallengeId = null;
+        _movingChallengeId = _movingChallengeId == challengeId ? null : challengeId;
+    }
+
+    private void ExitInteractiveMode()
+    {
+        _connectingChallengeId = null;
+        _movingChallengeId = null;
+    }
+
+    private void HandleNodeCardClick(SeasonChallengeEditViewModel challenge, bool wouldCycle)
+    {
+        if (ConnectingTarget is { } target)
+        {
+            if (target.Id == challenge.Id || wouldCycle)
+            {
+                return;
+            }
+
+            TogglePrerequisite(target, challenge.Id);
+            return;
+        }
+
+        if (MovingChallenge is not null)
+        {
+            return;
+        }
+
+        OpenChallengeEditor(challenge);
+    }
+
+    private void HandleEmptyCellClick(int order)
+    {
+        if (!CanEdit || order < 1)
+        {
+            return;
+        }
+
+        if (MovingChallenge is { } moving)
+        {
+            moving.Order = order;
+            _movingChallengeId = null;
+            return;
+        }
+
+        if (ConnectingTarget is not null)
+        {
+            return;
+        }
+
+        var newChallenge = new SeasonChallengeEditViewModel
+        {
+            Id = Guid.NewGuid(),
+            Order = order,
+            TotalThreshold = 1,
+            ObjectiveType = ChallengeObjectiveTypeDto.TappableCollected,
+        };
+
+        newChallenge.EnsureDefaultTranslation().Description = $"Challenge #{order}";
+
+        Model.Challenges.Add(newChallenge);
+        OpenChallengeEditor(newChallenge);
+    }
+
+    private void OpenChallengeEditor(SeasonChallengeEditViewModel challenge)
+    {
+        _editingChallenge = challenge;
+        _showChallengeTranslations = false;
+        _selectedChallengeLangToAdd = string.Empty;
+    }
+
+    private void CloseChallengeEditor()
+        => _editingChallenge = null;
+
+    private void DeleteChallenge(SeasonChallengeEditViewModel challenge)
+    {
+        Model.Challenges.Remove(challenge);
+
+        foreach (var other in Model.Challenges)
+        {
+            other.PrerequisiteIds.Remove(challenge.Id);
+        }
+
+        if (_connectingChallengeId == challenge.Id)
+        {
+            _connectingChallengeId = null;
+        }
+
+        if (_movingChallengeId == challenge.Id)
+        {
+            _movingChallengeId = null;
+        }
+
+        if (_editingChallenge == challenge)
+        {
+            _editingChallenge = null;
+        }
+    }
+
+    private void TogglePrerequisite(SeasonChallengeEditViewModel target, Guid prereqId)
+    {
+        if (target.Id == prereqId)
+        {
+            return;
+        }
+
+        if (target.PrerequisiteIds.Contains(prereqId))
+        {
+            target.PrerequisiteIds.Remove(prereqId);
+        }
+        else if (!WouldCreateCycle(target.Id, prereqId))
+        {
+            target.PrerequisiteIds.Add(prereqId);
+        }
+    }
+
+    private bool WouldCreateCycle(Guid targetId, Guid candidatePrereqId)
+    {
+        if (targetId == candidatePrereqId)
+        {
+            return true;
+        }
+
+        var challengeById = Model.Challenges.ToDictionary(challenge => challenge.Id);
+        var visited = new HashSet<Guid>();
+        var stack = new Stack<Guid>();
+        stack.Push(candidatePrereqId);
+
+        while (stack.Count > 0)
+        {
+            var current = stack.Pop();
+
+            if (current == targetId)
+            {
+                return true;
+            }
+
+            if (!visited.Add(current))
+            {
+                continue;
+            }
+
+            if (challengeById.TryGetValue(current, out var challenge))
+            {
+                foreach (var next in challenge.PrerequisiteIds)
+                {
+                    stack.Push(next);
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private void HandleObjectiveTargetSelected((ItemDto Item, int Quantity) selection)
+    {
+        if (_editingChallenge is not null)
+        {
+            _editingChallenge.ObjectiveTarget = selection.Item.Id;
+        }
+
+        _showObjectiveItemPicker = false;
+    }
+
+    private async Task HandleTextureUploadAsync(string fileName, InputFileChangeEventArgs args)
+    {
+        _textureErrorMessage = null;
+        var file = args.File;
+        if (file is null)
+        {
+            return;
+        }
+
+        if (!file.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) && !string.Equals(file.ContentType, "image/png", StringComparison.OrdinalIgnoreCase))
+        {
+            _textureErrorMessage = $"'{file.Name}' must be a .png image.";
+            return;
+        }
+
+        if (file.Size > MaxTextureFileSize)
+        {
+            _textureErrorMessage = $"'{file.Name}' exceeds the 2 MB size limit.";
+            return;
+        }
+
+        try
+        {
+            await using var stream = file.OpenReadStream(MaxTextureFileSize);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+
+            Model.TextureOverrides[fileName] = bytes;
+            Model.TexturePreviewDataUrls[fileName] = $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
+        }
+        catch (Exception exception)
+        {
+            _textureErrorMessage = $"Failed to read '{file.Name}': {exception.Message}";
+        }
+    }
+
+    private void RevertTextureOverride(string fileName)
+    {
+        Model.TextureOverrides.Remove(fileName);
+        Model.TexturePreviewDataUrls.Remove(fileName);
+    }
+
+    private string ResolvePreviewTextureUrl(string fileName)
+    {
+        if (Model.TexturePreviewDataUrls.TryGetValue(fileName, out var dataUrl))
+        {
+            return dataUrl;
+        }
+
+        var url = $"/static/genoa-textures/ui/seasons/season_{Model.SeasonNumber}/{Uri.EscapeDataString(fileName)}";
+        return _textureCacheBuster > 0 ? $"{url}?v={_textureCacheBuster}" : url;
+    }
+
+    private List<EditorConnectionVisual> BuildEditorConnections(int rows)
+    {
+        if (Model.Challenges.Count is 0)
+        {
+            return [];
+        }
+
+        var totalCells = rows * SeasonUtils.Columns;
+        var occupied = Model.Challenges.Select(challenge => challenge.Order).ToHashSet();
+        var emptyCells = new HashSet<int>();
+        for (var i = 0; i < totalCells; i++)
+        {
+            if (!occupied.Contains(i))
+            {
+                emptyCells.Add(i);
+            }
+        }
+
+        var byId = Model.Challenges.ToDictionary(challenge => challenge.Id);
+        var result = new List<EditorConnectionVisual>();
+
+        foreach (var node in Model.Challenges)
+        {
+            foreach (var prereqId in node.PrerequisiteIds)
+            {
+                if (!byId.TryGetValue(prereqId, out var prereq))
+                {
+                    continue;
+                }
+
+                var path = SeasonUtils.ComputeConnectionPath(node.Order, prereq.Order, emptyCells);
+                var scaledPoints = path
+                    .Select(point => (point.X / SeasonUtils.CellSize * BoardCellWidth, point.Y / SeasonUtils.CellSize * BoardCellHeight))
+                    .ToList();
+
+                var highlighted = _connectingChallengeId is null || _connectingChallengeId == node.Id;
+                result.Add(new EditorConnectionVisual(
+                    SeasonUtils.PathToSvg(scaledPoints),
+                    node.PrerequisiteIsOr && node.PrerequisiteIds.Count >= 2,
+                    highlighted));
+            }
+        }
+
+        return result;
+    }
+
+    private async Task SaveSeasonAsync()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            isSaving = true;
+            var command = Model.ToSaveCommand();
+
+            HttpResponseMessage response;
+            if (Id is { } seasonId)
+            {
+                response = await Http.PutAsJsonAsync($"api/seasons/{seasonId}", command);
+            }
+            else
+            {
+                response = await Http.PostAsJsonAsync("api/seasons", command);
+            }
+
+            using (response)
+            {
+                if (response.IsSuccessStatusCode)
+                {
+                    var saved = await response.Content.ReadFromJsonAsync<SeasonPreviewDto>();
+                        
+                    if (saved is not null)
+                    {
+                        var hadTextureUploads = Model.TextureOverrides.Count > 0;
+                        Model = SeasonEditViewModel.FromDto(saved);
+                        if (hadTextureUploads)
+                        {
+                            _textureCacheBuster++;
+                        }
+
+                        if (Id is null)
+                        {
+                            NavManager.NavigateTo($"/Seasons/{saved.Id}", replace: true);
+                        }
+                    }
+
+                    successMessage = "Season saved successfully.";
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    errorMessage = string.IsNullOrWhiteSpace(error) ? "Failed to save season." : error.Trim('"');
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            errorMessage = $"Failed to save season: {exception.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private static string GetLanguageDisplayName(string code)
+        => SeasonLanguageConstants.LanguageNames.TryGetValue(code, out var name) ? name : code;
+
+    private static string Truncate(string text, int maxLength)
+        => text.Length <= maxLength ? text : text[..(maxLength - 1)] + "…";
+}

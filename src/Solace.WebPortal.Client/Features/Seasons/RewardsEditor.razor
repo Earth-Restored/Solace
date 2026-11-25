@@ -1,0 +1,244 @@
+@using Solace.WebPortal.Client.Features.Catalog
+@using Solace.WebPortal.Client.Features.Common
+@using Solace.WebPortal.Client.Features.Players.Buildplates
+@using Solace.WebPortal.Client.Features.Seasons.Models
+@using Solace.WebPortal.Common.Features.Catalog
+@inject IServiceProvider ServiceProvider
+
+<div class="d-flex flex-column gap-3">
+    <div class="row g-2">
+        <div class="col-4">
+            <label class="form-label small fw-semibold mb-1">Rubies</label>
+            <input type="number" class="form-control form-control-sm" min="0" @bind="Rewards.Rubies" readonly="@ReadOnly" />
+        </div>
+        <div class="col-4">
+            <label class="form-label small fw-semibold mb-1">XP</label>
+            <input type="number" class="form-control form-control-sm" min="0" @bind="Rewards.ExperiencePoints" readonly="@ReadOnly" />
+        </div>
+        <div class="col-4">
+            <label class="form-label small fw-semibold mb-1">Level (optional)</label>
+            <input type="number" class="form-control form-control-sm" min="0" @bind="Rewards.Level" readonly="@ReadOnly" placeholder="None" />
+        </div>
+    </div>
+
+    <div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small fw-semibold">Inventory Items</span>
+            @if (!ReadOnly)
+            {
+                <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2" @onclick="() => _showItemPicker = true">
+                    <i class="bi bi-plus-lg me-1"></i> Add Item
+                </button>
+            }
+        </div>
+
+        @if (Rewards.Items.Count is 0)
+        {
+            <div class="text-muted small fst-italic">No inventory item rewards.</div>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-2">
+                @for (var i = 0; i < Rewards.Items.Count; i++)
+                {
+                    var iLocal = i;
+                    var rewardItem = Rewards.Items[iLocal];
+                    ItemDto? catalogItem = null;
+                    _catalog?.TryGetItem(rewardItem.Id, out catalogItem);
+
+                    <div class="d-flex align-items-center gap-2 border rounded p-2 bg-light">
+                        <img src="@(catalogItem is not null ? ItemTextureHelper.GetTextureUrl(catalogItem) : ItemTextureHelper.MissingTextureUrl)" alt="@(catalogItem?.Name ?? rewardItem.Id.ToString())" onerror="this.onerror=null; this.src='/static/missing_texture.png';" style="width: 28px; height: 28px; object-fit: contain; image-rendering: pixelated;" />
+
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="small fw-semibold text-truncate">@(catalogItem?.Name ?? rewardItem.Id.ToString())</div>
+                            <div class="text-muted text-truncate" style="font-size: 0.7rem;">@rewardItem.Id</div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                            <span class="small text-muted">x</span>
+                            <input type="number" class="form-control form-control-sm" style="width: 72px;" min="1" @bind="rewardItem.Amount" readonly="@ReadOnly" />
+
+                            @if (!ReadOnly)
+                            {
+                                <button type="button" class="btn btn-outline-danger btn-sm py-0 px-1" title="Remove Item" @onclick="() => Rewards.Items.RemoveAt(iLocal)">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small fw-semibold">Buildplates</span>
+
+            @if (!ReadOnly)
+            {
+                <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2" @onclick="() => _showBuildplatePicker = true">
+                    <i class="bi bi-plus-lg me-1"></i> Add Buildplate
+                </button>
+            }
+        </div>
+
+        @if (Rewards.Buildplates.Count is 0)
+        {
+            <div class="text-muted small fst-italic">No buildplate rewards.</div>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-2">
+                @for (var i = 0; i < Rewards.Buildplates.Count; i++)
+                {
+                    var iLocal = i;
+                    var buildplateId = Rewards.Buildplates[iLocal];
+                    _buildplateNames.TryGetValue(buildplateId, out var buildplateName);
+
+                    <div class="d-flex align-items-center justify-content-between gap-2 border rounded p-2 bg-light">
+                        <div class="min-w-0">
+                            <div class="small fw-semibold text-truncate">@(buildplateName ?? "Buildplate Template")</div>
+                            <div class="text-muted text-truncate" style="font-size: 0.7rem;">@buildplateId</div>
+                        </div>
+
+                        @if (!ReadOnly)
+                        {
+                            <button type="button" class="btn btn-outline-danger btn-sm py-0 px-1 flex-shrink-0" title="Remove Buildplate" @onclick="() => Rewards.Buildplates.RemoveAt(iLocal)">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="small fw-semibold">Persona Items (GUIDs)</span>
+        </div>
+
+        @if (Rewards.PersonaItems.Count > 0)
+        {
+            <div class="d-flex flex-wrap gap-2 mb-2">
+                @for (var i = 0; i < Rewards.PersonaItems.Count; i++)
+                {
+                    var iLocal = i;
+                    var personaId = Rewards.PersonaItems[iLocal];
+                    <span class="badge bg-secondary d-inline-flex align-items-center gap-1 py-1 px-2">
+                        <span class="font-monospace" style="font-size: 0.72rem;">@personaId</span>
+                        @if (!ReadOnly)
+                        {
+                            <button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.45rem;" title="Remove" @onclick="() => Rewards.PersonaItems.RemoveAt(iLocal)"></button>
+                        }
+                    </span>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-muted small fst-italic mb-2">No persona item rewards.</div>
+        }
+
+        @if (!ReadOnly)
+        {
+            <div class="input-group input-group-sm">
+                <input type="text" class="form-control font-monospace" placeholder="Persona item GUID..." @bind="_newPersonaInput" @bind:event="oninput" />
+                <button type="button" class="btn btn-outline-primary" @onclick="AddPersonaItem" disabled="@string.IsNullOrWhiteSpace(_newPersonaInput)">
+                    <i class="bi bi-plus-lg me-1"></i> Add
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(_personaError))
+            {
+                <div class="text-danger small mt-1">@_personaError</div>
+            }
+        }
+    </div>
+</div>
+
+<ItemPickerModal Visible="_showItemPicker" Title="Add Reward Item" ConfirmText="Add Item" ShowQuantity="true" OnCancel="() => _showItemPicker = false" OnItemSelected="HandleItemSelected" />
+
+<BuildplatePickerModal Visible="_showBuildplatePicker" Title="Add Reward Buildplate" OnCancel="() => _showBuildplatePicker = false" OnBuildplateSelected="HandleBuildplateSelected" />
+
+@code {
+    [Parameter, EditorRequired]
+    public SeasonRewardsEditViewModel Rewards { get; set; } = new();
+
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    private CatalogCacheService.SyncAccessor? _catalog;
+    private bool _showItemPicker;
+    private bool _showBuildplatePicker;
+    private string _newPersonaInput = string.Empty;
+    private string? _personaError;
+    private readonly Dictionary<Guid, string> _buildplateNames = [];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                if (ServiceProvider.GetService(typeof(CatalogCacheService)) is CatalogCacheService catalogService)
+                {
+                    _catalog = await catalogService.GetSyncAccessorAsync();
+                    StateHasChanged();
+                }
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private void HandleItemSelected((ItemDto Item, int Quantity) selection)
+    {
+        var existing = Rewards.Items.FirstOrDefault(item => item.Id == selection.Item.Id);
+        if (existing is not null)
+        {
+            existing.Amount += selection.Quantity;
+        }
+        else
+        {
+            Rewards.Items.Add(new SeasonRewardItemEditViewModel
+            {
+                Id = selection.Item.Id,
+                Amount = selection.Quantity,
+            });
+        }
+
+        _showItemPicker = false;
+    }
+
+    private void HandleBuildplateSelected(TemplateViewModel template)
+    {
+        _buildplateNames[template.Id] = template.Name;
+
+        if (!Rewards.Buildplates.Contains(template.Id))
+        {
+            Rewards.Buildplates.Add(template.Id);
+        }
+
+        _showBuildplatePicker = false;
+    }
+
+    private void AddPersonaItem()
+    {
+        _personaError = null;
+        
+        if (!Guid.TryParse(_newPersonaInput.Trim(), out var guid) || guid == Guid.Empty)
+        {
+            _personaError = "Enter a valid non-empty GUID.";
+            return;
+        }
+
+        if (!Rewards.PersonaItems.Contains(guid))
+        {
+            Rewards.PersonaItems.Add(guid);
+        }
+
+        _newPersonaInput = string.Empty;
+    }
+}

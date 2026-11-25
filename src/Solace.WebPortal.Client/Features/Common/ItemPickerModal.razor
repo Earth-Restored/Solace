@@ -1,0 +1,192 @@
+@using Solace.WebPortal.Client.Features.Catalog
+@using Solace.WebPortal.Common.Features.Catalog
+@inject IServiceProvider ServiceProvider
+
+@if (Visible)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.55); z-index: 1060;" aria-modal="true" role="dialog" @onclick="CloseAsync">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" @onclick:stopPropagation="true">
+            <div class="modal-content shadow-lg">
+                <div class="modal-header py-2">
+                    <h5 class="modal-title fs-6 fw-bold mb-0">@Title</h5>
+                    <button type="button" class="btn-close" @onclick="CloseAsync"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" class="form-control form-control-sm mb-3" placeholder="Search items by name or ID..." @bind="SearchTerm" @bind:event="oninput" />
+
+                    @if (_isLoading)
+                    {
+                        <div class="d-flex justify-content-center my-4">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        </div>
+                    }
+                    else if (_filteredItems.Count is 0)
+                    {
+                        <div class="text-muted text-center py-4 small">No matching items found.</div>
+                    }
+                    else
+                    {
+                        <div class="d-grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));">
+                            @foreach (var item in PagedItems)
+                            {
+                                var isSelected = _selectedItem?.Id == item.Id;
+                                <button type="button" class="card text-start p-2 @(isSelected ? "border-primary bg-primary-subtle" : "border")" style="cursor: pointer;" @key="item.Id" @onclick="() => _selectedItem = item">
+                                    <div class="d-flex flex-column align-items-center text-center gap-1">
+                                        <img src="@ItemTextureHelper.GetTextureUrl(item)" alt="@item.Name" onerror="this.onerror=null; this.src='/static/missing_texture.png';" style="width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated;" />
+                                        <div class="small fw-semibold text-truncate w-100" title="@item.Name">@item.Name</div>
+                                        <div class="text-muted text-truncate w-100" style="font-size: 0.65rem;" title="@item.Id">@item.Id</div>
+                                    </div>
+                                </button>
+                            }
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="PrevPage" disabled="@(!CanGoPrev)">Prev</button>
+                            <span class="small text-muted">Page @_currentPage of @TotalPages (@_filteredItems.Count items)</span>
+                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="NextPage" disabled="@(!CanGoNext)">Next</button>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        @if (ShowQuantity && _selectedItem is not null)
+                        {
+                            <label class="small fw-semibold mb-0" for="itemPickerQty">Quantity:</label>
+                            <input type="number" id="itemPickerQty" class="form-control form-control-sm" style="width: 90px;" min="1" @bind="_quantity" />
+                            @if (ShowNonStackableWarning && !_selectedItem.Stackable && _quantity > 1)
+                            {
+                                <span class="text-warning small">Will generate @_quantity separate instances.</span>
+                            }
+                        }
+                    </div>
+                    <div class="d-flex gap-2 ms-auto">
+                        <button type="button" class="btn btn-secondary btn-sm" @onclick="CloseAsync">Cancel</button>
+                        <button type="button" class="btn btn-success btn-sm" disabled="@(_selectedItem is null || (ShowQuantity && _quantity < 1))" @onclick="ConfirmAsync">
+                            @ConfirmText
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = "Select Item";
+
+    [Parameter]
+    public string ConfirmText { get; set; } = "Select Item";
+
+    [Parameter]
+    public bool ShowQuantity { get; set; } = true;
+
+    [Parameter]
+    public bool ShowNonStackableWarning { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public EventCallback<(ItemDto Item, int Quantity)> OnItemSelected { get; set; }
+
+    private CatalogCacheService.SyncAccessor? _catalog;
+    private bool _isLoading;
+    private bool _wasVisible;
+    private List<ItemDto> _filteredItems = [];
+    private ItemDto? _selectedItem;
+    private int _quantity = 1;
+    private int _currentPage = 1;
+    private const int PageSize = 12;
+
+    private string _searchTerm = string.Empty;
+    private string SearchTerm
+    {
+        get => _searchTerm;
+        set
+        {
+            _searchTerm = value;
+            _currentPage = 1;
+            RefreshFiltered();
+        }
+    }
+
+    private int TotalPages => int.Max(1, (int)double.Ceiling(_filteredItems.Count / (double)PageSize));
+    private bool CanGoPrev => _currentPage > 1;
+    private bool CanGoNext => _currentPage < TotalPages;
+
+    private IEnumerable<ItemDto> PagedItems => _filteredItems
+        .Skip((_currentPage - 1) * PageSize)
+        .Take(PageSize);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Visible && !_wasVisible)
+        {
+            _wasVisible = true;
+            _selectedItem = null;
+            _quantity = 1;
+            _searchTerm = string.Empty;
+            _currentPage = 1;
+
+            if (_catalog is null && ServiceProvider.GetService(typeof(CatalogCacheService)) is CatalogCacheService catalogService)
+            {
+                _isLoading = true;
+                try
+                {
+                    _catalog = await catalogService.GetSyncAccessorAsync();
+                }
+                finally
+                {
+                    _isLoading = false;
+                }
+            }
+
+            RefreshFiltered();
+        }
+        else if (!Visible && _wasVisible)
+        {
+            _wasVisible = false;
+        }
+    }
+
+    private void RefreshFiltered()
+    {
+        _filteredItems = _catalog is { } catalog
+            ? catalog.Search(_searchTerm).ToList()
+            : [];
+    }
+
+    private void PrevPage()
+    {
+        if (CanGoPrev)
+        {
+            _currentPage--;
+        }
+    }
+
+    private void NextPage()
+    {
+        if (CanGoNext)
+        {
+            _currentPage++;
+        }
+    }
+
+    private Task CloseAsync()
+        => OnCancel.InvokeAsync();
+
+    private async Task ConfirmAsync()
+    {
+        if (_selectedItem is null)
+        {
+            return;
+        }
+
+        var quantity = ShowQuantity ? int.Max(1, _quantity) : 1;
+        await OnItemSelected.InvokeAsync((_selectedItem, quantity));
+    }
+}

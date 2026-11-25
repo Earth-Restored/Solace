@@ -2,7 +2,7 @@
 @using Solace.WebPortal.Client.Features.Catalog
 @using Solace.WebPortal.Common.Features.Catalog
 @using Solace.WebPortal.Common.Features.Seasons
-@inject CatalogCacheService CatalogService
+@inject IServiceProvider ServiceProvider
 
 <div class="season-preview-wrapper">
     @if (ShowToolbar && Season is not null && AvailableLanguages.Count > 1)
@@ -514,8 +514,11 @@
         {
             try
             {
-                _catalog = await CatalogService.GetSyncAccessorAsync();
-                StateHasChanged();
+                if (ServiceProvider.GetService(typeof(CatalogCacheService)) is CatalogCacheService catalogService)
+                {
+                    _catalog = await catalogService.GetSyncAccessorAsync();
+                    StateHasChanged();
+                }
             }
             catch
             {

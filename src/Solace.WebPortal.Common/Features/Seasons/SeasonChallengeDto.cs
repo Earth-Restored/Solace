@@ -14,5 +14,7 @@ public sealed record SeasonChallengeDto(
     string? TopDecorationTexture = null,
     string? BottomDecorationTexture = null,
     string? GlowColor = null,
-    bool RewardSparkles = false
+    bool RewardSparkles = false,
+    ChallengeObjectiveTypeDto ObjectiveType = ChallengeObjectiveTypeDto.TappableCollected,
+    Guid? ObjectiveTarget = null
 );
