@@ -95,7 +95,8 @@ internal static class AspireExtension
         public ConfigParameter AddConfigParameter(
             string configPath,
             string defaultValue = "",
-            bool isSecret = false)
+            bool isSecret = false,
+            bool isOptional = false)
         {
             var parameterName = configPath.Replace(':', '-');
 
@@ -104,6 +105,11 @@ internal static class AspireExtension
                 () => builder.Configuration[configPath] ?? defaultValue,
                 secret: isSecret
             );
+
+            if (isOptional)
+            {
+                parameter = parameter.AsOptional();
+            }
 
             return new ConfigParameter(configPath, parameter);
         }

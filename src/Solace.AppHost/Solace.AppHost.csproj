@@ -1,9 +1,8 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.6.5">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <UserSecretsId>f7a353f3-b007-4d60-b616-4aa04a086e5f</UserSecretsId>
-    <AspireUseCliBundle>true</AspireUseCliBundle>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,23 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
     <PackageReference Include="Aspire.Hosting.Docker" />
+    <PackageReference Include="Aspire.Hosting.Dotnet" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="../Solace.ApiServer/Solace.ApiServer.csproj" />
-    <ProjectReference Include="../Solace.AuthServer/Solace.AuthServer.csproj" />
-    <ProjectReference Include="../Solace.Buildplate.Launcher/Solace.Buildplate.Launcher.csproj" />
-    <ProjectReference Include="../Solace.Buildplate.ServerSetup/Solace.Buildplate.ServerSetup.csproj" />
-    <ProjectReference Include="../Solace.Buildplate.Updater/Solace.Buildplate.Updater.csproj" />
-    <ProjectReference Include="../Solace.Cdn/Solace.Cdn.csproj" />
-    <ProjectReference Include="../Solace.EventBus.Server/Solace.EventBus.Server.csproj" />
-    <ProjectReference Include="../Solace.Locator/Solace.Locator.csproj" />
-    <ProjectReference Include="../Solace.ObjectStore.Server/Solace.ObjectStore.Server.csproj" />
-    <ProjectReference Include="../Solace.TappablesGenerator/Solace.TappablesGenerator.csproj" />
-    <ProjectReference Include="../Solace.TileRenderer/Solace.TileRenderer.csproj" />
-    <ProjectReference Include="../Solace.WebPortal/Solace.WebPortal.csproj" />
   </ItemGroup>
 
 </Project>

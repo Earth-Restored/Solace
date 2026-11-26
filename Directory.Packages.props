@@ -4,9 +4,11 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Asp.Versioning.Mvc" Version="10.2.1" />
-    <PackageVersion Include="Aspire.Hosting.Docker" Version="13.6.5" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.6.5" />
-    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.6.5" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="17.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Docker" Version="17.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Dotnet" Version="17.0.0" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="17.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="17.0.0" />
     <PackageVersion Include="BitcoderCZ.Buffers" Version="1.8.0" />
     <PackageVersion Include="BitcoderCZ.IO" Version="1.2.0" />
     <PackageVersion Include="BitcoderCZ.Maths" Version="1.2.0" />

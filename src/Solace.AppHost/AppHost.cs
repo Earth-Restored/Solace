@@ -59,7 +59,7 @@ if (builder.Configuration.GetValue<bool>("Shared:ResolvePaths", false))
     objectStoreDataDirectory = Path.GetFullPath(objectStoreDataDirectory);
 }
 
-var objectStore = builder.AddProject<Projects.Solace_ObjectStore_Server>("object-store")
+var objectStore = builder.AddDotnetProject("object-store", "../Solace.ObjectStore.Server")
     .WithHttpEndpoint(name: "http")
     .WithHealthCheck("object-store-health-check")
     .WithEnvironment("DataDirectory", objectStoreDataDirectory)
@@ -109,7 +109,7 @@ if (migrationMode)
     return;
 }
 
-var eventBus = builder.AddProject<Projects.Solace_EventBus_Server>("event-bus")
+var eventBus = builder.AddDotnetProject("event-bus", "../Solace.EventBus.Server")
     .WithHttpEndpoint(name: "http")
     .WithHealthCheck("event-bus-health-check");
 
@@ -147,7 +147,7 @@ if (builder.Configuration.GetValue<bool>("Shared:ResolvePaths", false))
 
 var acceptMinecraftEula = builder.AddConfigParameter("Shared:AcceptMinecraftEula");
 
-var buildplateServerSetup = builder.AddProject<Projects.Solace_Buildplate_ServerSetup>("buildplate-server-setup")
+var buildplateServerSetup = builder.AddDotnetProject("buildplate-server-setup", "../Solace.Buildplate.ServerSetup")
     .WithEnvironmentParameter(acceptMinecraftEula, prefixToRemove: "Shared:")
     .WithEnvironment("StaticDataPath", staticDataPath)
     .PublishAsDockerComposeService((resource, service) =>
@@ -166,7 +166,7 @@ var buildplateServerSetup = builder.AddProject<Projects.Solace_Buildplate_Server
 
 var buildplateLauncherPublicEndpoint = builder.AddConfigParameter("BuildplateLauncher:PublicEndpoint");
 
-var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate_Launcher>("buildplate-launcher")
+var buildplateLauncher = builder.AddDotnetProject("buildplate-launcher", "../Solace.Buildplate.Launcher")
     .WithHttpEndpoint(name: "http")
     .WithHttpHealthCheck("/health")
     .WithReference(eventBus)
@@ -193,7 +193,7 @@ var buildplateLauncher = builder.AddProject<Projects.Solace_Buildplate_Launcher>
         service.Environment["StaticDataPath"] = "/app/static-data";
     });
 
-var buildplateUpdater = builder.AddProject<Projects.Solace_Buildplate_Updater>("buildplate-updater")
+var buildplateUpdater = builder.AddDotnetProject("buildplate-updater", "../Solace.Buildplate.Updater")
     .WithHttpEndpoint(name: "http")
     .WithHttpHealthCheck("/health")
     .WithReference(eventBus)
@@ -220,7 +220,7 @@ var apiPort = builder.Configuration.GetValue<int>("ApiServer:Port", 8089);
 
 var fixUpBuildplatesOnImport = builder.AddConfigParameter("Shared:FixUpBuildplatesOnImport");
 
-var apiServer = builder.AddProject<Projects.Solace_ApiServer>("api-server")
+var apiServer = builder.AddDotnetProject("api-server", "../Solace.ApiServer")
     .WithHttpEndpoint(port: apiPort, name: "http")
     .WithEndpoint("http", endpoint =>
     {
@@ -272,7 +272,7 @@ apiServer
 
 var cdnPort = builder.Configuration.GetValue<int>("Cdn:Port", 8090);
 
-var cdn = builder.AddProject<Projects.Solace_Cdn>("cdn")
+var cdn = builder.AddDotnetProject("cdn", "../Solace.Cdn")
     .WithHttpEndpoint(port: cdnPort, name: "http")
     .WithEndpoint("http", endpoint =>
     {
@@ -303,15 +303,15 @@ var cdn = builder.AddProject<Projects.Solace_Cdn>("cdn")
 var authServerPort = builder.Configuration.GetValue<int>("AuthServer:Port", 8088);
 var webPortalPort = builder.Configuration.GetValue<int>("WebPortal:Port", 5000);
 
-var webPortalPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:WebPortal");
+var webPortalPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:WebPortal", isOptional: true);
 var authServerOidcClientSecret = builder.AddConfigParameter("Shared:Oidc:WebPortal:AuthServer:ClientSecret", isSecret: true);
 var authServerOidcAllowInsecure = builder.AddConfigParameter("Shared:Oidc:WebPortal:AuthServer:AllowInsecure");
 var captchaProvider = builder.AddConfigParameter("Shared:Captcha:Provider", defaultValue: "NoOp");
-var captchaCloudflareTurnstileSiteKey = builder.AddConfigParameter("Shared:Captcha:CloudflareTurnstileSiteKey");
-var captchaCloudflareTurnstileSecretKey = builder.AddConfigParameter("Shared:Captcha:CloudflareTurnstileSecretKey", isSecret: true);
+var captchaCloudflareTurnstileSiteKey = builder.AddConfigParameter("Shared:Captcha:CloudflareTurnstileSiteKey", isOptional: true);
+var captchaCloudflareTurnstileSecretKey = builder.AddConfigParameter("Shared:Captcha:CloudflareTurnstileSecretKey", isSecret: true, isOptional: true);
 
 // todo: seperate playfab into it's own project
-var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
+var authServer = builder.AddDotnetProject("auth-server", "../Solace.AuthServer")
     .WithHttpEndpoint(port: authServerPort, name: "http")
     .WithEndpoint("http", endpoint =>
     {
@@ -360,10 +360,10 @@ var authServer = builder.AddProject<Projects.Solace_AuthServer>("auth-server")
 
 var locatorPort = builder.Configuration.GetValue<int>("Locator:Port", 8080);
 
-var apiServerPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:ApiServer");
-var cdnPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:Cdn");
+var apiServerPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:ApiServer", isOptional: true);
+var cdnPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:Cdn", isOptional: true);
 
-var locator = builder.AddProject<Projects.Solace_Locator>("locator")
+var locator = builder.AddDotnetProject("locator", "../Solace.Locator")
     .WithHttpEndpoint(port: locatorPort, name: "http")
     .WithEndpoint("http", endpoint =>
     {
@@ -380,7 +380,7 @@ var locator = builder.AddProject<Projects.Solace_Locator>("locator")
     {
     });
 
-var tappableGenerator = builder.AddProject<Projects.Solace_TappablesGenerator>("tappable-generator")
+var tappableGenerator = builder.AddDotnetProject("tappable-generator", "../Solace.TappablesGenerator")
     .WithHttpEndpoint(name: "http")
     .WithHttpHealthCheck("/health")
     .WithReference(eventBus)
@@ -400,10 +400,10 @@ var tappableGenerator = builder.AddProject<Projects.Solace_TappablesGenerator>("
         service.Environment["StaticDataPath"] = "/app/static-data";
     });
 
-var tileJsonUrl = builder.AddConfigParameter("TileRenderer:TileSource:TileJsonUrl");
-var tileDbConnString = builder.AddConfigParameter("TileRenderer:TileSource:TileDatabaseConnectionString");
+var tileJsonUrl = builder.AddConfigParameter("TileRenderer:TileSource:TileJsonUrl", isOptional: true);
+var tileDbConnString = builder.AddConfigParameter("TileRenderer:TileSource:TileDatabaseConnectionString", isOptional: true);
 
-var tileRenderer = builder.AddProject<Projects.Solace_TileRenderer>("tile-renderer")
+var tileRenderer = builder.AddDotnetProject("tile-renderer", "../Solace.TileRenderer")
     .WithHttpEndpoint(name: "http")
     .WithHttpHealthCheck("/health")
     .WithReference(eventBus)
@@ -425,18 +425,18 @@ var tileRenderer = builder.AddProject<Projects.Solace_TileRenderer>("tile-render
         service.Environment["StaticDataPath"] = "/app/static-data";
     });
 
-var locatorPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:Locator");
-var authServerPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:AuthServer");
+var locatorPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:Locator", isOptional: true);
+var authServerPublicEndpoint = builder.AddConfigParameter("Shared:PublicEndpoints:AuthServer", isOptional: true);
 
-var adminAccountPassword = builder.AddConfigParameter("WebPortal:AdminAccountPassword", isSecret: true);
+var adminAccountPassword = builder.AddConfigParameter("WebPortal:AdminAccountPassword", isSecret: true, isOptional: true);
 
 var buildplatePreviewEnabled = builder.AddConfigParameter("WebPortal:BuildplatePreview:Enabled");
 var buildplatePreviewGenerationMaxConcurrency = builder.AddConfigParameter("WebPortal:BuildplatePreview:GenerationMaxConcurrency");
 
-var webportalOidcSigningCertPassword = builder.AddConfigParameter("Shared:Oidc:WebPortal:SigningCertPassword", isSecret: true);
-var webportalOidcEncryptionCertPassword = builder.AddConfigParameter("Shared:Oidc:WebPortal:EncryptionCertPassword", isSecret: true);
+var webportalOidcSigningCertPassword = builder.AddConfigParameter("Shared:Oidc:WebPortal:SigningCertPassword", isSecret: true, isOptional: true);
+var webportalOidcEncryptionCertPassword = builder.AddConfigParameter("Shared:Oidc:WebPortal:EncryptionCertPassword", isSecret: true, isOptional: true);
 
-var webPortal = builder.AddProject<Projects.Solace_WebPortal>("web-portal")
+var webPortal = builder.AddDotnetProject("web-portal", "../Solace.WebPortal")
     .WithHttpEndpoint(port: webPortalPort, name: "http")
     .WithEndpoint("http", endpoint =>
     {
@@ -532,4 +532,6 @@ builder.AddContainer("nginx", "nginx", "alpine")
     .WithBindMount("./certs", "/etc/nginx/certs", isReadOnly: true)
     .WithLifetime(ContainerLifetime.Persistent);
 
-builder.Build().Run();
+var app = builder.Build();
+
+await app.RunAsync();
