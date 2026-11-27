@@ -6,6 +6,7 @@ using OData2Linq;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Solace.ApiServer.Models.Playfab;
 using Solace.Common.Utils;
 using CItem = Solace.StaticData.Playfab.Item;
@@ -23,6 +24,10 @@ internal sealed class CatalogController : SolaceControllerBase
         NumberHandling = JsonNumberHandling.AllowReadingFromString,
         Converters = { new UtcDateTimeConverter() },
     };
+
+    // The client asks for one platform tag equal to both the store and the title, which never matches,
+    // so split it into one check per tag. Each platform sends its own store, e.g. android.googleplay or ios.store.
+    private static readonly Regex PlatformFilterRegex = new Regex(@"platforms/any\((\w+): \1 eq '([^']*)' and \1 eq '([^']*)'\)", RegexOptions.Compiled);
 
     private static volatile Item[]? itemData;
     private static readonly Lock InitLock = new Lock();
@@ -63,8 +68,7 @@ internal sealed class CatalogController : SolaceControllerBase
         IEnumerable<Item> items;
         try
         {
-            string filter = request.Filter
-                .Replace("platforms/any(tp: tp eq 'android.googleplay' and tp eq 'title.earth')", "platforms/any(tp: tp eq 'android.googleplay') and platforms/any(tp: tp eq 'title.earth')");
+            string filter = PlatformFilterRegex.Replace(request.Filter, "platforms/any($1: $1 eq '$2') and platforms/any($1: $1 eq '$3')");
 
             var oDataQuery = itemData.AsQueryable().OData(settings =>
                 {
